@@ -298,6 +298,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "print_count_total": printer.print_count,
             "job_filament_used": printer.latest_project_supplies_usage,
             "ace_loaded_slot": printer.primary_multi_color_box_loaded_slot,
+            "aux_fan_speed_pct": printer.aux_fan_speed_pct,
+            "box_fan_level": printer.box_fan_level,
         }
 
         # Per-slot spool entities. The material type and colour already arrive
@@ -315,16 +317,21 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         attributes = {
             "ace_spools": {
-                "spool_info": primary_ace_spool_info
+                "spool_info": primary_ace_spool_info,
+                "box_info": printer.primary_multi_color_box_info_object,
             },
             **{
                 f"ace_slot_{slot_num}": {
                     "slot": slot_num,
                     "color": spool.get("color"),
                     "color_hex": spool.get("color_hex"),
+                    "colors_hex": spool.get("colors_hex"),
+                    "is_multi_color": spool.get("is_multi_color"),
                     "sku": spool.get("sku") or None,
                     "spool_loaded": spool.get("spool_loaded"),
                     "status": spool.get("status"),
+                    "edit_status": spool.get("edit_status"),
+                    "consumables_percent": spool.get("consumables_percent"),
                 }
                 for slot_num, spool in (
                     (n, primary_ace_spool_info[n - 1])

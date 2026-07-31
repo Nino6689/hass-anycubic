@@ -142,6 +142,17 @@ FDM_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
         printer_entity_type=PrinterEntityType.FDM,
     ),
     AnycubicSensorEntityDescription(
+        key="aux_fan_speed_pct",
+        translation_key="aux_fan_speed_pct",
+        native_unit_of_measurement=PERCENTAGE,
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    AnycubicSensorEntityDescription(
+        key="box_fan_level",
+        translation_key="box_fan_level",
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    AnycubicSensorEntityDescription(
         key="curr_nozzle_temp",
         translation_key="curr_nozzle_temp",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,

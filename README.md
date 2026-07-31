@@ -307,7 +307,7 @@ Roughly 48 entities per printer. The highlights:
 | **Lifetime** | `material_used_total` (kg), `print_time_total_hrs`, `print_count_total` |
 | **Temperatures** | `nozzle_temperature`, `hotbed_temperature` and their `target_*` counterparts, `ace_current_temperature` |
 | **Status** | `current_status`, `printer_online`, `is_busy`, `is_available`, `job_in_progress`, `job_complete`, `job_failed`, `job_paused`, `mqtt_connection_active` |
-| **ACE** | `ace_slot_1`–`ace_slot_4` (material type per slot, with colour hex, SKU and loaded state as attributes), `ace_loaded_slot`, `ace_spools`, `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `ace_run_out_refill`, `ace_refresh_spools` |
+| **ACE** | `ace_slot_1`–`ace_slot_4` (material type per slot; colour hex, full multi-colour list, SKU, loaded state and edit status as attributes), `ace_loaded_slot`, `ace_current_temperature`, `ace_box_fan_level`, `ace_spools` (with a `box_info` attribute: humidity, feed status, model), `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `ace_run_out_refill`, `ace_refresh_spools` |
 | **Controls** | `printer_light` (on/off + brightness), `pause_print`, `resume_print`, `cancel_print`, file-list refresh buttons, `manual_mqtt_connection_enabled` |
 | **Other** | Live job preview `image`, printer and ACE `update` entities, plus [services](https://github.com/Nino6689/hass-anycubic_cloud/blob/main/custom_components/anycubic_cloud/services.yaml) for printing, drying and file management |
 
@@ -417,6 +417,8 @@ Found a security issue? See [SECURITY.md](SECURITY.md).
 | Change | File | Why |
 |---|---|---|
 | **Verify TLS to the cloud broker** | `anycubic_cloud_api/api/mqtt.py` | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the connection could be intercepted. Now pins Anycubic's root CA with hostname checking on. See [Security](#security) |
+| **Full ACE data exposed** | `anycubic_cloud_api/data_models/printer_properties.py` | `color_group` (multi-colour spools), `edit_status`, `icon_type`, `consumables_percent`, box `humidity` and `feed_status` were all being received and discarded. Also consumes `head_tools_model` so it stops logging as unhandled |
+| **Auxiliary + ACE box fan** | `sensor.py` | The printer reports `aux_fan_speed_pct` and `box_fan_level` alongside the part fan; both were discarded |
 | **Printer light control** | `light.py`, `anycubic_cloud_api/` | The API layer could already set the light, but no `light` platform existed and the printer's `light/report` replies were discarded as an unknown message type. Now a real on/off + brightness entity |
 | **Per-slot ACE spool entities** | `sensor.py`, `coordinator.py` | Material type, colour and SKU per slot were only reachable by digging through an attribute blob |
 | **Levelling no longer reads as "unknown"** | `anycubic_cloud_api/data_models/project.py` | A Kobra S1 reports print status `9` while levelling, which isn't in the status enum, so `job_state` read `unknown` and `job_in_progress` stayed **off** for the first couple of minutes of every print. Falls back to the plain-text phase the printer also sends. Fixes upstream [#55](https://github.com/WaresWichall/hass-anycubic_cloud/issues/55) |

@@ -342,6 +342,12 @@
       },
       "ace_slot_4": {
         "name": "ACE Slot 4"
+      },
+      "aux_fan_speed_pct": {
+        "name": "Auxiliary Fan Speed"
+      },
+      "box_fan_level": {
+        "name": "ACE Box Fan Level"
       }
     },
     "switch": {

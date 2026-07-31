@@ -98,6 +98,8 @@ class AnycubicPrinter:
         "_multi_color_box",
         "_latest_project",
         "_fan_speed",
+        "_aux_fan_speed",
+        "_box_fan_level",
         "_print_speed_pct",
         "_print_speed_mode",
         "_local_file_list",
@@ -212,6 +214,8 @@ class AnycubicPrinter:
         self._has_peripheral_udisk: bool = False
         self._is_bound_to_user: bool = True
         self._job_download_progress: int = 0
+        self._aux_fan_speed: int | None = None
+        self._box_fan_level: int | None = None
         # Keyed by the light `type` the printer reports (Kobra S1 uses 2).
         self._lights: dict[int, dict[str, int]] = dict()
 
@@ -812,6 +816,14 @@ class AnycubicPrinter:
 
             self._fan_speed = int(data['fan_speed_pct'])
 
+            # The Kobra S1 also reports the auxiliary part fan and the ACE box
+            # fan here. Both were previously discarded as unhandled data.
+            if 'aux_fan_speed_pct' in data:
+                self._aux_fan_speed = int(data['aux_fan_speed_pct'])
+
+            if 'box_fan_level' in data:
+                self._box_fan_level = int(data['box_fan_level'])
+
             return
         else:
             raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.fan)
@@ -936,6 +948,9 @@ class AnycubicPrinter:
         payload: AnycubicConsumableData,
     ) -> None:
         if action == 'getInfo' and state == 'success':
+            # Consume the tool-head model so it stops being reported as
+            # unhandled data. Not currently surfaced anywhere.
+            payload['data'].get('head_tools_model')
             data = payload['data']['multi_color_box']
             self._set_multi_color_box(data)
             return
@@ -1455,6 +1470,14 @@ class AnycubicPrinter:
         ])
 
     @property
+    def aux_fan_speed_pct(self) -> int | None:
+        return self._aux_fan_speed
+
+    @property
+    def box_fan_level(self) -> int | None:
+        return self._box_fan_level
+
+    @property
     def light_type(self) -> int | None:
         """The light `type` this printer reports. Kobra S1 uses 2, not 1."""
         if not self._lights:
@@ -1658,6 +1681,13 @@ class AnycubicPrinter:
             return self.primary_multi_color_box.current_temperature
 
         return 0
+
+    @property
+    def primary_multi_color_box_info_object(self) -> dict[str, Any] | None:
+        if self.primary_multi_color_box:
+            return self.primary_multi_color_box.box_info_object
+
+        return None
 
     @property
     def primary_multi_color_box_loaded_slot(self) -> int | None:

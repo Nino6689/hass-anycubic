@@ -343,6 +343,16 @@ class AnycubicFeedStatus:
             slot_index=data['slot_index'],
         )
 
+    @property
+    def info_object(self) -> dict[str, Any]:
+        return {
+            "code": self._code,
+            "type": self._type,
+            "current_status": self._current_status,
+            # -1 when nothing is feeding; otherwise the 1-based slot.
+            "slot": self._slot_index + 1 if self._slot_index >= 0 else None,
+        }
+
     def __repr__(self) -> str:
         return (
             f"AnycubicFeedStatus(code={self._code}, type={self._type}, current_status={self._current_status}, "
@@ -415,8 +425,11 @@ class AnycubicSpoolInfo:
         "_sku",
         "_material_type",
         "_color",
+        "_color_group",
         "_edit_status",
         "_status",
+        "_icon_type",
+        "_consumables_percent",
     )
 
     def __init__(
@@ -427,6 +440,9 @@ class AnycubicSpoolInfo:
         color: list[int],
         edit_status: int,
         status: int,
+        color_group: list[list[int]] | None = None,
+        icon_type: int | None = None,
+        consumables_percent: float | None = None,
     ) -> None:
         self._index = int(index)
         self._sku = str(sku)
@@ -434,8 +450,17 @@ class AnycubicSpoolInfo:
         self._color = list([
             int(x) for x in color
         ])
+        # Every colour on the spool, as RGBA. Single-colour filament reports one
+        # entry matching `color`; multi-colour / gradient spools report several.
+        self._color_group: list[list[int]] = list([
+            list([int(c) for c in entry]) for entry in (color_group or [])
+        ])
         self._edit_status = int(edit_status)
         self._status = int(status)
+        self._icon_type = int(icon_type) if icon_type is not None else None
+        self._consumables_percent = (
+            float(consumables_percent) if consumables_percent is not None else None
+        )
 
     @classmethod
     def from_json(cls, data: dict[str, Any] | None) -> AnycubicSpoolInfo | None:
@@ -449,6 +474,9 @@ class AnycubicSpoolInfo:
             color=data['color'],
             edit_status=data['edit_status'],
             status=data['status'],
+            color_group=data.get('color_group'),
+            icon_type=data.get('icon_type'),
+            consumables_percent=data.get('consumables_percent'),
         )
 
     @property
@@ -471,6 +499,39 @@ class AnycubicSpoolInfo:
     def color_hex(self) -> str:
         """Slot colour as #RRGGBB, for dashboard cards and templates."""
         return "#{:02X}{:02X}{:02X}".format(*self._color[:3])
+
+    @property
+    def color_group(self) -> list[list[int]]:
+        """Every colour on the spool as RGBA. Several entries for multi-colour."""
+        return self._color_group
+
+    @property
+    def colors_hex(self) -> list[str]:
+        """Every colour on the spool as #RRGGBB, in order."""
+        if not self._color_group:
+            return [self.color_hex]
+
+        return [
+            "#{:02X}{:02X}{:02X}".format(*entry[:3])
+            for entry in self._color_group
+            if len(entry) >= 3
+        ]
+
+    @property
+    def is_multi_color(self) -> bool:
+        return len(self._color_group) > 1
+
+    @property
+    def edit_status(self) -> int:
+        return self._edit_status
+
+    @property
+    def icon_type(self) -> int | None:
+        return self._icon_type
+
+    @property
+    def consumables_percent(self) -> float | None:
+        return self._consumables_percent
 
     @property
     def color_red(self) -> int:
@@ -514,6 +575,7 @@ class AnycubicMultiColorBox:
         "_loaded_slot",
         "_feed_status",
         "_temp",
+        "_humidity",
         "_drying_status",
         "_curr_nozzle_temp",
         "_target_nozzle_temp",
@@ -533,6 +595,7 @@ class AnycubicMultiColorBox:
         curr_nozzle_temp: int | None,
         target_nozzle_temp: int | None,
         slots: list[dict[str, Any]],
+        humidity: float | None = None,
     ) -> None:
         self._id: int = int(id)
         self._status: int = int(status)
@@ -541,6 +604,9 @@ class AnycubicMultiColorBox:
         self._loaded_slot: int = int(loaded_slot)
         self.set_feed_status(feed_status)
         self.set_current_temperature(temp)
+        self._humidity: float | None = (
+            float(humidity) if humidity is not None else None
+        )
         self.set_drying_status(drying_status)
         self._curr_nozzle_temp: int | None = int(curr_nozzle_temp) if curr_nozzle_temp is not None else None
         self._target_nozzle_temp: int | None = int(target_nozzle_temp) if target_nozzle_temp is not None else None
@@ -620,6 +686,7 @@ class AnycubicMultiColorBox:
             loaded_slot=data['loaded_slot'],
             feed_status=data['feed_status'],
             temp=data['temp'],
+            humidity=data.get('humidity'),
             drying_status=data['drying_status'],
             curr_nozzle_temp=data.get('curr_nozzle_temp'),
             target_nozzle_temp=data.get('target_nozzle_temp'),
@@ -629,6 +696,30 @@ class AnycubicMultiColorBox:
     @property
     def current_temperature(self) -> int:
         return self._temp
+
+    @property
+    def model_id(self) -> int:
+        return self._model_id
+
+    @property
+    def box_info_object(self) -> dict[str, Any]:
+        return {
+            "box_id": self._id,
+            "model_id": self._model_id,
+            "status": self._status,
+            "temperature": self._temp,
+            "humidity": self._humidity,
+            "auto_feed": bool(self._auto_feed),
+            "loaded_slot": self._loaded_slot + 1 if self._loaded_slot >= 0 else None,
+            "feed_status": (
+                self._feed_status.info_object if self._feed_status else None
+            ),
+        }
+
+    @property
+    def humidity(self) -> float | None:
+        """ACE internal humidity. Reads 0 on hardware without the sensor."""
+        return self._humidity
 
     @property
     def loaded_slot(self) -> int:
@@ -666,9 +757,15 @@ class AnycubicMultiColorBox:
                 "material_type": slot.material_type,
                 "color": slot.color,
                 "color_hex": slot.color_hex,
+                "colors_hex": slot.colors_hex,
+                "color_group": slot.color_group,
+                "is_multi_color": slot.is_multi_color,
                 "sku": slot.sku,
                 "status": slot.status,
                 "spool_loaded": slot.spool_loaded,
+                "edit_status": slot.edit_status,
+                "icon_type": slot.icon_type,
+                "consumables_percent": slot.consumables_percent,
             } for slot in self._slots
         ])
         return spool_list
