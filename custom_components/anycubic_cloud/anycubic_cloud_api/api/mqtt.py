@@ -246,16 +246,35 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
             self._log_to_error(f"Anycubic MQTT unable to start, no certificate found in root: {ssl_root}.")
             raise AnycubicMQTTClientError(ErrorsMQTTClient.cert_missing)
 
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-        ssl_context.set_ciphers(('ALL:@SECLEVEL=0'),)
+        # Anycubic's broker is a fixed cloud endpoint, so verify it properly.
+        # PROTOCOL_TLS_CLIENT enables certificate verification and hostname
+        # checking by default; both are set explicitly below to make that clear.
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+
+        # Anycubic's client certificate is SHA-1 signed, which OpenSSL 3.x will
+        # not load at the default security level. Narrowed from upstream's
+        # "ALL:" so the normal cipher list still applies -- this relaxes the
+        # certificate signature check only.
+        ssl_context.set_ciphers('DEFAULT:@SECLEVEL=0')
+
+        # Anycubic's root CA omits the keyUsage extension. Python 3.13+ enables
+        # VERIFY_X509_STRICT by default, which rejects such a CA as a trust
+        # anchor outright. Clearing that single flag keeps full chain and
+        # hostname verification intact. No-op on older Python versions.
+        ssl_context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+
+        ssl_context.check_hostname = True
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+        # Pin Anycubic's own root CA -- their broker certificate is issued by a
+        # private CA and is not present in any public trust store.
+        ssl_context.load_verify_locations(get_mqtt_ssl_path_ca(ssl_root))
         ssl_context.load_cert_chain(
             crt_path,
             get_mqtt_ssl_path_key(ssl_root),
             None,
         )
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        ssl_context.load_verify_locations(get_mqtt_ssl_path_ca(ssl_root))
 
         return ssl_context
 
@@ -365,7 +384,6 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
         self._set_mqtt_username_password()
 
         self._mqtt_client.tls_set_context(self._mqtt_build_ssl_context())
-        self._mqtt_client.tls_insecure_set(True)
 
         self._mqtt_client.reconnect_delay_set(5)
 

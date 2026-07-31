@@ -147,9 +147,19 @@ class AnycubicAuthentication:
 
     def set_api_user_id(
         self,
-        api_user_id: int,
+        api_user_id: int | str | None,
     ) -> None:
-        self._api_user_id = int(api_user_id)
+        # Defensive: a rejected or malformed token can yield a missing or
+        # non-numeric id. Leave it unset rather than raising a bare TypeError,
+        # so callers see a failed login instead of an unexplained crash.
+        if api_user_id is None:
+            self._api_user_id = None
+            return
+
+        try:
+            self._api_user_id = int(api_user_id)
+        except (TypeError, ValueError):
+            self._api_user_id = None
 
     def set_api_user_email(
         self,

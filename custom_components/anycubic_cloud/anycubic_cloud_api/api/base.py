@@ -388,7 +388,13 @@ class AnycubicAPIBase:
         if data is None:
             raise AnycubicAuthTokensExpired(ErrorsAuthTokenExpired.invalid_credentials)
 
+        # A rejected token can still return a data object, just without a user
+        # id. Treat that as invalid credentials so it surfaces as "invalid
+        # auth" rather than a TypeError from int(None) further down.
+        if data.get('id') is None:
+            raise AnycubicAuthTokensExpired(ErrorsAuthTokenExpired.invalid_credentials)
+
         self.anycubic_auth.set_api_user_id(data['id'])
-        self.anycubic_auth.set_api_user_email(data['user_email'])
+        self.anycubic_auth.set_api_user_email(data.get('user_email'))
 
         return data

@@ -327,8 +327,19 @@ class AnycubicSensor(AnycubicCloudEntity, SensorEntity):
         """Initiate Anycubic Sensor."""
         super().__init__(hass, coordinator, printer_id, entity_description)
 
-        if self.entity_description.native_unit_of_measurement == UnitOfTemperature.CELSIUS:
+        unit = self.entity_description.native_unit_of_measurement
+
+        if unit == UnitOfTemperature.CELSIUS:
             self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+        # Infer the device class from the unit where the description doesn't set
+        # one explicitly. Temperature enables per-user C/F conversion, and both
+        # classes give the history graphs and voice assistants proper context.
+        if self.entity_description.device_class is None:
+            if unit == UnitOfTemperature.CELSIUS:
+                self._attr_device_class = SensorDeviceClass.TEMPERATURE
+            elif unit in (UnitOfTime.SECONDS, UnitOfTime.MINUTES):
+                self._attr_device_class = SensorDeviceClass.DURATION
 
         if self.entity_description.not_measured:
             self._attr_state_class = None

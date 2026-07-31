@@ -1,4 +1,3 @@
-import { utc as dfnsUtc } from "@date-fns/utc";
 import {
   Duration as dfnsDuration,
   format as dfnsFormat,
@@ -652,7 +651,10 @@ export const formatFutureTime = (
   const fmtString = use_24hr ? `HH:mm${fmtSeconds}` : `h:mm${fmtSeconds} a`;
   const newDate = new Date();
   newDate.setSeconds(newDate.getSeconds() + Number(futureSeconds));
-  return dfnsFormat(newDate, fmtString, { in: dfnsUtc });
+  // newDate is already the correct absolute instant, so format it in the
+  // browser's local timezone. Formatting it in UTC showed the ETA as a UTC
+  // wall-clock time for anyone not on UTC.
+  return dfnsFormat(newDate, fmtString);
 };
 
 export const calculateTimeStat = (
