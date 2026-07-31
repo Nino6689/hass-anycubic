@@ -344,7 +344,16 @@ and follow your unit preferences (°C / °F).
 ### Logs show "Unknown mqtt update, type: light" or "multiColorBox/report unhandled"
 
 **Harmless.** These are MQTT message types the parser doesn't recognise yet (newer firmware
-features). Everything else still flows. Logged at WARNING, no action needed.
+features) — everything else still flows normally. They're logged at ERROR with a full
+traceback, which looks alarming and is noisier than it should be (the `light/report` topic
+repeats every few seconds while MQTT is connected). Quietening that is on the
+[roadmap](#roadmap); in the meantime you can safely ignore them, or silence them with:
+
+```yaml
+logger:
+  logs:
+    custom_components.anycubic_cloud: fatal
+```
 
 ### "Reauthentication required" notification
 
@@ -427,6 +436,7 @@ Nothing here is promised by a date. Items marked 🔒 need hardware I don't have
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Code paths exist; needs a two-ACE setup to verify |
 | 🔒 LAN / local mode for Kobra S1 ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | Would remove the cloud dependency entirely. Big job |
 | 🔒 Resin printer support ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
+| Quieten unknown-MQTT-message logging | Unrecognised message types log a full traceback at ERROR every few seconds while connected. Should be a single debug line per unknown type |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
 | Units for ACE dry-status sensors | `drying_total_duration` / `drying_remaining_time` ship with no unit; needs confirming against real dryer runs before changing, to avoid breaking existing history |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
