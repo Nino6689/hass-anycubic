@@ -59,6 +59,15 @@ UNIT_LAYERS = "Layers"
 # Slots in an ACE / ACE Pro unit.
 ACE_SLOT_COUNT = 4
 
+# ACE model ids as reported in the multiColorBox payload. 40001 is confirmed
+# on an ACE Pro; others are unknown until someone reports one.
+ACE_MODEL_NAMES = {
+    40001: "ACE Pro",
+}
+ACE_MODEL_FALLBACK = "ACE"
+
+ENTITY_ID_ACE_SLOT_ = "ace_slot_"
+
 STORAGE_KEY = DOMAIN
 STORAGE_VERSION = 1
 

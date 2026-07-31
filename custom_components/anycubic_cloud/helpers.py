@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import re
 from enum import IntEnum
 from types import MappingProxyType
@@ -9,6 +10,8 @@ from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, Device
 
 from .anycubic_cloud_api.const.enums import AnycubicPrinterMaterialType
 from .const import (
+    ACE_MODEL_FALLBACK,
+    ACE_MODEL_NAMES,
     CONF_DRYING_PRESET_DURATION_,
     CONF_DRYING_PRESET_TEMPERATURE_,
     DOMAIN,
@@ -45,6 +48,76 @@ def build_printer_device_info(
         hw_version=f"Printer ID: {printer_id}",
         serial_number=f"{printer_id}",
     )
+
+
+def build_ace_device_info(
+    coordinator_data: dict[str, Any],
+    printer_id: int,
+    secondary: bool = False,
+) -> DeviceInfo:
+    """An ACE is a physically separate unit, so give it its own device.
+
+    A printer can have two of them, and keeping every spool, drying and fan
+    entity under the printer made the device page hard to read.
+    """
+    printer_data = coordinator_data['printers'][printer_id]['states']
+    printer_attrs = coordinator_data['printers'][printer_id]['attributes']
+    user_data = coordinator_data['user_info']
+
+    box_index = 1 if secondary else 0
+    prefix = "secondary_" if secondary else ""
+
+    box_info = (printer_attrs.get(f"{prefix}ace_spools") or {}).get('box_info') or {}
+    model = ACE_MODEL_NAMES.get(box_info.get('model_id'), ACE_MODEL_FALLBACK)
+    name = f"{printer_data['name']} {model}"
+
+    if secondary:
+        name = f"{name} 2"
+
+    return DeviceInfo(
+        identifiers={(DOMAIN, f"{user_data['id']}-{printer_data['id']}-ace{box_index}")},
+        manufacturer=MANUFACTURER,
+        model=model,
+        name=name,
+        sw_version=printer_data.get(f"{prefix}multi_color_box_fw_version"),
+        via_device=(DOMAIN, f"{user_data['id']}-{printer_data['id']}"),
+    )
+
+
+def build_color_swatch_data_uri(colors_hex: list[str] | None) -> str | None:
+    """Build a small SVG swatch of the filament colour(s), as a data URI.
+
+    Used as the entity picture for ACE slots so the colour is visible on the
+    normal device page. Multi-colour spools are drawn as vertical bands, in
+    the order the printer reports them.
+    """
+    if not colors_hex:
+        return None
+
+    safe = [c for c in colors_hex if re.fullmatch(r"#[0-9A-Fa-f]{6}", str(c))]
+
+    if not safe:
+        return None
+
+    size = 48
+    band = size / len(safe)
+    bands = "".join(
+        f'<rect x="{i * band:.3f}" y="0" width="{band:.3f}" height="{size}" fill="{c}"/>'
+        for i, c in enumerate(safe)
+    )
+    # A neutral ring keeps white and very light filament visible on a white
+    # background; clipping keeps the bands inside the circle.
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">'
+        f'<defs><clipPath id="c"><circle cx="24" cy="24" r="22"/></clipPath></defs>'
+        f'<g clip-path="url(#c)">{bands}</g>'
+        f'<circle cx="24" cy="24" r="22" fill="none" stroke="#8b8b8b" stroke-width="2"/>'
+        f'</svg>'
+    )
+
+    encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+
+    return f"data:image/svg+xml;base64,{encoded}"
 
 
 def get_drying_preset_from_entry_options(

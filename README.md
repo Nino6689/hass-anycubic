@@ -417,6 +417,8 @@ Found a security issue? See [SECURITY.md](SECURITY.md).
 | Change | File | Why |
 |---|---|---|
 | **Verify TLS to the cloud broker** | `anycubic_cloud_api/api/mqtt.py` | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the connection could be intercepted. Now pins Anycubic's root CA with hostname checking on. See [Security](#security) |
+| **ACE is its own device** | `entity.py`, `helpers.py` | Spool, drying and fan entities lived on the printer device, which made the page long and left no room for a second ACE. Each ACE is now a separate device linked to the printer, named from its reported model |
+| **Filament colour swatches** | `sensor.py`, `helpers.py` | Each ACE slot shows a generated swatch of its filament colour as the entity picture, so the colour is visible without a custom card. Multi-colour spools render as bands |
 | **Full ACE data exposed** | `anycubic_cloud_api/data_models/printer_properties.py` | `color_group` (multi-colour spools), `edit_status`, `icon_type`, `consumables_percent`, box `humidity` and `feed_status` were all being received and discarded. Also consumes `head_tools_model` so it stops logging as unhandled |
 | **Auxiliary + ACE box fan** | `sensor.py` | The printer reports `aux_fan_speed_pct` and `box_fan_level` alongside the part fan; both were discarded |
 | **Printer light control** | `light.py`, `anycubic_cloud_api/` | The API layer could already set the light, but no `light` platform existed and the printer's `light/report` replies were discarded as an unknown message type. Now a real on/off + brightness entity |

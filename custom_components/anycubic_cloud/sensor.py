@@ -28,11 +28,16 @@ from .const import (
     ACE_SLOT_COUNT,
     COORDINATOR,
     DOMAIN,
+    ENTITY_ID_ACE_SLOT_,
     UNIT_LAYERS,
     PrinterEntityType,
 )
 from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_attributes_for_key, printer_state_for_key
+from .helpers import (
+    build_color_swatch_data_uri,
+    printer_attributes_for_key,
+    printer_state_for_key,
+)
 
 if TYPE_CHECKING:
     from .coordinator import AnycubicCloudDataUpdateCoordinator
@@ -73,6 +78,11 @@ PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = li
     AnycubicSensorEntityDescription(
         key="dry_status_remaining_time",
         translation_key="dry_status_remaining_time",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+    ),
+    AnycubicSensorEntityDescription(
+        key="box_fan_level",
+        translation_key="box_fan_level",
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,
     ),
     AnycubicSensorEntityDescription(
@@ -147,11 +157,7 @@ FDM_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
         native_unit_of_measurement=PERCENTAGE,
         printer_entity_type=PrinterEntityType.FDM,
     ),
-    AnycubicSensorEntityDescription(
-        key="box_fan_level",
-        translation_key="box_fan_level",
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
+
     AnycubicSensorEntityDescription(
         key="curr_nozzle_temp",
         translation_key="curr_nozzle_temp",
@@ -441,6 +447,25 @@ class AnycubicSensor(AnycubicCloudEntity, SensorEntity):
             return int(state)
 
         return str(state)
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Show ACE slots as a swatch of the filament colour.
+
+        The state stays as the material type so automations are unaffected;
+        this only makes the colour visible without needing a custom card.
+        """
+        if not self.entity_description.key.startswith(ENTITY_ID_ACE_SLOT_):
+            return None
+
+        attributes = printer_attributes_for_key(
+            self.coordinator, self._printer_id, self.entity_description.key
+        )
+
+        if not attributes:
+            return None
+
+        return build_color_swatch_data_uri(attributes.get("colors_hex"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
