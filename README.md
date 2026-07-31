@@ -5,9 +5,12 @@
 [![GPLv3](https://img.shields.io/badge/license-GPL_3.0-blue?style=flat-square)](LICENSE)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/nino6689)
 
-Monitor and control your **Anycubic Kobra / Photon** 3D printer from Home Assistant —
-temperatures, progress, layer count, ACE multi-colour spool details, a live job preview
-image, and pause / resume / cancel, with sub-second updates over MQTT.
+Monitor and control your **Anycubic Kobra / Photon** 3D printer from Home Assistant, with
+sub-second updates over MQTT.
+
+Temperatures, progress and layer count · **per-slot ACE spools** showing material and colour ·
+**printer light control** with brightness · live job preview image · pause, resume and cancel ·
+filament used per job and lifetime totals · slicer and model detail for the running job.
 
 ---
 
@@ -299,15 +302,18 @@ If you've just changed mode and don't want to wait for the next print:
 
 ## What you get
 
-Roughly 48 entities per printer. The highlights:
+Around 60 entities per printer. The ACE appears as its **own device** linked to the printer,
+so its spools, drying and fan entities are kept separate — and a second ACE has somewhere to
+live. The highlights:
 
 | Kind | Entities |
 |---|---|
 | **Job** | `job_name`, `job_state`, `job_progress` (%), `job_time_elapsed`, `job_time_remaining`, `job_eta`, `job_current_layer`, `job_total_layers`, `job_z_thickness`, `job_speed_mode`, `job_filament_used` |
-| **Lifetime** | `material_used_total` (kg), `print_time_total_hrs`, `print_count_total` |
-| **Temperatures** | `nozzle_temperature`, `hotbed_temperature` and their `target_*` counterparts, `ace_current_temperature` |
+| **Lifetime** | `total_material_used` (kg), `total_print_time`, `total_print_count` |
+| **Temperatures** | `nozzle_temperature`, `hotbed_temperature` and their `target_*` counterparts |
+| **Fans** | `fan_speed` (part cooling), `auxiliary_fan_speed`, `ace_box_fan_level` |
 | **Status** | `current_status`, `printer_online`, `is_busy`, `is_available`, `job_in_progress`, `job_complete`, `job_failed`, `job_paused`, `mqtt_connection_active` |
-| **ACE** | `ace_slot_1`–`ace_slot_4` (material type per slot; colour hex, full multi-colour list, SKU, loaded state and edit status as attributes), `ace_loaded_slot`, `ace_current_temperature`, `ace_box_fan_level`, `ace_spools` (with a `box_info` attribute: humidity, feed status, model), `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `ace_run_out_refill`, `ace_refresh_spools` |
+| **ACE** | `ace_slot_1`–`ace_slot_4` (material type per slot; colour hex, full multi-colour list, SKU, loaded state and edit status as attributes), `ace_loaded_slot`, `ace_current_temperature`, `ace_box_fan_level`, `ace_spools` (with a `box_info` attribute: humidity, feed status, model), `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `ace_run_out_refill`, `refresh_ace_spools` |
 | **Controls** | `printer_light` (on/off + brightness), `pause_print`, `resume_print`, `cancel_print`, file-list refresh buttons, `manual_mqtt_connection_enabled` |
 | **Other** | Live job preview `image`, printer and ACE `update` entities, plus [services](https://github.com/Nino6689/hass-anycubic_cloud/blob/main/custom_components/anycubic_cloud/services.yaml) for printing, drying and file management |
 
@@ -342,23 +348,19 @@ and follow your unit preferences (°C / °F).
 - The default Connect Mode is **Printing Only** — an idle printer won't connect until the
   next print. Set it to **Always** to monitor an idle machine.
 
-### Logs show "Unknown mqtt update, type: light" or "multiColorBox/report unhandled"
+### Logs show "Anycubic MQTT Message unhandled data"
 
-**Harmless.** These are MQTT message types the parser doesn't recognise yet (newer firmware
-features) — everything else still flows normally. They're logged at ERROR with a full
-traceback, which looks far more alarming than it is. In practice they arrive in small
-bursts around MQTT connect and print start rather than continuously — on a Kobra S1 that's
-roughly five in a fifteen-minute window, for types `light`, `aiSettings` and `buried`.
+**Harmless, and rare.** These are fields in a message that this version doesn't parse yet —
+everything else still flows normally. They're logged once at WARNING, not repeatedly.
 
-Handling those properly (rather than just silencing them) is on the [roadmap](#roadmap) —
-`light` in particular is a real feature the printer is offering. In the meantime you can
-safely ignore them, or quieten them with:
+If you see one, it's genuinely useful to
+[open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) with the line: it's how
+new printer features get found. Several entities in this release came from exactly that —
+the printer light, the ACE spool details and the auxiliary fan were all arriving in messages
+that were being discarded.
 
-```yaml
-logger:
-  logs:
-    custom_components.anycubic_cloud: fatal
-```
+Unrecognised *message types* (as opposed to unhandled fields) log a single debug line and are
+invisible at default log level.
 
 ### "Reauthentication required" notification
 
@@ -451,13 +453,14 @@ Nothing here is promised by a date. Items marked 🔒 need hardware I don't have
 
 | Item | Status |
 |---|---|
-| Camera / print stream support ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | Investigating whether the cloud API exposes a usable stream |
-| 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Code paths exist; needs a two-ACE setup to verify |
+| Camera / print stream support ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | The printer reports a camera peripheral and a `video_taskid`, but the latter reads 0 here. Needs work to find how the stream is actually opened |
+| 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are already wired up; needs someone with two ACE units to confirm it works |
 | 🔒 LAN / local mode for Kobra S1 ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | Would remove the cloud dependency entirely. Big job |
 | 🔒 Resin printer support ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
-| Quieten unknown-MQTT-message logging | Unrecognised message types log a full traceback at ERROR every few seconds while connected. Should be a single debug line per unknown type |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
 | Units for ACE dry-status sensors | `drying_total_duration` / `drying_remaining_time` ship with no unit; needs confirming against real dryer runs before changing, to avoid breaking existing history |
+| ACE `edit_status` meaning | Reads 0 on the slot with an RFID SKU and 1 on manually-set slots, which suggests "identified by the spool" vs "set by hand" — but that's one data point. Exposed raw until confirmed |
+| `aiSettings` message type | The printer advertises AI detection and foreign-object detection and sends an `aiSettings` message, but its contents haven't been captured yet |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
 
 ---
