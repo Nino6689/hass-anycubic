@@ -31,6 +31,21 @@ if TYPE_CHECKING:
     from .printing_settings import AnycubicPrintingSettings
 
 
+# Plain-text phases the printer reports that do NOT mean a job is running.
+# Used only when the numeric status code is outside the known enum.
+PRINT_STATES_NOT_IN_PROGRESS = frozenset({
+    'cancelled',
+    'canceled',
+    'complete',
+    'completed',
+    'failed',
+    'finished',
+    'free',
+    'idle',
+    'stopped',
+})
+
+
 class AnycubicProject:
     __slots__ = (
         "_api_parent",
@@ -825,12 +840,16 @@ class AnycubicProject:
         return self._remain_time
 
     @property
-    def print_approximate_completion_time(self) -> int:
+    def print_approximate_completion_time(self) -> int | None:
         if self._end_time and self._end_time > 0:
             return self._end_time
 
-        if self._remain_time is None:
-            return 0
+        # No estimate available yet -- during levelling, preheating and slicing
+        # the printer reports 0 remaining. Returning `now` there made the ETA
+        # silently track the wall clock, and returning 0 rendered as 1970.
+        # Reporting "unknown" is more honest than either.
+        if not self._remain_time:
+            return None
 
         return int(time.time() + (self._remain_time * 60))
 
@@ -856,12 +875,30 @@ class AnycubicProject:
 
     @property
     def print_in_progress(self) -> bool:
-        return (
-            self._print_status == AnycubicPrintStatus.Printing or
-            self._print_status == AnycubicPrintStatus.Downloading or
-            self._print_status == AnycubicPrintStatus.Checking or
-            self._print_status == AnycubicPrintStatus.Preheating
-        )
+        if self._print_status in (
+            AnycubicPrintStatus.Printing,
+            AnycubicPrintStatus.Downloading,
+            AnycubicPrintStatus.Checking,
+            AnycubicPrintStatus.Preheating,
+        ):
+            return True
+
+        if self._print_status in (
+            AnycubicPrintStatus.Complete,
+            AnycubicPrintStatus.Cancelled,
+        ):
+            return False
+
+        # Status codes outside the known enum -- a Kobra S1 reports 9 while
+        # levelling, which used to read as "not printing" for the couple of
+        # minutes before heating starts, so automations missed the start of a
+        # print entirely. Fall back to the plain-text phase the printer sends.
+        reported_state = self._get_print_setting('state')
+
+        if not reported_state:
+            return False
+
+        return str(reported_state).lower() not in PRINT_STATES_NOT_IN_PROGRESS
 
     @property
     def print_preheating(self) -> bool:
@@ -945,8 +982,16 @@ class AnycubicProject:
             return "preheating"
         elif self._print_status == AnycubicPrintStatus.Slicing:
             return "slicing"
-        else:
-            return "unknown"
+
+        # Newer firmware reports codes this enum doesn't cover -- a Kobra S1
+        # sends 9 while levelling. The printer also sends a plain-text phase
+        # alongside it, which is far more useful than "unknown", so prefer it.
+        reported_state = self._get_print_setting('state')
+
+        if reported_state:
+            return str(reported_state)
+
+        return "unknown"
 
     @property
     def target_nozzle_temp(self) -> int | None:

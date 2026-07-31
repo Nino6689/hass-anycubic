@@ -875,7 +875,8 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         printer: AnycubicPrinter,
         project: AnycubicProject,
         light_on: bool,
-        light_type: int = 1,
+        light_type: int | None = None,
+        brightness: int | None = None,
     ) -> str | None:
         if not printer:
             return None
@@ -883,10 +884,15 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         if not project:
             return None
 
+        # Printers report their own light type (the Kobra S1 uses 2), so prefer
+        # that over guessing; only fall back to 1 if nothing has been reported.
+        if light_type is None:
+            light_type = printer.light_type if printer.light_type is not None else 1
+
         order_data = {
             'type': light_type,
             'status': 1 if light_on else 0,
-            'brightness': 100 if light_on else 0,
+            'brightness': int(brightness if brightness is not None else 100) if light_on else 0,
         }
 
         return await self._send_anycubic_order(
@@ -2008,4 +2014,42 @@ class AnycubicAPIFunctions(AnycubicAPIBase):
         await self._send_order_get_light_status(
             printer=printer,
             project=project,
+        )
+
+    async def multi_color_box_get_info(
+        self,
+        printer: AnycubicPrinter,
+    ) -> None:
+        """Ask the ACE to re-report its slots. Response is sent via MQTT."""
+
+        if not printer:
+            return None
+
+        await self._send_order_multi_color_box_get_info(
+            printer=printer,
+        )
+
+    async def set_printer_light(
+        self,
+        printer: AnycubicPrinter,
+        light_on: bool,
+        brightness: int | None = None,
+        project: AnycubicProject | None = None,
+    ) -> None:
+        """Turn the printer light on/off. Response is sent via MQTT."""
+
+        if not printer:
+            return None
+
+        if not project:
+            project = printer.latest_project
+
+        if not project:
+            return None
+
+        await self._send_order_set_light_status(
+            printer=printer,
+            project=project,
+            light_on=light_on,
+            brightness=brightness,
         )

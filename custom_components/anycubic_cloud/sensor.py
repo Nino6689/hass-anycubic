@@ -13,8 +13,10 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    EntityCategory,
     Platform,
     UnitOfLength,
+    UnitOfMass,
     UnitOfTemperature,
     UnitOfTime,
 )
@@ -23,6 +25,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ACE_SLOT_COUNT,
     COORDINATOR,
     DOMAIN,
     UNIT_LAYERS,
@@ -72,6 +75,21 @@ PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = li
         translation_key="dry_status_remaining_time",
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,
     ),
+    AnycubicSensorEntityDescription(
+        key="ace_loaded_slot",
+        translation_key="ace_loaded_slot",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+        not_measured=True,
+    ),
+    *[
+        AnycubicSensorEntityDescription(
+            key=f"ace_slot_{slot_num}",
+            translation_key=f"ace_slot_{slot_num}",
+            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+            not_measured=True,
+        )
+        for slot_num in range(1, ACE_SLOT_COUNT + 1)
+    ],
 ])
 
 
@@ -282,6 +300,35 @@ SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
         translation_key="job_z_thick",
         printer_entity_type=PrinterEntityType.PRINTER,
     ),
+    AnycubicSensorEntityDescription(
+        key="job_filament_used",
+        translation_key="job_filament_used",
+        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="material_used_total",
+        translation_key="material_used_total",
+        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="print_time_total_hrs",
+        translation_key="print_time_total_hrs",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="print_count_total",
+        translation_key="print_count_total",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
 ])
 
 GLOBAL_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
@@ -343,6 +390,10 @@ class AnycubicSensor(AnycubicCloudEntity, SensorEntity):
 
         if self.entity_description.not_measured:
             self._attr_state_class = None
+        elif self.entity_description.state_class is not None:
+            # Respect an explicitly declared state class (e.g. lifetime totals)
+            # rather than forcing everything to MEASUREMENT.
+            self._attr_state_class = self.entity_description.state_class
         else:
             self._attr_state_class = SensorStateClass.MEASUREMENT
 

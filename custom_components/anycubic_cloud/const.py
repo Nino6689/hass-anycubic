@@ -56,6 +56,9 @@ AC_EVENT_PRINT_CLOUD_START = "print_cloud_start"
 
 UNIT_LAYERS = "Layers"
 
+# Slots in an ACE / ACE Pro unit.
+ACE_SLOT_COUNT = 4
+
 STORAGE_KEY = DOMAIN
 STORAGE_VERSION = 1
 
@@ -91,6 +94,7 @@ PLATFORMS = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.IMAGE,
+    Platform.LIGHT,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,

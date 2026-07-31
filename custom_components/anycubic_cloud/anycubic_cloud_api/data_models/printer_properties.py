@@ -452,12 +452,25 @@ class AnycubicSpoolInfo:
         )
 
     @property
+    def slot_index(self) -> int:
+        return self._index
+
+    @property
+    def sku(self) -> str:
+        return self._sku
+
+    @property
     def material_type(self) -> str:
         return self._material_type
 
     @property
     def color(self) -> list[int]:
         return self._color
+
+    @property
+    def color_hex(self) -> str:
+        """Slot colour as #RRGGBB, for dashboard cards and templates."""
+        return "#{:02X}{:02X}{:02X}".format(*self._color[:3])
 
     @property
     def color_red(self) -> int:
@@ -618,6 +631,11 @@ class AnycubicMultiColorBox:
         return self._temp
 
     @property
+    def loaded_slot(self) -> int:
+        """Index of the slot currently feeding, or -1 when none is loaded."""
+        return self._loaded_slot
+
+    @property
     def box_id(self) -> int:
         return self._id
 
@@ -644,8 +662,11 @@ class AnycubicMultiColorBox:
 
         spool_list = list([
             {
+                "slot": slot.slot_index + 1,
                 "material_type": slot.material_type,
                 "color": slot.color,
+                "color_hex": slot.color_hex,
+                "sku": slot.sku,
                 "status": slot.status,
                 "spool_loaded": slot.spool_loaded,
             } for slot in self._slots

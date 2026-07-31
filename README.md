@@ -303,11 +303,12 @@ Roughly 48 entities per printer. The highlights:
 
 | Kind | Entities |
 |---|---|
-| **Job** | `job_name`, `job_state`, `job_progress` (%), `job_time_elapsed`, `job_time_remaining`, `job_eta`, `job_current_layer`, `job_total_layers`, `job_z_thickness`, `job_speed_mode` |
+| **Job** | `job_name`, `job_state`, `job_progress` (%), `job_time_elapsed`, `job_time_remaining`, `job_eta`, `job_current_layer`, `job_total_layers`, `job_z_thickness`, `job_speed_mode`, `job_filament_used` |
+| **Lifetime** | `material_used_total` (kg), `print_time_total_hrs`, `print_count_total` |
 | **Temperatures** | `nozzle_temperature`, `hotbed_temperature` and their `target_*` counterparts, `ace_current_temperature` |
 | **Status** | `current_status`, `printer_online`, `is_busy`, `is_available`, `job_in_progress`, `job_complete`, `job_failed`, `job_paused`, `mqtt_connection_active` |
-| **ACE** | `ace_spools` (with per-slot colour/material attributes), `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `ace_run_out_refill` |
-| **Controls** | `pause_print`, `resume_print`, `cancel_print`, file-list refresh buttons, `manual_mqtt_connection_enabled` |
+| **ACE** | `ace_slot_1`–`ace_slot_4` (material type per slot, with colour hex, SKU and loaded state as attributes), `ace_loaded_slot`, `ace_spools`, `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `ace_run_out_refill`, `ace_refresh_spools` |
+| **Controls** | `printer_light` (on/off + brightness), `pause_print`, `resume_print`, `cancel_print`, file-list refresh buttons, `manual_mqtt_connection_enabled` |
 | **Other** | Live job preview `image`, printer and ACE `update` entities, plus [services](https://github.com/Nino6689/hass-anycubic_cloud/blob/main/custom_components/anycubic_cloud/services.yaml) for printing, drying and file management |
 
 `sensor.<printer>_job_eta` is a proper **timestamp** entity, so Home Assistant renders it
@@ -416,6 +417,11 @@ Found a security issue? See [SECURITY.md](SECURITY.md).
 | Change | File | Why |
 |---|---|---|
 | **Verify TLS to the cloud broker** | `anycubic_cloud_api/api/mqtt.py` | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the connection could be intercepted. Now pins Anycubic's root CA with hostname checking on. See [Security](#security) |
+| **Printer light control** | `light.py`, `anycubic_cloud_api/` | The API layer could already set the light, but no `light` platform existed and the printer's `light/report` replies were discarded as an unknown message type. Now a real on/off + brightness entity |
+| **Per-slot ACE spool entities** | `sensor.py`, `coordinator.py` | Material type, colour and SKU per slot were only reachable by digging through an attribute blob |
+| **Levelling no longer reads as "unknown"** | `anycubic_cloud_api/data_models/project.py` | A Kobra S1 reports print status `9` while levelling, which isn't in the status enum, so `job_state` read `unknown` and `job_in_progress` stayed **off** for the first couple of minutes of every print. Falls back to the plain-text phase the printer also sends. Fixes upstream [#55](https://github.com/WaresWichall/hass-anycubic_cloud/issues/55) |
+| **ETA reports unknown when there is no estimate** | `anycubic_cloud_api/data_models/project.py` | With no remaining-time estimate the ETA silently tracked the wall clock, or rendered as 1970 |
+| **Unknown MQTT types no longer log as errors** | `anycubic_cloud_api/api/mqtt.py` | Unparsed message types logged a full traceback at ERROR. Now a single debug line |
 | **ETA shown in local time** | `frontend_panel/src/helpers.ts` | The panel formatted the ETA as a UTC wall-clock time. Fixes upstream [#52](https://github.com/WaresWichall/hass-anycubic_cloud/issues/52) |
 | **Bad tokens report "invalid auth"** | `anycubic_cloud_api/api/base.py`, `models/auth.py` | A rejected token could return data with no user id, hitting `int(None)` and surfacing as an unexplained crash instead of an auth error. Common with encrypted slicer configs — upstream [#67](https://github.com/WaresWichall/hass-anycubic_cloud/issues/67) |
 | **Sensor device classes** | `sensor.py` | Temperature and duration sensors had none, so no unit conversion and poor history graphs |

@@ -188,6 +188,9 @@
       },
       "refresh_mqtt_connection": {
         "name": "Refresh MQTT Connection"
+      },
+      "ace_refresh_spools": {
+        "name": "Refresh ACE Spools"
       }
     },
     "image": {
@@ -312,6 +315,33 @@
       },
       "secondary_dry_status_remaining_time": {
         "name": "Secondary Drying Remaining Time"
+      },
+      "job_filament_used": {
+        "name": "Job Filament Used"
+      },
+      "material_used_total": {
+        "name": "Total Material Used"
+      },
+      "print_time_total_hrs": {
+        "name": "Total Print Time"
+      },
+      "print_count_total": {
+        "name": "Total Print Count"
+      },
+      "ace_loaded_slot": {
+        "name": "ACE Loaded Slot"
+      },
+      "ace_slot_1": {
+        "name": "ACE Slot 1"
+      },
+      "ace_slot_2": {
+        "name": "ACE Slot 2"
+      },
+      "ace_slot_3": {
+        "name": "ACE Slot 3"
+      },
+      "ace_slot_4": {
+        "name": "ACE Slot 4"
       }
     },
     "switch": {
@@ -334,6 +364,11 @@
       },
       "secondary_multi_color_box_fw_version": {
         "name": "Secondary ACE Firmware"
+      }
+    },
+    "light": {
+      "printer_light": {
+        "name": "Printer Light"
       }
     }
   },

@@ -29,6 +29,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
 from .anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError, AnycubicAPIParsingError
 from .const import (
+    ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
     CONF_DEBUG_API_CALLS,
@@ -289,11 +290,47 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "job_z_down_speed": printer.latest_project_print_z_down_speed,
             "manual_mqtt_connection_enabled": self._mqtt_manually_connected,
             "mqtt_connection_active": self.anycubic_api.mqtt_is_started,
+            "printer_light": printer.light_is_on,
+            "printer_light_brightness": printer.light_brightness_pct,
+            "has_controllable_light": printer.has_controllable_light,
+            "material_used_total": printer.material_used_kg,
+            "print_time_total_hrs": printer.total_print_time_hrs,
+            "print_count_total": printer.print_count,
+            "job_filament_used": printer.latest_project_supplies_usage,
+            "ace_loaded_slot": printer.primary_multi_color_box_loaded_slot,
         }
+
+        # Per-slot spool entities. The material type and colour already arrive
+        # with every ACE report; previously they were only reachable by digging
+        # through the `ace_spools` attribute blob.
+        for slot_num in range(1, ACE_SLOT_COUNT + 1):
+            spool = None
+
+            if primary_ace_spool_info and len(primary_ace_spool_info) >= slot_num:
+                spool = primary_ace_spool_info[slot_num - 1]
+
+            states[f"ace_slot_{slot_num}"] = (
+                spool.get("material_type") if spool else None
+            )
 
         attributes = {
             "ace_spools": {
                 "spool_info": primary_ace_spool_info
+            },
+            **{
+                f"ace_slot_{slot_num}": {
+                    "slot": slot_num,
+                    "color": spool.get("color"),
+                    "color_hex": spool.get("color_hex"),
+                    "sku": spool.get("sku") or None,
+                    "spool_loaded": spool.get("spool_loaded"),
+                    "status": spool.get("status"),
+                }
+                for slot_num, spool in (
+                    (n, primary_ace_spool_info[n - 1])
+                    for n in range(1, ACE_SLOT_COUNT + 1)
+                    if primary_ace_spool_info and len(primary_ace_spool_info) >= n
+                )
             },
             "secondary_ace_spools": {
                 "spool_info": secondary_ace_spool_info
@@ -939,6 +976,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self._connect_mqtt_for_action_response()
                 await printer.request_udisk_file_list()
 
+            elif printer and event_key == 'ace_refresh_spools':
+                await self._connect_mqtt_for_action_response()
+                await printer.multi_color_box_get_info()
+
             elif printer and event_key == 'drying_stop':
                 await self._connect_mqtt_for_action_response()
                 await printer.multi_color_box_drying_stop()
@@ -1001,6 +1042,21 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         except AnycubicAPIError as ex:
             raise HomeAssistantError(ex) from ex
+
+    async def set_printer_light(
+        self,
+        printer_id: int,
+        light_on: bool,
+        brightness: int | None = None,
+    ) -> None:
+        printer = self.get_printer_for_id(printer_id)
+
+        if not printer:
+            return
+
+        await self._connect_mqtt_for_action_response()
+        await printer.set_light(light_on=light_on, brightness=brightness)
+        await self.force_state_update()
 
     async def switch_on_event(
         self,

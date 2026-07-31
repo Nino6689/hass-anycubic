@@ -182,7 +182,18 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
                     f"    unhandled data: {e.unhandled_mqtt_data}"
                 )
 
-            except (AnycubicMQTTUnknownUpdate, Exception) as e:
+            except AnycubicMQTTUnknownUpdate as e:
+                # A message type this version doesn't parse yet. Nothing is
+                # broken and there is nothing the user can act on, so log a
+                # single debug line rather than an ERROR with a traceback.
+                redacted_topic = redact_part_from_mqtt_topic(topic, 6)
+                self._log_to_debug(
+                    f"Anycubic MQTT Message not understood: {e}\n"
+                    f"  on MQTT topic: {redacted_topic}\n"
+                    f"    {payload}"
+                )
+
+            except Exception as e:
                 tb = traceback.format_exc()
                 redacted_topic = redact_part_from_mqtt_topic(topic, 6)
                 error_type = type(e)
@@ -211,8 +222,11 @@ class AnycubicMQTTAPI(AnycubicAPIFunctions):
                 )
 
             if self._mqtt_log_all_messages:
+                # Redact the printer key like the warning/error paths do --
+                # debug logs get pasted into issue reports.
                 self._log_to_debug(
-                    f"Anycubic MQTT Message processed on topic: {topic}\n"
+                    f"Anycubic MQTT Message processed on topic: "
+                    f"{redact_part_from_mqtt_topic(topic, 6)}\n"
                     f"    {payload}"
                 )
 

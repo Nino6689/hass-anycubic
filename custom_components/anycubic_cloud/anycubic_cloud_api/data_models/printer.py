@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 from ..const.enums import (
@@ -106,6 +107,7 @@ class AnycubicPrinter:
         "_has_peripheral_udisk",
         "_is_bound_to_user",
         "_job_download_progress",
+        "_lights",
     )
 
     def __init__(
@@ -210,6 +212,8 @@ class AnycubicPrinter:
         self._has_peripheral_udisk: bool = False
         self._is_bound_to_user: bool = True
         self._job_download_progress: int = 0
+        # Keyed by the light `type` the printer reports (Kobra S1 uses 2).
+        self._lights: dict[int, dict[str, int]] = dict()
 
         self._ignore_init_errors = False
 
@@ -1055,6 +1059,45 @@ class AnycubicPrinter:
         else:
             raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.peripherals)
 
+    def _process_mqtt_update_light(
+        self,
+        action: str,
+        state: str,
+        payload: AnycubicConsumableData,
+    ) -> None:
+        # Two shapes, depending on the action:
+        #   query   -> {'data': {'lights': [{'type': 2, 'status': 1, 'brightness': 100}]}}
+        #   control -> {'data': {'type': 2, 'status': 1, 'brightness': 100}}
+        if state != 'done':
+            raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.unknown.format('light'))
+
+        data = payload['data']
+
+        if not data:
+            return
+
+        if 'lights' in data:
+            reported = data['lights']
+        elif 'type' in data:
+            reported = [{
+                'type': data['type'],
+                'status': data.get('status'),
+                'brightness': data.get('brightness'),
+            }]
+        else:
+            return
+
+        for light in reported:
+            light_type = light.get('type')
+
+            if light_type is None:
+                continue
+
+            self._lights[int(light_type)] = {
+                'status': int(light.get('status') or 0),
+                'brightness': int(light.get('brightness') or 0),
+            }
+
     def process_mqtt_update(
         self,
         topic: str,
@@ -1102,6 +1145,9 @@ class AnycubicPrinter:
 
         elif msg_type == 'peripherie':
             self._process_mqtt_update_peripherals(action, state, payload)
+
+        elif msg_type == 'light':
+            self._process_mqtt_update_light(action, state, payload)
 
         else:
             raise AnycubicMQTTUnknownUpdate(ErrorsMQTTUpdate.unknown.format(msg_type))
@@ -1237,6 +1283,19 @@ class AnycubicPrinter:
     @property
     def material_used(self) -> str | None:
         return self._material_used
+
+    @property
+    def material_used_kg(self) -> float | None:
+        """Lifetime filament use as a number. The API reports e.g. '18.01kg'."""
+        if not self._material_used:
+            return None
+
+        match = re.match(r"\s*([0-9]*\.?[0-9]+)\s*kg", str(self._material_used), re.I)
+
+        if not match:
+            return None
+
+        return float(match.group(1))
 
     @property
     def total_print_time(self) -> str | None:
@@ -1394,6 +1453,36 @@ class AnycubicPrinter:
         return list([
             func_id.name for func_id in func_ids
         ])
+
+    @property
+    def light_type(self) -> int | None:
+        """The light `type` this printer reports. Kobra S1 uses 2, not 1."""
+        if not self._lights:
+            return None
+
+        return sorted(self._lights.keys())[0]
+
+    @property
+    def has_controllable_light(self) -> bool:
+        return bool(self._lights)
+
+    @property
+    def light_is_on(self) -> bool:
+        light_type = self.light_type
+
+        if light_type is None:
+            return False
+
+        return bool(self._lights[light_type]['status'])
+
+    @property
+    def light_brightness_pct(self) -> int | None:
+        light_type = self.light_type
+
+        if light_type is None:
+            return None
+
+        return self._lights[light_type]['brightness']
 
     @property
     def has_peripheral_camera(self) -> bool:
@@ -1569,6 +1658,16 @@ class AnycubicPrinter:
             return self.primary_multi_color_box.current_temperature
 
         return 0
+
+    @property
+    def primary_multi_color_box_loaded_slot(self) -> int | None:
+        if self.primary_multi_color_box:
+            slot = self.primary_multi_color_box.loaded_slot
+            # -1 means nothing is loaded; surface that as unknown rather than
+            # a slot number that doesn't exist.
+            return slot if slot is not None and slot >= 0 else None
+
+        return None
 
     @property
     def primary_drying_status_is_drying(self) -> bool | None:
@@ -1821,6 +1920,14 @@ class AnycubicPrinter:
     def latest_project_print_current_layer(self) -> int | None:
         if self.latest_project:
             return self.latest_project.print_current_layer
+
+        return None
+
+    @property
+    def latest_project_supplies_usage(self) -> int | None:
+        """Filament consumed by the current job, as reported by the printer."""
+        if self.latest_project:
+            return self.latest_project.print_supplies_usage
 
         return None
 
@@ -2146,6 +2253,20 @@ class AnycubicPrinter:
         return await self._api_parent.multi_color_box_toggle_auto_feed(
             self,
             box_id=box_id,
+        )
+
+    async def multi_color_box_get_info(self) -> None:
+        return await self._api_parent.multi_color_box_get_info(self)
+
+    async def set_light(
+        self,
+        light_on: bool,
+        brightness: int | None = None,
+    ) -> None:
+        return await self._api_parent.set_printer_light(
+            self,
+            light_on=light_on,
+            brightness=brightness,
         )
 
     async def multi_color_box_switch_on_auto_feed(
