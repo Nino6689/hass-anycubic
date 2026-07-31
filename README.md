@@ -390,10 +390,10 @@ project, so fixes made here don't automatically reach it.
 
 ## Security
 
-Traffic to Anycubic's MQTT broker (`mqtt-universe.anycubic.com`) is **fully verified**: the
+As of v0.3.0, traffic to Anycubic's MQTT broker (`mqtt-universe.anycubic.com`) is **fully verified**: the
 certificate chain is checked against Anycubic's own pinned root CA and the hostname is
 verified, so the connection can't be silently intercepted. Upstream disabled both checks
-(`CERT_NONE` + `tls_insecure_set(True)`); that's fixed as of v0.2.2-nb3.
+(`CERT_NONE` + `tls_insecure_set(True)`); that's fixed.
 
 Two relaxations remain, both forced by Anycubic's own certificates:
 
@@ -413,6 +413,9 @@ Found a security issue? See [SECURITY.md](SECURITY.md).
 ---
 
 ## Changes from upstream v0.2.2
+
+This fork is versioned independently of upstream. **v0.3.0** is the first consolidated
+release; the `v0.2.2-nbX` tags before it were incremental steps toward it.
 
 | Change | File | Why |
 |---|---|---|
