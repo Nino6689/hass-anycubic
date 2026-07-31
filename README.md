@@ -345,9 +345,13 @@ and follow your unit preferences (°C / °F).
 
 **Harmless.** These are MQTT message types the parser doesn't recognise yet (newer firmware
 features) — everything else still flows normally. They're logged at ERROR with a full
-traceback, which looks alarming and is noisier than it should be (the `light/report` topic
-repeats every few seconds while MQTT is connected). Quietening that is on the
-[roadmap](#roadmap); in the meantime you can safely ignore them, or silence them with:
+traceback, which looks far more alarming than it is. In practice they arrive in small
+bursts around MQTT connect and print start rather than continuously — on a Kobra S1 that's
+roughly five in a fifteen-minute window, for types `light`, `aiSettings` and `buried`.
+
+Handling those properly (rather than just silencing them) is on the [roadmap](#roadmap) —
+`light` in particular is a real feature the printer is offering. In the meantime you can
+safely ignore them, or quieten them with:
 
 ```yaml
 logger:
