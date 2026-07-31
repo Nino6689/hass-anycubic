@@ -1,16 +1,33 @@
-# Anycubic Cloud for Home Assistant
+<h1 align="center">Anycubic Cloud for Home Assistant</h1>
 
-[![GitHub release](https://img.shields.io/github/v/release/Nino6689/hass-anycubic_cloud?style=flat-square)](https://github.com/Nino6689/hass-anycubic_cloud/releases/latest)
-[![hacs](https://img.shields.io/badge/HACS-Custom-41BDF5?style=flat-square&logo=home-assistant&logoColor=white)](https://hacs.xyz)
-[![GPLv3](https://img.shields.io/badge/license-GPL_3.0-blue?style=flat-square)](LICENSE)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/nino6689)
+<p align="center">
+  Monitor and control your <b>Anycubic Kobra</b> or <b>Photon</b> 3D printer from Home Assistant,<br>
+  with sub-second live updates over MQTT.
+</p>
 
-Monitor and control your **Anycubic Kobra / Photon** 3D printer from Home Assistant, with
-sub-second updates over MQTT.
+<p align="center">
+  <a href="https://github.com/Nino6689/hass-anycubic_cloud/releases/latest"><img src="https://img.shields.io/github/v/release/Nino6689/hass-anycubic_cloud?style=for-the-badge&color=41BDF5" alt="Release"></a>
+  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white" alt="HACS"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-GPL_3.0-blue?style=for-the-badge" alt="Licence"></a>
+  <a href="https://buymeacoffee.com/nino6689"><img src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
+</p>
 
-Temperatures, progress and layer count · **per-slot ACE spools** showing material and colour ·
-**printer light control** with brightness · live job preview image · pause, resume and cancel ·
-filament used per job and lifetime totals · slicer and model detail for the running job.
+---
+
+## What you get
+
+|  |  |
+|---|---|
+| 🌡️ **Live telemetry** | Nozzle, bed and ACE temperatures, fan speeds, print speed — updating every second while printing |
+| 📊 **Job tracking** | Progress, current and total layers, elapsed and remaining time, and a real timestamp ETA |
+| 🧵 **Per-slot filament** | Every ACE slot as its own entity, showing material **and colour**, with a spool-shaped icon |
+| 💡 **Printer light** | A proper light entity — on, off and brightness |
+| 🎮 **Controls** | Pause, resume, cancel, drying, run-out refill and file management |
+| 🖼️ **Live preview** | The job preview image, as a camera-style entity |
+| 📈 **Lifetime stats** | Total filament used, total print time and print count |
+| 🔐 **Verified connection** | TLS to Anycubic's cloud is properly verified — see [Security](#-security) |
+
+Around **60 entities** per printer, across two devices: the printer, and the ACE as a child device.
 
 ---
 
@@ -22,158 +39,151 @@ which did all the original work. Upstream's last release was December 2024 and t
 stock v0.2.2 no longer loads on current Home Assistant, failing with
 `HTTP 500 "Server got itself in trouble"`.
 
-This fork exists to keep it working. What that means in practice:
+This fork exists to keep it working, and has since gone further — see
+[what's changed](#-changes-from-upstream). What maintenance means here:
 
-- **Compatibility with current HA Core** — the paho-mqtt 2.x / Python 3.13+ breakage is fixed,
-  and future Core breakage is the priority when it happens.
-- **Issue triage** — bugs get looked at, reproduced where possible, and answered.
-- **Security fixes** — see [Security](#security) for what's already been done.
-- **Upstream first, still** — if @WaresWichall picks the project back up, fixes from here are
-  theirs to take and this fork happily retires.
+- **Compatibility with current HA Core** — the paho-mqtt 2.x / Python 3.13+ breakage is fixed, and future Core breakage is the priority when it happens
+- **Issue triage** — bugs get looked at, reproduced where possible, and answered
+- **Security fixes** — see [Security](#-security)
+- **Upstream first, still** — if @WaresWichall picks the project back up, everything here is theirs to take and this fork happily retires
 
-Not every request will become a feature. Things that need hardware I don't have, or that
-Anycubic's cloud API doesn't expose, will be recorded honestly in the [Roadmap](#roadmap)
-rather than promised.
+Not every request becomes a feature. Things needing hardware I don't have, or that Anycubic's
+API doesn't expose, are recorded honestly in the [roadmap](#-roadmap) rather than promised.
 
-## Hardware and testing scope
+### Hardware and testing scope
 
-I own a **Kobra S1 with an ACE Pro**. That is the only hardware every change here is
-actually tested against — the TLS work, the MQTT connection, the entities, the panel.
+> I own a **Kobra S1 with an ACE Pro**. That is the only hardware every change here is actually
+> tested against — the TLS work, the MQTT connection, the entities, the panel.
 
-Everything else in the [supported printers](#supported-printers) list works because
-upstream or the community reported it working, not because I verified it. I'll take care
-not to break those models, but I can't confirm behaviour on them first-hand.
+Everything else in the [supported printers](#supported-printers) list works because upstream or
+the community reported it working, not because I verified it. I'll take care not to break those
+models, but I can't confirm their behaviour first-hand.
 
-So: **bug reports and test results for other models are genuinely useful** and will be
-acted on — you're my only visibility into that hardware. And if Anycubic (or anyone with a
-spare machine) wants a model properly supported rather than supported-by-inference, a
-donated printer means it gets tested for real. Until then I'd rather be upfront about the
-gap than imply coverage I don't have.
+So **bug reports and test results for other models are genuinely useful** — you're my only
+visibility into that hardware. And if Anycubic, or anyone with a spare machine, wants a model
+properly supported rather than supported-by-inference, a donated printer means it gets tested
+for real. Until then I'd rather be upfront about the gap than imply coverage I don't have.
 
 ---
 
-## Table of contents
+## Contents
 
 - [Quick start](#quick-start)
 - [Supported printers](#supported-printers)
-- [Step 1 — Install](#step-1--install-the-integration)
-- [Step 2 — Get an auth token](#step-2--get-an-auth-token)
-  - [Option A — Slicer (recommended)](#option-a--slicer-token-recommended-mqtt-live-updates)
-  - [Option B — Web](#option-b--web-token-easiest-no-live-mqtt)
-  - [Option C — Android](#option-c--android-token-advanced)
-- [Step 3 — Add it in Home Assistant](#step-3--add-the-integration-in-home-assistant)
-- [Step 4 — Choose a Connect Mode](#step-4--choose-a-connect-mode-controls-when-mqtt-is-active)
-- [What you get](#what-you-get)
+- [1. Install](#1-install)
+- [2. Get an auth token](#2-get-an-auth-token) — [Slicer](#option-a--slicer-token-recommended) · [Web](#option-b--web-token-easiest) · [Android](#option-c--android-token-advanced)
+- [3. Add it to Home Assistant](#3-add-it-to-home-assistant)
+- [4. Choose a connect mode](#4-choose-a-connect-mode)
+- [Entities](#entities)
+- [🧵 Filament and the ACE](#-filament-and-the-ace)
+- [Automation examples](#automation-examples)
 - [Troubleshooting](#troubleshooting)
-- [Frontend card](#frontend-card)
-- [Security](#security)
-- [Changes from upstream](#changes-from-upstream-v022)
-- [Roadmap](#roadmap)
-- [Support the project](#support-the-project)
+- [🔐 Security](#-security)
+- [📦 Changes from upstream](#-changes-from-upstream)
+- [🧭 Roadmap](#-roadmap)
 - [Credits](#credits)
 
 ---
 
 ## Quick start
 
-If you already know your way around HACS and dev tools, here's the speed run:
+Know your way around HACS? Here's the speed run:
 
-1. **HACS** → ⋮ → **Custom repositories** → add `https://github.com/Nino6689/hass-anycubic_cloud` as an **Integration**.
-2. Install **Anycubic Cloud**, restart HA.
-3. Grab a token — either the [Slicer method](#option-a--slicer-token-recommended-mqtt-live-updates) (recommended) or the [Web dev-console snippet](#option-b--web-token-easiest-no-live-mqtt).
-4. **Settings → Devices & services → Add integration** → search **Anycubic Cloud** → pick your auth mode → paste token.
-5. Select your printer(s). Done.
+1. **HACS** → ⋮ → **Custom repositories** → add `https://github.com/Nino6689/hass-anycubic_cloud` as an **Integration**
+2. Install **Anycubic Cloud**, restart Home Assistant
+3. Grab a token — the [slicer method](#option-a--slicer-token-recommended) (recommended) or the [web console snippet](#option-b--web-token-easiest)
+4. **Settings → Devices & services → Add integration** → **Anycubic Cloud** → pick your auth mode → paste the token
+5. Select your printer
 
-Otherwise, follow the step-by-step below — it's all explained.
+Otherwise the step-by-step below explains everything.
 
 ---
 
 ## Supported printers
 
-**Verified here** (the hardware I own and test on):
+**✅ Verified here** — the hardware I own and test against:
 
-- **Kobra S1** — including **ACE Pro** multi-colour spool details
+- **Kobra S1**, including the **ACE Pro**
 
-**Reported working** by upstream and the community — these should work, but I can't test them:
+**📣 Reported working** by upstream and the community — these should work, but I can't test them:
 
-- **Kobra 3 Combo**
-- **Kobra 2**, **Kobra 2 Max**, **Kobra 2 Pro**
-- **Photon Mono M5s** (basic support)
-- **M7 Pro** (basic support)
+| | |
+|---|---|
+| Kobra 3 Combo | Kobra 2 / 2 Max / 2 Pro |
+| Photon Mono M5s *(basic)* | M7 Pro *(basic)* |
 
 Tried a model that isn't listed, or one of the "reported" ones and it misbehaved?
-[Open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) — including the ones
-that *do* work, so the list above can be based on something firmer than inference.
+[Open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) — including for the ones
+that *do* work, so this list can rest on something firmer than inference.
 
 ---
 
-## Step 1 — Install the integration
+## 1. Install
 
-### Recommended: HACS
+### Via HACS (recommended)
 
-1. In Home Assistant, open **HACS**.
-2. Click the **⋮ menu** (top right) → **Custom repositories**.
-3. Add this repository:
-   - **URL**: `https://github.com/Nino6689/hass-anycubic_cloud`
-   - **Category**: `Integration`
-4. Click **Add**, then close the dialog.
-5. Search HACS for **Anycubic Cloud** and click **Download**.
-6. **Restart Home Assistant** (Settings → System → Restart).
+1. Open **HACS** in Home Assistant
+2. **⋮ menu** (top right) → **Custom repositories**
+3. Add `https://github.com/Nino6689/hass-anycubic_cloud` with category **Integration**
+4. Search HACS for **Anycubic Cloud** → **Download**
+5. **Restart Home Assistant**
 
-### Manual install
+### Manually
 
-If you don't use HACS, grab the latest [release zip](https://github.com/Nino6689/hass-anycubic_cloud/releases/latest), then:
-
-1. Extract the `custom_components/anycubic_cloud/` folder.
-2. Copy it into your HA `config/custom_components/` directory.
-3. Restart Home Assistant.
+Grab the latest [release zip](https://github.com/Nino6689/hass-anycubic_cloud/releases/latest),
+extract `custom_components/anycubic_cloud/` into your HA `config/custom_components/` directory,
+and restart.
 
 ---
 
-## Step 2 — Get an auth token
+## 2. Get an auth token
 
-This integration **never asks for your Anycubic email/password directly** — Home Assistant
-can't perform the Anycubic OAuth flow with its captchas and 2FA. Instead you obtain a
-**token** from somewhere you're already logged in (the slicer, the website, or the Android
-app) and paste it in.
+This integration **never asks for your Anycubic email or password** — Home Assistant can't
+perform the Anycubic OAuth flow with its captchas and 2FA. Instead you take a **token** from
+somewhere you're already signed in, and paste it in.
 
-Pick **one** of the three options below.
+Pick **one** of the three options.
 
-### Option A — Slicer token (RECOMMENDED, MQTT live updates)
+### Option A — Slicer token *(recommended)*
 
-> ⚡ **Why this one?** Anycubic blocks MQTT for tokens obtained from the website. Only
-> tokens from Anycubic Slicer Next give you real-time status — temperatures, progress and
-> layer count updating every second instead of every minute — plus the control buttons.
+> ⚡ **Why this one?** Anycubic blocks MQTT for tokens taken from the website. Only slicer tokens
+> give real-time status — temperatures, progress and layers updating every second instead of
+> every minute — **plus the control buttons**.
 
-#### What you need
+You'll need [Anycubic Slicer Next](https://www.anycubic.com/pages/anycubic-slicer-next), signed
+in once via **Settings → Account**.
 
-- [**Anycubic Slicer Next**](https://www.anycubic.com/pages/anycubic-slicer-next) installed on your Mac or Windows PC.
-- The slicer logged in to your Anycubic account (do this once via **Settings → Account** inside the slicer).
+<details>
+<summary><b>A1. If your slicer config is plain text</b> — older builds</summary>
 
-#### A. If your slicer config is plain text
+<br>
 
-Older Slicer Next builds store the token readably. Log in once, **quit the slicer**, then run:
+Sign in once, **quit the slicer**, then run:
 
-**macOS** — in Terminal:
+**macOS**
 
 ```bash
 python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/Library/Application Support/AnycubicSlicerNext/AnycubicSlicerNext.conf')))['anycubic_cloud']['access_token'])"
 ```
 
-**Windows** — in PowerShell:
+**Windows** *(PowerShell)*
 
 ```powershell
 $conf = "$env:APPDATA\AnycubicSlicerNext\AnycubicSlicerNext.conf"
 (Get-Content $conf | ConvertFrom-Json).anycubic_cloud.access_token
 ```
 
-You'll get a long string (~1200 characters) starting with `eyJ…`. Copy the whole thing and
-skip to [Step 3](#step-3--add-the-integration-in-home-assistant).
+You'll get a long string (~1200 characters) starting with `eyJ…`. Copy the whole thing.
 
-#### B. If your slicer config is encrypted
+</details>
 
-Newer Slicer Next builds **encrypt the `anycubic_cloud` section** of that file. If the
-command above returns nothing, or the file looks like this:
+<details>
+<summary><b>A2. If your slicer config is encrypted</b> — newer builds ⚠️</summary>
+
+<br>
+
+Newer Slicer Next builds **encrypt the `anycubic_cloud` section**. If the command above returns
+nothing, or the file looks like this:
 
 ```json
 "anycubic_cloud": {
@@ -182,21 +192,18 @@ command above returns nothing, or the file looks like this:
 }
 ```
 
-…then both the key names and the token are AES-encrypted and base64-encoded. The key lives
-inside the slicer's `common_encrypt.dll` and isn't exported, so **the file cannot be
-decrypted** — there's nothing this integration can do to read it. Pasting the encrypted
-blob into Home Assistant will correctly be rejected as invalid authentication.
+…then the key names and the token are AES-encrypted and base64-encoded. The key lives inside the
+slicer's `common_encrypt.dll` and isn't exported, so **the file cannot be decrypted** — there is
+nothing this integration can do to read it. Pasting the encrypted blob will correctly be
+rejected as invalid authentication.
 
-The slicer does decrypt the token into memory in order to log in, so you can recover it
-from the running process. This is a standard Windows feature and nothing leaves your
-machine. Credit to [@simo26246 in upstream #67](https://github.com/WaresWichall/hass-anycubic_cloud/issues/67)
-for working this out.
+The slicer does decrypt the token into memory to sign in, so you can recover it from the running
+process. This is a standard Windows feature and nothing leaves your machine. Credit to
+[@simo26246 in upstream #67](https://github.com/WaresWichall/hass-anycubic_cloud/issues/67).
 
-1. Open Anycubic Slicer Next and make sure it's **logged in**.
-2. **Ctrl+Shift+Esc** → **Details** tab → right-click `AnycubicSlicerNext.exe` (the larger
-   of the two) → **Create dump file**. Note the path, usually `%TEMP%\AnycubicSlicerNext.DMP`.
-3. Run this in PowerShell — **not as Administrator**, which fails with an out-of-memory
-   error. It extracts the token and copies it to your clipboard:
+1. Open Slicer Next and make sure it's **signed in**
+2. **Ctrl+Shift+Esc** → **Details** tab → right-click `AnycubicSlicerNext.exe` (the larger of the two) → **Create dump file**
+3. Run this in PowerShell — **not as Administrator**, which fails with an out-of-memory error:
 
    ```powershell
    $dmp = Get-ChildItem "$env:TEMP\AnycubicSlicerNext*.DMP" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -211,285 +218,397 @@ for working this out.
    "Copied slicer token, length $($tok.Length). Paste into Home Assistant (Slicer mode)."
    ```
 
-4. Paste it into Home Assistant using auth mode **Slicer**.
+4. Paste into Home Assistant using auth mode **Slicer**
 
-> 🔐 **Delete the `.DMP` file when you're done** — it contains all your live tokens in clear
-> text. Only ever do this for your own account on your own machine.
+> 🔐 **Delete the `.DMP` file afterwards** — it contains all your live tokens in clear text. Only
+> ever do this for your own account, on your own machine.
 
-#### Housekeeping
+</details>
 
-Tokens expire after roughly five months and may rotate; when HA prompts for re-auth, just
-repeat the steps above. Running the slicer and HA logged in at the same time works fine in
-practice, so there's no need to log out of the slicer afterwards.
+Tokens last around five months and may rotate; when Home Assistant prompts for re-auth, just
+repeat the steps. Running the slicer and HA signed in at the same time works fine.
 
----
+### Option B — Web token *(easiest)*
 
-### Option B — Web token (EASIEST, no live MQTT)
+> ⚠️ **Trade-off:** web tokens are polling only — state updates every ~60 seconds instead of in
+> real time, and the control buttons won't work. Fine for "is it printing?", not for watching the
+> temperature curve.
 
-> ⚠️ **Trade-off:** Web tokens are cloud-polling only — state updates every ~60 seconds
-> instead of in real time, and the control buttons won't work. Fine for "is it printing?",
-> not for watching the temperature line draw.
-
-1. Open <https://cloud-universe.anycubic.com/file> in your browser and **sign in**.
-2. Open browser **Developer Tools** (F12, or right-click → Inspect).
-3. Switch to the **Console** tab.
-4. Paste this and press Enter:
+1. Open <https://cloud-universe.anycubic.com/file> and sign in
+2. Open **Developer Tools** (F12) → **Console**
+3. Run:
 
    ```js
    window.localStorage["XX-Token"]
    ```
 
-5. The console prints your token (~238 characters) as a quoted string. Copy the contents
-   **without the surrounding quotes**.
+4. Copy the value **without the surrounding quotes** (~238 characters)
 
-> If this returns `undefined`, you're almost certainly on a freshly-opened tab that
-> redirected through OAuth. Read it from the tab you're **already logged in on**.
+> Getting `undefined`? You're on a freshly-opened tab that redirected through OAuth. Read it from
+> the tab you're **already signed in on**.
 
-→ Now jump to [Step 3](#step-3--add-the-integration-in-home-assistant) and pick auth mode **Web**.
+### Option C — Android token *(advanced)*
 
----
-
-### Option C — Android token (ADVANCED)
-
-Requires extracting both a token and a `device_id` from the Android app's network traffic
-(e.g. via [mitmproxy](https://mitmproxy.org/) or [HTTP Toolkit](https://httptoolkit.com/)).
-
-Significantly more involved than the other two and not recommended unless you have a
-specific reason. The HA UI prompts for both **User Token** and **Device ID**.
+Requires extracting a token *and* a `device_id` from the Android app's network traffic, via
+[mitmproxy](https://mitmproxy.org/) or [HTTP Toolkit](https://httptoolkit.com/). Considerably
+more involved, and not recommended without a specific reason.
 
 ---
 
-## Step 3 — Add the integration in Home Assistant
+## 3. Add it to Home Assistant
 
-1. **Settings → Devices & services**.
-2. Click **+ Add integration** (bottom right).
-3. Search for **Anycubic Cloud** and click it.
-4. Pick the **authentication mode** matching the token from Step 2 (Slicer / Web / Android).
-5. Paste your token into **User Token** (and **Device ID** if you picked Android).
-6. Click **Submit**.
-7. Select which printer(s) to track.
-8. Click **Submit** again.
+1. **Settings → Devices & services → + Add integration**
+2. Search **Anycubic Cloud**
+3. Pick the **auth mode** matching your token (Slicer / Web / Android)
+4. Paste the token — and **Device ID** too, for Android
+5. Choose which printers to track
 
-You'll get a new **Anycubic Cloud** entry in your integrations list and a sidebar panel
-with a printer card.
+You'll get the printer device, the ACE as a child device, and a sidebar panel with a printer card.
 
 ---
 
-## Step 4 — Choose a Connect Mode (controls when MQTT is active)
+## 4. Choose a connect mode
 
-MQTT is what gives you sub-second updates. Staying connected permanently puts a little
-extra load on Anycubic's broker, so you can choose when it's on.
+MQTT is what gives sub-second updates. Staying connected permanently puts a little extra load on
+Anycubic's broker, so you choose when it's on:
+**Settings → Devices & services → Anycubic Cloud → Configure**.
 
-To change: **Settings → Devices & services → Anycubic Cloud → Configure**.
-
-| Mode | When MQTT connects |
+| Mode | MQTT connects |
 |---|---|
-| **Printing Only** (default) | While a print is running |
-| **Printing & Drying** | + while the ACE is drying filament |
-| **Device Online** | Whenever the printer is powered on |
-| **Always** | All the time — best for live monitoring of an idle printer |
-| **Never Connect** | Polled only (closest to "Web auth" behaviour) |
+| **Printing only** *(default)* | While a print is running |
+| **Printing & drying** | …and while the ACE is drying filament |
+| **Device online** | Whenever the printer is powered on |
+| **Always** | All the time — best for watching an idle printer |
+| **Never** | Polling only, like web auth |
 
-### Force MQTT on right now
-
-If you've just changed mode and don't want to wait for the next print:
-
-1. Toggle `switch.<printer>_manual_mqtt_connection_enabled` → **On**.
-2. Press `button.<printer>_refresh_mqtt_connection`.
-3. `binary_sensor.<printer>_mqtt_connection_active` should turn **on** within 5–15 seconds.
+**Need it on right now?** Turn on `switch.<printer>_manual_mqtt_connection_enabled`, press
+`button.<printer>_refresh_mqtt_connection`, and `binary_sensor.<printer>_mqtt_connection_active`
+should come on within 5–15 seconds.
 
 ---
 
-## What you get
+## Entities
 
-Around 60 entities per printer. The ACE appears as its **own device** linked to the printer,
-so its spools, drying and fan entities are kept separate — and a second ACE has somewhere to
-live. The highlights:
+All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_job_progress`.
 
-| Kind | Entities |
+<details open>
+<summary><b>🖨️ Printer device</b></summary>
+
+<br>
+
+| Group | Entities |
 |---|---|
-| **Job** | `job_name`, `job_state`, `job_progress` (%), `job_time_elapsed`, `job_time_remaining`, `job_eta`, `job_current_layer`, `job_total_layers`, `job_z_thickness`, `job_speed_mode`, `job_filament_used` |
-| **Lifetime** | `total_material_used` (kg), `total_print_time`, `total_print_count` |
-| **Temperatures** | `nozzle_temperature`, `hotbed_temperature` and their `target_*` counterparts |
-| **Fans** | `fan_speed` (part cooling), `auxiliary_fan_speed`, `ace_box_fan_level` |
+| **Job** | `job_name`, `job_state`, `job_progress`, `job_current_layer`, `job_total_layers`, `job_time_elapsed`, `job_time_remaining`, `job_eta`, `job_filament_used`, `job_z_thickness`, `job_speed_mode` |
 | **Status** | `current_status`, `printer_online`, `is_busy`, `is_available`, `job_in_progress`, `job_complete`, `job_failed`, `job_paused`, `mqtt_connection_active` |
-| **ACE** | `ace_slot_1`–`ace_slot_4` (material type per slot; colour hex, full multi-colour list, SKU, loaded state and edit status as attributes), `ace_loaded_slot`, `ace_current_temperature`, `ace_box_fan_level`, `ace_spools` (with a `box_info` attribute: humidity, feed status, model), `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `ace_run_out_refill`, `refresh_ace_spools` |
-| **Controls** | `printer_light` (on/off + brightness), `pause_print`, `resume_print`, `cancel_print`, file-list refresh buttons, `manual_mqtt_connection_enabled` |
-| **Other** | Live job preview `image`, printer and ACE `update` entities, plus [services](https://github.com/Nino6689/hass-anycubic_cloud/blob/main/custom_components/anycubic_cloud/services.yaml) for printing, drying and file management |
+| **Temperatures** | `nozzle_temperature`, `hotbed_temperature`, `target_nozzle_temperature`, `target_hotbed_temperature` |
+| **Speeds & fans** | `print_speed`, `fan_speed`, `auxiliary_fan_speed` |
+| **Lifetime** | `total_material_used` (kg), `total_print_time`, `total_print_count` |
+| **Controls** | `printer_light`, `pause_print`, `resume_print`, `cancel_print`, `manual_mqtt_connection_enabled`, `refresh_mqtt_connection` |
+| **Files** | `file_list_local`, `file_list_usb_disk`, `file_list_cloud` and their request buttons |
+| **Other** | `job_preview` image, `printer_firmware` update |
 
-`sensor.<printer>_job_eta` is a proper **timestamp** entity, so Home Assistant renders it
-as a local clock time and it works directly in automations and templates:
+</details>
 
-```jinja
-{{ states('sensor.anycubic_kobra_s1_job_eta') | as_datetime | as_local }}
+<details open>
+<summary><b>🧵 ACE device</b></summary>
+
+<br>
+
+| Group | Entities |
+|---|---|
+| **Slots** | `ace_slot_1` – `ace_slot_4`, `ace_loaded_slot` |
+| **Unit** | `ace_current_temperature`, `ace_box_fan_level`, `ace_spools`, `ace_run_out_refill`, `refresh_ace_spools`, `ace_firmware` update |
+| **Drying** | `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `drying_total_duration`, `drying_stop` |
+
+</details>
+
+Temperature and duration sensors carry the right device classes, so they graph properly and
+follow your °C / °F preference. `job_eta` is a genuine **timestamp** entity, so it renders as
+local time and works directly in automations.
+
+There are also [services](custom_components/anycubic_cloud/services.yaml) for printing, drying
+and file management.
+
+---
+
+## 🧵 Filament and the ACE
+
+The ACE appears as its **own device**, linked to the printer rather than buried inside it — so
+its spools, drying and fan entities stay together, and a second unit has somewhere to live:
+
+```
+Anycubic Kobra S1
+└── Anycubic Kobra S1 ACE Pro      ← own firmware version, own entities
 ```
 
-Temperature and duration sensors carry the matching device classes, so they graph properly
-and follow your unit preferences (°C / °F).
+The name comes from the model id the unit reports, so an ACE Pro says "ACE Pro" rather than a
+generic label.
+
+### Every slot, with its colour
+
+Each slot is a sensor whose **state is the material type**, with the loaded filament colour drawn
+as a **spool-shaped icon**. No custom card, no template — it just shows up:
+
+| Entity | Icon | State |
+|---|---|---|
+| `ace_slot_1` | 🩶 grey spool | `PETG` |
+| `ace_slot_2` | 🖤 black spool | `PLA` |
+| `ace_slot_3` | 💛 yellow spool | `PLA` |
+| `ace_slot_4` | 🤍 white spool | `PETG` |
+
+Each slot carries the detail as attributes:
+
+| Attribute | Example | Notes |
+|---|---|---|
+| `color_hex` | `#FFEC3D` | The primary colour |
+| `colors_hex` | `['#FFEC3D']` | **Every** colour on the spool |
+| `is_multi_color` | `false` | True for gradient / dual-colour filament |
+| `sku` | `AHPEBW-102` | Anycubic product code, where the spool reports one |
+| `spool_loaded` | `true` | Whether a spool is present |
+| `edit_status` | `0` | Meaning not yet confirmed — see [roadmap](#-roadmap) |
+
+> **Multi-colour spools are handled properly.** Anycubic reports the full colour list, but only
+> the first entry was ever visible before. A silk or gradient spool now shows every colour, and
+> the icon renders them as bands.
+
+Press **Refresh ACE Spools** (`button.<printer>_refresh_ace_spools`) to re-request slot data from
+the unit — the equivalent of the sync button in Anycubic Slicer Next.
+
+### Unit telemetry
+
+`ace_spools` carries a `box_info` attribute with the unit's humidity, feed status, temperature,
+model and auto-feed state.
+
+> ℹ️ On a Kobra S1's ACE Pro, `humidity` and per-slot `consumables_percent` both report `0`, so
+> that hardware most likely doesn't have those sensors. They're exposed in case another unit
+> populates them.
+
+---
+
+## Automation examples
+
+**What's loaded in slot 3, and what colour**
+
+```jinja
+{{ states('sensor.anycubic_kobra_s1_ace_slot_3') }}
+{{ state_attr('sensor.anycubic_kobra_s1_ace_slot_3', 'color_hex') }}
+```
+
+**Which spool is currently feeding** — reads `unavailable` when nothing is loaded
+
+```jinja
+{{ states('sensor.anycubic_kobra_s1_ace_loaded_slot') }}
+```
+
+**Print finished — turn the light off after 10 minutes**
+
+```yaml
+automation:
+  - alias: Anycubic light off after print
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.anycubic_kobra_s1_job_complete
+        to: "on"
+        for: "00:10:00"
+    actions:
+      - action: light.turn_off
+        target:
+          entity_id: light.anycubic_kobra_s1_printer_light
+```
+
+**Notify with the ETA when a print actually starts**
+
+```yaml
+automation:
+  - alias: Anycubic print started
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.anycubic_kobra_s1_job_in_progress
+        to: "on"
+    actions:
+      - action: notify.mobile_app
+        data:
+          message: >
+            {{ states('sensor.anycubic_kobra_s1_job_name') }} started —
+            ETA {{ states('sensor.anycubic_kobra_s1_job_eta') | as_datetime | as_local }}
+```
 
 ---
 
 ## Troubleshooting
 
-### "Invalid authentication" right after submitting the token
+<details>
+<summary><b>"Invalid authentication" right after submitting the token</b></summary>
 
-- **Most common cause**: a trailing space or newline. Re-copy carefully — the browser
-  console adds quotes, which must be stripped.
-- **Encrypted slicer config**: if your token doesn't start with `eyJ`, your slicer encrypts
-  its config and you've pasted the encrypted blob. See
-  [Option A part B](#b-if-your-slicer-config-is-encrypted).
-- **Expired token**: they last about five months. Get a fresh one.
+<br>
 
-### MQTT never connects (entity stays "off")
+- **Most common cause:** a trailing space or newline. Re-copy carefully — the browser console adds quotes, which must be stripped
+- **Encrypted slicer config:** if your token doesn't start with `eyJ`, see [Option A2](#option-a--slicer-token-recommended)
+- **Expired token:** they last about five months. Get a fresh one
 
-- Web tokens **don't support MQTT** — Anycubic's design, not a bug. Use a Slicer token.
-- Check `binary_sensor.<printer>_printer_online` is **on**. If the printer is off or
-  unreachable, MQTT has nothing to talk to.
-- The default Connect Mode is **Printing Only** — an idle printer won't connect until the
-  next print. Set it to **Always** to monitor an idle machine.
+</details>
 
-### Logs show "Anycubic MQTT Message unhandled data"
+<details>
+<summary><b>MQTT never connects (entity stays "off")</b></summary>
 
-**Harmless, and rare.** These are fields in a message that this version doesn't parse yet —
-everything else still flows normally. They're logged once at WARNING, not repeatedly.
+<br>
+
+- Web tokens **don't support MQTT** — that's Anycubic's design, not a bug. Use a slicer token
+- Check `binary_sensor.<printer>_printer_online` is on. If the printer is off or unreachable, MQTT has nothing to talk to
+- The default connect mode is **printing only** — an idle printer won't connect until the next print. Set it to **Always** to watch an idle machine
+
+</details>
+
+<details>
+<summary><b>Logs show "Anycubic MQTT Message unhandled data"</b></summary>
+
+<br>
+
+**Harmless, and rare.** These are fields in a message this version doesn't parse yet — everything
+else still flows normally. They're logged once at WARNING, not repeatedly.
 
 If you see one, it's genuinely useful to
-[open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) with the line: it's how
-new printer features get found. Several entities in this release came from exactly that —
-the printer light, the ACE spool details and the auxiliary fan were all arriving in messages
-that were being discarded.
+[open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) with the line. It's how
+new printer features get found — the printer light, the ACE spool details and the auxiliary fan
+were all arriving in messages that were being discarded.
 
-Unrecognised *message types* (as opposed to unhandled fields) log a single debug line and are
-invisible at default log level.
+</details>
 
-### "Reauthentication required" notification
+<details>
+<summary><b>"Reauthentication required" notification</b></summary>
 
-Your token expired. Re-extract via [Step 2](#step-2--get-an-auth-token), then
-**Settings → Devices & services → Anycubic Cloud → Reconfigure → Re-Auth**. Entity IDs,
-history and automations are all preserved.
+<br>
 
-### Still stuck
+Your token expired. Re-extract via [step 2](#2-get-an-auth-token), then **Settings → Devices &
+services → Anycubic Cloud → Reconfigure → Re-Auth**. Entity IDs, history and automations are all
+preserved.
 
-[Open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues/new) and include:
+</details>
 
-- Your **printer model** (especially if it's not a Kobra S1 — see [testing scope](#hardware-and-testing-scope))
-- HA version (Settings → About)
-- Relevant log lines (Settings → System → Logs → search **anycubic**)
+<details>
+<summary><b>Still stuck</b></summary>
+
+<br>
+
+[Open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues/new) with:
+
+- Your **printer model** — especially if it isn't a Kobra S1, see [testing scope](#hardware-and-testing-scope)
+- Home Assistant version
+- Relevant log lines (**Settings → System → Logs**, search `anycubic`)
 - Which auth mode you used
 
----
-
-## Frontend card
-
-The integration ships its own **sidebar panel** — no extra install needed.
-
-For a card you can place on a normal dashboard, there's the separate
-[Anycubic card](https://github.com/WaresWichall/hass-anycubic_card) from the upstream
-author, installed via HACS as a **Frontend** custom repository. Note that it's a separate
-project, so fixes made here don't automatically reach it.
+</details>
 
 ---
 
-## Security
+## 🔐 Security
 
-As of v0.3.0, traffic to Anycubic's MQTT broker (`mqtt-universe.anycubic.com`) is **fully verified**: the
-certificate chain is checked against Anycubic's own pinned root CA and the hostname is
-verified, so the connection can't be silently intercepted. Upstream disabled both checks
-(`CERT_NONE` + `tls_insecure_set(True)`); that's fixed.
+Traffic to Anycubic's MQTT broker (`mqtt-universe.anycubic.com`) is **fully verified**: the
+certificate chain is checked against Anycubic's pinned root CA and the hostname is verified, so
+the connection can't be silently intercepted. Upstream disabled both checks (`CERT_NONE` plus
+`tls_insecure_set(True)`).
 
-Two relaxations remain, both forced by Anycubic's own certificates:
+Two relaxations remain, both forced by Anycubic's own certificates, and neither weakens chain or
+hostname verification:
 
-- **`DEFAULT:@SECLEVEL=0`** — their client certificate is SHA-1 signed, which OpenSSL 3.x
-  refuses to load at the default security level. Narrowed from upstream's `ALL:` so the
-  normal cipher list still applies.
-- **`VERIFY_X509_STRICT` cleared** — their root CA omits the `keyUsage` extension, and
-  Python 3.13+ rejects such a CA as a trust anchor outright.
+| Relaxation | Why it's unavoidable |
+|---|---|
+| `DEFAULT:@SECLEVEL=0` | Their client certificate is **SHA-1 signed**, which OpenSSL 3.x refuses to load at the default security level. Narrowed from upstream's `ALL:` so only the signature check is relaxed |
+| `VERIFY_X509_STRICT` cleared | Their root CA **omits the `keyUsage` extension**, and Python 3.13+ rejects such a CA as a trust anchor outright |
 
-Neither weakens chain or hostname verification. Known future risk: the broker certificate
-has no Subject Alternative Name, so hostname matching relies on OpenSSL's deprecated
-fallback to Common Name. If a future OpenSSL drops that, this will need revisiting — it's
-on the [roadmap](#roadmap).
+Verified against the live broker: the handshake succeeds on TLSv1.3, while a mismatched hostname
+and a system-trust-store-only context are both correctly rejected.
+
+> **Known future risk:** the broker certificate has no Subject Alternative Name, so hostname
+> matching relies on OpenSSL's deprecated fallback to Common Name. If that's ever removed, this
+> will need revisiting — it's on the [roadmap](#-roadmap).
 
 Found a security issue? See [SECURITY.md](SECURITY.md).
 
 ---
 
-## Changes from upstream v0.2.2
+## 📦 Changes from upstream
 
-This fork is versioned independently of upstream. **v0.3.0** is the first consolidated
-release; the `v0.2.2-nbX` tags before it were incremental steps toward it.
+This fork is versioned independently. **v0.3.0** is the first consolidated release.
 
-| Change | File | Why |
-|---|---|---|
-| **Verify TLS to the cloud broker** | `anycubic_cloud_api/api/mqtt.py` | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the connection could be intercepted. Now pins Anycubic's root CA with hostname checking on. See [Security](#security) |
-| **Job slicer + model detail** | `anycubic_cloud_api/data_models/project.py` | Layer height, filament types per slot, model dimensions, nozzle/bed temps, slicer, printer profile and job source all arrived with every project and were never surfaced. Now attributes on `job_name` |
-| **Spool-shaped colour icons** | `helpers.py` | ACE slot icons are drawn as a filament spool in the loaded colour rather than a plain disc |
-| **ACE is its own device** | `entity.py`, `helpers.py` | Spool, drying and fan entities lived on the printer device, which made the page long and left no room for a second ACE. Each ACE is now a separate device linked to the printer, named from its reported model |
-| **Filament colour swatches** | `sensor.py`, `helpers.py` | Each ACE slot shows a generated swatch of its filament colour as the entity picture, so the colour is visible without a custom card. Multi-colour spools render as bands |
-| **Full ACE data exposed** | `anycubic_cloud_api/data_models/printer_properties.py` | `color_group` (multi-colour spools), `edit_status`, `icon_type`, `consumables_percent`, box `humidity` and `feed_status` were all being received and discarded. Also consumes `head_tools_model` so it stops logging as unhandled |
-| **Auxiliary + ACE box fan** | `sensor.py` | The printer reports `aux_fan_speed_pct` and `box_fan_level` alongside the part fan; both were discarded |
-| **Printer light control** | `light.py`, `anycubic_cloud_api/` | The API layer could already set the light, but no `light` platform existed and the printer's `light/report` replies were discarded as an unknown message type. Now a real on/off + brightness entity |
-| **Per-slot ACE spool entities** | `sensor.py`, `coordinator.py` | Material type, colour and SKU per slot were only reachable by digging through an attribute blob |
-| **Levelling no longer reads as "unknown"** | `anycubic_cloud_api/data_models/project.py` | A Kobra S1 reports print status `9` while levelling, which isn't in the status enum, so `job_state` read `unknown` and `job_in_progress` stayed **off** for the first couple of minutes of every print. Falls back to the plain-text phase the printer also sends. Fixes upstream [#55](https://github.com/WaresWichall/hass-anycubic_cloud/issues/55) |
-| **ETA reports unknown when there is no estimate** | `anycubic_cloud_api/data_models/project.py` | With no remaining-time estimate the ETA silently tracked the wall clock, or rendered as 1970 |
-| **Unknown MQTT types no longer log as errors** | `anycubic_cloud_api/api/mqtt.py` | Unparsed message types logged a full traceback at ERROR. Now a single debug line |
-| **ETA shown in local time** | `frontend_panel/src/helpers.ts` | The panel formatted the ETA as a UTC wall-clock time. Fixes upstream [#52](https://github.com/WaresWichall/hass-anycubic_cloud/issues/52) |
-| **Bad tokens report "invalid auth"** | `anycubic_cloud_api/api/base.py`, `models/auth.py` | A rejected token could return data with no user id, hitting `int(None)` and surfacing as an unexplained crash instead of an auth error. Common with encrypted slicer configs — upstream [#67](https://github.com/WaresWichall/hass-anycubic_cloud/issues/67) |
-| **Sensor device classes** | `sensor.py` | Temperature and duration sensors had none, so no unit conversion and poor history graphs |
-| `iot_class` → `cloud_push` | `manifest.json` | The integration receives live MQTT push, not just polling |
-| `paho-mqtt==1.6.1` → `>=1.6.1` | `manifest.json` | HA Core ships paho-mqtt 2.1.0; the strict pin failed to install on Python 3.13/3.14 → config flow crashed with HTTP 500 |
-| `Client(CallbackAPIVersion.VERSION1, …)` | `anycubic_cloud_api/api/mqtt.py` | paho-mqtt 2.x requires `CallbackAPIVersion` first. `VERSION1` keeps the existing callback signatures; falls back gracefully on paho-mqtt 1.x |
-| Hassfest fixes | `services.yaml`, `strings.json`, `translations/en.json` | File-selector `accept:` now required; literal URLs no longer allowed in strings |
-| Repo URLs + codeowners | `manifest.json` | Points at this fork; codeowners credits upstream too |
-| Brand assets | `brand/` | So HACS shows an icon |
-| Documentation | `README.md` | macOS slicer path, encrypted-config recovery, entity reference, security notes |
+### Security
+
+| Change | Why |
+|---|---|
+| **Verified TLS to the cloud broker** | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the session could be intercepted. Now pins Anycubic's root CA with hostname checking on |
+
+### New features
+
+| Change | Why |
+|---|---|
+| **Printer light control** | The API layer already supported it, but there was no `light` platform and the printer's replies were discarded as an unknown message type |
+| **Per-slot ACE spool entities** | Material, colour and SKU per slot were only reachable by digging through an attribute blob |
+| **ACE is its own device** | Spool, drying and fan entities lived on the printer, making the page long and leaving no room for a second ACE |
+| **Filament colour swatches** | Slot icons are drawn as a spool in the loaded colour; multi-colour spools render as bands |
+| **Full ACE data exposed** | `color_group` (multi-colour), `edit_status`, `icon_type`, `consumables_percent`, box `humidity` and `feed_status` were all received and discarded |
+| **Filament and lifetime stats** | Filament used per job, plus lifetime material, print time and print count |
+| **Job slicer + model detail** | Layer height, filament type per slot, model dimensions, temperatures, profile and job source, as attributes on `job_name` |
+| **Auxiliary + ACE box fan** | Reported alongside the part fan and previously discarded |
+
+### Fixes
+
+| Change | Why |
+|---|---|
+| **Levelling no longer reads "unknown"** | A Kobra S1 reports print status `9` while levelling, which isn't in the status enum — so `job_state` read `unknown` and `job_in_progress` stayed **off for the first ~2.5 minutes of every print**. Fixes upstream [#55](https://github.com/WaresWichall/hass-anycubic_cloud/issues/55) |
+| **ETA reports unknown when there's no estimate** | It was computed as *now + remaining*, and remaining is 0 until printing begins — so it silently tracked the wall clock. A missing value rendered as 1970 |
+| **ETA shown in local time** | The panel formatted it as a UTC wall-clock time. Fixes upstream [#52](https://github.com/WaresWichall/hass-anycubic_cloud/issues/52) |
+| **Bad tokens report "invalid auth"** | A rejected token could return data with no user id, hitting `int(None)` and surfacing as an unexplained crash. Upstream [#67](https://github.com/WaresWichall/hass-anycubic_cloud/issues/67) |
+| **Sensor device classes** | Temperature and duration sensors had none, so no unit conversion and poor history graphs |
+| **Quieter logging** | Unparsed message types logged a full traceback at ERROR; now a single debug line |
+
+### Compatibility & housekeeping
+
+| Change | Why |
+|---|---|
+| `paho-mqtt==1.6.1` → `>=1.6.1` | HA Core ships 2.1.0; the strict pin failed on Python 3.13/3.14 → config flow crashed with HTTP 500 |
+| `Client(CallbackAPIVersion.VERSION1, …)` | paho-mqtt 2.x requires it; falls back gracefully on 1.x |
+| `iot_class` → `cloud_push` | The integration receives live MQTT push, not just polling |
+| Hassfest fixes, brand assets, repo URLs | File-selector `accept:`, no URLs in strings, HACS icon, codeowners |
 
 ---
 
-## Roadmap
+## 🧭 Roadmap
 
-Nothing here is promised by a date. Items marked 🔒 need hardware I don't have — see
-[testing scope](#hardware-and-testing-scope).
+Nothing here is promised by a date. 🔒 marks items needing hardware I don't have —
+see [testing scope](#hardware-and-testing-scope).
 
 | Item | Status |
 |---|---|
-| Camera / print stream support ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | The printer reports a camera peripheral and a `video_taskid`, but the latter reads 0 here. Needs work to find how the stream is actually opened |
-| 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are already wired up; needs someone with two ACE units to confirm it works |
-| 🔒 LAN / local mode for Kobra S1 ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | Would remove the cloud dependency entirely. Big job |
-| 🔒 Resin printer support ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
+| Camera / print stream ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | The printer reports a camera peripheral and a `video_taskid`, but it reads 0 here. Needs work to find how the stream is opened |
+| 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are already wired up; needs someone with two units to confirm |
+| 🔒 LAN / local mode ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | Would remove the cloud dependency entirely. Big job |
+| 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
-| Units for ACE dry-status sensors | `drying_total_duration` / `drying_remaining_time` ship with no unit; needs confirming against real dryer runs before changing, to avoid breaking existing history |
-| ACE `edit_status` meaning | Reads 0 on the slot with an RFID SKU and 1 on manually-set slots, which suggests "identified by the spool" vs "set by hand" — but that's one data point. Exposed raw until confirmed |
-| `aiSettings` message type | The printer advertises AI detection and foreign-object detection and sends an `aiSettings` message, but its contents haven't been captured yet |
+| Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
+| ACE `edit_status` meaning | Reads `0` on the slot with an RFID SKU and `1` on manually-set slots, suggesting "identified by the spool" vs "set by hand" — but that's one data point. Exposed raw until confirmed |
+| `aiSettings` message type | The printer advertises AI and foreign-object detection and sends an `aiSettings` message, but its contents haven't been captured yet |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
-
----
-
-## Support the project ☕
-
-This integration is and always will be **completely free** — use it, fork it, modify it.
-GPL-3.0, knock yourself out.
-
-If it's saved you time or made your printing setup nicer, you can chuck a coffee (or a
-beer 🍺) in the tip jar:
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy_me_a_coffee_or_a_beer-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/nino6689)
-
-Zero pressure — but it does fuel the late-night patching when Anycubic next changes their API 😄
-
-If you'd rather support the original author who did the heavy lifting,
-[@WaresWichall is on the upstream repo](https://github.com/WaresWichall/hass-anycubic_cloud#donations) too.
 
 ---
 
 ## Credits
 
-- **[@WaresWichall](https://github.com/WaresWichall)** — original integration, and by far the
-  larger share of the work here. Massive thanks. ⭐
-- **[@simo26246](https://github.com/simo26246)** — worked out the encrypted-slicer-config
-  token recovery documented above.
-- Frontend card concept originally adapted from [@dangreco](https://github.com/dangreco)'s threedy.
-- Maintained by [@Nino6689](https://github.com/Nino6689).
+- **[@WaresWichall](https://github.com/WaresWichall)** — the original integration, and by far the larger share of the work here. Massive thanks ⭐
+- **[@simo26246](https://github.com/simo26246)** — worked out the encrypted-slicer-config token recovery
+- Frontend card concept adapted from [@dangreco](https://github.com/dangreco)'s threedy
+- Maintained by [@Nino6689](https://github.com/Nino6689)
+
+### Support
+
+This integration is and always will be **completely free** — use it, fork it, modify it. GPL-3.0,
+knock yourself out.
+
+If it's saved you time, you can chuck a coffee in the tip jar. Zero pressure — but it does fuel
+the late-night patching when Anycubic next changes their API 😄
+
+<a href="https://buymeacoffee.com/nino6689"><img src="https://img.shields.io/badge/Buy_me_a_coffee_or_a_beer-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
+
+Prefer to support the original author? [@WaresWichall is on the upstream repo](https://github.com/WaresWichall/hass-anycubic_cloud#donations).
 
 ---
 
