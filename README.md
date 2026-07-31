@@ -417,6 +417,8 @@ Found a security issue? See [SECURITY.md](SECURITY.md).
 | Change | File | Why |
 |---|---|---|
 | **Verify TLS to the cloud broker** | `anycubic_cloud_api/api/mqtt.py` | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the connection could be intercepted. Now pins Anycubic's root CA with hostname checking on. See [Security](#security) |
+| **Job slicer + model detail** | `anycubic_cloud_api/data_models/project.py` | Layer height, filament types per slot, model dimensions, nozzle/bed temps, slicer, printer profile and job source all arrived with every project and were never surfaced. Now attributes on `job_name` |
+| **Spool-shaped colour icons** | `helpers.py` | ACE slot icons are drawn as a filament spool in the loaded colour rather than a plain disc |
 | **ACE is its own device** | `entity.py`, `helpers.py` | Spool, drying and fan entities lived on the printer device, which made the page long and left no room for a second ACE. Each ACE is now a separate device linked to the printer, named from its reported model |
 | **Filament colour swatches** | `sensor.py`, `helpers.py` | Each ACE slot shows a generated swatch of its filament colour as the entity picture, so the colour is visible without a custom card. Multi-colour spools render as bands |
 | **Full ACE data exposed** | `anycubic_cloud_api/data_models/printer_properties.py` | `color_group` (multi-colour spools), `edit_status`, `icon_type`, `consumables_percent`, box `humidity` and `feed_status` were all being received and discarded. Also consumes `head_tools_model` so it stops logging as unhandled |

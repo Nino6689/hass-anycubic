@@ -384,6 +384,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "secondary_dry_status_code": printer.secondary_drying_status_raw_status_code,
             },
             "job_name": {
+                **(printer.latest_project_job_details or {}),
                 "created_timestamp": printer.latest_project_created_timestamp,
                 "finished_timestamp": printer.latest_project_finished_timestamp,
                 "print_total_time": printer.latest_project_print_total_time,

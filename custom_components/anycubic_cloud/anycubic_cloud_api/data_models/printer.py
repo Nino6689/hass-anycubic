@@ -1954,6 +1954,13 @@ class AnycubicPrinter:
         return None
 
     @property
+    def latest_project_job_details(self) -> dict[str, Any] | None:
+        if self.latest_project:
+            return self.latest_project.job_details_object
+
+        return None
+
+    @property
     def latest_project_supplies_usage(self) -> int | None:
         """Filament consumed by the current job, as reported by the printer."""
         if self.latest_project:

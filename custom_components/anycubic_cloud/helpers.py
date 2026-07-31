@@ -105,13 +105,19 @@ def build_color_swatch_data_uri(colors_hex: list[str] | None) -> str | None:
         f'<rect x="{i * band:.3f}" y="0" width="{band:.3f}" height="{size}" fill="{c}"/>'
         for i, c in enumerate(safe)
     )
-    # A neutral ring keeps white and very light filament visible on a white
-    # background; clipping keeps the bands inside the circle.
+    # A filament spool seen face on: the wound filament is the coloured ring,
+    # masked out in the middle for the hub. The neutral rims keep white and
+    # very light filament visible against a white background.
     svg = (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">'
-        f'<defs><clipPath id="c"><circle cx="24" cy="24" r="22"/></clipPath></defs>'
-        f'<g clip-path="url(#c)">{bands}</g>'
+        f'<defs><mask id="m">'
+        f'<circle cx="24" cy="24" r="22" fill="white"/>'
+        f'<circle cx="24" cy="24" r="7" fill="black"/>'
+        f'</mask></defs>'
+        f'<g mask="url(#m)">{bands}</g>'
         f'<circle cx="24" cy="24" r="22" fill="none" stroke="#8b8b8b" stroke-width="2"/>'
+        f'<circle cx="24" cy="24" r="12" fill="none" stroke="#8b8b8b" stroke-width="1.5" opacity="0.55"/>'
+        f'<circle cx="24" cy="24" r="7" fill="none" stroke="#8b8b8b" stroke-width="2"/>'
         f'</svg>'
     )
 

@@ -840,6 +840,42 @@ class AnycubicProject:
         return self._remain_time
 
     @property
+    def job_details_object(self) -> dict[str, Any]:
+        """Slicer and model detail for the current job.
+
+        All of this already arrives with the project but was never surfaced.
+        Values the printer leaves at -1 (meaning "not set by the slicer") are
+        dropped rather than shown as a confusing -1.
+        """
+        param = self._slice_param or {}
+        result = self._slice_result or {}
+
+        def clean(value: Any) -> Any:
+            return None if value in (-1, "", None) else value
+
+        size = [result.get('size_x'), result.get('size_y'), result.get('size_z')]
+
+        details: dict[str, Any] = {
+            "file_name": self._gcode_name,
+            "source": clean(self._source),
+            "slicer": clean(self._get_print_setting('slicer')),
+            "printer_profile": clean(param.get('printer_settings_id')),
+            "layer_height": clean(param.get('layer_height')),
+            "filament_types": [
+                f for f in str(param.get('filament_type') or "").split(";") if f
+            ] or None,
+            "nozzle_temperature": clean(param.get('temperature')),
+            "bed_temperature": clean(param.get('bed_temperature')),
+            "fill_density": clean(param.get('fill_density')),
+            "travel_speed": clean(param.get('travel_speed')),
+            "brim_type": clean(param.get('brim_type')),
+            "model_size_mm": size if any(s for s in size) else None,
+            "estimated_filament": clean(result.get('used_filament')),
+        }
+
+        return {k: v for k, v in details.items() if v is not None}
+
+    @property
     def print_approximate_completion_time(self) -> int | None:
         if self._end_time and self._end_time > 0:
             return self._end_time
