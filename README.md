@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/Nino6689/hass-anycubic_cloud/releases/latest"><img src="https://img.shields.io/github/v/release/Nino6689/hass-anycubic_cloud?style=for-the-badge&color=41BDF5" alt="Release"></a>
-  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white" alt="HACS"></a>
+  <a href="https://github.com/hacs/default/pull/7780"><img src="https://img.shields.io/badge/HACS-Default-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white" alt="In the HACS default catalog"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-GPL_3.0-blue?style=for-the-badge" alt="Licence"></a>
   <a href="https://buymeacoffee.com/nino6689"><img src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
 </p>
@@ -89,10 +89,12 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 
 Know your way around HACS? Here's the speed run:
 
-1. **HACS** → ⋮ → **Custom repositories** → add `https://github.com/Nino6689/hass-anycubic_cloud` as an **Integration**
-2. Install **Anycubic Cloud**, restart Home Assistant
+[![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Nino6689&repository=hass-anycubic_cloud&category=integration)
+
+1. Click the button above (or search HACS for **Anycubic Cloud**) → **Download**
+2. Restart Home Assistant
 3. Grab a token — the [slicer method](#option-a--slicer-token-recommended) (recommended) or the [web console snippet](#option-b--web-token-easiest)
-4. **Settings → Devices & services → Add integration** → **Anycubic Cloud** → pick your auth mode → paste the token
+4. **Settings → Devices & services → Add integration** → **Anycubic Cloud** → paste the token
 5. Select your printer
 
 Otherwise the step-by-step below explains everything.
@@ -122,11 +124,25 @@ that *do* work, so this list can rest on something firmer than inference.
 
 ### Via HACS (recommended)
 
-1. Open **HACS** in Home Assistant
-2. **⋮ menu** (top right) → **Custom repositories**
-3. Add `https://github.com/Nino6689/hass-anycubic_cloud` with category **Integration**
-4. Search HACS for **Anycubic Cloud** → **Download**
-5. **Restart Home Assistant**
+This integration is in the **HACS default catalog**, so no custom repository is needed:
+
+[![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Nino6689&repository=hass-anycubic_cloud&category=integration)
+
+1. Click the button above, or open **HACS** and search for **Anycubic Cloud**
+2. **Download**
+3. **Restart Home Assistant**
+
+<details>
+<summary>Not showing up in HACS yet?</summary>
+
+HACS reads a data feed that is rebuilt periodically, so a newly added repository can take up to
+a day or so to become searchable. In the meantime, add it manually:
+
+**HACS** → **⋮** (top right) → **Custom repositories** → add
+`https://github.com/Nino6689/hass-anycubic_cloud` with category **Integration**.
+
+You can remove the custom entry once it appears in the catalog on its own.
+</details>
 
 ### Manually
 
