@@ -8,6 +8,8 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import CookieJar
+from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
+from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError, AnycubicAPIParsingError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import (
@@ -20,16 +22,15 @@ from homeassistant.exceptions import (
     ConfigEntryError,
     HomeAssistantError,
 )
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo, DeviceRegistry
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
-from .anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError, AnycubicAPIParsingError
 from .const import (
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
@@ -78,7 +79,8 @@ from .helpers import (
 )
 
 if TYPE_CHECKING:
-    from .anycubic_cloud_api.data_models.printer import AnycubicPrinter
+    from anycubic_cloud_api.data_models.printer import AnycubicPrinter
+
     from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
 
 
@@ -863,6 +865,34 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 **printer_device_info,
             )
             self._printer_device_map[printer_device.id] = printer_id
+
+        self._remove_stale_devices(dev_reg)
+
+    @callback
+    def _remove_stale_devices(self, dev_reg: DeviceRegistry) -> None:
+        """Drop devices for printers no longer selected on this entry.
+
+        Quality scale (stale-devices): deselecting a printer, or removing one
+        from the Anycubic account, used to leave an orphaned device behind for
+        the user to clean up by hand. Accessories are removed with their
+        printer, since a via_device is meaningless once its parent is gone.
+        """
+        current = set(self._printer_device_map or {})
+
+        for device in dr.async_entries_for_config_entry(dev_reg, self.entry.entry_id):
+            # Keep accessories whose printer is still present; they are removed
+            # implicitly with their parent by the device registry.
+            if device.via_device_id is not None:
+                if device.via_device_id in current:
+                    continue
+
+            if device.id in current:
+                continue
+
+            LOGGER.debug("Removing stale Anycubic device: %s", device.name)
+            dev_reg.async_update_device(
+                device.id, remove_config_entry_id=self.entry.entry_id
+            )
 
     async def _check_or_save_tokens(self) -> None:
         success = await self.anycubic_api.check_api_tokens()

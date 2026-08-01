@@ -8,11 +8,10 @@
 rules:
   # ---------------------------------------------------------------- bronze --
   action-setup:
-    status: todo
+    status: done
     comment: >-
-      Services are registered in async_setup_entry rather than async_setup.
-      They are correctly removed when the last entry unloads, but the
-      registration should move so actions exist before any entry is loaded.
+      Actions are registered in async_setup, so they exist even with no entry
+      loaded; the handlers raise if the entry they need is unavailable.
   appropriate-polling: done
   brands: done
   common-modules: done
@@ -31,8 +30,9 @@ rules:
   dependency-transparency:
     status: done
     comment: >-
-      aiofiles, bcrypt and cryptography were previously imported but never
-      declared; they are now in manifest requirements.
+      The API client and the frontend panel are published packages
+      (anycubic-cloud-api, anycubic-cloud-frontend) rather than vendored, and
+      each declares its own dependencies.
   docs-actions: done
   docs-high-level-description: done
   docs-installation-instructions: done
@@ -137,8 +137,10 @@ rules:
       JWTs that cannot be refreshed automatically, so advance notice is the
       only graceful option.
   stale-devices:
-    status: todo
-    comment: Printers removed from the account are not cleaned up automatically.
+    status: done
+    comment: >-
+      Devices for printers no longer selected on the entry are removed on
+      refresh; accessories go with their parent printer.
 
   # -------------------------------------------------------------- platinum --
   async-dependency: done

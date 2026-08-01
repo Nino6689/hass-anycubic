@@ -5,12 +5,14 @@
     "@Nino6689",
     "@WaresWichall"
   ],
+  "after_dependencies": [
+    "panel_custom"
+  ],
   "config_flow": true,
   "dependencies": [
     "file_upload",
     "http",
-    "image",
-    "panel_custom"
+    "image"
   ],
   "documentation": "https://github.com/Nino6689/hass-anycubic_cloud",
   "iot_class": "cloud_push",
@@ -19,10 +21,8 @@
     "custom_components.anycubic_cloud"
   ],
   "requirements": [
-    "aiofiles>=24.1.0",
-    "bcrypt>=4.0.0",
-    "cryptography>=41.0.0",
-    "paho-mqtt>=1.6.1"
+    "anycubic-cloud-api==0.1.0",
+    "anycubic-cloud-frontend==0.1.1"
   ],
-  "version": "0.4.0"
+  "version": "0.5.0"
 }

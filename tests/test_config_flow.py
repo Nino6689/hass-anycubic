@@ -10,13 +10,13 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from anycubic_cloud_api.models.auth import (
+    AnycubicAuthMode,
+)
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.anycubic_cloud.anycubic_cloud_api.models.auth import (
-    AnycubicAuthMode,
-)
 from custom_components.anycubic_cloud.const import DOMAIN
 
 JWT = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ing0In0.eyJzdWIiOiIxMjM0NSIsIm5hbWUiOiJUZXN0In0.abcDEF-_123"

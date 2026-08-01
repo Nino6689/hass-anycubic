@@ -133,7 +133,10 @@ export function getPrinterDevices(hass: HomeAssistant): HassDeviceList {
   for (const key in hass.devices) {
     const dev = hass.devices[key];
 
-    if (dev.manufacturer === "Anycubic") {
+    // Printers are top-level devices. Accessories such as the ACE are also
+    // manufactured by Anycubic but hang off a printer via via_device_id, and
+    // must not be offered as printers to select.
+    if (dev.manufacturer === "Anycubic" && !dev.via_device_id) {
       printers[dev.id] = dev;
     }
   }
@@ -146,10 +149,20 @@ export function getPrinterEntities(
 ): HassEntityInfos {
   const entities: HassEntityInfos = {};
   if (deviceID) {
+    // Accessories such as the ACE are separate devices attached to the
+    // printer, so their entities (spools, drying, box fan) must be gathered
+    // too -- otherwise the card loses everything filament-related.
+    const deviceIDs = new Set<string>([deviceID]);
+    for (const key in hass.devices) {
+      if (hass.devices[key].via_device_id === deviceID) {
+        deviceIDs.add(hass.devices[key].id);
+      }
+    }
+
     for (const key in hass.entities) {
       const ent = hass.entities[key];
 
-      if (ent.device_id === deviceID) {
+      if (ent.device_id && deviceIDs.has(ent.device_id)) {
         entities[ent.entity_id] = ent;
       }
     }

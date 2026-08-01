@@ -2164,15 +2164,19 @@
     const e = {};
     for (const i in t.devices) {
       const r = t.devices[i];
-      "Anycubic" === r.manufacturer && (e[r.id] = r);
+      "Anycubic" !== r.manufacturer || r.via_device_id || (e[r.id] = r);
     }
     return e;
   }
   function Xe(t, e) {
     const i = {};
-    if (e) for (const r in t.entities) {
-      const s = t.entities[r];
-      s.device_id === e && (i[s.entity_id] = s);
+    if (e) {
+      const r = new Set([e]);
+      for (const i in t.devices) t.devices[i].via_device_id === e && r.add(t.devices[i].id);
+      for (const e in t.entities) {
+        const s = t.entities[e];
+        s.device_id && r.has(s.device_id) && (i[s.entity_id] = s);
+      }
     }
     return i;
   }

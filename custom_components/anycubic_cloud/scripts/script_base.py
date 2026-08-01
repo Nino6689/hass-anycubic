@@ -6,8 +6,7 @@ from os import path
 from typing import Any
 
 import aiohttp
-
-from ..anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI
+from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
