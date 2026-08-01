@@ -20,6 +20,7 @@ from homeassistant.exceptions import (
     ConfigEntryError,
     HomeAssistantError,
 )
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo, async_get as async_get_device_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -29,6 +30,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
 from .anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError, AnycubicAPIParsingError
 from .const import (
+    TOKEN_EXPIRY_WARN_DAYS,
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
@@ -56,6 +58,7 @@ from .const import (
     STORAGE_VERSION,
 )
 from .helpers import (
+    token_expiry_timestamp,
     AnycubicMQTTConnectMode,
     build_printer_device_info,
     check_descriptor_state_ace_not_supported,
@@ -454,7 +457,42 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._printer_device_map is None:
             await self._register_printer_devices(data_dict)
 
+        self._check_token_expiry()
+
         return data_dict
+
+    @callback
+    def _check_token_expiry(self) -> None:
+        """Warn before the token lapses, rather than after it breaks.
+
+        Anycubic tokens are 90-day JWTs and cannot be refreshed automatically,
+        so the only graceful option is to tell the user in advance -- otherwise
+        the integration simply stops working one day with a re-auth prompt.
+        """
+        expiry = token_expiry_timestamp(self.entry.data.get(CONF_USER_TOKEN))
+
+        if expiry is None:
+            return
+
+        days_left = (expiry - time.time()) / 86400
+
+        if days_left <= TOKEN_EXPIRY_WARN_DAYS:
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                f"token_expiring_{self.entry.entry_id}",
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="token_expiring",
+                translation_placeholders={
+                    "days": str(max(0, int(days_left))),
+                    "name": self.entry.title,
+                },
+            )
+        else:
+            ir.async_delete_issue(
+                self.hass, DOMAIN, f"token_expiring_{self.entry.entry_id}"
+            )
 
     async def _async_force_data_refresh(self) -> None:
         self.data = self._build_coordinator_data()

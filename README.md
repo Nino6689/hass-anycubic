@@ -230,8 +230,9 @@ process. This is a standard Windows feature and nothing leaves your machine. Cre
 
 </details>
 
-Tokens last around five months and may rotate; when Home Assistant prompts for re-auth, just
-repeat the steps. Running the slicer and HA signed in at the same time works fine.
+Tokens last **90 days** (verified from the token's own expiry claim) and may rotate. Home
+Assistant warns you in a Repair notice a fortnight before yours lapses, so you get a chance to
+replace it before anything breaks — just repeat the steps. Running the slicer and HA signed in at the same time works fine.
 
 ### Option B — Web token *(easiest)*
 
@@ -449,7 +450,7 @@ automation:
 
 - **Most common cause:** a trailing space or newline. Re-copy carefully — the browser console adds quotes, which must be stripped
 - **Encrypted slicer config:** if your token doesn't start with `eyJ`, see [Option A2](#option-a--slicer-token-recommended)
-- **Expired token:** they last about five months. Get a fresh one
+- **Expired token:** they last 90 days. Home Assistant raises a Repair warning 14 days before, but if you've missed it, just get a fresh one
 
 </details>
 

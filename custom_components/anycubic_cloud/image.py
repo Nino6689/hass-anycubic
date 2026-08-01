@@ -17,12 +17,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    COORDINATOR,
-    DOMAIN,
     PrinterEntityType,
 )
 from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
 from .helpers import printer_state_for_key
+
+# All data comes from the shared coordinator, and writes go through the
+# cloud API one request at a time, so no per-entity parallelism is wanted.
+PARALLEL_UPDATES = 0
 
 if TYPE_CHECKING:
     from .coordinator import AnycubicCloudDataUpdateCoordinator
@@ -54,9 +56,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the image from a config entry."""
 
-    coordinator: AnycubicCloudDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][
-        COORDINATOR
-    ]
+    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
 
     coordinator.add_entities_for_seen_printers(
         async_add_entities=async_add_entities,

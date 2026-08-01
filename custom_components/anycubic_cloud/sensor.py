@@ -26,8 +26,6 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     ACE_SLOT_COUNT,
-    COORDINATOR,
-    DOMAIN,
     ENTITY_ID_ACE_SLOT_,
     UNIT_LAYERS,
     PrinterEntityType,
@@ -38,6 +36,10 @@ from .helpers import (
     printer_attributes_for_key,
     printer_state_for_key,
 )
+
+# All data comes from the shared coordinator, and writes go through the
+# cloud API one request at a time, so no per-entity parallelism is wanted.
+PARALLEL_UPDATES = 0
 
 if TYPE_CHECKING:
     from .coordinator import AnycubicCloudDataUpdateCoordinator
@@ -357,9 +359,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Anycubic Cloud sensor entry."""
 
-    coordinator: AnycubicCloudDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id][
-        COORDINATOR
-    ]
+    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
 
     coordinator.add_entities_for_seen_printers(
         async_add_entities=async_add_entities,

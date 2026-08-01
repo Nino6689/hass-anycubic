@@ -68,6 +68,10 @@ ACE_MODEL_FALLBACK = "ACE"
 
 ENTITY_ID_ACE_SLOT_ = "ace_slot_"
 
+# Anycubic tokens are 90-day JWTs and cannot be auto-refreshed, so warn
+# while there is still comfortable time to fetch a new one.
+TOKEN_EXPIRY_WARN_DAYS = 14
+
 STORAGE_KEY = DOMAIN
 STORAGE_VERSION = 1
 

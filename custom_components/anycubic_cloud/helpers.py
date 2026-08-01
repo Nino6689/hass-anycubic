@@ -496,3 +496,30 @@ def detect_auth_mode(
         return AnycubicAuthMode.SLICER
 
     return AnycubicAuthMode.WEB
+
+
+def token_expiry_timestamp(token: str | None) -> int | None:
+    """Read the `exp` claim out of a JWT token, without verifying it.
+
+    Anycubic slicer tokens are 90-day JWTs. We only read the expiry so we can
+    warn before it lapses -- the signature is the server's business, and we
+    deliberately don't trust anything else in here.
+    """
+    if not token or not token.startswith("eyJ"):
+        return None
+
+    parts = token.split(".")
+    if len(parts) < 2:
+        return None
+
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)  # restore stripped base64 padding
+
+    try:
+        claims = json.loads(base64.urlsafe_b64decode(payload))
+    except Exception:  # noqa: BLE001 - a malformed token simply has no expiry
+        return None
+
+    expiry = claims.get("exp")
+
+    return int(expiry) if isinstance(expiry, (int, float)) else None

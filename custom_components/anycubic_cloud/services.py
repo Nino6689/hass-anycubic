@@ -39,7 +39,6 @@ from .const import (
     CONF_TEMPERATURE,
     CONF_TIME,
     CONF_UPLOADED_GCODE_FILE,
-    COORDINATOR,
     DOMAIN,
     LOGGER,
     MAX_FILE_UPLOAD_RETRIES,
@@ -137,9 +136,14 @@ class AnycubicCloudServiceCall:
                 "Could not find Anycubic Cloud config entry."
             )
 
-        coordinator: AnycubicCloudDataUpdateCoordinator = self.hass.data[DOMAIN][entry.entry_id][
-            COORDINATOR
-        ]
+        coordinator: AnycubicCloudDataUpdateCoordinator | None = getattr(
+            entry, "runtime_data", None
+        )
+
+        if coordinator is None:
+            raise ServiceValidationError(
+                "The Anycubic Cloud config entry is not loaded."
+            )
 
         return coordinator
 
