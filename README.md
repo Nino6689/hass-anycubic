@@ -181,11 +181,33 @@ in once via **Settings → Account**.
 
 Sign in once, **quit the slicer**, then run:
 
-**macOS**
+**macOS** — copies the token straight to your clipboard, nothing to download:
 
 ```bash
-python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/Library/Application Support/AnycubicSlicerNext/AnycubicSlicerNext.conf')))['anycubic_cloud']['access_token'])"
+plutil -extract anycubic_cloud.access_token raw -o - ~/Library/Application\ Support/AnycubicSlicerNext/AnycubicSlicerNext.conf | tr -d '\n' | pbcopy && echo "Token copied to clipboard"
 ```
+
+`plutil` is part of macOS, so this works on a clean machine with nothing installed.
+
+<details>
+<summary>Prefer a double-click icon?</summary>
+
+<br>
+
+Run this once to put a working helper on your Desktop:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Nino6689/hass-anycubic_cloud/main/tools/get-anycubic-token-macos.command -o ~/Desktop/AnycubicToken.command && chmod +x ~/Desktop/AnycubicToken.command && xattr -c ~/Desktop/AnycubicToken.command && echo "Saved to your Desktop"
+```
+
+Double-click `AnycubicToken.command` any time to refresh your token.
+
+The `chmod` and `xattr` parts matter: GitHub does not preserve the executable
+flag, and anything downloaded through a browser is quarantined by Gatekeeper.
+Without them, double-clicking just opens the file in TextEdit — which is
+exactly what happens if you download it by hand.
+
+</details>
 
 **Windows** *(PowerShell)*
 

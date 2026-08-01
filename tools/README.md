@@ -10,8 +10,8 @@ The helpers here make that a **one‑click** job. Pick the row that matches you.
 | You have… | Use | Live updates? |
 |---|---|---|
 | An Anycubic **web** login in your browser | [Web bookmarklet](#web--one-click-bookmarklet) — no terminal at all | Status only |
-| **Anycubic Slicer Next** on a **Mac** | [macOS helper](#mac--double-click-helper) — double‑click | ✅ Full, live |
-| **Anycubic Slicer Next** on **Windows** | [Windows helper](#windows--right-click-helper) — right‑click → Run | ✅ Full, live |
+| **Anycubic Slicer Next** on a **Mac** | [macOS one‑liner or helper](#mac) | ✅ Full, live |
+| **Anycubic Slicer Next** on **Windows** | [Windows one‑liner or helper](#windows) | ✅ Full, live |
 
 > ### 🛡️ Before you worry — here's exactly what these do
 > Every helper here is short and **you can read all of it**. In plain terms:
@@ -23,7 +23,7 @@ The helpers here make that a **one‑click** job. Pick the row that matches you.
 
 ---
 
-## Web — one‑click bookmarklet
+## Web — one-click bookmarklet
 
 The gentlest option: no terminal, no files, no code to run. You add a normal
 browser **bookmark** once, then click it.
@@ -48,36 +48,82 @@ Home Assistant using the **Web** option.
 
 ---
 
-## Mac — double‑click helper
+## Mac
 
-**1.** Download [`get-anycubic-token-macos.command`](get-anycubic-token-macos.command).
+Sign in once inside **Anycubic Slicer Next** (**Settings → Account**) and quit it first.
 
-**2.** Make sure you've signed in once inside **Anycubic Slicer Next**
-(**Settings → Account**).
+### The quick way — one line, nothing to download
 
-**3.** **Double‑click** the file. A macOS pop‑up will tell you your token is
-copied to the clipboard.
+Open **Terminal** (⌘Space, type "Terminal") and paste this:
 
-**4.** Paste it into Home Assistant using the **Slicer** option.
+```bash
+plutil -extract anycubic_cloud.access_token raw -o - ~/Library/Application\ Support/AnycubicSlicerNext/AnycubicSlicerNext.conf | tr -d '\n' | pbcopy && echo "Token copied to clipboard"
+```
 
-> First time, macOS may say *"cannot be opened because it is from an
-> unidentified developer."* That's the standard warning for any downloaded
-> script. Right‑click the file → **Open** → **Open**, and it'll run. You only
-> need to do that once, and you can read the whole script first — it's a dozen lines.
+Your token is now on the clipboard — paste it into Home Assistant using the
+**Slicer** option. `plutil` ships with macOS, so nothing needs installing.
+
+### The double‑click way
+
+⚠️ **Downloading `.command` from GitHub and double‑clicking it does not work**,
+and it isn't your fault. GitHub serves the file without the executable flag, so
+macOS opens it in TextEdit instead of running it. If it came through a browser
+it is also quarantined, so Gatekeeper blocks it even after you fix the flag.
+
+Run this once to put a *working* copy on your Desktop:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Nino6689/hass-anycubic_cloud/main/tools/get-anycubic-token-macos.command -o ~/Desktop/AnycubicToken.command && chmod +x ~/Desktop/AnycubicToken.command && xattr -c ~/Desktop/AnycubicToken.command && echo "Saved to your Desktop"
+```
+
+`chmod +x` restores the executable flag and `xattr -c` clears the quarantine.
+From then on, **double‑click `AnycubicToken.command`** whenever you need a fresh
+token — a pop‑up confirms it's on your clipboard.
+
+You can read the whole script first; it's a few dozen lines and it only reads
+one file.
 
 ---
 
-## Windows — right‑click helper
+## Windows
 
-**1.** Download [`Get-AnycubicToken-Windows.ps1`](Get-AnycubicToken-Windows.ps1).
+Sign in once inside **Anycubic Slicer Next** (**Settings → Account**) and quit it first.
 
-**2.** Make sure you've signed in once inside **Anycubic Slicer Next**
-(**Settings → Account**).
+### The quick way — one line, nothing to download
 
-**3.** **Right‑click** the file → **Run with PowerShell**. A pop‑up window will
-tell you your token is copied to the clipboard.
+Open **PowerShell** (Start → type "PowerShell") and paste this:
 
-**4.** Paste it into Home Assistant using the **Slicer** option.
+```powershell
+(Get-Content "$env:APPDATA\AnycubicSlicerNext\AnycubicSlicerNext.conf" -Raw | ConvertFrom-Json).anycubic_cloud.access_token | Set-Clipboard; "Token copied to clipboard"
+```
+
+Your token is now on the clipboard — paste it into Home Assistant using the
+**Slicer** option. Typing a command interactively isn't affected by the script
+restrictions below, so this works on a stock Windows install.
+
+### The right‑click way
+
+⚠️ Windows blocks scripts downloaded from the internet. A `.ps1` saved from
+GitHub carries a "mark of the web", and the default execution policy refuses to
+run it — usually with *"cannot be loaded because running scripts is disabled on
+this system"*.
+
+Download [`Get-AnycubicToken-Windows.ps1`](Get-AnycubicToken-Windows.ps1), then
+in PowerShell unblock it once:
+
+```powershell
+Unblock-File "$HOME\Downloads\Get-AnycubicToken-Windows.ps1"
+```
+
+After that, **right‑click** the file → **Run with PowerShell**. If it still
+refuses, your machine's execution policy disallows local scripts entirely; use
+the one‑liner above instead.
+
+> The macOS instructions above were tested end to end on a real Mac. The Windows
+> steps follow the same reasoning but have **not** been verified on a Windows
+> machine — if they don't work for you, please
+> [open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) and say
+> what you saw.
 
 > Windows may ask whether you're sure about running a script — that prompt
 > appears for *any* `.ps1` file. This one only reads one file and copies one
