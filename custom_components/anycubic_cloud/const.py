@@ -72,6 +72,10 @@ ENTITY_ID_ACE_SLOT_ = "ace_slot_"
 # while there is still comfortable time to fetch a new one.
 TOKEN_EXPIRY_WARN_DAYS = 14
 
+# Passed into translated strings as a placeholder: hassfest forbids URLs
+# living inside translation files themselves.
+TOOLS_URL = "https://github.com/Nino6689/hass-anycubic_cloud/tree/main/tools"
+
 STORAGE_KEY = DOMAIN
 STORAGE_VERSION = 1
 

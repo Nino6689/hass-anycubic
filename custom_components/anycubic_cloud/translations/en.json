@@ -60,7 +60,7 @@
       },
       "user": {
         "title": "Connect your Anycubic account",
-        "description": "Home Assistant can't sign in to Anycubic for you — their login uses a captcha and 2-factor check. Instead, paste a **token**: a \"you're already signed in\" pass.\n\n**The easy way — no terminal needed.** The [tools folder](https://github.com/Nino6689/hass-anycubic_cloud/tree/main/tools) has one-click helpers:\n• **Browser bookmark** — click it on the Anycubic site, token copied. No terminal at all.\n• **Mac** — double-click a file.  • **Windows** — right-click → Run.\n\nEach one only *reads* a value your computer already saved and copies it. They never connect to the internet, ask for your password, or change anything.\n\nThen just paste it below — don't worry about tidying it up, and you don't need to know which type it is. Extra quotes, spaces or even the whole config file are fine, and the right mode is detected for you.",
+        "description": "Home Assistant can't sign in to Anycubic for you — their login uses a captcha and 2-factor check. Instead, paste a **token**: a \"you're already signed in\" pass.\n\n**The easy way — no terminal needed.** The integration's tools folder ({tools_url}) has one-click helpers:\n• **Browser bookmark** — click it on the Anycubic site, token copied. No terminal at all.\n• **Mac** — double-click a file.  • **Windows** — right-click → Run.\n\nEach one only *reads* a value your computer already saved and copies it. They never connect to the internet, ask for your password, or change anything.\n\nThen just paste it below — don't worry about tidying it up, and you don't need to know which type it is. Extra quotes, spaces or even the whole config file are fine, and the right mode is detected for you.",
         "data": {
           "user_token": "Paste your token here",
           "user_device_id": "Device ID (only for the Android method — leave blank otherwise)"
@@ -1129,7 +1129,7 @@
   "issues": {
     "token_expiring": {
       "title": "Anycubic token expires in {days} days",
-      "description": "The token for **{name}** expires in about **{days} days**. Anycubic tokens last 90 days and can't be renewed automatically, so Home Assistant will lose access when it lapses.\n\nTo fix it, get a fresh token and re-authenticate:\n\n1. Use one of the one-click helpers in the integration's [tools folder](https://github.com/Nino6689/hass-anycubic_cloud/tree/main/tools) — a browser bookmark, or a double-click file for Mac/Windows. They only read a value your computer already saved; nothing is sent anywhere.\n2. Go to **Settings → Devices & services → Anycubic Cloud → Reconfigure → Re-Auth**.\n3. Paste the new token. You don't need to tidy it up or pick a type."
+      "description": "The token for **{name}** expires in about **{days} days**. Anycubic tokens last 90 days and can't be renewed automatically, so Home Assistant will lose access when it lapses.\n\nTo fix it, get a fresh token and re-authenticate:\n\n1. Use one of the one-click helpers in the integration's tools folder — a browser bookmark, or a double-click file for Mac/Windows. They only read a value your computer already saved; nothing is sent anywhere.\n2. Go to **Settings → Devices & services → Anycubic Cloud → Reconfigure → Re-Auth**.\n3. Paste the new token. You don't need to tidy it up or pick a type."
     }
   }
 }

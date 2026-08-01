@@ -38,6 +38,7 @@ from .const import (
     MAX_DRYING_PRESETS,
     STORAGE_KEY,
     STORAGE_VERSION,
+    TOOLS_URL,
 )
 from .helpers import (
     AnycubicMQTTConnectMode,
@@ -441,6 +442,8 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=DATA_SCHEMA_TOKEN,
             errors=errors,
+            # hassfest forbids URLs inside translation files, so it is passed in.
+            description_placeholders={"tools_url": TOOLS_URL},
         )
 
     async def _async_authenticate_detecting_mode(

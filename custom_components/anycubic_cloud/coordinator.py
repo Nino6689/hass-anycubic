@@ -57,6 +57,7 @@ from .const import (
     STORAGE_KEY,
     STORAGE_VERSION,
     TOKEN_EXPIRY_WARN_DAYS,
+    TOOLS_URL,
 )
 from .helpers import (
     AnycubicMQTTConnectMode,
@@ -484,6 +485,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 f"token_expiring_{self.entry.entry_id}",
                 is_fixable=False,
                 severity=ir.IssueSeverity.WARNING,
+                learn_more_url=TOOLS_URL,
                 translation_key="token_expiring",
                 translation_placeholders={
                     "days": str(max(0, int(days_left))),
