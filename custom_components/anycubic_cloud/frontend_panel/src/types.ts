@@ -48,6 +48,8 @@ export interface HassDevice {
   manufacturer: string | null;
   serial_number: string | undefined;
   connections: string[][];
+  // Set on child devices (e.g. an ACE attached to a printer).
+  via_device_id?: string | null;
 }
 
 export interface HassDeviceList {

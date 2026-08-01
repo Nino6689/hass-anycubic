@@ -1,22 +1,17 @@
 """Anycubic Cloud frontend panel."""
 from __future__ import annotations
 
-import os
 from typing import Any
 
+import anycubic_cloud_frontend
 from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CUSTOM_COMPONENTS,
     DOMAIN,
-    INTEGRATION_FOLDER,
     LOGGER,
-    PANEL_FILENAME,
-    PANEL_FOLDER,
     PANEL_ICON,
-    PANEL_NAME,
     PANEL_TITLE,
 )
 from .helpers import extract_panel_card_config
@@ -39,13 +34,15 @@ async def async_register_panel(
 ) -> None:
     """Register the Anycubic Cloud frontend panel."""
     if DOMAIN not in hass.data.get("frontend_panels", {}):
-        root_dir = os.path.join(hass.config.path(CUSTOM_COMPONENTS), INTEGRATION_FOLDER)
-        panel_dir = os.path.join(root_dir, PANEL_FOLDER)
-        view_url = os.path.join(panel_dir, PANEL_FILENAME)
+        # The built panel ships in its own package rather than inside the
+        # integration, so Home Assistant core's rule against bundled frontend
+        # assets is satisfied. Serve the whole directory: the entrypoint
+        # filename carries a content hash for cache-busting.
+        panel_dir = anycubic_cloud_frontend.locate_dir()
 
         try:
             await hass.http.async_register_static_paths(
-                [StaticPathConfig(PANEL_URL, view_url, cache_headers=False)]
+                [StaticPathConfig(PANEL_URL, panel_dir, cache_headers=False)]
             )
         except RuntimeError as e:
             if "already registered" not in str(e):
@@ -57,9 +54,9 @@ async def async_register_panel(
 
         await panel_custom.async_register_panel(
             hass,
-            webcomponent_name=PANEL_NAME,
+            webcomponent_name=anycubic_cloud_frontend.webcomponent_name,
             frontend_url_path=DOMAIN,
-            module_url=PANEL_URL,
+            module_url=f"{PANEL_URL}/{anycubic_cloud_frontend.entrypoint_js}",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
             require_admin=False,
