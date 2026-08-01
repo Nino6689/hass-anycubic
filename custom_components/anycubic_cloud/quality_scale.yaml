@@ -4,6 +4,15 @@
 # badge (that mechanism is core-only). The rules are still the best available
 # yardstick, so the integration is measured against them honestly here:
 # "done" means genuinely met, "todo" means not yet, and exemptions say why.
+#
+# All 54 rules in Home Assistant's published set are covered below, checked
+# against core's own list rather than transcribed by hand.
+#
+# Core submission was considered and deliberately not pursued: core caps a new
+# integration's first PR at a single platform with no actions, diagnostics or
+# reauth flow, and custom panels are limited to a small hard-coded set of
+# integrations. Going that route would mean shipping a much reduced version to
+# core while maintaining the full one here.
 
 rules:
   # ---------------------------------------------------------------- bronze --
