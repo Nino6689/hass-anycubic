@@ -6,6 +6,9 @@ requires-python = ">=3.13"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# The integration lives at custom_components/, which is not an installed
+# package; put the repo root on sys.path so tests can import it in CI too.
+pythonpath = ["."]
 asyncio_mode = "auto"
 addopts = "-q"
 
