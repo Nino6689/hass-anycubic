@@ -41,7 +41,9 @@ from .const import (
 )
 from .helpers import (
     AnycubicMQTTConnectMode,
+    detect_auth_mode,
     extract_panel_card_config,
+    extract_pasted_token,
     remove_quotes_from_string,
 )
 
@@ -63,6 +65,14 @@ DATA_SCHEMA_AUTH_WEB = vol.Schema(
 DATA_SCHEMA_AUTH_SLICER = vol.Schema(
     {
         vol.Required(CONF_USER_TOKEN): cv.string,
+    }
+)
+
+DATA_SCHEMA_TOKEN = vol.Schema(
+    {
+        vol.Required(CONF_USER_TOKEN): cv.string,
+        # Only the Android flow needs this; left blank for Web and Slicer.
+        vol.Optional(CONF_USER_DEVICE_ID): cv.string,
     }
 )
 
@@ -393,8 +403,89 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step."""
-        return await self.async_step_auth_mode_pick()
+        """Handle the initial step: one paste, mode detected automatically.
+
+        Users can't reasonably choose between Web/Slicer/Android before they
+        have a token in hand, so we don't ask. Paste whatever you have and the
+        mode is inferred from its shape, with the alternatives tried as a
+        fallback if the first guess is rejected.
+        """
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            raw_token = user_input.get(CONF_USER_TOKEN)
+            device_id = (user_input.get(CONF_USER_DEVICE_ID) or "").strip() or None
+            token = extract_pasted_token(raw_token)
+
+            if not token:
+                errors = {CONF_USER_TOKEN: "invalid_token_format"}
+            else:
+                errors = await self._async_authenticate_detecting_mode(token, device_id)
+
+                if not errors:
+                    if self.entry:
+                        self.hass.config_entries.async_update_entry(
+                            self.entry,
+                            data={
+                                **self.entry.data,
+                                CONF_USER_TOKEN: self._user_token,
+                                CONF_USER_AUTH_MODE: self._user_auth_mode,
+                                CONF_USER_DEVICE_ID: self._user_device_id,
+                            },
+                        )
+                        return self.async_abort(reason="reauth_successful")
+
+                    return await self.async_step_printer()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=DATA_SCHEMA_TOKEN,
+            errors=errors,
+        )
+
+    async def _async_authenticate_detecting_mode(
+        self,
+        token: str,
+        device_id: str | None,
+    ) -> dict[str, str]:
+        """Try the most likely auth mode first, then the plausible others.
+
+        The token's shape is a strong hint but not a guarantee, so rather than
+        failing and making the user guess, we try the alternatives before
+        reporting an error.
+        """
+        first_choice = detect_auth_mode(token, device_id)
+
+        if device_id:
+            # A device id is only meaningful for the Android flow.
+            modes = [AnycubicAuthMode.ANDROID]
+        else:
+            modes = [first_choice] + [
+                mode
+                for mode in (AnycubicAuthMode.SLICER, AnycubicAuthMode.WEB)
+                if mode is not first_choice
+            ]
+
+        errors: dict[str, str] = {}
+
+        for mode in modes:
+            # Each attempt needs a fresh API instance, since a failed login
+            # leaves the previous one holding rejected credentials.
+            self._anycubic_api = None
+
+            errors = await self._async_check_authentication_with_user_input(
+                auth_mode=mode,
+                user_input={
+                    CONF_USER_TOKEN: token,
+                    CONF_USER_DEVICE_ID: device_id,
+                },
+            )
+
+            if not errors:
+                LOGGER.debug("Authenticated using detected auth mode %s.", mode.name)
+                return {}
+
+        return errors
 
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         """Handle initiation of re-authentication with AnycubicCloud."""
@@ -405,8 +496,8 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Dialog that informs the user that reauth is required."""
-        return await self.async_step_auth_mode_pick()
+        """Re-authenticate using the same single-paste step as initial setup."""
+        return await self.async_step_user(user_input)
 
     async def async_step_reconfigure(
         self, _: dict[str, Any] | None = None

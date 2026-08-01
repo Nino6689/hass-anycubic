@@ -9,7 +9,8 @@
       "invalid_token": "Invalid user token.",
       "cannot_connect": "Cannot connect.",
       "no_printers": "No printers found.",
-      "invalid_printer": "Invalid printer."
+      "invalid_printer": "Invalid printer.",
+      "invalid_token_format": "That doesn't look like an Anycubic token. It should be a long string of letters and numbers — slicer tokens start with \"eyJ\". Try one of the one-click helpers in the tools folder, then paste the result here."
     },
     "step": {
       "auth_mode_web": {
@@ -55,6 +56,18 @@
         "menu_options": {
           "reauth": "Re-Authenticate",
           "printer": "Change Printer(s)"
+        }
+      },
+      "user": {
+        "title": "Connect your Anycubic account",
+        "description": "Home Assistant can't sign in to Anycubic for you — their login uses a captcha and 2-factor check. Instead, paste a **token**: a \"you're already signed in\" pass.\n\n**The easy way — no terminal needed.** The [tools folder](https://github.com/Nino6689/hass-anycubic_cloud/tree/main/tools) has one-click helpers:\n• **Browser bookmark** — click it on the Anycubic site, token copied. No terminal at all.\n• **Mac** — double-click a file.  • **Windows** — right-click → Run.\n\nEach one only *reads* a value your computer already saved and copies it. They never connect to the internet, ask for your password, or change anything.\n\nThen just paste it below — don't worry about tidying it up, and you don't need to know which type it is. Extra quotes, spaces or even the whole config file are fine, and the right mode is detected for you.",
+        "data": {
+          "user_token": "Paste your token here",
+          "user_device_id": "Device ID (only for the Android method — leave blank otherwise)"
+        },
+        "data_description": {
+          "user_token": "A slicer token gives live, second-by-second updates and the control buttons. A web token gives status only. Whichever you paste, it's detected automatically.",
+          "user_device_id": "Leave this empty unless you extracted a token from the Android app's network traffic."
         }
       }
     }

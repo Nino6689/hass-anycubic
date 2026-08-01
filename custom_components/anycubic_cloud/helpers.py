@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import re
 from enum import IntEnum
 from types import MappingProxyType
@@ -9,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 
 from .anycubic_cloud_api.const.enums import AnycubicPrinterMaterialType
+from .anycubic_cloud_api.models.auth import AnycubicAuthMode
 from .const import (
     ACE_MODEL_FALLBACK,
     ACE_MODEL_NAMES,
@@ -404,3 +406,93 @@ def extract_panel_card_config(
     update_dict_and_validate(card_conf, input_conf, 'alwaysShow', bool)
 
     return card_conf
+
+
+# --- Pasted-token handling -------------------------------------------------
+#
+# Users paste tokens from three very different places (slicer config file,
+# browser console, network capture), so what actually arrives is often not a
+# bare token: it can carry quotes, whitespace, a `copy(...)` wrapper, or be a
+# whole JSON blob. Rather than rejecting that, we dig the token out.
+
+# A Casdoor/slicer token is a JWT: three base64url segments separated by dots.
+REGEX_JWT = re.compile(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
+
+# Keys the token hides behind when a whole config/localStorage blob is pasted.
+TOKEN_JSON_KEYS = ("access_token", "XX-Token", "token", "auth_token")
+
+
+def extract_pasted_token(raw: str | None) -> str | None:
+    """Pull a usable token out of whatever the user pasted.
+
+    Handles a bare token, a quoted token, a `"access_token": "..."` fragment,
+    a full slicer config, or console output. Returns None if nothing looks
+    like a token at all.
+    """
+    if not raw:
+        return None
+
+    text = str(raw).strip()
+
+    # A JWT is unambiguous wherever it appears, so prefer it. This covers the
+    # slicer config, console output and stray wrapping in one shot.
+    jwt_match = REGEX_JWT.search(text)
+    if jwt_match:
+        return jwt_match.group(0)
+
+    # Otherwise it may be a JSON object containing an opaque (web) token.
+    if text.startswith("{"):
+        try:
+            data = json.loads(text)
+        except ValueError:
+            data = None
+
+        if isinstance(data, dict):
+            # Slicer configs nest the token under `anycubic_cloud`.
+            candidates: list[Any] = [data, data.get("anycubic_cloud")]
+            for candidate in candidates:
+                if not isinstance(candidate, dict):
+                    continue
+                for key in TOKEN_JSON_KEYS:
+                    value = candidate.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()
+
+    # A `"key": "value"` fragment pasted out of a config file.
+    fragment = re.search(
+        r"[\"']?(?:%s)[\"']?\s*[:=]\s*[\"']([^\"']+)[\"']" % "|".join(TOKEN_JSON_KEYS),
+        text,
+    )
+    if fragment:
+        return fragment.group(1).strip()
+
+    # Plain token, possibly wrapped in quotes or a copy()/print() call.
+    stripped = text.strip("()[]{} \t\r\n")
+    stripped = stripped.strip("\"'")
+
+    # Reject anything with internal whitespace -- that isn't a token, it's prose.
+    if not stripped or any(ch.isspace() for ch in stripped):
+        return None
+
+    return stripped
+
+
+def detect_auth_mode(
+    token: str | None,
+    device_id: str | None = None,
+) -> AnycubicAuthMode:
+    """Work out which Anycubic auth mode a pasted token belongs to.
+
+    Saves the user having to understand the difference before they've even set
+    the integration up:
+      * a device id is only ever supplied for the Android flow
+      * slicer tokens are long JWTs (they start `eyJ`)
+      * anything else is an opaque web token
+    """
+    if device_id:
+        return AnycubicAuthMode.ANDROID
+
+    if token and token.startswith("eyJ"):
+        return AnycubicAuthMode.SLICER
+
+    return AnycubicAuthMode.WEB
