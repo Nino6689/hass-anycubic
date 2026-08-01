@@ -7,10 +7,10 @@ from enum import IntEnum
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
-
 from anycubic_cloud_api.const.enums import AnycubicPrinterMaterialType
 from anycubic_cloud_api.models.auth import AnycubicAuthMode
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
+
 from .const import (
     ACE_MODEL_FALLBACK,
     ACE_MODEL_NAMES,

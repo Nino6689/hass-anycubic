@@ -1,8 +1,10 @@
 """The anycubic_cloud component."""
 from __future__ import annotations
 
+import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
 
 from .const import (
     CONF_CARD_CONFIG,
@@ -12,6 +14,26 @@ from .const import (
 from .coordinator import AnycubicCloudDataUpdateCoordinator
 from .panel import async_register_panel, async_unregister_panel
 from .services import SERVICES
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register actions once, at startup.
+
+    Quality scale (action-setup): actions must exist even when no config entry
+    is loaded, so automations referencing them still validate. The handlers
+    themselves raise if the entry they need is missing.
+    """
+    for service_name, service in SERVICES:
+        hass.services.async_register(
+            DOMAIN,
+            service_name,
+            service(hass).async_call_service,
+            service.schema,
+        )
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -26,16 +48,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))
-
-    # register service calls
-    for service_name, service in SERVICES:
-        if not hass.services.has_service(DOMAIN, service_name):
-            hass.services.async_register(
-                DOMAIN,
-                service_name,
-                service(hass).async_call_service,
-                service.schema,
-            )
 
     # register panel
     await async_register_panel(
@@ -63,15 +75,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if coordinator is not None:
             await coordinator.stop_anycubic_mqtt_connection_if_started()
 
-    # unregister service calls once the last entry has gone
-    remaining = [
-        other
-        for other in hass.config_entries.async_entries(DOMAIN)
-        if other.entry_id != entry.entry_id and other.state.recoverable
-    ]
-    if unload_ok and not remaining:
-        for service_name, _ in SERVICES:
-            hass.services.async_remove(DOMAIN, service_name)
+    # Actions are registered in async_setup and deliberately left in place:
+    # they are owned by the integration, not by any single config entry.
 
     # unregister panel
     async_unregister_panel(hass)

@@ -12,10 +12,10 @@ import json
 import time
 
 import pytest
-
 from anycubic_cloud_api.models.auth import (
     AnycubicAuthMode,
 )
+
 from custom_components.anycubic_cloud.helpers import (
     detect_auth_mode,
     extract_pasted_token,
