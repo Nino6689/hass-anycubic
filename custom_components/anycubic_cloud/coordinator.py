@@ -28,7 +28,6 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo, DeviceRegistry
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -55,13 +54,13 @@ from .const import (
     MQTT_REFRESH_INTERVAL,
     MQTT_SCAN_INTERVAL,
     PRINT_JOB_STARTED_UPDATE_DELAY,
-    STORAGE_KEY,
-    STORAGE_VERSION,
     TOKEN_EXPIRY_WARN_DAYS,
     TOOLS_URL,
 )
 from .helpers import (
     AnycubicMQTTConnectMode,
+    async_load_saved_tokens,
+    async_token_store,
     build_printer_device_info,
     check_descriptor_state_ace_not_supported,
     check_descriptor_state_ace_primary_unavailable,
@@ -783,13 +782,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _setup_anycubic_api_connection(self) -> None:
         LOGGER.debug("Coordinator setting up Anycubic Cloud API connection.")
-        store = Store[dict[str, Any]](self.hass, STORAGE_VERSION, STORAGE_KEY)
+        store = async_token_store(self.hass, self.entry.entry_id)
 
         if self.entry.data.get(CONF_USER_TOKEN) is None:
             raise ConfigEntryAuthFailed("Authentication Token not found.")
 
         try:
-            # config = await store.async_load()
             cookie_jar = CookieJar(unsafe=True)
             websession = async_create_clientsession(
                 self.hass,
@@ -807,6 +805,13 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 auth_token=self.entry.data[CONF_USER_TOKEN],
                 auth_mode=self.entry.data.get(CONF_USER_AUTH_MODE),
                 device_id=self.entry.data.get(CONF_USER_DEVICE_ID),
+            )
+
+            # The pasted token is only the starting point; the cloud refreshes it
+            # and the refreshed value is what stays valid. Loading it back means a
+            # restart doesn't fall back to a token that may have since aged out.
+            await async_load_saved_tokens(
+                self.hass, self.entry.entry_id, self._anycubic_api
             )
 
             debug_all: bool = bool(self.entry.options.get(CONF_DEBUG_DEPRECATED))
@@ -946,7 +951,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise ConfigEntryAuthFailed("Authentication failed. Check credentials.")
 
         if self.anycubic_api.tokens_changed:
-            store = Store[dict[str, Any]](self.hass, STORAGE_VERSION, STORAGE_KEY)
+            store = async_token_store(self.hass, self.entry.entry_id)
             await store.async_save(self.anycubic_api.get_auth_config_dict())
 
     async def _connect_mqtt_for_action_response(self) -> None:

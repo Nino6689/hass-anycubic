@@ -42,6 +42,7 @@ from .const import (
 )
 from .helpers import (
     AnycubicMQTTConnectMode,
+    async_load_saved_tokens,
     detect_auth_mode,
     extract_panel_card_config,
     extract_pasted_token,
@@ -125,9 +126,18 @@ def async_create_anycubic_api(
 async def async_load_tokens_from_store(
     hass: HomeAssistant,
     anycubic_api: AnycubicAPI,
+    entry_id: str | None = None,
 ) -> None:
-    store = Store[dict[str, Any]](hass, STORAGE_VERSION, STORAGE_KEY)
-    config = await store.async_load()
+    """Load saved tokens for an entry, or the legacy shared ones during setup.
+
+    A first-time setup has no entry yet, so it can only fall back to the legacy
+    store; a reconfigure passes its entry_id and gets that entry's own tokens.
+    """
+    if entry_id is not None:
+        await async_load_saved_tokens(hass, entry_id, anycubic_api)
+        return
+
+    config = await Store[dict[str, Any]](hass, STORAGE_VERSION, STORAGE_KEY).async_load()
 
     if config:
         anycubic_api.load_auth_config_from_dict(config, minimal=True)
@@ -182,7 +192,9 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         if not self.entry or self._is_reauth:
             return
 
-        await async_load_tokens_from_store(self.hass, self._anycubic_api)
+        await async_load_tokens_from_store(
+            self.hass, self._anycubic_api, self.entry.entry_id
+        )
 
     async def _async_check_login_errors(self) -> dict[str, str]:
         LOGGER.debug("Config flow checking auth was successful.")
@@ -568,6 +580,7 @@ class AnycubicCloudOptionsFlowHandler(OptionsFlow):
             await async_load_tokens_from_store(
                 self.hass,
                 self._anycubic_api,
+                self.entry.entry_id if self.entry else None,
             )
             await self._anycubic_api.check_api_tokens()
 

@@ -7,9 +7,12 @@ from enum import IntEnum
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from anycubic_cloud_api import AnycubicAPI
 from anycubic_cloud_api.const.enums import AnycubicPrinterMaterialType
 from anycubic_cloud_api.models.auth import AnycubicAuthMode
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
+from homeassistant.helpers.storage import Store
 
 from .const import (
     ACE_MODEL_FALLBACK,
@@ -18,6 +21,8 @@ from .const import (
     CONF_DRYING_PRESET_TEMPERATURE_,
     DOMAIN,
     MANUFACTURER,
+    STORAGE_KEY,
+    STORAGE_VERSION,
     PrinterEntityType,
 )
 
@@ -89,6 +94,41 @@ def build_ace_device_info(
         sw_version=printer_data.get(f"{prefix}multi_color_box_fw_version"),
         via_device=(DOMAIN, f"{user_data['id']}-{printer_data['id']}"),
     )
+
+
+def async_token_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
+    """The saved-token store for one config entry.
+
+    Keyed per entry: the tokens the cloud hands back are account-specific, so a
+    single shared key meant two accounts overwrote each other's credentials.
+    """
+    return Store[dict[str, Any]](hass, STORAGE_VERSION, f"{STORAGE_KEY}.{entry_id}")
+
+
+async def async_load_saved_tokens(
+    hass: HomeAssistant,
+    entry_id: str,
+    anycubic_api: AnycubicAPI,
+) -> None:
+    """Load previously saved tokens into the API client.
+
+    The token the user pasted is only the starting point -- the cloud refreshes
+    it, and the refreshed value is what stays valid. Without this the
+    integration re-authenticates from the original token on every restart and
+    demands re-auth once that one ages out, even though working credentials
+    were sitting in storage.
+    """
+    config = await async_token_store(hass, entry_id).async_load()
+
+    if not config:
+        # Fall back to the pre-per-entry store, then migrate it across.
+        legacy = Store[dict[str, Any]](hass, STORAGE_VERSION, STORAGE_KEY)
+        config = await legacy.async_load()
+        if config:
+            await async_token_store(hass, entry_id).async_save(config)
+
+    if config:
+        anycubic_api.load_auth_config_from_dict(config, minimal=True)
 
 
 def build_color_swatch_data_uri(colors_hex: list[str] | None) -> str | None:

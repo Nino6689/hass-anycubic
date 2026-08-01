@@ -418,7 +418,7 @@ class TestTokenPersistence:
         api.tokens_changed = True
 
         with patch(
-            "custom_components.anycubic_cloud.coordinator.Store.async_save",
+            "homeassistant.helpers.storage.Store.async_save",
             AsyncMock(),
         ) as save:
             await coordinator._check_or_save_tokens()
@@ -432,7 +432,7 @@ class TestTokenPersistence:
         api.tokens_changed = False
 
         with patch(
-            "custom_components.anycubic_cloud.coordinator.Store.async_save",
+            "homeassistant.helpers.storage.Store.async_save",
             AsyncMock(),
         ) as save:
             await coordinator._check_or_save_tokens()
