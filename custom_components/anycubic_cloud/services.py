@@ -134,7 +134,8 @@ class AnycubicCloudServiceCall:
 
         if not entry:
             raise ServiceValidationError(
-                "Could not find Anycubic Cloud config entry."
+                translation_domain=DOMAIN,
+                translation_key="config_entry_not_found",
             )
 
         coordinator: AnycubicCloudDataUpdateCoordinator | None = getattr(
@@ -143,7 +144,8 @@ class AnycubicCloudServiceCall:
 
         if coordinator is None:
             raise ServiceValidationError(
-                "The Anycubic Cloud config entry is not loaded."
+                translation_domain=DOMAIN,
+                translation_key="config_entry_not_loaded",
             )
 
         return coordinator
@@ -160,7 +162,8 @@ class AnycubicCloudServiceCall:
                     device_id = device_id[0]
                 else:
                     raise ServiceValidationError(
-                        "Can only call services for one printer at a time."
+                        translation_domain=DOMAIN,
+                        translation_key="one_printer_at_a_time",
                     )
 
             self._device_id = device_id
@@ -172,7 +175,8 @@ class AnycubicCloudServiceCall:
 
         if printer is None:
             raise ServiceValidationError(
-                "Could not find Anycubic printer for service call."
+                translation_domain=DOMAIN,
+                translation_key="printer_not_found",
             )
 
         return printer
@@ -228,12 +232,16 @@ class BaseMultiColorBoxSetSlot(AnycubicCloudServiceCall):
             int(service.data[CONF_SLOT_COLOR_GREEN]),
             int(service.data[CONF_SLOT_COLOR_BLUE]),
         )
-        await self.async_set_box_slot(
-            printer=printer,
-            slot_index=slot_index,
-            slot_color=slot_color,
-            box_id=box_id,
-        )
+        try:
+            await self.async_set_box_slot(
+                printer=printer,
+                slot_index=slot_index,
+                slot_color=slot_color,
+                box_id=box_id,
+            )
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
         await coordinator.force_state_update()
 
 
@@ -417,11 +425,15 @@ class MultiColorBoxFilamentExtrude(AnycubicCloudServiceCall):
         box_id = self._get_box_id(service)
         finished = service.data.get(CONF_FINISHED)
         slot_index = service.data[CONF_SLOT_NUMBER] - 1
-        await printer.multi_color_box_feed_filament(
-            slot_index=slot_index,
-            box_id=box_id,
-            finish=bool(finished)
-        )
+
+        try:
+            await printer.multi_color_box_feed_filament(
+                slot_index=slot_index,
+                box_id=box_id,
+                finish=bool(finished)
+            )
+        except Exception as error:
+            raise HomeAssistantError(error) from error
 
 
 class MultiColorBoxFilamentRetract(AnycubicCloudServiceCall):
@@ -436,9 +448,13 @@ class MultiColorBoxFilamentRetract(AnycubicCloudServiceCall):
 
         printer = self._get_printer(service)
         box_id = self._get_box_id(service)
-        await printer.multi_color_box_retract_filament(
-            box_id=box_id,
-        )
+
+        try:
+            await printer.multi_color_box_retract_filament(
+                box_id=box_id,
+            )
+        except Exception as error:
+            raise HomeAssistantError(error) from error
 
 
 class BasePrintWithFile(AnycubicCloudServiceCall):
@@ -482,7 +498,8 @@ class BasePrintWithFile(AnycubicCloudServiceCall):
         except Exception as e:
             LOGGER.warning(f"Gcode file read error: {e}")
             raise ServiceValidationError(
-                "Could not read gcode file."
+                translation_domain=DOMAIN,
+                translation_key="gcode_read_failed",
             ) from e
 
         return file_name, gcode_bytes
@@ -514,11 +531,14 @@ class PrintAndUploadSaveInCloud(BasePrintWithFile):
         printer = self._get_printer(service)
         slot_idx_list = self._get_slot_num_list(service)
 
-        print_response = await printer.print_and_upload_save_in_cloud(
-            file_name=file_name,
-            file_bytes=gcode_bytes,
-            slot_index_list=slot_idx_list,
-        )
+        try:
+            print_response = await printer.print_and_upload_save_in_cloud(
+                file_name=file_name,
+                file_bytes=gcode_bytes,
+                slot_index_list=slot_idx_list,
+            )
+        except Exception as error:
+            raise HomeAssistantError(error) from error
 
         if print_response:
             self._async_fire_event(
@@ -538,11 +558,14 @@ class PrintAndUploadNoCloudSave(BasePrintWithFile):
         printer = self._get_printer(service)
         slot_idx_list = self._get_slot_num_list(service)
 
-        print_response = await printer.print_and_upload_no_cloud_save(
-            file_name=file_name,
-            file_bytes=gcode_bytes,
-            slot_index_list=slot_idx_list,
-        )
+        try:
+            print_response = await printer.print_and_upload_no_cloud_save(
+                file_name=file_name,
+                file_bytes=gcode_bytes,
+                slot_index_list=slot_idx_list,
+            )
+        except Exception as error:
+            raise HomeAssistantError(error) from error
 
         if print_response:
             self._async_fire_event(

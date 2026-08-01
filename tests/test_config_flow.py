@@ -156,3 +156,113 @@ async def test_empty_token_rejected(hass: HomeAssistant, token: str) -> None:
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": token})
 
     assert result["errors"] == {"user_token": "invalid_token_format"}
+
+
+async def test_successful_setup_creates_the_entry(hass: HomeAssistant) -> None:
+    """The happy path all the way through to a config entry."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with patch(API_PATH, return_value=_mock_api()):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "printer"
+
+    with patch(API_PATH, return_value=_mock_api()):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"printer_ids": ["4242"]})
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["printer_ids"] == [4242]
+    assert result["data"]["user_token"] == JWT
+
+
+async def test_account_with_no_printers_is_reported(hass: HomeAssistant) -> None:
+    """Setting up an empty account should say so, not fail obscurely."""
+    api = _mock_api()
+    api.list_my_printers = AsyncMock(return_value=[])
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with patch(API_PATH, return_value=api):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "no_printers"}
+
+
+async def test_unreachable_printer_is_reported(hass: HomeAssistant) -> None:
+    """A printer that lists but won't respond shouldn't be silently accepted."""
+    # The flow keeps the client it built in the first step, so the failure has
+    # to be introduced on that same instance rather than by re-patching.
+    api = _mock_api()
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with patch(API_PATH, return_value=api):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+
+        api.printer_info_for_id = AsyncMock(return_value=None)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"printer_ids": ["4242"]})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_printer"}
+
+
+async def test_the_same_account_cannot_be_added_twice(hass: HomeAssistant) -> None:
+    """Quality scale (unique-config-entry): the account id is the unique id."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    MockConfigEntry(domain=DOMAIN, unique_id="99", data={"user_token": JWT, "printer_ids": [4242]}).add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with patch(API_PATH, return_value=_mock_api()):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"printer_ids": ["4242"]})
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+async def test_a_cloud_error_while_listing_printers_is_reported(
+    hass: HomeAssistant,
+) -> None:
+    api = _mock_api()
+    api.list_my_printers = AsyncMock(side_effect=Exception("cloud unreachable"))
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with patch(API_PATH, return_value=api):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"], "a cloud failure must surface as an error, not silence"
+
+
+@pytest.mark.parametrize(
+    "step",
+    ["auth_mode_web", "auth_mode_slicer", "auth_mode_android"],
+)
+async def test_manual_auth_mode_steps_are_reachable(hass: HomeAssistant, step: str) -> None:
+    """The per-mode forms remain available for anyone who needs them."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    flow = hass.config_entries.flow._progress[result["flow_id"]]
+
+    result = await getattr(flow, f"async_step_{step}")()
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == step
+
+
+async def test_auth_mode_menu_lists_every_mode(hass: HomeAssistant) -> None:
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    flow = hass.config_entries.flow._progress[result["flow_id"]]
+
+    result = await flow.async_step_auth_mode_pick()
+
+    assert result["type"] is FlowResultType.MENU
+    assert set(result["menu_options"]) == {
+        "auth_mode_web",
+        "auth_mode_slicer",
+        "auth_mode_android",
+    }

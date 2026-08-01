@@ -1125,7 +1125,26 @@
       }
     }
   },
-  "exceptions": {},
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "Could not find that Anycubic Cloud configuration."
+    },
+    "config_entry_not_loaded": {
+      "message": "The Anycubic Cloud integration isn't loaded. Check it's set up and connected, then try again."
+    },
+    "one_printer_at_a_time": {
+      "message": "This action can only target one printer at a time."
+    },
+    "printer_not_found": {
+      "message": "Couldn't find that Anycubic printer. It may have been removed from your account."
+    },
+    "gcode_read_failed": {
+      "message": "Couldn't read that gcode file. Check the file uploaded correctly and try again."
+    },
+    "mqtt_connect_timeout": {
+      "message": "Timed out connecting to the printer. Try turning on the manual MQTT connection switch, then retry."
+    }
+  },
   "issues": {
     "token_expiring": {
       "title": "Anycubic token expires in {days} days",

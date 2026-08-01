@@ -27,3 +27,30 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unused_configs = true
+# Home Assistant and the test harness are not fully typed; only this
+# integration's own code is held to strict typing.
+follow_imports = "silent"
+ignore_missing_imports = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+warn_unused_ignores = false
+
+# Standalone developer utilities, not loaded by Home Assistant.
+exclude = ["custom_components/anycubic_cloud/scripts/"]
+
+# Home Assistant does not declare __all__ on every module, and strict mode
+# turns off implicit re-export. The imports are correct and used throughout
+# core itself, so relax the rule for its modules only.
+[[tool.mypy.overrides]]
+module = "homeassistant.*"
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false

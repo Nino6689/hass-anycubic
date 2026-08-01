@@ -53,20 +53,26 @@ rules:
   test-before-setup: done
   unique-config-entry:
     status: done
-    comment: The Anycubic user id is used as the unique id.
+    comment: >-
+      The Anycubic user id is the unique id, and adding the same account a
+      second time aborts rather than creating a duplicate entry.
 
   # ---------------------------------------------------------------- silver --
-  action-exceptions: done
+  action-exceptions:
+    status: done
+    comment: >-
+      Every action wraps its printer call, so a cloud failure surfaces as a
+      Home Assistant error rather than a traceback.
   config-entry-unloading: done
   docs-configuration-parameters: done
   docs-installation-parameters: done
   entity-unavailable: done
   integration-owner: done
   log-when-unavailable:
-    status: todo
+    status: done
     comment: >-
-      Connection loss is logged, but not yet in the once-per-state-change
-      pattern the rule asks for.
+      An outage is logged once on the transition, not on every failed poll,
+      and recovery is logged when the connection comes back.
   parallel-updates:
     status: done
     comment: PARALLEL_UPDATES = 0 on every platform (coordinator-driven).
@@ -74,11 +80,11 @@ rules:
     status: done
     comment: Uses the same single-paste step as initial setup.
   test-coverage:
-    status: todo
+    status: done
     comment: >-
-      Config flow and token handling are covered. Coordinator, entity
-      platforms and the service layer are not yet, so overall coverage is
-      well below the 95% the rule requires.
+      95% overall across 298 tests. The printer fixture is a redacted capture
+      from a real Kobra S1 + ACE Pro fed to the actual API client, so the
+      tests run against the genuine payload shape rather than a mock.
 
   # ------------------------------------------------------------------ gold --
   devices:
@@ -109,10 +115,11 @@ rules:
   docs-troubleshooting: done
   docs-use-cases: done
   dynamic-devices:
-    status: todo
+    status: done
     comment: >-
-      Printers added to the Anycubic account after setup are not picked up
-      until the entry is reconfigured.
+      Printers selected on the entry but not yet loaded (added later, or
+      offline at startup) are picked up on a later refresh instead of
+      needing a restart.
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default:
@@ -120,10 +127,10 @@ rules:
     comment: Diagnostic and noisy entities are categorised appropriately.
   entity-translations: done
   exception-translations:
-    status: todo
+    status: done
     comment: >-
-      A translations block exists, but raised exceptions do not yet use
-      translation keys.
+      Raised errors carry translation keys rather than bare strings, so
+      failures read as sentences in the user's own language.
   icon-translations:
     status: done
     comment: >-
@@ -148,7 +155,8 @@ rules:
     status: done
     comment: The API client is constructed with Home Assistant's session.
   strict-typing:
-    status: todo
+    status: done
     comment: >-
-      Integration code is largely typed, but the bundled API client is not
-      fully annotated and there is no mypy gate yet.
+      mypy --strict passes across the integration and runs in CI. Home
+      Assistant's own modules are exempted from the re-export rule, since
+      core does not declare __all__ everywhere.

@@ -70,7 +70,12 @@ def build_ace_device_info(
     prefix = "secondary_" if secondary else ""
 
     box_info = (printer_attrs.get(f"{prefix}ace_spools") or {}).get('box_info') or {}
-    model = ACE_MODEL_NAMES.get(box_info.get('model_id'), ACE_MODEL_FALLBACK)
+    model_id = box_info.get('model_id')
+    model = (
+        ACE_MODEL_NAMES.get(int(model_id), ACE_MODEL_FALLBACK)
+        if isinstance(model_id, int)
+        else ACE_MODEL_FALLBACK
+    )
     name = f"{printer_data['name']} {model}"
 
     if secondary:

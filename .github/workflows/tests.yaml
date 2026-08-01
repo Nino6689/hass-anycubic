@@ -33,5 +33,12 @@ jobs:
       - name: Format check (tests)
         run: ruff format --check tests
 
+      - name: Types
+        run: mypy custom_components/anycubic_cloud
+
       - name: Tests
-        run: pytest tests -q
+        run: >-
+          pytest tests -q
+          --cov=custom_components.anycubic_cloud
+          --cov-report=term-missing
+          --cov-fail-under=95

@@ -99,6 +99,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._cloud_file_list: list[dict[str, Any]] | None = None
         self._last_state_update: int | None = None
         self._failed_updates: int = 0
+        # Quality scale (log-when-unavailable): log the transition into and out
+        # of an outage once, rather than on every poll, so a long cloud outage
+        # does not fill the log.
+        self._connection_lost_logged: bool = False
         self._mqtt_task: asyncio.Future[None] | None = None
         self._mqtt_manually_connected = False
         self._mqtt_idle_since: int | None = None
@@ -535,7 +539,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 status_attr: dict[str, Any] | None = printer_attributes_for_key(self, printer_id, 'current_status')
                 if not status_attr:
-                    raise ConfigEntryError(f"Printer {printer_id} status attributes not found.")
+                    # The printer is selected on the entry but hasn't loaded yet
+                    # -- it may have been offline at startup, or only just been
+                    # added. Its entities are created on a later refresh once
+                    # _async_add_new_printers picks it up.
+                    continue
                 material_type = status_attr['material_type']
                 connected_ace_units = printer_state_connected_ace_units(self, printer_id)
                 supports_ace = printer_state_supports_ace(self, printer_id)
@@ -849,6 +857,43 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except Exception as error:
                 raise ConfigEntryError(error) from error
 
+        if not self._anycubic_printers:
+            raise ConfigEntryError("No Anycubic printers could be loaded.")
+
+    async def _async_add_new_printers(self) -> None:
+        """Pick up printers selected on the entry that aren't loaded yet.
+
+        Quality scale (dynamic-devices): a printer added to the entry (or one
+        that failed to load at startup, e.g. it was offline) previously needed a
+        Home Assistant restart to appear. Entities for it are registered on the
+        next refresh instead.
+        """
+        selected = {int(x) for x in self.entry.data[CONF_PRINTER_ID_LIST]}
+        missing = selected - set(self._anycubic_printers)
+
+        if not missing:
+            return
+
+        added = False
+
+        for printer_id in missing:
+            try:
+                printer = await self.anycubic_api.printer_info_for_id(printer_id)
+            except Exception as error:  # noqa: BLE001 - retried on the next refresh
+                LOGGER.debug("Could not load new printer %s yet: %s", printer_id, error)
+                continue
+
+            if printer is None:
+                continue
+
+            LOGGER.info("Found new Anycubic printer: %s", printer.name)
+            self._anycubic_printers[int(printer_id)] = printer
+            added = True
+
+        if added:
+            # Force device registration and entity creation to run again.
+            self._printer_device_map = None
+
     async def _register_printer_devices(
         self,
         data_dict: dict[str, Any],
@@ -909,7 +954,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self._check_anycubic_mqtt_connection()
         if not await self.anycubic_api.mqtt_wait_for_connect():
             raise HomeAssistantError(
-                "Anycubic MQTT Timed out waiting for connection, try manually enabling MQTT."
+                translation_domain=DOMAIN,
+                translation_key="mqtt_connect_timeout",
             )
 
     async def _async_setup(self) -> None:
@@ -927,6 +973,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     f"Error during Anycubic Cloud setup, retrying in {API_SETUP_RETRY_INTERVAL_SECONDS} seconds."
                 )
                 await asyncio.sleep(API_SETUP_RETRY_INTERVAL_SECONDS)
+
+    @callback
+    def _note_connection_lost(self, error: Exception) -> None:
+        """Count the failure and log it only on the way into an outage."""
+        self._failed_updates += 1
+
+        if not self._connection_lost_logged:
+            LOGGER.warning("Lost connection to the Anycubic cloud: %s", error)
+            self._connection_lost_logged = True
 
     async def get_anycubic_updates(self) -> bool:
         """Fetch data from AnycubicCloud."""
@@ -946,23 +1001,29 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             self._failed_updates = 0
 
+            if self._connection_lost_logged:
+                LOGGER.info("Reconnected to the Anycubic cloud.")
+                self._connection_lost_logged = False
+
             await self._check_anycubic_mqtt_connection()
+
+            await self._async_add_new_printers()
 
         except ConfigEntryAuthFailed:
             raise
 
         except AnycubicAPIParsingError as error:
-            self._failed_updates += 1
+            self._note_connection_lost(error)
             raise UpdateFailed(error) from error
 
         except AnycubicAPIError as error:
-            self._failed_updates += 1
+            self._note_connection_lost(error)
             raise UpdateFailed(error) from error
 
         except Exception as error:
             tb = traceback.format_exc()
             LOGGER.debug(f"Anycubic update error: {error}\n{tb}")
-            self._failed_updates += 1
+            self._note_connection_lost(error)
             raise UpdateFailed(error) from error
 
         self._last_state_update = int(time.time())

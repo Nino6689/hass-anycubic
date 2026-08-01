@@ -380,16 +380,21 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                         },
                     )
                     return self.async_abort(reason="reconfigure_successful")
-                else:
-                    return self.async_create_entry(
-                        title=self._anycubic_api.anycubic_auth.api_user_identifier,
-                        data={
-                            CONF_USER_TOKEN: self._user_token,
-                            CONF_USER_AUTH_MODE: self._user_auth_mode,
-                            CONF_USER_DEVICE_ID: self._user_device_id,
-                            CONF_PRINTER_ID_LIST: printer_id_list,
-                        },
-                    )
+
+                # Setting the unique id doesn't enforce it. Without this, adding
+                # the same Anycubic account a second time creates a duplicate
+                # entry and a second copy of every device and entity.
+                self._abort_if_unique_id_configured()
+
+                return self.async_create_entry(
+                    title=self._anycubic_api.anycubic_auth.api_user_identifier,
+                    data={
+                        CONF_USER_TOKEN: self._user_token,
+                        CONF_USER_AUTH_MODE: self._user_auth_mode,
+                        CONF_USER_DEVICE_ID: self._user_device_id,
+                        CONF_PRINTER_ID_LIST: printer_id_list,
+                    },
+                )
 
         return self.async_show_form(
             step_id="printer",

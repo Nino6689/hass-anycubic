@@ -1,0 +1,316 @@
+{
+  "is_queue_task": 0,
+  "base": {
+    "print_count": 174,
+    "print_totaltime": "798hour29min",
+    "material_type": "Filament",
+    "material_used": "18.17kg",
+    "description": "TEST-0000-0000-0000",
+    "create_time": 1751145530,
+    "firmware_version": "2.7.2.7",
+    "machine_mac": "AA:BB:CC:DD:EE:FF"
+  },
+  "name": "Anycubic Kobra S1",
+  "id": 12345678,
+  "key": "test-printer-key",
+  "img": "https://cdn.anycubic-cloud.anycubic.com/device/kobra_s1_1779354388.png",
+  "machine_type": 20025,
+  "device_status": 1,
+  "is_printing": 1,
+  "model": "Anycubic Kobra S1",
+  "free_temp_limit": {
+    "hotbed_temp_limit": [
+      0,
+      110
+    ],
+    "nozzle_temp_limit": [
+      0,
+      320
+    ]
+  },
+  "temp_limit": {
+    "hotbed_temp_limit": [
+      35,
+      120
+    ],
+    "nozzle_temp_limit": [
+      185,
+      320
+    ]
+  },
+  "machine_data": {
+    "name": "Anycubic Kobra S1",
+    "pixel": 34.4,
+    "res_x": 11520,
+    "res_y": 5120,
+    "format": "pw0Img",
+    "size_x": 250,
+    "size_y": 250,
+    "size_z": 260,
+    "suffix": "gcode",
+    "anti_max": 8
+  },
+  "rotate_deg": 0,
+  "type_function_ids": [
+    2,
+    13,
+    22,
+    39,
+    41,
+    43,
+    44,
+    45,
+    47,
+    48,
+    2006
+  ],
+  "parameter": {
+    "curr_hotbed_temp": 28,
+    "curr_nozzle_temp": 31
+  },
+  "nozzle_diameter": 0.4,
+  "tools": [
+    {
+      "id": "test-value",
+      "typd_id": 2,
+      "model_id": 20025,
+      "type_function_id": 2,
+      "parent_id": 0,
+      "function_name": "Document Management",
+      "function_des": "View or delete files stored locally on the printer",
+      "control": 0,
+      "param": [],
+      "icon_url": "https://cdn.anycubic-cloud.anycubic.com/php/img/4/2.png",
+      "function_type": 1,
+      "status": 1,
+      "show_place": 1
+    },
+    {
+      "id": "test-value",
+      "typd_id": 2,
+      "model_id": 20025,
+      "type_function_id": 13,
+      "parent_id": 0,
+      "function_name": "Moving XYZ-axis",
+      "function_des": "Check if the XYZ-axis motor is normal",
+      "control": 0,
+      "param": [],
+      "icon_url": "https://cdn.anycubic-cloud.anycubic.com/php/img/4/1.png",
+      "function_type": 1,
+      "status": 1,
+      "show_place": 1
+    }
+  ],
+  "advance": [],
+  "help_url": "https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-Combo",
+  "version": {
+    "need_update": 0,
+    "firmware_version": "2.7.2.7",
+    "update_progress": 0,
+    "update_date": 0,
+    "update_status": "",
+    "update_desc": "1.Fixed system errors caused by abnormal commands in certain G-code files.\n2.Optimized key processes such as print pause resume and stop to improve printing stability.\n3.Fixed low-probability operation anomalies and abnormal memory usage issues.",
+    "force_update": 0,
+    "target_version": "2.7.2.7",
+    "time_cost": 10,
+    "img": "https://cdn.anycubic-cloud.anycubic.com/device/kobra_s1_1779354388.png"
+  },
+  "quick_start_url": "https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-combo/quick-start-guide?_sasdk=fbGlud2VpaG9uZ0BhbnljdWJpYy5jb20",
+  "is_read_quick_start_url": 0,
+  "maintenance_manual_url": "https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-Combo/maintenance-recommendations",
+  "multi_color_box_version": [
+    {
+      "box_name": "ACE Pro",
+      "need_update": 0,
+      "firmware_version": "1.3.863",
+      "update_desc": "",
+      "force_update": 0,
+      "target_version": "1.3.863",
+      "time_cost": 0,
+      "update_progress": 0,
+      "update_date": 0,
+      "update_status": "",
+      "img": "https://cdn.anycubic-cloud.anycubic.com/device/new_multi_color_box.png",
+      "box_id": 0
+    }
+  ],
+  "head_tools_model": 0,
+  "external_shelves": {
+    "type": "PLA",
+    "color": [
+      233,
+      157,
+      67
+    ],
+    "loaded": 1,
+    "id": "test-value",
+    "status_type": -1,
+    "current_status": -1
+  },
+  "need_update": 0,
+  "releasefilm_url": "https://wiki.anycubic.com/en/fdm-3d-printer/kobra-s1-Combo",
+  "multi_color_box": {
+    "id": 1,
+    "status": 1,
+    "temp": 33,
+    "humidity": 0,
+    "model_id": 40001,
+    "auto_feed": 1,
+    "loaded_slot": -1,
+    "feed_status": {
+      "code": 200,
+      "type": -1,
+      "current_status": -1,
+      "slot_index": -1
+    },
+    "drying_status": {
+      "status": 0,
+      "duration": 0,
+      "target_temp": 0,
+      "remain_time": 0
+    },
+    "curr_nozzle_temp": 31,
+    "target_nozzle_temp": 0,
+    "slots": [
+      {
+        "index": 0,
+        "sku": "",
+        "type": "PETG",
+        "color": [
+          175,
+          175,
+          175
+        ],
+        "status": 5,
+        "edit_status": 1,
+        "color_group": [
+          [
+            175,
+            175,
+            175,
+            255
+          ]
+        ],
+        "icon_type": 0,
+        "consumables_percent": 0
+      },
+      {
+        "index": 1,
+        "sku": "",
+        "type": "PLA",
+        "color": [
+          33,
+          39,
+          33
+        ],
+        "status": 5,
+        "edit_status": 1,
+        "color_group": [
+          [
+            33,
+            39,
+            33,
+            255
+          ]
+        ],
+        "icon_type": 0,
+        "consumables_percent": 0
+      },
+      {
+        "index": 2,
+        "sku": "",
+        "type": "PLA",
+        "color": [
+          255,
+          236,
+          61
+        ],
+        "status": 5,
+        "edit_status": 1,
+        "color_group": [
+          [
+            255,
+            236,
+            61,
+            255
+          ]
+        ],
+        "icon_type": 0,
+        "consumables_percent": 0
+      },
+      {
+        "index": 3,
+        "sku": "AHPEBW-102",
+        "type": "PETG",
+        "color": [
+          239,
+          240,
+          241
+        ],
+        "status": 5,
+        "edit_status": 0,
+        "color_group": [
+          [
+            239,
+            240,
+            241,
+            255
+          ]
+        ],
+        "icon_type": 0,
+        "consumables_percent": 0
+      }
+    ]
+  },
+  "features": [
+    {
+      "name": "auto_leveling_support",
+      "value": true
+    },
+    {
+      "name": "vibration_compensation_support",
+      "value": true
+    },
+    {
+      "name": "flow_calibration_support",
+      "value": true
+    },
+    {
+      "name": "drying_first_support",
+      "value": true
+    },
+    {
+      "name": "camera_timelapse_support",
+      "value": true
+    },
+    {
+      "name": "gcode_3mf_support",
+      "value": true
+    },
+    {
+      "name": "delete_batch_support",
+      "value": true
+    },
+    {
+      "name": "preheating_support",
+      "value": true
+    },
+    {
+      "name": "fod_support",
+      "value": true
+    },
+    {
+      "name": "shengwang_rtc_support",
+      "value": true
+    },
+    {
+      "name": "pre_cancel_support",
+      "value": true
+    },
+    {
+      "name": "shengwang_rdt_support",
+      "value": true
+    }
+  ],
+  "max_box_num": 4
+}
