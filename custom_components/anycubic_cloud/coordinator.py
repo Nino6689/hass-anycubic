@@ -22,7 +22,8 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from homeassistant.helpers.device_registry import DeviceInfo, async_get as async_get_device_registry
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -30,7 +31,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
 from .anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError, AnycubicAPIParsingError
 from .const import (
-    TOKEN_EXPIRY_WARN_DAYS,
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
@@ -56,9 +56,9 @@ from .const import (
     PRINT_JOB_STARTED_UPDATE_DELAY,
     STORAGE_KEY,
     STORAGE_VERSION,
+    TOKEN_EXPIRY_WARN_DAYS,
 )
 from .helpers import (
-    token_expiry_timestamp,
     AnycubicMQTTConnectMode,
     build_printer_device_info,
     check_descriptor_state_ace_not_supported,
@@ -73,6 +73,7 @@ from .helpers import (
     printer_state_supports_ace,
     state_string_active,
     state_string_loaded,
+    token_expiry_timestamp,
 )
 
 if TYPE_CHECKING:
@@ -500,10 +501,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.async_update_listeners()
 
     @callback
-    def add_entities_for_seen_printers[_AnycubicCloudEntityT: AnycubicCloudEntity](
+    def add_entities_for_seen_printers[AnycubicCloudEntityT: AnycubicCloudEntity](
         self,
         async_add_entities: AddEntitiesCallback,
-        entity_constructor: type[_AnycubicCloudEntityT],
+        entity_constructor: type[AnycubicCloudEntityT],
         platform: Platform,
         available_descriptors: list[AnycubicCloudEntityDescription],
     ) -> None:
@@ -520,7 +521,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         @callback
         def _add_entities_for_unregistered_descriptors() -> None:
-            new_entities: list[_AnycubicCloudEntityT] = []
+            new_entities: list[AnycubicCloudEntityT] = []
 
             for printer_id in self.entry.data[CONF_PRINTER_ID_LIST]:
                 if printer_id not in self._unregistered_descriptors:
@@ -613,7 +614,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _async_mqtt_callback_subscribed(self) -> None:
         await asyncio.sleep(10)
-        for printer_id, printer in self._anycubic_printers.items():
+        for printer in self._anycubic_printers.values():
             try:
                 if printer.printer_online:
                     await printer.query_printer_options()
@@ -698,7 +699,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         async with self._mqtt_connect_check_lock:
             if self._anycubic_mqtt_connection_should_start():
 
-                for printer_id, printer in self._anycubic_printers.items():
+                for printer in self._anycubic_printers.values():
                     self.anycubic_api.mqtt_add_subscribed_printer(
                         printer
                     )
@@ -713,7 +714,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self._stop_anycubic_mqtt_connection()
 
     async def _stop_anycubic_mqtt_connection(self) -> None:
-        for printer_id, printer in self._anycubic_printers.items():
+        for printer in self._anycubic_printers.values():
             await self.hass.async_add_executor_job(
                 self.anycubic_api.mqtt_unsubscribe_printer_status,
                 printer,
@@ -830,7 +831,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as error:
             raise ConfigEntryAuthFailed(
                 f"Coordinator authentication failed with unknown Error. Check credentials {error}"
-            )
+            ) from error
 
     async def _setup_anycubic_printer_objects(self) -> None:
         for printer_id in self.entry.data[CONF_PRINTER_ID_LIST]:
@@ -908,7 +909,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             await self._check_or_save_tokens()
 
-            for printer_id, printer in self._anycubic_printers.items():
+            for printer in self._anycubic_printers.values():
                 await printer.update_info_from_api(True)
 
             self._failed_updates = 0

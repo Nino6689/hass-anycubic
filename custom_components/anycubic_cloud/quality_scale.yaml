@@ -1,0 +1,152 @@
+# Home Assistant Integration Quality Scale — self-assessment.
+#
+# This is a HACS custom integration, so it can't display an official quality
+# badge (that mechanism is core-only). The rules are still the best available
+# yardstick, so the integration is measured against them honestly here:
+# "done" means genuinely met, "todo" means not yet, and exemptions say why.
+
+rules:
+  # ---------------------------------------------------------------- bronze --
+  action-setup:
+    status: todo
+    comment: >-
+      Services are registered in async_setup_entry rather than async_setup.
+      They are correctly removed when the last entry unloads, but the
+      registration should move so actions exist before any entry is loaded.
+  appropriate-polling: done
+  brands: done
+  common-modules: done
+  config-flow:
+    status: done
+    comment: >-
+      Single-step setup: the user pastes any token and the auth mode is
+      detected from its shape, with the alternatives tried as a fallback.
+      Steps carry data_description text.
+  config-flow-test-coverage:
+    status: done
+    comment: >-
+      tests/test_config_flow.py covers the happy path, messy pastes, the
+      auth-mode fallback, the Android device-id path, unrecoverable auth
+      failure and empty input.
+  dependency-transparency:
+    status: done
+    comment: >-
+      aiofiles, bcrypt and cryptography were previously imported but never
+      declared; they are now in manifest requirements.
+  docs-actions: done
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: The integration provides no triggers.
+  docs-conditions:
+    status: exempt
+    comment: The integration provides no conditions.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data:
+    status: done
+    comment: Per-entry state lives on entry.runtime_data; hass.data is unused.
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry:
+    status: done
+    comment: The Anycubic user id is used as the unique id.
+
+  # ---------------------------------------------------------------- silver --
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable:
+    status: todo
+    comment: >-
+      Connection loss is logged, but not yet in the once-per-state-change
+      pattern the rule asks for.
+  parallel-updates:
+    status: done
+    comment: PARALLEL_UPDATES = 0 on every platform (coordinator-driven).
+  reauthentication-flow:
+    status: done
+    comment: Uses the same single-paste step as initial setup.
+  test-coverage:
+    status: todo
+    comment: >-
+      Config flow and token handling are covered. Coordinator, entity
+      platforms and the service layer are not yet, so overall coverage is
+      well below the 95% the rule requires.
+
+  # ------------------------------------------------------------------ gold --
+  devices:
+    status: done
+    comment: >-
+      A device per printer, plus each ACE as its own device linked via
+      via_device so a second unit has somewhere to live.
+  diagnostics:
+    status: done
+    comment: Redacted diagnostics download, including tagged-value redaction.
+  discovery:
+    status: exempt
+    comment: >-
+      Printers are reached through Anycubic's cloud, not on the local
+      network, so there is nothing to discover.
+  discovery-update-info:
+    status: exempt
+    comment: Cloud integration; no local network information to update.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices:
+    status: done
+    comment: >-
+      Split into hardware verified first-hand versus models reported working
+      by the community, rather than implying coverage that isn't tested.
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: todo
+    comment: >-
+      Printers added to the Anycubic account after setup are not picked up
+      until the entry is reconfigured.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: done
+    comment: Diagnostic and noisy entities are categorised appropriately.
+  entity-translations: done
+  exception-translations:
+    status: todo
+    comment: >-
+      A translations block exists, but raised exceptions do not yet use
+      translation keys.
+  icon-translations:
+    status: done
+    comment: >-
+      icons.json covers every entity; each key was validated against the
+      real entity translation keys.
+  reconfiguration-flow: done
+  repair-issues:
+    status: done
+    comment: >-
+      Warns 14 days before the Anycubic token expires. Tokens are 90-day
+      JWTs that cannot be refreshed automatically, so advance notice is the
+      only graceful option.
+  stale-devices:
+    status: todo
+    comment: Printers removed from the account are not cleaned up automatically.
+
+  # -------------------------------------------------------------- platinum --
+  async-dependency: done
+  inject-websession:
+    status: done
+    comment: The API client is constructed with Home Assistant's session.
+  strict-typing:
+    status: todo
+    comment: >-
+      Integration code is largely typed, but the bundled API client is not
+      fully annotated and there is no mypy gate yet.

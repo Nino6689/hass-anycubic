@@ -336,11 +336,11 @@ def remove_quotes_from_string(input_string: str) -> str:
     raise TypeError("Unexpected quotes in string.")
 
 
-def validate_value_is_type[_T: Any](
+def validate_value_is_type[T: Any](
     value: Any,
-    value_type: type[_T],
+    value_type: type[T],
     allow_lists: bool = False,
-) -> _T | list[_T] | None:
+) -> T | list[T] | None:
     if allow_lists and isinstance(value, list):
         for v in value:
             if not isinstance(v, value_type):
@@ -352,12 +352,12 @@ def validate_value_is_type[_T: Any](
     return None
 
 
-def get_value_from_dict_if_type[_T: Any](
+def get_value_from_dict_if_type[T: Any](
     input_dict: dict[str, Any],
     key: str,
-    value_type: type[_T],
+    value_type: type[T],
     allow_lists: bool = False,
-) -> _T | list[_T] | None:
+) -> T | list[T] | None:
     if (
         key in input_dict
         and (
@@ -460,7 +460,7 @@ def extract_pasted_token(raw: str | None) -> str | None:
 
     # A `"key": "value"` fragment pasted out of a config file.
     fragment = re.search(
-        r"[\"']?(?:%s)[\"']?\s*[:=]\s*[\"']([^\"']+)[\"']" % "|".join(TOKEN_JSON_KEYS),
+        rf"[\"']?(?:{'|'.join(TOKEN_JSON_KEYS)})[\"']?\s*[:=]\s*[\"']([^\"']+)[\"']",
         text,
     )
     if fragment:

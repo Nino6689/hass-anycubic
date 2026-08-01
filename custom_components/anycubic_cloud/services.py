@@ -15,7 +15,8 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import config_validation as cv, selector
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import selector
 
 from .anycubic_cloud_api.data_models.print_response import AnycubicPrintResponse
 from .anycubic_cloud_api.data_models.printer import AnycubicPrinter
@@ -49,7 +50,7 @@ if TYPE_CHECKING:
 
 
 def build_anycubic_service_schema(
-    input_service_schema: dict[Any, Any] = {},
+    input_service_schema: dict[Any, Any] | None = None,
     with_slot_number: bool = False,
     with_slot_colours: bool = False,
     with_opt_box: bool = False,
@@ -60,7 +61,7 @@ def build_anycubic_service_schema(
     with_layers: bool = False,
 ) -> vol.Schema:
     service_schema = {
-        **input_service_schema,
+        **(input_service_schema or {}),
     }
 
     if with_slot_number:
@@ -482,7 +483,7 @@ class BasePrintWithFile(AnycubicCloudServiceCall):
             LOGGER.warning(f"Gcode file read error: {e}")
             raise ServiceValidationError(
                 "Could not read gcode file."
-            )
+            ) from e
 
         return file_name, gcode_bytes
 

@@ -1,0 +1,26 @@
+[project]
+name = "hass-anycubic-cloud"
+version = "0.4.0"
+description = "Anycubic Cloud integration for Home Assistant"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 127
+target-version = "py313"
+# The bundled Anycubic API client is third-party code inherited from upstream
+# and is slated for extraction into its own PyPI package; linting it here would
+# create a large diff in code that is about to move. Integration code and tests
+# are held to the full rule set.
+extend-exclude = ["custom_components/anycubic_cloud/anycubic_cloud_api"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

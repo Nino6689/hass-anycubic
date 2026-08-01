@@ -1,0 +1,35 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_test.txt
+          pip install home-assistant-frontend aiofiles bcrypt cryptography paho-mqtt
+
+      - name: Lint
+        run: ruff check custom_components tests
+
+      # The integration predates ruff format; reformatting it wholesale would
+      # bury real changes in noise, so for now only new code is format-checked.
+      - name: Format check (tests)
+        run: ruff format --check tests
+
+      - name: Tests
+        run: pytest tests -q
