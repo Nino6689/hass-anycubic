@@ -144,6 +144,11 @@ somewhere you're already signed in, and paste it in.
 
 Pick **one** of the three options.
 
+> 💡 **Want the one‑click way?** The [`tools/`](tools/README.md) folder has a no‑terminal
+> browser bookmarklet and double‑click helpers for macOS and Windows that grab the token for
+> you and explain, in plain language, exactly what they do. If terminals make you nervous,
+> start there.
+
 ### Option A — Slicer token *(recommended)*
 
 > ⚡ **Why this one?** Anycubic blocks MQTT for tokens taken from the website. Only slicer tokens
