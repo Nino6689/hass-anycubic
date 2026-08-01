@@ -18,9 +18,9 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import selector
 
-from .anycubic_cloud_api.data_models.print_response import AnycubicPrintResponse
-from .anycubic_cloud_api.data_models.printer import AnycubicPrinter
-from .anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
+from anycubic_cloud_api.data_models.print_response import AnycubicPrintResponse
+from anycubic_cloud_api.data_models.printer import AnycubicPrinter
+from anycubic_cloud_api.data_models.printer_properties import AnycubicMaterialColor
 from .const import (
     AC_EVENT_PRINT_CLOUD_START,
     ATTR_ANYCUBIC_EVENT,

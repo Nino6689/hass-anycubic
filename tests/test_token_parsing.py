@@ -13,7 +13,7 @@ import time
 
 import pytest
 
-from custom_components.anycubic_cloud.anycubic_cloud_api.models.auth import (
+from anycubic_cloud_api.models.auth import (
     AnycubicAuthMode,
 )
 from custom_components.anycubic_cloud.helpers import (
