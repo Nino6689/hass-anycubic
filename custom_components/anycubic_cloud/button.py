@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    ACE_SLOT_COUNT,
     ENTITY_ID_DRYING_START_PRESET_,
     MAX_DRYING_PRESETS,
     PrinterEntityType,
@@ -31,6 +32,21 @@ class AnycubicButtonEntityDescription(
     ButtonEntityDescription, AnycubicCloudEntityDescription
 ):
     """Describes Anycubic Cloud button entity."""
+
+
+# Zero a slot's consumption estimate. Swapping a spool is normally detected
+# automatically from its colour, material and SKU, but two identical reels look
+# the same, so this covers that case.
+PRIMARY_SPOOL_RESET_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
+    AnycubicButtonEntityDescription(
+        key=f"ace_slot_{slot_num}_reset_spool",
+        translation_key=f"ace_slot_{slot_num}_reset_spool",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+        entity_category=EntityCategory.CONFIG,
+        entity_registry_enabled_default=False,
+    )
+    for slot_num in range(1, ACE_SLOT_COUNT + 1)
+])
 
 
 PRIMARY_DRYING_PRESET_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
@@ -133,6 +149,7 @@ async def async_setup_entry(
             + PRIMARY_DRYING_PRESET_BUTTON_TYPES
             + SECONDARY_DRYING_PRESET_BUTTON_TYPES
             + GLOBAL_BUTTON_TYPES
+            + PRIMARY_SPOOL_RESET_BUTTON_TYPES
         ),
     )
 
@@ -157,7 +174,14 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
         if TYPE_CHECKING:
             assert self.coordinator.anycubic_api, "Connection to API is missing"
 
-        await self.coordinator.button_press_event(self._printer_id, self.entity_description.key)
+        key = self.entity_description.key
+
+        if key.endswith("_reset_spool"):
+            slot_index = int(key.split("_")[2]) - 1
+            await self.coordinator.async_reset_spool(self._printer_id, slot_index)
+            return
+
+        await self.coordinator.button_press_event(self._printer_id, key)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:

@@ -479,6 +479,54 @@ automation:
 
 ---
 
+## Filament remaining *(estimated)*
+
+The ACE has no sensor for how full a spool is — Anycubic's own `consumables_percent`
+field reads zero on every slot. So this is **an estimate**, worked out from what the
+printer says it actually extruded.
+
+For each ACE slot you get, disabled by default:
+
+| Entity | What it is |
+|---|---|
+| `sensor.*_ace_slot_N_filament_remaining` | Grams left on the reel |
+| `sensor.*_ace_slot_N_filament_remaining_percent` | The same as a percentage |
+| `number.*_ace_slot_N_spool_weight` | What the reel started at — change it for 750 g or 5 kg reels |
+| `button.*_ace_slot_N_reset_spool` | Treat the slot as holding a fresh reel |
+
+### Why it's reasonably accurate
+
+It counts `supplies_usage` — the length of filament the printer reports it really
+pushed through — rather than the slicer's estimate. That matters because it:
+
+- **includes purge and priming waste**, which the slice figure leaves out (on a real
+  print here, 31 783 mm actually extruded against a 31 690 mm estimate — 0.3% more);
+- **charges a cancelled print only for the part that ran**, not the whole job;
+- **still works for prints sliced outside the cloud**, where no estimate exists.
+
+Length is converted to grams using the filament's density, and split between slots
+using the slicer's per-colour breakdown when a print used more than one.
+
+### Reels are remembered
+
+A reel is identified by its colour, material and SKU. Take a part-used reel out, put
+it back later — in any slot — and its consumption comes back with it, along with its
+own spool weight. Anycubic's own filament carries a SKU; other reels are still told
+apart by colour and material.
+
+Two reels that are genuinely identical look the same to the printer and share one
+entry. That is what the reset button is for.
+
+### What it can't see
+
+- Filament used while Home Assistant wasn't watching the printer
+- The exact weight of the reel you loaded, unless you set it
+- Manual extrusion and filament changes done at the panel
+
+Treat it as "roughly how much is left", not a scale.
+
+---
+
 ## Troubleshooting
 
 <details>

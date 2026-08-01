@@ -102,6 +102,31 @@ PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = li
         )
         for slot_num in range(1, ACE_SLOT_COUNT + 1)
     ],
+    # Estimated, not measured: the ACE has no sensor for how full a spool is,
+    # so these are derived from what the printer reports it has extruded.
+    *[
+        AnycubicSensorEntityDescription(
+            key=f"ace_slot_{slot_num}_filament_remaining",
+            translation_key=f"ace_slot_{slot_num}_filament_remaining",
+            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+            native_unit_of_measurement=UnitOfMass.GRAMS,
+            device_class=SensorDeviceClass.WEIGHT,
+            suggested_display_precision=0,
+            entity_registry_enabled_default=False,
+        )
+        for slot_num in range(1, ACE_SLOT_COUNT + 1)
+    ],
+    *[
+        AnycubicSensorEntityDescription(
+            key=f"ace_slot_{slot_num}_filament_remaining_percent",
+            translation_key=f"ace_slot_{slot_num}_filament_remaining_percent",
+            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+            native_unit_of_measurement=PERCENTAGE,
+            suggested_display_precision=0,
+            entity_registry_enabled_default=False,
+        )
+        for slot_num in range(1, ACE_SLOT_COUNT + 1)
+    ],
 ])
 
 

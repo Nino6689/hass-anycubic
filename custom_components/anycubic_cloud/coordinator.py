@@ -34,6 +34,10 @@ from .const import (
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
+    ATTR_FILAMENT_USED_G,
+    ATTR_LAST_JOB_ID,
+    ATTR_SPOOL_SIGNATURE,
+    ATTR_SPOOL_WEIGHT_G,
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
@@ -57,8 +61,16 @@ from .const import (
     TOKEN_EXPIRY_WARN_DAYS,
     TOOLS_URL,
 )
+from .filament import (
+    DEFAULT_SPOOL_WEIGHT_G,
+    attribute_job_to_slots,
+    remaining_grams,
+    remaining_percent,
+    spool_signature,
+)
 from .helpers import (
     AnycubicMQTTConnectMode,
+    async_filament_store,
     async_load_saved_tokens,
     async_token_store,
     build_printer_device_info,
@@ -95,6 +107,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.entry: ConfigEntry = entry
         self._anycubic_api: AnycubicAPI | None = None
         self._anycubic_printers: dict[int, AnycubicPrinter] = dict()
+        self._filament: dict[str, Any] = {}
         self._cloud_file_list: list[dict[str, Any]] | None = None
         self._last_state_update: int | None = None
         self._failed_updates: int = 0
@@ -323,6 +336,17 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             states[f"ace_slot_{slot_num}"] = (
                 spool.get("material_type") if spool else None
+            )
+
+            slot_state = self._filament_slot_state(printer.id, slot_num - 1)
+            spool_weight = slot_state.get(ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G)
+            used = slot_state.get(ATTR_FILAMENT_USED_G, 0.0)
+
+            states[f"ace_slot_{slot_num}_filament_remaining"] = (
+                remaining_grams(spool_weight, used) if spool else None
+            )
+            states[f"ace_slot_{slot_num}_filament_remaining_percent"] = (
+                remaining_percent(spool_weight, used) if spool else None
             )
 
         attributes = {
@@ -851,6 +875,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ) from error
 
     async def _setup_anycubic_printer_objects(self) -> None:
+        await self._async_load_filament()
+
         for printer_id in self.entry.data[CONF_PRINTER_ID_LIST]:
             try:
                 printer = await self.anycubic_api.printer_info_for_id(printer_id)
@@ -988,6 +1014,200 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             LOGGER.warning("Lost connection to the Anycubic cloud: %s", error)
             self._connection_lost_logged = True
 
+
+    # ------------------------------------------------------------------ filament
+
+    def _filament_slot_state(self, printer_id: int, slot_index: int) -> dict[str, Any]:
+        """Stored estimate for one slot, defaulted if it has never been seen."""
+        printers = self._filament.setdefault("printers", {})
+        slots = printers.setdefault(str(printer_id), {}).setdefault("slots", {})
+
+        state: dict[str, Any] = slots.setdefault(
+            str(slot_index),
+            {ATTR_SPOOL_WEIGHT_G: DEFAULT_SPOOL_WEIGHT_G, ATTR_FILAMENT_USED_G: 0.0},
+        )
+
+        return state
+
+    def get_spool_weight(self, printer_id: int, slot_index: int) -> float:
+        """How much filament this slot's spool started with."""
+        state = self._filament_slot_state(printer_id, slot_index)
+
+        return float(state.get(ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G))
+
+    async def async_set_spool_weight(
+        self, printer_id: int, slot_index: int, grams: float
+    ) -> None:
+        """Record how much filament a freshly loaded spool started with."""
+        state = self._filament_slot_state(printer_id, slot_index)
+        state[ATTR_SPOOL_WEIGHT_G] = float(grams)
+
+        signature = state.get(ATTR_SPOOL_SIGNATURE)
+        if signature:
+            known = self._filament.setdefault("spools", {}).setdefault(signature, {})
+            known[ATTR_SPOOL_WEIGHT_G] = float(grams)
+            known[ATTR_FILAMENT_USED_G] = state.get(ATTR_FILAMENT_USED_G, 0.0)
+        await self._async_save_filament()
+        await self.force_state_update()
+
+    async def async_reset_spool(self, printer_id: int, slot_index: int) -> None:
+        """Treat the slot as holding a brand new spool."""
+        state = self._filament_slot_state(printer_id, slot_index)
+        state[ATTR_FILAMENT_USED_G] = 0.0
+
+        # Forget the remembered figure as well, or reinserting this reel would
+        # bring the old consumption straight back.
+        signature = state.get(ATTR_SPOOL_SIGNATURE)
+        if signature:
+            self._filament.setdefault("spools", {}).pop(signature, None)
+        await self._async_save_filament()
+        await self.force_state_update()
+
+    async def _async_save_filament(self) -> None:
+        await async_filament_store(self.hass, self.entry.entry_id).async_save(
+            self._filament
+        )
+
+    async def _async_load_filament(self) -> None:
+        stored = await async_filament_store(self.hass, self.entry.entry_id).async_load()
+        self._filament = stored or {}
+
+    def _check_spool_changes(self, printer: AnycubicPrinter) -> bool:
+        """Follow spools as they move between slots, or out and back again.
+
+        A reel is identified by its colour, material and SKU -- the only things
+        the ACE reports about it. Consumption is remembered against that
+        identity, so taking a part-used reel out and putting it back later
+        restores the figure instead of pretending it is full. Its starting
+        weight travels with it too, so a 750 g reel stays a 750 g reel.
+
+        Two reels that are genuinely identical are indistinguishable to the
+        printer and so share one entry; the reset button covers that case.
+        """
+        spools = printer.primary_multi_color_box_spool_info_object or []
+        known = self._filament.setdefault("spools", {})
+        seen = [(i, spool_signature(spool)) for i, spool in enumerate(spools)]
+
+        # Bank every slot before resolving any, so two reels swapping places
+        # both find their own history rather than depending on slot order.
+        for slot_index, signature in seen:
+            if signature is None:
+                continue
+            state = self._filament_slot_state(printer.id, slot_index)
+            previous = state.get(ATTR_SPOOL_SIGNATURE)
+            if previous is not None:
+                known[previous] = {
+                    ATTR_FILAMENT_USED_G: state.get(ATTR_FILAMENT_USED_G, 0.0),
+                    ATTR_SPOOL_WEIGHT_G: state.get(
+                        ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G
+                    ),
+                }
+
+        changed = False
+
+        for slot_index, signature in seen:
+            if signature is None:
+                continue
+
+            state = self._filament_slot_state(printer.id, slot_index)
+
+            if state.get(ATTR_SPOOL_SIGNATURE) == signature:
+                continue
+
+            remembered = known.get(signature)
+
+            if remembered is not None:
+                state[ATTR_FILAMENT_USED_G] = remembered.get(ATTR_FILAMENT_USED_G, 0.0)
+                state[ATTR_SPOOL_WEIGHT_G] = remembered.get(
+                    ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G
+                )
+                LOGGER.debug(
+                    "Slot %s: recognised a reel used before, %.0f g already gone.",
+                    slot_index + 1,
+                    state[ATTR_FILAMENT_USED_G],
+                )
+            elif state.get(ATTR_SPOOL_SIGNATURE) is not None:
+                LOGGER.debug(
+                    "Slot %s: new reel, starting the count again.", slot_index + 1
+                )
+                state[ATTR_FILAMENT_USED_G] = 0.0
+                state[ATTR_SPOOL_WEIGHT_G] = DEFAULT_SPOOL_WEIGHT_G
+
+            state[ATTR_SPOOL_SIGNATURE] = signature
+            changed = True
+
+        return changed
+
+    def _record_finished_job(self, printer: AnycubicPrinter) -> bool:
+        """Charge a finished print to the spools that supplied it.
+
+        Uses `supplies_usage` -- what the printer says it actually extruded --
+        rather than the slicer's estimate, so purge waste is counted and a
+        cancelled print is only charged for the part that ran.
+        """
+        project = printer.latest_project
+
+        if project is None or printer.latest_project_print_in_progress:
+            return False
+
+        job_id = project.id
+        usage_mm = printer.latest_project_supplies_usage
+
+        if not job_id or not usage_mm:
+            return False
+
+        printers = self._filament.setdefault("printers", {})
+        printer_state = printers.setdefault(str(printer.id), {})
+
+        if printer_state.get(ATTR_LAST_JOB_ID) == job_id:
+            return False
+
+        spools = printer.primary_multi_color_box_spool_info_object or []
+        materials = {
+            index: spool.get("material_type") for index, spool in enumerate(spools)
+        }
+
+        per_slot = attribute_job_to_slots(
+            supplies_usage_mm=usage_mm,
+            paint_infos=project.slice_material_info_list,
+            slot_materials=materials,
+            loaded_slot=printer.primary_multi_color_box_loaded_slot,
+        )
+
+        # Record the job either way, so an unattributable one isn't retried
+        # forever, but only move the counters when we know which spool to charge.
+        printer_state[ATTR_LAST_JOB_ID] = job_id
+
+        if not per_slot:
+            LOGGER.debug("Job %s could not be attributed to a slot.", job_id)
+            return True
+
+        for slot_index, grams in per_slot.items():
+            state = self._filament_slot_state(printer.id, slot_index)
+            state[ATTR_FILAMENT_USED_G] = round(
+                state.get(ATTR_FILAMENT_USED_G, 0.0) + grams, 2
+            )
+
+        LOGGER.debug("Job %s used %s.", job_id, {k + 1: round(v, 1) for k, v in per_slot.items()})
+
+        return True
+
+    async def _async_update_filament(self) -> None:
+        """Keep the per-slot estimate current."""
+        changed = False
+
+        for printer in self._anycubic_printers.values():
+            try:
+                if self._check_spool_changes(printer):
+                    changed = True
+                if self._record_finished_job(printer):
+                    changed = True
+            except Exception as error:  # noqa: BLE001 - an estimate must never break a refresh
+                LOGGER.debug("Filament estimate skipped for this refresh: %s", error)
+
+        if changed:
+            await self._async_save_filament()
+
     async def get_anycubic_updates(self) -> bool:
         """Fetch data from AnycubicCloud."""
 
@@ -1013,6 +1233,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._check_anycubic_mqtt_connection()
 
             await self._async_add_new_printers()
+
+            await self._async_update_filament()
 
         except ConfigEntryAuthFailed:
             raise

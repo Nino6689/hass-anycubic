@@ -204,6 +204,18 @@
       },
       "ace_refresh_spools": {
         "name": "Refresh ACE Spools"
+      },
+      "ace_slot_1_reset_spool": {
+        "name": "ACE slot 1 reset spool"
+      },
+      "ace_slot_2_reset_spool": {
+        "name": "ACE slot 2 reset spool"
+      },
+      "ace_slot_3_reset_spool": {
+        "name": "ACE slot 3 reset spool"
+      },
+      "ace_slot_4_reset_spool": {
+        "name": "ACE slot 4 reset spool"
       }
     },
     "image": {
@@ -361,6 +373,30 @@
       },
       "box_fan_level": {
         "name": "ACE Box Fan Level"
+      },
+      "ace_slot_1_filament_remaining": {
+        "name": "ACE slot 1 filament remaining"
+      },
+      "ace_slot_1_filament_remaining_percent": {
+        "name": "ACE slot 1 filament remaining percent"
+      },
+      "ace_slot_2_filament_remaining": {
+        "name": "ACE slot 2 filament remaining"
+      },
+      "ace_slot_2_filament_remaining_percent": {
+        "name": "ACE slot 2 filament remaining percent"
+      },
+      "ace_slot_3_filament_remaining": {
+        "name": "ACE slot 3 filament remaining"
+      },
+      "ace_slot_3_filament_remaining_percent": {
+        "name": "ACE slot 3 filament remaining percent"
+      },
+      "ace_slot_4_filament_remaining": {
+        "name": "ACE slot 4 filament remaining"
+      },
+      "ace_slot_4_filament_remaining_percent": {
+        "name": "ACE slot 4 filament remaining percent"
       }
     },
     "switch": {
@@ -388,6 +424,20 @@
     "light": {
       "printer_light": {
         "name": "Printer Light"
+      }
+    },
+    "number": {
+      "ace_slot_1_spool_weight": {
+        "name": "ACE slot 1 spool weight"
+      },
+      "ace_slot_2_spool_weight": {
+        "name": "ACE slot 2 spool weight"
+      },
+      "ace_slot_3_spool_weight": {
+        "name": "ACE slot 3 spool weight"
+      },
+      "ace_slot_4_spool_weight": {
+        "name": "ACE slot 4 spool weight"
       }
     }
   },

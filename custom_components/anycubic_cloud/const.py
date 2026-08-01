@@ -112,7 +112,15 @@ PLATFORMS = [
     Platform.BUTTON,
     Platform.IMAGE,
     Platform.LIGHT,
+    Platform.NUMBER,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,
 ]
+
+# Filament-remaining estimate
+ATTR_FILAMENT_USED_G = "filament_used_g"
+ATTR_SPOOL_WEIGHT_G = "spool_weight_g"
+ATTR_SPOOL_SIGNATURE = "spool_signature"
+ATTR_LAST_JOB_ID = "last_job_id"
+MAX_ACE_SLOTS = 4

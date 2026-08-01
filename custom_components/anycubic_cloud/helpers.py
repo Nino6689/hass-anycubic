@@ -96,6 +96,13 @@ def build_ace_device_info(
     )
 
 
+def async_filament_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
+    """Per-entry store for the filament-remaining estimate."""
+    return Store[dict[str, Any]](
+        hass, STORAGE_VERSION, f"{STORAGE_KEY}.filament.{entry_id}"
+    )
+
+
 def async_token_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
     """The saved-token store for one config entry.
 
