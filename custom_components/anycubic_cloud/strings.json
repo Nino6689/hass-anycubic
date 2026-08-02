@@ -219,6 +219,9 @@
       },
       "ace_slot_4_reset_spool": {
         "name": "ACE slot 4 reset spool"
+      },
+      "request_axis_position": {
+        "name": "Request head position"
       }
     },
     "image": {
@@ -403,6 +406,15 @@
       },
       "external_spool_material": {
         "name": "External spool material"
+      },
+      "axis_position_x": {
+        "name": "Head position X"
+      },
+      "axis_position_y": {
+        "name": "Head position Y"
+      },
+      "axis_position_z": {
+        "name": "Head position Z"
       }
     },
     "switch": {

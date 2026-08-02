@@ -37,6 +37,17 @@ class AnycubicButtonEntityDescription(
 # Zero a slot's consumption estimate. Swapping a spool is normally detected
 # automatically from its colour, material and SKU, but two identical reels look
 # the same, so this covers that case.
+BUTTON_TYPES_AXIS: list[AnycubicButtonEntityDescription] = list([
+    AnycubicButtonEntityDescription(
+        key="request_axis_position",
+        translation_key="request_axis_position",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+])
+
+
 PRIMARY_SPOOL_RESET_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
     AnycubicButtonEntityDescription(
         key=f"ace_slot_{slot_num}_reset_spool",
@@ -150,6 +161,7 @@ async def async_setup_entry(
             + SECONDARY_DRYING_PRESET_BUTTON_TYPES
             + GLOBAL_BUTTON_TYPES
             + PRIMARY_SPOOL_RESET_BUTTON_TYPES
+            + BUTTON_TYPES_AXIS
         ),
     )
 

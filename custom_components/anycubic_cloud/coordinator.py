@@ -326,6 +326,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # The external filament holder, for printers fed from a single
             # external spool rather than (or alongside) the ACE. Already in the
             # cloud payload; nothing surfaced it until now.
+            "axis_position_x": (pos.x if (pos := printer.axis_position) else None),
+            "axis_position_y": (pos.y if (pos := printer.axis_position) else None),
+            "axis_position_z": (pos.z if (pos := printer.axis_position) else None),
             "external_spool_material": (
                 shelves["material"] if (shelves := safe_external_shelves(printer)) else None
             ),
@@ -1355,6 +1358,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             elif printer and event_key == 'request_file_list_udisk':
                 await self._connect_mqtt_for_action_response()
                 await printer.request_udisk_file_list()
+
+            elif printer and event_key == 'request_axis_position':
+                await self._connect_mqtt_for_action_response()
+                await printer.request_axis_position()
 
             elif printer and event_key == 'ace_refresh_spools':
                 await self._connect_mqtt_for_action_response()

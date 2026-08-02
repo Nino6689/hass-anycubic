@@ -336,3 +336,43 @@ class TestFirmwareUpdate:
             await coordinator.fw_update_event(PRINTER_ID, "not_a_real_update")
 
         refresh.assert_not_awaited()
+
+
+class TestAxisPosition:
+    """Head position, from the undocumented order 1214."""
+
+    async def test_the_button_asks_the_printer(self, hass: HomeAssistant, mock_entry, mock_api, no_mqtt_wait) -> None:
+        _, printer = mock_api
+        await _setup(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+
+        with patch.object(type(printer), "request_axis_position", AsyncMock()) as request:
+            await coordinator.button_press_event(PRINTER_ID, "request_axis_position")
+
+        request.assert_awaited_once()
+
+    async def test_no_position_yet_reads_as_unknown(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """The printer only reports when asked, so it starts empty."""
+        await _setup(hass, mock_entry)
+        states = mock_entry.runtime_data.data["printers"][PRINTER_ID]["states"]
+
+        assert states["axis_position_x"] is None
+        assert states["axis_position_z"] is None
+
+    async def test_a_reported_position_reaches_the_states(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        from unittest.mock import PropertyMock
+
+        from anycubic_cloud_api import AnycubicAxisPosition
+
+        _, printer = mock_api
+        await _setup(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+
+        pos = AnycubicAxisPosition.from_json({"coordinates": {"x": 47, "y": 276, "z": 3.8152532726237904}})
+        with patch.object(type(printer), "axis_position", PropertyMock(return_value=pos)):
+            await coordinator.force_state_update()
+            states = coordinator.data["printers"][PRINTER_ID]["states"]
+
+        assert states["axis_position_x"] == 47.0
+        assert states["axis_position_y"] == 276.0
+        assert round(states["axis_position_z"], 3) == 3.815
