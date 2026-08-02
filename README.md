@@ -85,6 +85,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [2. Get an auth token](#2-get-an-auth-token) — [Slicer](#option-a--slicer-token-recommended) · [Web](#option-b--web-token-easiest) · [Android](#option-c--android-token-advanced)
 - [3. Add it to Home Assistant](#3-add-it-to-home-assistant)
 - [4. Choose a connect mode](#4-choose-a-connect-mode)
+- [5. Talk to the printer directly *(LAN Mode)*](#5-optional-talk-to-the-printer-directly)
 - [Entities](#entities)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
 - [Filament remaining *(estimated)*](#filament-remaining-estimated)
@@ -341,6 +342,43 @@ Anycubic's broker, so you choose when it's on:
 **Need it on right now?** Turn on `switch.<printer>_manual_mqtt_connection_enabled`, press
 `button.<printer>_refresh_mqtt_connection`, and `binary_sensor.<printer>_mqtt_connection_active`
 should come on within 5–15 seconds.
+
+---
+
+## 5. Optional: talk to the printer directly
+
+The printer can run its own MQTT broker on your network, so Home Assistant talks to it without
+Anycubic's cloud in the middle. Turn it on under
+**Settings → Devices & services → Anycubic Cloud → Configure → Local connection (LAN Mode)**.
+
+> [!IMPORTANT]
+> **The printer does one or the other, never both.** Switching LAN Mode on at the printer
+> (*Settings → Network → LAN Mode*) drops its cloud connection, and switching it back off drops the
+> local one. This isn't a choice the integration makes — it's how the firmware works.
+
+**Switch LAN Mode on at the printer first**, then enable it here and give the printer's address. The
+handshake runs before the setting is saved, so if the printer is still in cloud mode you're told so
+rather than ending up with nothing connected. Give the printer a fixed address on your router while
+you're there.
+
+| | Cloud | Local |
+|---|---|---|
+| Works without internet | ✗ | ✓ |
+| Survives Anycubic changing their API | ✗ | ✓ |
+| Update latency | Sub-second while MQTT is connected | Polled every few seconds |
+| **Filament tracking** | ✓ | ✓ — the printer reports the same figure locally |
+| Cloud file library, uploads, print history | ✓ | ✗ |
+
+> [!NOTE]
+> This is new and hasn't yet been confirmed against a printer in LAN Mode — development happens on a
+> Kobra S1 that lives on the cloud connection. If you try it, a
+> [bug report](https://github.com/Nino6689/hass-anycubic_cloud/issues/new/choose) either way is
+> genuinely useful.
+
+**Want local only, with no Anycubic account at all?** That's a different shape of thing, and
+[chrisfore/anycubic_ha_local](https://github.com/chrisfore/anycubic_ha_local) does it properly —
+it's local-first by design, needs no cloud login, and documented the handshake this feature is built
+on. Worth a look if the cloud side is of no interest to you.
 
 ---
 
@@ -810,7 +848,7 @@ see [testing scope](#hardware-and-testing-scope).
 |---|---|
 | Camera / print stream ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | Closer than it was: the printer responds to `video/startCapture` and `video/stopCapture`, found while probing undocumented commands. What it does with the stream once started is still unknown |
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are already wired up; needs someone with two units to confirm |
-| 🔒 LAN / local mode ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | Would remove the cloud dependency entirely. Big job |
+| LAN / local mode ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Implemented, awaiting hardware validation** — see [local connection](#5-optional-talk-to-the-printer-directly). The handshake and local broker client are written and unit-tested; what remains is proving it against a printer actually switched into LAN Mode |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
