@@ -33,14 +33,25 @@ Around **60 entities** per printer, across two devices: the printer, and the ACE
 
 ## Project status
 
-This is a maintained fork of [WaresWichall/hass-anycubic_cloud](https://github.com/WaresWichall/hass-anycubic_cloud),
-which did all the original work. Upstream's last release was December 2024 and the author
-[stepped back from the project](https://github.com/WaresWichall/hass-anycubic_cloud/issues/33);
-stock v0.2.2 no longer loads on current Home Assistant, failing with
-`HTTP 500 "Server got itself in trouble"`.
+**This is the maintained continuation of Anycubic Cloud for Home Assistant**, listed in the
+HACS default catalog since August 2026 — install it by searching HACS, no custom repository
+needed.
 
-This fork exists to keep it working, and has since gone further — see
-[what's changed](#-changes-from-upstream). What maintenance means here:
+It began as a fork of [WaresWichall/hass-anycubic_cloud](https://github.com/WaresWichall/hass-anycubic_cloud),
+which did all the original work and deserves the credit for it. Upstream's last release was
+December 2024 and the author
+[stepped back from the project](https://github.com/WaresWichall/hass-anycubic_cloud/issues/33).
+
+> ### Still on upstream v0.2.2?
+>
+> **It no longer works on current Home Assistant.** It fails at setup with
+> `HTTP 500 "Server got itself in trouble"` — a strict `paho-mqtt==1.6.1` pin against the 2.x
+> that Core now ships. Home Assistant's analytics still show most Anycubic Cloud installs on
+> that version, quietly broken.
+>
+> Install this from HACS and set it up as normal. Your entity ids are preserved.
+
+What maintenance means here:
 
 - **Compatibility with current HA Core** — the paho-mqtt 2.x / Python 3.13+ breakage is fixed, and future Core breakage is the priority when it happens
 - **Issue triage** — bugs get looked at, reproduced where possible, and answered
@@ -716,13 +727,44 @@ Found a security issue? See [SECURITY.md](SECURITY.md).
 
 ## 📦 Changes from upstream
 
-This fork is versioned independently. **v0.3.0** is the first consolidated release.
+Versioned independently of upstream, whose last release was **v0.2.2** in December 2024.
+Everything below is on top of that. See the [releases](https://github.com/Nino6689/hass-anycubic_cloud/releases)
+for what landed when.
+
+### Filament tracking *(new)*
+
+| Change | Why |
+|---|---|
+| **Filament remaining per slot** | The ACE cannot weigh a spool — `consumables_percent` reads zero on every slot, including Anycubic's own tagged reels. Estimated instead from what the printer reports it actually extruded. See [Filament remaining](#filament-remaining-estimated) |
+| **Reels are remembered** | Take a part-used spool out and put it back, in any slot, and its consumption and weight come back with it |
+| **Prints started at the printer count** | Those jobs carry no per-slot breakdown and the printer forgets which slot fed them the moment they end, so the feeding slot is noted while the job runs |
+
+### Printing and files *(new)*
+
+| Change | Why |
+|---|---|
+| **Print a file the printer already holds** | `print_local_file`. Previously the only way to print was to upload a file the printer already had. Refuses if a job is running |
+| **File lists report counts** | They reported the string `loaded`, with everything useful buried in an attribute |
+| **Cloud files carry their detail** | Thumbnail, print-time estimate, material, layer height, filament usage and dimensions — all sent by the cloud and previously discarded in favour of name and size |
+| **Head position** | Live X/Y/Z, via a printer command absent from Anycubic's published list |
+| **External filament holder** | Material and loaded state for printers fed from a single external spool |
+
+### Quality *(new)*
+
+| Change | Why |
+|---|---|
+| **Meets all 54 Home Assistant quality-scale rules** | Bronze through platinum, measured against Core's own published list. Recorded honestly in `quality_scale.yaml` — an official badge is core-only, so this is measurement rather than a claim |
+| **298 tests at 95% coverage, `mypy --strict`** | Both enforced in CI. The printer fixture is a redacted capture from real hardware fed to the actual API client, so a change in what Anycubic sends fails the build |
+| **API and panel extracted to PyPI** | [`anycubic-cloud-api`](https://pypi.org/project/anycubic-cloud-api/) and [`anycubic-cloud-frontend`](https://pypi.org/project/anycubic-cloud-frontend/), versioned and tested independently |
 
 ### Security
 
 | Change | Why |
 |---|---|
 | **Verified TLS to the cloud broker** | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the session could be intercepted. Now pins Anycubic's root CA with hostname checking on |
+| **One account can't be added twice** | The unique id was set but never enforced, so adding the same account again created a duplicate entry and a second copy of every device and entity |
+| **Actions report failures properly** | Eleven of the twenty-six surfaced cloud errors as raw tracebacks rather than a readable message |
+| **Token expiry warns in advance** | Tokens are 90-day JWTs that cannot be refreshed; a Repair appears a fortnight before yours lapses |
 
 ### New features
 
