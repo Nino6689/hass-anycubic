@@ -148,6 +148,9 @@
       },
       "secondary_dry_status_is_drying": {
         "name": "Secondary Drying Active"
+      },
+      "external_spool_loaded": {
+        "name": "External spool loaded"
       }
     },
     "button": {
@@ -397,6 +400,9 @@
       },
       "ace_slot_4_filament_remaining_percent": {
         "name": "ACE slot 4 filament remaining percent"
+      },
+      "external_spool_material": {
+        "name": "External spool material"
       }
     },
     "switch": {

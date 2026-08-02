@@ -160,3 +160,70 @@ class TestPanelCardConfig:
         result = extract_panel_card_config({"vertical": True, "not_a_card_option": 1})
 
         assert "not_a_card_option" not in result
+
+
+class TestExternalShelves:
+    """AnycubicPrinter uses __slots__, and a printer built with
+    ignore_init_errors can leave _external_shelves unassigned entirely -- so the
+    attribute raises AttributeError rather than returning None. The shelves
+    object itself also exposes no public properties, only private slots.
+    Reading either naively crashes every refresh.
+    """
+
+    def test_a_real_shelves_object_is_normalised(self) -> None:
+        """Built by the actual library class, not a mock, so it fails if the
+        upstream shape changes."""
+        from anycubic_cloud_api.data_models.printer_properties import (
+            AnycubicMachineExternalShelves,
+        )
+
+        from custom_components.anycubic_cloud.helpers import safe_external_shelves
+
+        shelves = AnycubicMachineExternalShelves.from_json(
+            {"id": 1, "type": "PLA", "color": [233, 157, 67], "loaded": 1, "status_type": -1, "current_status": -1}
+        )
+        printer = type("P", (), {"external_shelves": shelves})()
+
+        assert safe_external_shelves(printer) == {
+            "material": "PLA",
+            "color": [233, 157, 67],
+            "color_hex": "#E99D43",
+            "loaded": True,
+        }
+
+    def test_an_unset_slot_is_not_an_error(self) -> None:
+        """The failure mode that took the config entry down."""
+        from custom_components.anycubic_cloud.helpers import safe_external_shelves
+
+        class Unset:
+            __slots__ = ("_external_shelves",)
+
+            @property
+            def external_shelves(self):
+                return self._external_shelves  # never assigned -> AttributeError
+
+        assert safe_external_shelves(Unset()) is None
+
+    def test_a_printer_without_shelves_returns_none(self) -> None:
+        from custom_components.anycubic_cloud.helpers import safe_external_shelves
+
+        printer = type("P", (), {"external_shelves": None})()
+
+        assert safe_external_shelves(printer) is None
+
+    def test_an_empty_holder_reports_not_loaded(self) -> None:
+        from anycubic_cloud_api.data_models.printer_properties import (
+            AnycubicMachineExternalShelves,
+        )
+
+        from custom_components.anycubic_cloud.helpers import safe_external_shelves
+
+        shelves = AnycubicMachineExternalShelves.from_json(
+            {"id": 1, "type": "", "color": [], "loaded": 0, "status_type": -1, "current_status": -1}
+        )
+        printer = type("P", (), {"external_shelves": shelves})()
+        result = safe_external_shelves(printer)
+
+        assert result["loaded"] is False
+        assert result["material"] is None
+        assert result["color_hex"] is None

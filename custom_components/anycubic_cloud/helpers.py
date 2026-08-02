@@ -96,6 +96,40 @@ def build_ace_device_info(
     )
 
 
+def safe_external_shelves(printer: Any) -> dict[str, Any] | None:
+    """The external filament holder as a plain dict, or None.
+
+    Two awkward details are handled here rather than at every call site:
+
+    * AnycubicPrinter uses __slots__, and a printer built with
+      ignore_init_errors leaves the slot unassigned when that part of the
+      payload fails to parse -- so the attribute raises instead of returning
+      None.
+    * AnycubicMachineExternalShelves exposes no public properties at all, only
+      private attributes, so its values have to be read defensively. Worth
+      adding accessors upstream; until then this is the single place that
+      knows about it.
+    """
+    try:
+        shelves = printer.external_shelves
+    except AttributeError:
+        return None
+
+    if shelves is None:
+        return None
+
+    colour = getattr(shelves, "_color", None) or []
+
+    return {
+        "material": getattr(shelves, "_type", None) or None,
+        "color": list(colour) or None,
+        "color_hex": (
+            "#{:02X}{:02X}{:02X}".format(*colour[:3]) if len(colour) >= 3 else None
+        ),
+        "loaded": bool(getattr(shelves, "_loaded", 0)),
+    }
+
+
 def async_filament_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
     """Per-entry store for the filament-remaining estimate."""
     return Store[dict[str, Any]](

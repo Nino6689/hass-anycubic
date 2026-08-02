@@ -33,6 +33,12 @@ class AnycubicBinarySensorEntityDescription(
 
 PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
     AnycubicBinarySensorEntityDescription(
+        key="external_spool_loaded",
+        translation_key="external_spool_loaded",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        entity_registry_enabled_default=False,
+    ),
+    AnycubicBinarySensorEntityDescription(
         key="dry_status_is_drying",
         translation_key="dry_status_is_drying",
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,

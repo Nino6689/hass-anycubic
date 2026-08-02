@@ -88,6 +88,13 @@ PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = li
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,
     ),
     AnycubicSensorEntityDescription(
+        key="external_spool_material",
+        translation_key="external_spool_material",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        not_measured=True,
+        entity_registry_enabled_default=False,
+    ),
+    AnycubicSensorEntityDescription(
         key="ace_loaded_slot",
         translation_key="ace_loaded_slot",
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,

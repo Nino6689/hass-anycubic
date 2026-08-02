@@ -84,6 +84,7 @@ from .helpers import (
     printer_attributes_for_key,
     printer_state_connected_ace_units,
     printer_state_supports_ace,
+    safe_external_shelves,
     state_string_active,
     state_string_loaded,
     token_expiry_timestamp,
@@ -322,6 +323,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "job_filament_used": printer.latest_project_supplies_usage,
             "ace_loaded_slot": printer.primary_multi_color_box_loaded_slot,
             "aux_fan_speed_pct": printer.aux_fan_speed_pct,
+            # The external filament holder, for printers fed from a single
+            # external spool rather than (or alongside) the ACE. Already in the
+            # cloud payload; nothing surfaced it until now.
+            "external_spool_material": (
+                shelves["material"] if (shelves := safe_external_shelves(printer)) else None
+            ),
+            "external_spool_loaded": (
+                shelves["loaded"] if (shelves := safe_external_shelves(printer)) else None
+            ),
             "box_fan_level": printer.box_fan_level,
         }
 
@@ -349,7 +359,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 remaining_percent(spool_weight, used) if spool else None
             )
 
+        external_shelves = safe_external_shelves(printer)
+
         attributes = {
+            "external_spool_material": external_shelves or {},
             "ace_spools": {
                 "spool_info": primary_ace_spool_info,
                 "box_info": printer.primary_multi_color_box_info_object,
