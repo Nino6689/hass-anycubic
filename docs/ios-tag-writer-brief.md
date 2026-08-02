@@ -139,7 +139,7 @@ Strings are plain ASCII, null-padded to the end of their field.
 | `1D` | 4 | Bed temp range | min, max — °C, LE16 each |
 | `1E` | 4 | Diameter, length | diameter in mm×10⁻² (175 = 1.75 mm), length in metres |
 | `1F` | 4 | Weight | grams, LE16 |
-| `20`–`27` | 32 | **Free** | All zero on every genuine tag inspected. Available |
+| `20`–`27` | 32 | **Free but inert** | All zero on every genuine tag. Safe to write, but see §5b — nothing written here reaches Home Assistant |
 
 ### Colour encoding, worked through
 
@@ -188,7 +188,36 @@ and the colour swatches. **The SKU is the only viable channel.**
 ```
 
 - `BASE_SKU` — the real Anycubic SKU for that filament type, e.g. `AHPEBW-102`
-- `UID6` — six uppercase hex characters, unique per physical spool
+- `UID6` — six characters that **must be unique to the physical tag**
+
+### 🔴 The suffix must come from the tag's own UID
+
+This is the one requirement that has already been got wrong in practice, and it
+fails silently, so it is called out separately.
+
+Three tags written with an existing tool produced these SKUs:
+
+```
+AHPEBW-102-A30001    grey PETG
+AHPLGY-106-A30001    blue PLA
+AHPLBW-103-A30001    red PLA+
+```
+
+**All three carry the same suffix.** `A30001` is a constant or a stalled
+counter, not a per-tag value. Those three don't collide only because their base
+SKUs differ by luck — write a second spool with a base SKU you have already
+used and you get two byte-identical SKUs, and Home Assistant folds them into one
+spool, merging their consumption. That is precisely the case the scheme exists
+to prevent.
+
+**Derive `UID6` from the tag's factory UID in pages `00`–`01`.** It is
+7 bytes, globally unique, immutable and readable before any write. Six hex
+characters of it is ample. That also makes the write idempotent: reprogramming
+the same physical tag yields the same identity, so a spool keeps its history.
+
+Do not use a counter, a timestamp, a random value or a template constant. A
+counter breaks across reinstalls, a timestamp breaks if two tags are written in
+the same second, and a random value breaks idempotency.
 
 Example: `AHPEBW-102-A7F3C2`
 
@@ -265,6 +294,36 @@ Two consequences for the app:
 2. **Don't rely on the tag's weight field reaching Home Assistant.** It doesn't.
    Spool weight is set separately in HA. Still write it correctly — the printer
    and slicer use it — but it is not a channel to the integration.
+
+### 5b. The free pages are inert — tested, not assumed
+
+Pages `20`–`27` are the obvious place to put extra data. **They do not reach
+Home Assistant.** Tested directly on hardware, 2026-08-02:
+
+Two tags were loaded into the same slot, identical except that the second had
+the free pages written. Raw cloud REST *and* raw MQTT were captured at source
+rather than reading parsed entity state, so a field the integration doesn't map
+could not be lost before comparison.
+
+```
+per-field diff : all four slots byte-identical
+new keys       : none, across REST and MQTT
+ASCII forms    : no field gained a space, apostrophe, ! " # $ % or &
+```
+
+The ASCII check mattered because `0x20` is the space character — a page
+surfaced as text would look like an innocuous blank string rather than an
+obvious number, and could easily be missed. Nothing appeared.
+
+**Good news in the null result:** the tag loaded normally, with correct material
+and colour and `edit_status: 0`. The printer reads those pages and ignores them.
+They are **inert, not unsafe** — writing there is harmless, it simply achieves
+nothing.
+
+So the SKU is not merely the *best* channel, it is the *only* one. Anything the
+integration needs to know must be encoded there.
+
+---
 
 ---
 
