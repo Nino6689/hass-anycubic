@@ -213,9 +213,58 @@ spool, merging their consumption. That is precisely the case the scheme exists
 to prevent.
 
 **Derive `UID6` from the tag's factory UID in pages `00`–`01`.** It is
-7 bytes, globally unique, immutable and readable before any write. Six hex
-characters of it is ample. That also makes the write idempotent: reprogramming
-the same physical tag yields the same identity, so a spool keeps its history.
+7 bytes, globally unique, immutable and readable before any write. That also
+makes the write idempotent: reprogramming the same physical tag yields the same
+identity, so a spool keeps its history.
+
+#### 🔴 Do not take a *slice* of the UID — fold in all of it
+
+"Six hex characters of the UID" sounds sufficient and is not. Which six matters,
+and the obvious choice is wrong on these tags. Two genuine Anycubic tags:
+
+```
+53:BD:25:2D:93:00:01
+53:75:03:26:93:00:01
+   ^^^^^^^^^^^^        the only bytes that differ
+            ^^^^^^^^   identical on both
+```
+
+The UIDs are unique, as promised. But the entropy sits in bytes 1–3, and bytes
+4–6 are constant. Taking the **last** three bytes — the intuitive choice, on the
+reasoning that a serial's tail varies most — yields `930001` for both. Blank
+NTAG213 stickers from a single pack behave the same way, sharing a constant tail
+and collapsing to one identifier for the whole pack. That is exactly how the
+`A30001` above was produced: not by a counter or a template constant, but by a
+UID-derived value that sliced the wrong end.
+
+Nor is "use bytes 1–3 instead" a fix. It is the same assumption relocated, fitted
+to two samples, and a tag from another manufacturer can lay its serial out
+differently.
+
+**Hash the whole UID and take six hex characters of the digest.** Then it does
+not matter which bytes carry the entropy, or how long the UID is. A 32-bit
+FNV-1a folded to 24 bits is ample and needs no dependency:
+
+```python
+h = 0x811C9DC5
+for b in uid:                      # every byte, not a slice
+    h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF
+uid6 = f"{h & 0xFFFFFF:06X}"
+```
+
+Still deterministic, so idempotency holds.
+
+#### How to test it
+
+Reading a tag back cannot reveal this. The write verifies, the printer accepts
+the tag, and Home Assistant shows a plausible spool — the failure is only
+visible when two tags are compared with each other. So:
+
+- assert that two *different* UIDs never produce the same identifier, using real
+  UIDs captured from tags rather than invented ones
+- do not pin the expected output of a known UID. A test asserting
+  `uid6(...) == "930001"` passes happily while the value is shared, and turns
+  the suite into a defence of the bug
 
 Do not use a counter, a timestamp, a random value or a template constant. A
 counter breaks across reinstalls, a timestamp breaks if two tags are written in
