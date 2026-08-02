@@ -345,3 +345,55 @@ class TestPolling:
         coordinator._lan_client = client
 
         coordinator._lan_poll()
+
+
+class TestPrinterMissingFromCloud:
+    """Switching to LAN Mode makes the cloud report the printer as deleted.
+
+    That is not an authentication problem, and calling it one sent users to a
+    re-auth prompt that could not help -- and left the entry in a state where
+    the LAN Mode option itself could not be reached.
+    """
+
+    async def _setup(self, hass: HomeAssistant, printer_info):
+        from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+
+        coordinator = _coordinator(hass, {})
+        api = MagicMock()
+        api.check_api_tokens = AsyncMock(return_value=True)
+        api.get_auth_config_dict = MagicMock(return_value={})
+        api.printer_info_for_id = printer_info
+        api.set_authentication = MagicMock()
+        api.set_mqtt_log_all_messages = MagicMock()
+        api.set_log_api_call_info = MagicMock()
+
+        with (
+            patch("custom_components.anycubic_cloud.coordinator.AnycubicAPI", return_value=api),
+            patch("custom_components.anycubic_cloud.coordinator.async_load_saved_tokens", AsyncMock()),
+            patch(
+                "custom_components.anycubic_cloud.coordinator.async_token_store",
+                return_value=MagicMock(async_save=AsyncMock()),
+            ),
+        ):
+            try:
+                await coordinator._setup_anycubic_api_connection()
+            except (ConfigEntryNotReady, ConfigEntryAuthFailed) as err:
+                return err
+
+        return None
+
+    async def test_a_deleted_printer_is_not_an_auth_failure(self, hass: HomeAssistant) -> None:
+        from homeassistant.exceptions import ConfigEntryNotReady
+
+        error = await self._setup(hass, AsyncMock(side_effect=AttributeError("'NoneType' object has no attribute 'get'")))
+
+        assert isinstance(error, ConfigEntryNotReady)
+        assert "LAN Mode" in str(error)
+
+    async def test_no_printer_returned_says_the_same(self, hass: HomeAssistant) -> None:
+        from homeassistant.exceptions import ConfigEntryNotReady
+
+        error = await self._setup(hass, AsyncMock(return_value=None))
+
+        assert isinstance(error, ConfigEntryNotReady)
+        assert "LAN Mode" in str(error)

@@ -27,6 +27,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryError,
+    ConfigEntryNotReady,
     HomeAssistantError,
 )
 from homeassistant.helpers import device_registry as dr
@@ -104,6 +105,13 @@ if TYPE_CHECKING:
     from anycubic_cloud_api.data_models.printer import AnycubicPrinter
 
     from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
+
+
+PRINTER_NOT_IN_CLOUD = (
+    "The Anycubic cloud did not return this printer. If you have just switched "
+    "the printer into LAN Mode, this is expected -- the cloud drops it when it "
+    "goes local. Enable the local connection in the integration's options. ({})"
+)
 
 
 class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -1025,12 +1033,21 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             first_printer_id = self.entry.data[CONF_PRINTER_ID_LIST][0]
 
-            printer_status = await self._anycubic_api.printer_info_for_id(first_printer_id)
+            try:
+                printer_status = await self._anycubic_api.printer_info_for_id(first_printer_id)
+            except Exception as error:
+                # The token has already been accepted, so whatever went wrong
+                # here is not a credentials problem. Switching the printer into
+                # LAN Mode makes the cloud report it as deleted (code 1007),
+                # and calling that an auth failure sent the user to a re-auth
+                # prompt that could never help -- and put the entry into a
+                # state where the LAN Mode option could not be reached.
+                raise ConfigEntryNotReady(PRINTER_NOT_IN_CLOUD.format(error)) from error
 
             if printer_status is None:
-                raise ConfigEntryAuthFailed("Printer not found. Check config.")
+                raise ConfigEntryNotReady(PRINTER_NOT_IN_CLOUD.format("no printer returned"))
 
-        except ConfigEntryAuthFailed:
+        except (ConfigEntryAuthFailed, ConfigEntryNotReady):
             raise
 
         except AnycubicAPIParsingError:
