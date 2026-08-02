@@ -99,16 +99,10 @@ def build_ace_device_info(
 def safe_external_shelves(printer: Any) -> dict[str, Any] | None:
     """The external filament holder as a plain dict, or None.
 
-    Two awkward details are handled here rather than at every call site:
-
-    * AnycubicPrinter uses __slots__, and a printer built with
-      ignore_init_errors leaves the slot unassigned when that part of the
-      payload fails to parse -- so the attribute raises instead of returning
-      None.
-    * AnycubicMachineExternalShelves exposes no public properties at all, only
-      private attributes, so its values have to be read defensively. Worth
-      adding accessors upstream; until then this is the single place that
-      knows about it.
+    AnycubicPrinter uses __slots__, and a printer built with ignore_init_errors
+    leaves the slot unassigned when that part of the payload fails to parse --
+    so the attribute raises rather than returning None. That guard is why this
+    exists; the values themselves now come from public accessors.
     """
     try:
         shelves = printer.external_shelves
@@ -118,15 +112,11 @@ def safe_external_shelves(printer: Any) -> dict[str, Any] | None:
     if shelves is None:
         return None
 
-    colour = getattr(shelves, "_color", None) or []
-
     return {
-        "material": getattr(shelves, "_type", None) or None,
-        "color": list(colour) or None,
-        "color_hex": (
-            "#{:02X}{:02X}{:02X}".format(*colour[:3]) if len(colour) >= 3 else None
-        ),
-        "loaded": bool(getattr(shelves, "_loaded", 0)),
+        "material": shelves.material_type,
+        "color": shelves.color or None,
+        "color_hex": shelves.color_hex,
+        "loaded": shelves.loaded,
     }
 
 
