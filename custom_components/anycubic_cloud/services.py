@@ -575,6 +575,37 @@ class PrintAndUploadNoCloudSave(BasePrintWithFile):
             )
 
 
+class PrintLocalFile(AnycubicCloudServiceCall):
+    """Print a file the printer is already holding."""
+
+    schema = build_anycubic_service_schema(
+        input_service_schema={
+            vol.Required(CONF_FILENAME): cv.string,
+        }
+    )
+
+    async def async_call_service(self, service: ServiceCall) -> None:
+        """Execute service call."""
+        coordinator = self._get_coordinator(service)
+        printer = self._get_printer(service)
+        file_name = service.data[CONF_FILENAME]
+
+        # Starting a print commits the machine to hours of unattended work, so
+        # refuse rather than interrupt or queue behind something already running.
+        if printer.is_busy or printer.latest_project_print_in_progress:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="printer_busy",
+            )
+
+        try:
+            await printer.print_local_file(file_name=file_name)
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
+        await coordinator.force_state_update()
+
+
 class BaseDeletePrinterFile(AnycubicCloudServiceCall):
     """ Base for printer file deletions """
 
@@ -905,6 +936,7 @@ SERVICES = (
     ("multi_color_box_filament_retract", MultiColorBoxFilamentRetract),
     ("print_and_upload_save_in_cloud", PrintAndUploadSaveInCloud),
     ("print_and_upload_no_cloud_save", PrintAndUploadNoCloudSave),
+    ("print_local_file", PrintLocalFile),
     ("delete_file_local", DeleteFileLocal),
     ("delete_file_udisk", DeleteFileUdisk),
     ("delete_file_cloud", DeleteFileCloud),

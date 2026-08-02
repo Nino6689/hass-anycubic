@@ -54,7 +54,9 @@ PRIMARY_MULTI_COLOR_BOX_NUMBER_TYPES: list[AnycubicNumberEntityDescription] = li
         device_class=NumberDeviceClass.WEIGHT,
         native_min_value=0,
         native_max_value=10000,
-        native_step=50,
+        # 1 g, not a coarse step: people weigh a part-used spool on kitchen
+        # scales and get numbers like 334, which a 50 g step silently rejects.
+        native_step=1,
         mode=NumberMode.BOX,
         entity_category=EntityCategory.CONFIG,
         entity_registry_enabled_default=False,

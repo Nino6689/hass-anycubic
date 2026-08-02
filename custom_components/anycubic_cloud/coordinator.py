@@ -80,13 +80,13 @@ from .helpers import (
     check_descriptor_state_drying_unavailable,
     check_descriptor_status_not_fdm,
     check_descriptor_status_not_lcd,
+    file_count,
     get_drying_preset_from_entry_options,
     printer_attributes_for_key,
     printer_state_connected_ace_units,
     printer_state_supports_ace,
     safe_external_shelves,
     state_string_active,
-    state_string_loaded,
     token_expiry_timestamp,
 )
 
@@ -262,9 +262,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "machine_mac": printer.machine_mac,
             "machine_name": printer.machine_name,
             "fw_version": printer.fw_version.firmware_version if printer.fw_version else None,
-            "file_list_local": state_string_loaded(file_list_local),
-            "file_list_udisk": state_string_loaded(file_list_udisk),
-            "file_list_cloud": state_string_loaded(file_list_cloud),
+            # The count is the useful value: "loaded" told you nothing, and
+            # everything actionable was buried in the attribute.
+            "file_list_local": file_count(file_list_local),
+            "file_list_udisk": file_count(file_list_udisk),
+            "file_list_cloud": file_count(file_list_cloud),
             "supports_function_multi_color_box": printer.supports_function_multi_color_box,
             "connected_ace_units": printer.connected_ace_units,
             "multi_color_box_fw_version": printer.primary_multi_color_box_fw_firmware_version,

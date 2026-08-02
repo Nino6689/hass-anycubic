@@ -292,6 +292,13 @@ class TestEveryActionReachesThePrinter:
         coordinator = mock_entry.runtime_data
 
         recorder = RecordingPrinter()
+        # Every attribute on a bare mock is truthy, which the change_print_*
+        # actions need (they refuse unless a job is running) but which reads as
+        # "already printing" to print_local_file. Present whichever state the
+        # action under test requires.
+        if name == "print_local_file":
+            recorder.is_busy = False
+            recorder.latest_project_print_in_progress = False
         # Cloud-file actions go through the API rather than a printer, since
         # cloud files aren't tied to one machine.
         api_recorder = RecordingPrinter()
@@ -460,6 +467,9 @@ class TestActionFailuresSurface:
         # Every printer/API call this action might make raises, so the test
         # doesn't depend on knowing which method each action reaches for.
         failing = FailingPrinter()
+        if name == "print_local_file":
+            failing.is_busy = False
+            failing.latest_project_print_in_progress = False
 
         payload = TestEveryActionReachesThePrinter()._payload(mock_entry.entry_id)
         if issubclass(service_cls, BasePrintWithFile):
@@ -484,3 +494,64 @@ class TestActionFailuresSurface:
 
             with pytest.raises(HomeAssistantError):
                 await service.async_call_service(call)
+
+
+class TestPrintLocalFile:
+    """Starting a print is the one action that commits the machine to hours of
+    unattended work, so it refuses rather than interrupting or queueing."""
+
+    def _call(self, hass, entry, filename="model.gcode.3mf"):
+        from homeassistant.core import ServiceCall
+
+        return ServiceCall(
+            hass,
+            DOMAIN,
+            "print_local_file",
+            {"config_entry": entry.entry_id, "printer_id": PRINTER_ID, "filename": filename},
+        )
+
+    async def test_an_idle_printer_starts_the_file(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        from unittest.mock import PropertyMock
+
+        from custom_components.anycubic_cloud.services import PrintLocalFile
+
+        await _setup(hass, mock_entry)
+        _, printer = mock_api
+
+        with (
+            patch.object(type(printer), "is_busy", PropertyMock(return_value=False)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "print_local_file", AsyncMock()) as start,
+            patch.object(type(mock_entry.runtime_data), "force_state_update", AsyncMock()),
+        ):
+            await PrintLocalFile(hass).async_call_service(self._call(hass, mock_entry))
+
+        start.assert_awaited_once()
+        assert start.await_args.kwargs["file_name"] == "model.gcode.3mf"
+
+    @pytest.mark.parametrize("busy_attr", ["is_busy", "latest_project_print_in_progress"])
+    async def test_a_busy_printer_is_refused(self, hass: HomeAssistant, mock_entry, mock_api, busy_attr) -> None:
+        """Refusing beats interrupting a job someone is waiting on."""
+        from unittest.mock import PropertyMock
+
+        from custom_components.anycubic_cloud.services import PrintLocalFile
+
+        await _setup(hass, mock_entry)
+        _, printer = mock_api
+
+        states = {"is_busy": False, "latest_project_print_in_progress": False, busy_attr: True}
+
+        with (
+            patch.object(type(printer), "is_busy", PropertyMock(return_value=states["is_busy"])),
+            patch.object(
+                type(printer),
+                "latest_project_print_in_progress",
+                PropertyMock(return_value=states["latest_project_print_in_progress"]),
+            ),
+            patch.object(type(printer), "print_local_file", AsyncMock()) as start,
+        ):
+            with pytest.raises(ServiceValidationError) as err:
+                await PrintLocalFile(hass).async_call_service(self._call(hass, mock_entry))
+
+        assert err.value.translation_key == "printer_busy"
+        start.assert_not_awaited(), "must not start a second job"

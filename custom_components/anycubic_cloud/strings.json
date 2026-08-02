@@ -1191,6 +1191,28 @@
           "description": "On Time"
         }
       }
+    },
+    "print_local_file": {
+      "name": "Print a file on the printer",
+      "description": "Start a print using a file the printer already holds. Use the file list sensors to find the filename.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic account."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "Which printer."
+        },
+        "device_id": {
+          "name": "Device",
+          "description": "Which printer."
+        },
+        "filename": {
+          "name": "Filename",
+          "description": "Exact name as listed by the file list sensor."
+        }
+      }
     }
   },
   "exceptions": {
@@ -1211,6 +1233,9 @@
     },
     "mqtt_connect_timeout": {
       "message": "Timed out connecting to the printer. Try turning on the manual MQTT connection switch, then retry."
+    },
+    "printer_busy": {
+      "message": "The printer is busy. Wait for the current job to finish before starting another."
     }
   },
   "issues": {

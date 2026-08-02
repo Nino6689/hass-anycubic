@@ -309,18 +309,21 @@ SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
     AnycubicSensorEntityDescription(
         key="file_list_local",
         translation_key="file_list_local",
+        native_unit_of_measurement="files",
         printer_entity_type=PrinterEntityType.PRINTER,
         not_measured=True,
     ),
     AnycubicSensorEntityDescription(
         key="file_list_udisk",
         translation_key="file_list_udisk",
+        native_unit_of_measurement="files",
         printer_entity_type=PrinterEntityType.PRINTER,
         not_measured=True,
     ),
     AnycubicSensorEntityDescription(
         key="file_list_cloud",
         translation_key="file_list_cloud",
+        native_unit_of_measurement="files",
         printer_entity_type=PrinterEntityType.PRINTER,
         not_measured=True,
     ),

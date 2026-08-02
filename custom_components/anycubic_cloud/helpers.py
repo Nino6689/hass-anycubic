@@ -96,6 +96,21 @@ def build_ace_device_info(
     )
 
 
+def file_count(file_list: Any) -> int | None:
+    """How many files a list holds, or None if it was never fetched.
+
+    None keeps the entity unavailable until the list is requested, which is
+    honest: zero files and "not asked yet" are different states.
+    """
+    if file_list is None:
+        return None
+
+    try:
+        return len(file_list)
+    except TypeError:
+        return None
+
+
 def safe_external_shelves(printer: Any) -> dict[str, Any] | None:
     """The external filament holder as a plain dict, or None.
 
