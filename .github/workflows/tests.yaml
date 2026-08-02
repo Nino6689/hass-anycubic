@@ -21,9 +21,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_test.txt
-          # The integration's own runtime deps, now published packages.
           pip install home-assistant-frontend
-          pip install anycubic-cloud-api anycubic-cloud-frontend
+          # Install exactly what the manifest pins, so CI tests the same
+          # versions Home Assistant will resolve. Installing these unpinned let
+          # CI run against a stale release and fail on code that was correct.
+          pip install $(python -c "import json;print(' '.join(json.load(open('custom_components/anycubic_cloud/manifest.json'))['requirements']))")
 
       - name: Lint
         run: ruff check custom_components tests
