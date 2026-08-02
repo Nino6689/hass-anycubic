@@ -187,7 +187,9 @@ and the colour swatches. **The SKU is the only viable channel.**
 <BASE_SKU>-<UID6>
 ```
 
-- `BASE_SKU` — the real Anycubic SKU for that filament type, e.g. `AHPEBW-102`
+- `BASE_SKU` — an Anycubic SKU for that filament type, e.g. `AHPEBW-102`. A real
+  one is tidier, but **it does not have to be real**: see "The SKU does not gate
+  recognition" below
 - `UID6` — six characters that **must be unique to the physical tag**
 
 ### 🔴 The suffix must come from the tag's own UID
@@ -240,7 +242,7 @@ reel automatically.
 
 **Result: the ACE accepts a longer-than-stock SKU and passes it through verbatim.**
 
-A tag was written with an 18-character SKU and loaded into a real Kobra S1 + ACE
+A tag was written with a 17-character SKU and loaded into a real Kobra S1 + ACE
 Pro. What arrived in Home Assistant via Anycubic's cloud:
 
 ```json
@@ -252,8 +254,22 @@ Pro. What arrived in Home Assistant via Anycubic's cloud:
 }
 ```
 
-The `-A30001` suffix survived intact, seven characters beyond the longest stock
+The `-A30001` suffix survived intact, six characters beyond the longest stock
 SKU (`AHPLPBW-102`, 11 chars). Material and colour were both recognised.
+
+### The SKU does not gate recognition
+
+The SKU written in that test, `AHPLBW-103`, is **not a real Anycubic code** — it
+was invented, and `BW` does not appear in Anycubic's actual `-103` range
+(`AHPLCG`, `AHPLSP`, `AHPLVO`, `AHPLVY`, `AHPLPO`, `AHPLKB`, `AHPLLB`,
+`AHPLRR`). The ACE recognised the spool as PLA+ in red regardless, and the
+slicer's Workbench displayed it correctly rather than showing `?`.
+
+So the printer does not validate the SKU against any list. **Material and colour
+are read from the tag's own fields**; the SKU's job is identity — surviving to
+Home Assistant so two otherwise identical reels can be told apart. A real code is
+preferable for tidiness, but nothing depends on it, and an implementer need not
+hunt for a complete SKU list before shipping.
 
 The scheme in this section is therefore **confirmed** — build it as specified. No
 fallback needed, and the colour-perturbation workaround can be forgotten.
@@ -352,7 +368,7 @@ And these materials, with sane defaults:
 | PLA+ | 1.24 | 200–230 | 50–60 | 50–150 |
 | PLA Silk | 1.24 | 200–230 | 50–60 | 40–120 |
 | PLA Matte | 1.24 | 190–220 | 50–60 | 50–150 |
-| High Speed PLA | 1.24 | 190–230 | 50–60 | 100–300 |
+| PLA High Speed | 1.24 | 190–210 | 55–65 | 50–150 |
 | PETG | 1.27 | 230–250 | 70–85 | 40–120 |
 | ABS | 1.04 | 240–260 | 90–110 | 40–120 |
 | ASA | 1.07 | 240–260 | 90–110 | 40–120 |
@@ -361,6 +377,27 @@ And these materials, with sane defaults:
 | PA (Nylon) | 1.14 | 250–280 | 80–100 | 30–80 |
 | PAHT-CF | 1.30 | 270–300 | 90–110 | 30–80 |
 | HIPS | 1.04 | 230–245 | 90–110 | 40–100 |
+
+The `PLA High Speed` row is the exception: those figures were read off a genuine
+Anycubic spool rather than estimated, including the name — Anycubic writes
+`PLA High Speed`, not "High Speed PLA".
+
+### Genuine tags fill all three speed bands
+
+Pages `17`–`1C` hold three speed/nozzle pairs, and a real tag populates every
+one. From the same spool:
+
+| Band | Speed mm/s | Nozzle °C |
+|---|---|---|
+| 1 (`17`/`18`) | 50–150 | 190–210 |
+| 2 (`19`/`1A`) | 150–300 | 210–230 |
+| 3 (`1B`/`1C`) | 300–600 | 230–260 |
+
+Each band pairs a faster flow with the hotter nozzle it needs. A writer that
+fills only band 1 leaves pages `19`–`1C` zeroed, which is unlike anything the
+ACE ships — write all three. Where no measured high-speed data exists for a
+material, repeating band 1 is safer than inventing a temperature the filament is
+not rated for.
 
 ⚠️ **These are starting points, not gospel.** Real values vary by brand and colour.
 Every field must remain user-editable, and the preset should be a starting point the
@@ -416,11 +453,42 @@ Writing bad data to a tag can leave a spool unusable until rewritten, so:
 
 1. **Never write to management pages.** Guard `04 ≤ page ≤ 27` in code, not just UI
 2. **Always read back and verify.** Report a clear failure on mismatch
-3. **Offer a dump-before-write** for genuine Anycubic tags, so an original can be
-   restored if the user changes their mind
+3. **Offer a dump-before-write** for genuine Anycubic tags. Reads are
+   unprotected, so a full snapshot always succeeds and is worth keeping
 4. **Do not lock tags.** Never set the lock bits in pages `02`/`28`+ — a locked tag
    is permanently read-only and the sticker is wasted
 5. **Warn before overwriting** a tag that already has valid Anycubic data
+6. **Detect a protected tag and say so before writing.** See below — a genuine
+   Anycubic tag will refuse every write, and reporting that as a generic write
+   failure sends people hunting for a bug in their own code
+
+### 🔴 Genuine Anycubic tags cannot be reused — confirmed on hardware
+
+Anycubic password-protects their own tags. Read off a real spool
+(UID `53:75:03:26:93:00:01`):
+
+```
+29: 04 00 00 04   CFG0 — AUTH0 = 0x04: writes protected from page 04 up
+2A: 47 00 00 00   CFG1 — PROT=0 (writes only), CFGLCK=1, AUTHLIM=7
+2B: 00 00 00 00   PWD  — write-only, never readable
+```
+
+Three things close every door:
+
+- the password lives in page `2B`, which returns zeros to everyone
+- `AUTHLIM = 7` means seven wrong guesses and the tag refuses authentication
+  **permanently** — so a brute-force attempt destroys the tag long before it
+  dents a 32-bit space
+- `CFGLCK = 1` freezes the configuration, so the protection cannot be removed
+
+The published factory defaults were tried and rejected. **A genuine tag can be
+read, catalogued and identified, but never rewritten.** Blank NTAG213 stickers
+are the only writable target.
+
+The practical consequence for an implementer: read pages `28`–`2A` during the
+pre-write dump, decode `AUTH0`, and refuse the write with a clear message. The
+first failure otherwise appears as a NAK partway through the payload — ours
+surfaced at page `05` — which looks exactly like a bug in the writer.
 
 ---
 
