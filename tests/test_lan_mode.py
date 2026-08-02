@@ -108,14 +108,10 @@ class TestOptionsFlow:
         assert result["type"] == FlowResultType.FORM
         assert result["step_id"] == "local"
 
-    async def test_turning_it_on_without_an_address_is_refused(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_turning_it_on_without_an_address_is_refused(self, hass: HomeAssistant) -> None:
         flow = await self._open(hass)
 
-        result = await flow.async_step_local(
-            {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "   "}
-        )
+        result = await flow.async_step_local({CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "   "})
 
         assert result["errors"] == {CONF_LAN_HOST: "lan_host_required"}
 
@@ -128,27 +124,19 @@ class TestOptionsFlow:
             (RuntimeError("something else"), "lan_unreachable"),
         ],
     )
-    async def test_a_printer_that_cannot_be_reached_is_explained(
-        self, hass: HomeAssistant, error, expected
-    ) -> None:
+    async def test_a_printer_that_cannot_be_reached_is_explained(self, hass: HomeAssistant, error, expected) -> None:
         flow = await self._open(hass)
 
         with patch(HANDSHAKE, _handshake_raising(error)):
-            result = await flow.async_step_local(
-                {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"}
-            )
+            result = await flow.async_step_local({CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
 
         assert result["errors"] == {"base": expected}
 
-    async def test_a_reachable_printer_saves_the_setting(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_a_reachable_printer_saves_the_setting(self, hass: HomeAssistant) -> None:
         flow = await self._open(hass)
 
         with patch(HANDSHAKE, _handshake_returning()):
-            result = await flow.async_step_local(
-                {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: " 10.0.66.28 "}
-            )
+            result = await flow.async_step_local({CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: " 10.0.66.28 "})
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_LAN_MODE_ENABLED] is True
@@ -158,9 +146,7 @@ class TestOptionsFlow:
         """Switching back to cloud must work with the printer already gone."""
         flow = await self._open(hass)
 
-        result = await flow.async_step_local(
-            {CONF_LAN_MODE_ENABLED: False, CONF_LAN_HOST: "10.0.66.28"}
-        )
+        result = await flow.async_step_local({CONF_LAN_MODE_ENABLED: False, CONF_LAN_HOST: "10.0.66.28"})
 
         assert result["type"] == FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_LAN_MODE_ENABLED] is False
@@ -179,9 +165,7 @@ class TestCoordinatorSetup:
 
         handshake.assert_not_called()
 
-    async def test_an_enabled_toggle_with_no_address_does_nothing(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_an_enabled_toggle_with_no_address_does_nothing(self, hass: HomeAssistant) -> None:
         coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True})
 
         with patch(CO_HANDSHAKE) as handshake:
@@ -189,28 +173,18 @@ class TestCoordinatorSetup:
 
         handshake.assert_not_called()
 
-    @pytest.mark.parametrize(
-        "error", [AnycubicLANError("unreachable"), RuntimeError("unexpected")]
-    )
-    async def test_a_printer_back_in_cloud_mode_is_not_fatal(
-        self, hass: HomeAssistant, error
-    ) -> None:
+    @pytest.mark.parametrize("error", [AnycubicLANError("unreachable"), RuntimeError("unexpected")])
+    async def test_a_printer_back_in_cloud_mode_is_not_fatal(self, hass: HomeAssistant, error) -> None:
         """Cloud is still the right connection to be using -- carry on."""
-        coordinator = _coordinator(
-            hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"}
-        )
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
 
         with patch(CO_HANDSHAKE, _handshake_raising(error)):
             await coordinator._async_setup_lan_connection()
 
         assert coordinator.lan_is_connected is False
 
-    async def test_a_successful_connection_asks_for_state(
-        self, hass: HomeAssistant
-    ) -> None:
-        coordinator = _coordinator(
-            hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"}
-        )
+    async def test_a_successful_connection_asks_for_state(self, hass: HomeAssistant) -> None:
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
         client = MagicMock()
         client.async_connect = AsyncMock()
 
@@ -223,9 +197,7 @@ class TestCoordinatorSetup:
         client.query_all.assert_called_once()
 
     async def test_it_only_connects_once(self, hass: HomeAssistant) -> None:
-        coordinator = _coordinator(
-            hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"}
-        )
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
         client = MagicMock()
         client.async_connect = AsyncMock()
 
@@ -238,9 +210,7 @@ class TestCoordinatorSetup:
 
         assert handshake.call_count == 1
 
-    async def test_stopping_is_safe_when_never_started(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_stopping_is_safe_when_never_started(self, hass: HomeAssistant) -> None:
         await _coordinator(hass).async_stop_lan_connection()
 
     async def test_stopping_disconnects_and_forgets(self, hass: HomeAssistant) -> None:
@@ -265,18 +235,14 @@ class TestTargetPrinter:
 
         assert coordinator._lan_target_printer("20025") is printer
 
-    def test_with_several_printers_the_model_must_match(
-        self, hass: HomeAssistant
-    ) -> None:
+    def test_with_several_printers_the_model_must_match(self, hass: HomeAssistant) -> None:
         coordinator = _coordinator(hass)
         wanted = _printer(machine_type=20025)
         coordinator._anycubic_printers = {1: _printer(20024), 2: wanted}
 
         assert coordinator._lan_target_printer("20025") is wanted
 
-    def test_a_report_matching_nothing_is_dropped_and_logged_once(
-        self, hass: HomeAssistant, caplog
-    ) -> None:
+    def test_a_report_matching_nothing_is_dropped_and_logged_once(self, hass: HomeAssistant, caplog) -> None:
         coordinator = _coordinator(hass)
         coordinator._anycubic_printers = {1: _printer(20024), 2: _printer(20026)}
 
@@ -284,9 +250,7 @@ class TestTargetPrinter:
             assert coordinator._lan_target_printer("20025") is None
 
         warnings = [
-            record
-            for record in caplog.records
-            if record.levelname == "WARNING" and "does not match" in record.message
+            record for record in caplog.records if record.levelname == "WARNING" and "does not match" in record.message
         ]
         assert len(warnings) == 1
 
@@ -327,9 +291,7 @@ class TestReportHandling:
 
         coordinator._lan_on_message("topic", "info", {"type": "info"})
 
-    def test_a_report_for_an_unknown_printer_is_ignored(
-        self, hass: HomeAssistant
-    ) -> None:
+    def test_a_report_for_an_unknown_printer_is_ignored(self, hass: HomeAssistant) -> None:
         coordinator, _ = self._ready(hass)
         coordinator._anycubic_printers = {1: _printer(20024), 2: _printer(20026)}
 
@@ -338,15 +300,11 @@ class TestReportHandling:
     @pytest.mark.parametrize(
         "error",
         [
-            __import__(
-                "anycubic_cloud_api.exceptions.exceptions", fromlist=["x"]
-            ).AnycubicDataParsingError("unparsed"),
+            __import__("anycubic_cloud_api.exceptions.exceptions", fromlist=["x"]).AnycubicDataParsingError("unparsed"),
             RuntimeError("unexpected"),
         ],
     )
-    def test_a_report_that_will_not_parse_does_not_escape(
-        self, hass: HomeAssistant, error
-    ) -> None:
+    def test_a_report_that_will_not_parse_does_not_escape(self, hass: HomeAssistant, error) -> None:
         """paho would stop delivering if this propagated."""
         coordinator, printer = self._ready(hass)
         printer.process_mqtt_update.side_effect = error
@@ -355,9 +313,7 @@ class TestReportHandling:
 
 
 class TestPolling:
-    def test_nothing_is_asked_for_without_a_connection(
-        self, hass: HomeAssistant
-    ) -> None:
+    def test_nothing_is_asked_for_without_a_connection(self, hass: HomeAssistant) -> None:
         _coordinator(hass)._lan_poll()
 
     def test_a_disconnected_client_is_not_polled(self, hass: HomeAssistant) -> None:
@@ -370,9 +326,7 @@ class TestPolling:
 
         client.query_all.assert_not_called()
 
-    def test_a_connected_client_is_asked_for_everything(
-        self, hass: HomeAssistant
-    ) -> None:
+    def test_a_connected_client_is_asked_for_everything(self, hass: HomeAssistant) -> None:
         coordinator = _coordinator(hass)
         client = MagicMock()
         client.is_connected = True
