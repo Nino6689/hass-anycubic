@@ -207,30 +207,64 @@ consumption against that fingerprint, restoring it when a part-used reel is
 reinserted in any slot. A unique SKU makes that fingerprint unique per physical
 reel automatically.
 
-### 🔴 The critical first test — do this before building anything else
+### ✅ The critical test — ANSWERED on hardware, 2026-08-02
 
-**Unknown: does the ACE accept a SKU longer than the ones it ships with, and does
-it pass it through to the cloud verbatim?**
+**Result: the ACE accepts a longer-than-stock SKU and passes it through verbatim.**
 
-Everything above depends on the answer. Test it as the very first task:
+A tag was written with an 18-character SKU and loaded into a real Kobra S1 + ACE
+Pro. What arrived in Home Assistant via Anycubic's cloud:
 
-1. Write a tag with SKU `AHPEBW-102-A7F3C2`, correct material/colour otherwise
-2. Insert into the ACE
-3. Check the printer recognises the material
-4. Have the HA maintainer confirm what `sku` arrives in the cloud payload
+```json
+{
+  "index": 2,
+  "sku":   "AHPLBW-103-A30001",
+  "type":  "PLA+",
+  "color": [225, 6, 0]
+}
+```
 
-| Outcome | What to do |
-|---|---|
-| Full SKU arrives verbatim | ✅ Proceed as specified |
-| Truncated to 12 bytes | Shorten to `<BASE>-<UID3>`, or drop to a 4-char base code |
-| Rejected / blanked / material unrecognised | **Fall back:** encode the ID in the colour's low bits — perturb blue by ±1–2 per spool. Visually identical, survives the cloud, still unique. Ugly, but it works |
+The `-A30001` suffix survived intact, seven characters beyond the longest stock
+SKU (`AHPLPBW-102`, 11 chars). Material and colour were both recognised.
 
-**Report the result before writing the rest of the app.** A UI built on the wrong
-assumption is wasted work.
+The scheme in this section is therefore **confirmed** — build it as specified. No
+fallback needed, and the colour-perturbation workaround can be forgotten.
 
-Cosmetic cost either way: an unrecognised SKU shows as `?` in Anycubic Slicer Next's
-"Workbench" tab. The material still syncs correctly in "Prepare". Accepted trade-off
-— make sure the UI says so, so users aren't surprised.
+Downstream, Home Assistant fingerprinted the reel as
+`PLA+|#E10600|AHPLBW-103-A30001` and began tracking it as a distinct spool
+automatically, with no code changes.
+
+**Still worth confirming as you build:** the cosmetic cost. An unrecognised SKU is
+expected to show as `?` in Anycubic Slicer Next's "Workbench" tab while syncing
+correctly in "Prepare". Check what your writes actually do there and say so in the
+UI, so users aren't surprised.
+
+---
+
+## 5a. What reaches Home Assistant, and what does not
+
+Measured from the same live test. Anycubic's cloud reports **only** these per slot:
+
+| Field | Example | From the tag? |
+|---|---|---|
+| `sku` | `AHPLBW-103-A30001` | ✅ verbatim, full length |
+| `type` | `PLA+` | ✅ |
+| `color` | `[225, 6, 0]` | ✅ |
+| `color_group` | `[[225, 6, 0, 255]]` | ✅ |
+| `status`, `edit_status`, `icon_type` | `5`, `1`, `0` | printer state, not tag |
+| `consumables_percent` | `0.0` | **always zero, even on genuine Anycubic tags** |
+
+**Everything else on the tag stays on the tag.** Weight (page `1F`), length and
+diameter (`1E`), nozzle and bed temperatures (`18`/`1D`), print speeds (`17`),
+manufacturer (`0A`-`0E`) and the free pages (`20`-`27`) are read by the printer
+but **never forwarded**.
+
+Two consequences for the app:
+
+1. **A unique id must go in the SKU.** Writing it to the free pages would be
+   invisible to Home Assistant, because nothing there is forwarded.
+2. **Don't rely on the tag's weight field reaching Home Assistant.** It doesn't.
+   Spool weight is set separately in HA. Still write it correctly — the printer
+   and slicer use it — but it is not a channel to the integration.
 
 ---
 
