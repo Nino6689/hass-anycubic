@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest something the integration should do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like it to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What are you trying to achieve?
+      description: >-
+        The underlying goal, not just the mechanism — there is often a way to
+        do it already, or a better fit than the one you had in mind.
+    validations:
+      required: true
+  - type: input
+    id: printer
+    attributes:
+      label: Which printer is this for?
+  - type: checkboxes
+    id: hardware_note
+    attributes:
+      label: Hardware
+      options:
+        - label: >-
+            I understand this is developed on a Kobra S1 + ACE Pro, and that
+            anything needing other hardware depends on someone with that
+            hardware to test it.

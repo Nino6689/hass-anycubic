@@ -1,0 +1,71 @@
+name: Bug report
+description: Something is broken or reporting the wrong value.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        **Coming from the old upstream integration?** If setup fails with
+        `HTTP 500 "Server got itself in trouble"`, that is upstream v0.2.2
+        against a current Home Assistant, and it is fixed here — install this
+        one from HACS instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: And what did you expect instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: HACS → Anycubic Cloud, or the `version` in manifest.json.
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: input
+    id: printer
+    attributes:
+      label: Printer model
+      placeholder: Anycubic Kobra S1 + ACE Pro
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: How is it connected?
+      options:
+        - Cloud (Slicer token)
+        - Cloud (Web token, no MQTT)
+        - Cloud (Android token)
+        - Local (LAN Mode)
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics file
+      description: >-
+        Settings → Devices & services → Anycubic Cloud → your printer → ⋮ →
+        **Download diagnostics**, then drag the file in here. It is redacted
+        automatically.
+
+
+        This answers most questions immediately, so a report with one attached
+        will usually get a real answer rather than a round of questions.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: >-
+        Settings → System → Logs, filtered to `anycubic`. Turn on debug
+        logging first if you can: the integration's options have a **Debug
+        Settings** page.
+      render: text

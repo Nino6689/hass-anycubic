@@ -80,7 +80,8 @@
           "mqtt": "MQTT Settings",
           "drying": "Drying Presets",
           "card_config": "Panel Card Config",
-          "debug": "Debug Settings"
+          "debug": "Debug Settings",
+          "local": "Local connection (LAN Mode)"
         }
       },
       "mqtt": {
@@ -114,7 +115,24 @@
           "debug_mqtt_msg": "Debug Log all MQTT messages",
           "debug_api_calls": "Debug Log all API calls"
         }
+      },
+      "local": {
+        "title": "Local connection (LAN Mode)",
+        "description": "Talk to the printer directly on your network instead of through Anycubic's cloud.\n\nThe printer does one or the other, never both: switching LAN Mode on at the printer (Settings → Network → LAN Mode) drops its cloud connection, and cloud-only features such as the file library stop working. Filament tracking keeps working either way.\n\nSwitch LAN Mode on at the printer first, then enable it here.",
+        "data": {
+          "lan_mode_enabled": "Use the local connection",
+          "lan_host": "Printer address on your network"
+        },
+        "data_description": {
+          "lan_host": "For example 10.0.0.42. A fixed address is strongly recommended."
+        }
       }
+    },
+    "error": {
+      "lan_host_required": "Enter the printer's address on your network.",
+      "lan_unreachable": "Could not reach the printer at that address. Check the address, and that LAN Mode is switched on at the printer.",
+      "lan_printer_in_cloud_mode": "The printer answered, but it is still in cloud mode. Switch LAN Mode on at the printer: Settings → Network → LAN Mode.",
+      "lan_unsupported_printer": "This printer does not use the local protocol this integration speaks (Kobra 3 / S1 generation). Please open an issue with your model and firmware version."
     }
   },
   "entity": {

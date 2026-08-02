@@ -9,7 +9,14 @@ from typing import TYPE_CHECKING, Any
 
 from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
-from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError, AnycubicAPIParsingError
+from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData
+from anycubic_cloud_api.exceptions.exceptions import (
+    AnycubicAPIError,
+    AnycubicAPIParsingError,
+    AnycubicDataParsingError,
+    AnycubicLANError,
+)
+from anycubic_cloud_api.lan import AnycubicLANClient, AnycubicLANHandshake
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import (
@@ -42,6 +49,8 @@ from .const import (
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
+    CONF_LAN_HOST,
+    CONF_LAN_MODE_ENABLED,
     CONF_MQTT_CONNECT_MODE,
     CONF_PRINTER_ID_LIST,
     CONF_USER_AUTH_MODE,
@@ -121,6 +130,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._mqtt_manually_connected = False
         self._mqtt_idle_since: int | None = None
         self._mqtt_last_action: int | None = None
+        self._lan_client: AnycubicLANClient | None = None
+        self._lan_printer_id: int | None = None
+        self._lan_unmatched_logged: bool = False
         self._mqtt_connect_check_lock = asyncio.Lock()
         self._mqtt_refresh_lock = asyncio.Lock()
         self._mqtt_file_list_check_lock = asyncio.Lock()
@@ -496,8 +508,144 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return data_dict
 
+
+    @property
+    def lan_mode_enabled(self) -> bool:
+        """Whether the user has opted into talking to the printer directly."""
+        return bool(self.entry.options.get(CONF_LAN_MODE_ENABLED))
+
+    @property
+    def lan_is_connected(self) -> bool:
+        return self._lan_client is not None and self._lan_client.is_connected
+
+    async def _async_setup_lan_connection(self) -> None:
+        """Bring up the local connection, if one is configured.
+
+        A failure here is never fatal. The printer may simply have been put
+        back into cloud mode, in which case the cloud connection is the right
+        one to be using anyway.
+        """
+        if not self.lan_mode_enabled or self._lan_client is not None:
+            return
+
+        host = str(self.entry.options.get(CONF_LAN_HOST) or "").strip()
+
+        if not host:
+            return
+
+        try:
+            session = async_create_clientsession(self.hass)
+            broker = await AnycubicLANHandshake(
+                session, host, LOGGER
+            ).async_authenticate()
+
+            client = AnycubicLANClient(broker, self._lan_on_message, LOGGER)
+            await client.async_connect()
+        except AnycubicLANError as err:
+            LOGGER.debug(f"Anycubic local connection unavailable: {err}")
+            return
+        except Exception:
+            LOGGER.debug(
+                f"Unexpected error starting the Anycubic local connection:\n"
+                f"{traceback.format_exc()}"
+            )
+            return
+
+        self._lan_client = client
+        LOGGER.info(
+            f"Anycubic connected to {broker.model_name or 'printer'} "
+            f"directly on the local network."
+        )
+
+        client.query_all()
+
+    async def async_stop_lan_connection(self) -> None:
+        client = self._lan_client
+
+        if client is None:
+            return
+
+        self._lan_client = None
+        self._lan_printer_id = None
+
+        await client.async_disconnect()
+
+    def _lan_target_printer(self, model_id: str) -> AnycubicPrinter | None:
+        """Which configured printer a local report belongs to.
+
+        The local handshake identifies the printer by model, which is enough
+        whenever only one is set up -- the normal case, since LAN Mode is a
+        per-printer switch. With several, the model has to match, and a report
+        that matches nothing is dropped rather than applied to the wrong one.
+        """
+        printers = list(self._anycubic_printers.values())
+
+        if len(printers) == 1:
+            return printers[0]
+
+        for printer in printers:
+            if str(printer.machine_type) == str(model_id):
+                return printer
+
+        if not self._lan_unmatched_logged:
+            self._lan_unmatched_logged = True
+            LOGGER.warning(
+                "Anycubic received a local report that does not match any "
+                "configured printer, and is ignoring it."
+            )
+
+        return None
+
+    @callback
+    def _lan_on_message(
+        self, topic: str, message_type: str, payload: dict[str, Any]
+    ) -> None:
+        """Apply a local report to the printer.
+
+        Local topics carry the model and device ids where cloud topics carry
+        the machine type and printer key, so the existing parser reads them
+        unchanged.
+        """
+        client = self._lan_client
+
+        if client is None:
+            return
+
+        printer = self._lan_target_printer(client.broker.model_id)
+
+        if printer is None:
+            return
+
+        try:
+            printer.process_mqtt_update(topic, AnycubicConsumableData(payload))
+        except AnycubicDataParsingError as err:
+            LOGGER.debug(f"Anycubic local report not understood: {err}")
+            return
+        except Exception:
+            LOGGER.debug(
+                f"Anycubic local report failed to parse:\n{traceback.format_exc()}"
+            )
+            return
+
+        # Called on paho's thread, and create_task is not thread-safe.
+        self.hass.loop.call_soon_threadsafe(self._mqtt_callback_data_updated)
+
+    def _lan_poll(self) -> None:
+        """Ask the printer for fresh state; it does not push unprompted."""
+        if self._lan_client is None or not self._lan_client.is_connected:
+            return
+
+        try:
+            self._lan_client.query_all()
+        except AnycubicLANError as err:
+            LOGGER.debug(f"Anycubic local poll failed: {err}")
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from AnycubicCloud."""
+
+        if self.lan_mode_enabled:
+            await self._async_setup_lan_connection()
+            self._lan_poll()
 
         if not self._last_state_update or int(time.time()) > self._last_state_update + DEFAULT_SCAN_INTERVAL:
             await self.get_anycubic_updates()

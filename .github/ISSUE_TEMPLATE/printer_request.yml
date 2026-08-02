@@ -1,0 +1,62 @@
+name: Add support for my printer
+description: Your printer is missing, or entities are missing on it.
+labels: ["printer-support"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Development happens on a **Kobra S1 with an ACE Pro** — the only
+        hardware anything is verified against. Every other model relies on
+        reports like this one, so this is genuinely useful rather than a
+        formality.
+
+
+        You don't need to run anything by hand. The diagnostics file below
+        contains everything needed.
+  - type: input
+    id: model
+    attributes:
+      label: Printer model
+      placeholder: Anycubic Kobra 3 Max
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: On the printer's screen, under Settings → About.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics file
+      description: >-
+        In Home Assistant: Settings → Devices & services → Anycubic Cloud →
+        your printer → ⋮ → **Download diagnostics**. Attach the file by
+        dragging it into this box.
+
+
+        It is redacted automatically — no tokens, no account identifiers.
+    validations:
+      required: true
+  - type: checkboxes
+    id: hardware
+    attributes:
+      label: What does this printer physically have?
+      description: Used to work out which entities it should be offered.
+      options:
+        - label: A multi-colour box (ACE / ACE Pro / ACE 2)
+        - label: Two multi-colour boxes
+        - label: A camera
+        - label: An enclosure (chamber temperature, chamber light)
+        - label: A filament dryer function
+  - type: textarea
+    id: missing
+    attributes:
+      label: What's missing or wrong?
+      description: >-
+        Which entities are absent, or reporting something the printer's own
+        screen disagrees with?
+    validations:
+      required: true

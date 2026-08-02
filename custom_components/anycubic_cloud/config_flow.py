@@ -9,6 +9,12 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
+from anycubic_cloud_api.exceptions.exceptions import (
+    AnycubicLANCloudModeError,
+    AnycubicLANError,
+    AnycubicLANUnsupportedError,
+)
+from anycubic_cloud_api.lan import AnycubicLANHandshake
 from anycubic_cloud_api.models.auth import AnycubicAuthMode
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -28,6 +34,8 @@ from .const import (
     CONF_DEBUG_MQTT_MSG,
     CONF_DRYING_PRESET_DURATION_,
     CONF_DRYING_PRESET_TEMPERATURE_,
+    CONF_LAN_HOST,
+    CONF_LAN_MODE_ENABLED,
     CONF_MQTT_CONNECT_MODE,
     CONF_PRINTER_ID_LIST,
     CONF_USER_AUTH_MODE,
@@ -611,6 +619,7 @@ class AnycubicCloudOptionsFlowHandler(OptionsFlow):
 
         menu_options = list([
             "mqtt",
+            "local",
             "card_config",
             "debug",
         ])
@@ -655,6 +664,66 @@ class AnycubicCloudOptionsFlowHandler(OptionsFlow):
                 ): vol.In(MQTT_CONNECT_MODES)
             }),
             errors={},
+        )
+
+    async def async_step_local(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the local (LAN Mode) connection."""
+        errors: dict[str, str] = {}
+
+        if user_input:
+            host = str(user_input.get(CONF_LAN_HOST) or "").strip()
+            enabled = bool(user_input.get(CONF_LAN_MODE_ENABLED))
+
+            if not enabled:
+                return self.async_create_entry_with_existing_options({
+                    CONF_LAN_MODE_ENABLED: False,
+                    CONF_LAN_HOST: host,
+                })
+
+            if not host:
+                errors[CONF_LAN_HOST] = "lan_host_required"
+            else:
+                # Check the printer before saving. Turning this on when the
+                # printer is still in cloud mode would otherwise leave the
+                # integration with no working connection at all.
+                session = async_create_clientsession(self.hass)
+                handshake = AnycubicLANHandshake(session, host, LOGGER)
+
+                try:
+                    await handshake.async_authenticate()
+                except AnycubicLANCloudModeError:
+                    errors["base"] = "lan_printer_in_cloud_mode"
+                except AnycubicLANUnsupportedError:
+                    errors["base"] = "lan_unsupported_printer"
+                except AnycubicLANError:
+                    errors["base"] = "lan_unreachable"
+                except Exception:
+                    LOGGER.debug(
+                        f"Unexpected error checking LAN Mode:\n{traceback.format_exc()}"
+                    )
+                    errors["base"] = "lan_unreachable"
+
+                if not errors:
+                    return self.async_create_entry_with_existing_options({
+                        CONF_LAN_MODE_ENABLED: True,
+                        CONF_LAN_HOST: host,
+                    })
+
+        return self.async_show_form(
+            step_id="local",
+            data_schema=vol.Schema({
+                vol.Optional(
+                    CONF_LAN_MODE_ENABLED,
+                    default=self.entry.options.get(CONF_LAN_MODE_ENABLED, False),
+                ): BooleanSelector(),
+                vol.Optional(
+                    CONF_LAN_HOST,
+                    default=self.entry.options.get(CONF_LAN_HOST, ""),
+                ): cv.string,
+            }),
+            errors=errors,
         )
 
     async def async_step_drying(

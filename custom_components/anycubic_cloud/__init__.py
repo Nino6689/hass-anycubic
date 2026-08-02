@@ -74,6 +74,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = getattr(entry, "runtime_data", None)
         if coordinator is not None:
             await coordinator.stop_anycubic_mqtt_connection_if_started()
+            await coordinator.async_stop_lan_connection()
 
     # Actions are registered in async_setup and deliberately left in place:
     # they are owned by the integration, not by any single config entry.
