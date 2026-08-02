@@ -119,6 +119,7 @@ PLATFORMS = [
 ]
 
 # Filament-remaining estimate
+ATTR_FEEDING_SLOT = "feeding_slot"
 ATTR_FILAMENT_USED_G = "filament_used_g"
 ATTR_SPOOL_WEIGHT_G = "spool_weight_g"
 ATTR_SPOOL_SIGNATURE = "spool_signature"

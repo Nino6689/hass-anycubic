@@ -528,3 +528,97 @@ class TestRemeberingReels:
 
         assert c._filament_slot_state(PRINTER_ID, 0)["filament_used_g"] == 700.0
         assert c._filament_slot_state(PRINTER_ID, 1)["filament_used_g"] == 100.0
+
+
+class TestPrintsStartedAtThePrinter:
+    """Jobs started at the printer's own screen carry no per-slot breakdown,
+    and loaded_slot reverts to -1 the moment the job ends. Without capturing it
+    mid-print, those jobs are unattributable and silently charge nothing —
+    which is most real printing.
+    """
+
+    def _project(self, job_id, paint_infos=None):
+        from unittest.mock import MagicMock
+
+        project = MagicMock()
+        project.id = job_id
+        project.slice_material_info_list = paint_infos
+        return project
+
+    async def test_a_screen_started_job_is_charged_via_the_feeding_slot(self, hass, mock_entry, mock_api) -> None:
+        from unittest.mock import PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        c = mock_entry.runtime_data
+        _, printer = mock_api
+
+        # Mid-print: slot 3 is feeding, and there is no breakdown to rely on.
+        with (
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=2)),
+        ):
+            await c._async_update_filament()
+
+        # Job finished: loaded_slot has already reverted to -1.
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=self._project(999))),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=10000)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=-1)),
+        ):
+            await c._async_update_filament()
+
+        used = c._filament_slot_state(PRINTER_ID, 2)["filament_used_g"]
+        assert used > 0, "a screen-started job must still come off the spool"
+
+    async def test_the_remembered_slot_does_not_leak_into_the_next_job(self, hass, mock_entry, mock_api) -> None:
+        """Otherwise every later job would be charged to that same spool."""
+        from unittest.mock import PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        c = mock_entry.runtime_data
+        _, printer = mock_api
+
+        with (
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=2)),
+        ):
+            await c._async_update_filament()
+
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=self._project(1001))),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=10000)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=-1)),
+        ):
+            await c._async_update_filament()
+            first = c._filament_slot_state(PRINTER_ID, 2)["filament_used_g"]
+
+            # A second, unrelated job with nothing to attribute it to.
+            with patch.object(type(printer), "latest_project", PropertyMock(return_value=self._project(1002))):
+                await c._async_update_filament()
+
+        assert c._filament_slot_state(PRINTER_ID, 2)["filament_used_g"] == first
+
+    async def test_an_in_progress_job_is_not_charged_early(self, hass, mock_entry, mock_api) -> None:
+        from unittest.mock import PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        c = mock_entry.runtime_data
+        _, printer = mock_api
+
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=self._project(2000))),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=10000)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=2)),
+        ):
+            await c._async_update_filament()
+
+        assert c._filament_slot_state(PRINTER_ID, 2)["filament_used_g"] == 0.0

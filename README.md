@@ -76,6 +76,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [4. Choose a connect mode](#4-choose-a-connect-mode)
 - [Entities](#entities)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
+- [Filament remaining *(estimated)*](#filament-remaining-estimated)
 - [📱 ReSpool — write your own spool tags *(beta)*](#-respool--an-ios-app-for-writing-spool-tags-beta)
 - [Automation examples](#automation-examples)
 - [Troubleshooting](#troubleshooting)
@@ -349,7 +350,9 @@ All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_j
 | **Speeds & fans** | `print_speed`, `fan_speed`, `auxiliary_fan_speed` |
 | **Lifetime** | `total_material_used` (kg), `total_print_time`, `total_print_count` |
 | **Controls** | `printer_light`, `pause_print`, `resume_print`, `cancel_print`, `manual_mqtt_connection_enabled`, `refresh_mqtt_connection` |
-| **Files** | `file_list_local`, `file_list_usb_disk`, `file_list_cloud` and their request buttons |
+| **Files** | `file_list_local`, `file_list_usb_disk`, `file_list_cloud` — each reports a **file count**, with the listing in its attributes — and their request buttons |
+| **Position** | `head_position_x`, `head_position_y`, `head_position_z`, and a `request_head_position` button. The printer only reports when asked |
+| **External spool** | `external_spool_material`, `external_spool_loaded` — for printers fed from a single external holder rather than the ACE |
 | **Other** | `job_preview` image, `printer_firmware` update |
 
 </details>
@@ -362,6 +365,7 @@ All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_j
 | Group | Entities |
 |---|---|
 | **Slots** | `ace_slot_1` – `ace_slot_4`, `ace_loaded_slot` |
+| **Filament left** | `ace_slot_N_filament_remaining`, `ace_slot_N_filament_remaining_percent`, `ace_slot_N_spool_weight`, `ace_slot_N_reset_spool` — see [Filament remaining](#filament-remaining-estimated) |
 | **Unit** | `ace_current_temperature`, `ace_box_fan_level`, `ace_spools`, `ace_run_out_refill`, `refresh_ace_spools`, `ace_firmware` update |
 | **Drying** | `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `drying_total_duration`, `drying_stop` |
 
@@ -371,8 +375,31 @@ Temperature and duration sensors carry the right device classes, so they graph p
 follow your °C / °F preference. `job_eta` is a genuine **timestamp** entity, so it renders as
 local time and works directly in automations.
 
-There are also [services](custom_components/anycubic_cloud/services.yaml) for printing, drying
-and file management.
+Anything marked as reported only on request, along with filament-remaining and the external
+holder, is **disabled by default** — enable what you want in **Settings → Entities**.
+
+There are also [actions](custom_components/anycubic_cloud/services.yaml) for printing, drying and
+file management, including **`print_local_file`** to start a file the printer already holds
+without re-uploading it:
+
+```yaml
+action: anycubic_cloud.print_local_file
+data:
+  config_entry: <your entry>
+  printer_id: <your printer>
+  filename: my_model_plate(01)_PLA_0.2_1h52m.gcode.3mf
+```
+
+It refuses if a job is already running, rather than interrupting or queueing behind it.
+
+> 💡 File listings are large — around 17 KB of attributes each — and have no historical value.
+> Worth excluding from the recorder:
+> ```yaml
+> recorder:
+>   exclude:
+>     entity_globs:
+>       - sensor.*_file_list_*
+> ```
 
 ---
 
@@ -503,10 +530,22 @@ pushed through — rather than the slicer's estimate. That matters because it:
 - **includes purge and priming waste**, which the slice figure leaves out (on a real
   print here, 31 783 mm actually extruded against a 31 690 mm estimate — 0.3% more);
 - **charges a cancelled print only for the part that ran**, not the whole job;
-- **still works for prints sliced outside the cloud**, where no estimate exists.
+- **still works for prints started at the printer's own screen**, which carry no
+  per-slot breakdown at all.
 
 Length is converted to grams using the filament's density, and split between slots
 using the slicer's per-colour breakdown when a print used more than one.
+
+Cloud-sliced jobs say which slot fed them. Jobs started at the printer don't, and the
+printer forgets which slot was feeding the moment a job ends — so the integration notes
+it *while the job runs* and uses that when the job completes. If it still can't tell
+which spool a job came from, it charges **nothing** rather than guessing at the wrong
+reel.
+
+> ⏱️ **The figure drops in one step, when a job finishes** — not gradually while it
+> prints. A job's usage keeps climbing until it ends, and charging it as it went would
+> count the same filament many times over. On a long print, expect no movement for
+> hours and then a single drop.
 
 ### Reels are remembered
 
@@ -521,8 +560,11 @@ entry. That is what the reset button is for.
 ### What it can't see
 
 - Filament used while Home Assistant wasn't watching the printer
-- The exact weight of the reel you loaded, unless you set it
+- The exact weight of the reel you loaded, unless you set it — put a part-used spool on
+  kitchen scales and type the number in; it accepts any value in grams
 - Manual extrusion and filament changes done at the panel
+- Which spool a job used, if it was started at the printer *and* Home Assistant never saw
+  it running
 
 Treat it as "roughly how much is left", not a scale.
 
@@ -724,14 +766,15 @@ see [testing scope](#hardware-and-testing-scope).
 
 | Item | Status |
 |---|---|
-| Camera / print stream ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | The printer reports a camera peripheral and a `video_taskid`, but it reads 0 here. Needs work to find how the stream is opened |
+| Camera / print stream ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | Closer than it was: the printer responds to `video/startCapture` and `video/stopCapture`, found while probing undocumented commands. What it does with the stream once started is still unknown |
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are already wired up; needs someone with two units to confirm |
 | 🔒 LAN / local mode ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | Would remove the cloud dependency entirely. Big job |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
-| ACE `edit_status` meaning | Reads `0` on the slot with an RFID SKU and `1` on manually-set slots, suggesting "identified by the spool" vs "set by hand" — but that's one data point. Exposed raw until confirmed |
+| ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--an-ios-app-for-writing-spool-tags-beta) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
 | `aiSettings` message type | The printer advertises AI and foreign-object detection and sends an `aiSettings` message, but its contents haven't been captured yet |
+| Chamber temperature | The printer answers with `curr_chamber_temp` and `target_chamber_temp`, but both read `0` on a Kobra S1. Not exposed — an always-zero entity is worse than none. Would be trivial to add if a machine is found that populates them |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
 
 ---

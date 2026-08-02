@@ -34,6 +34,7 @@ from .const import (
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
+    ATTR_FEEDING_SLOT,
     ATTR_FILAMENT_USED_G,
     ATTR_LAST_JOB_ID,
     ATTR_SPOOL_SIGNATURE,
@@ -1185,11 +1186,18 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             index: spool.get("material_type") for index, spool in enumerate(spools)
         }
 
+        # The live value is already -1 by the time a job reports finished, so
+        # fall back to whichever slot was seen feeding during it.
+        loaded_slot = printer.primary_multi_color_box_loaded_slot
+
+        if loaded_slot is None or loaded_slot < 0:
+            loaded_slot = printer_state.get(ATTR_FEEDING_SLOT)
+
         per_slot = attribute_job_to_slots(
             supplies_usage_mm=usage_mm,
             paint_infos=project.slice_material_info_list,
             slot_materials=materials,
-            loaded_slot=printer.primary_multi_color_box_loaded_slot,
+            loaded_slot=loaded_slot,
         )
 
         # Record the job either way, so an unattributable one isn't retried
@@ -1208,6 +1216,34 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         LOGGER.debug("Job %s used %s.", job_id, {k + 1: round(v, 1) for k, v in per_slot.items()})
 
+        printer_state.pop(ATTR_FEEDING_SLOT, None)
+
+        return True
+
+    def _remember_feeding_slot(self, printer: AnycubicPrinter) -> bool:
+        """Note which slot is feeding while a job runs.
+
+        Prints started at the printer's own screen carry no per-slot breakdown,
+        and `loaded_slot` reverts to -1 the moment the job ends -- so by the time
+        a job can be charged, the only evidence of which spool fed it is gone.
+        Capturing it mid-print is what makes those jobs attributable at all.
+        """
+        if not printer.latest_project_print_in_progress:
+            return False
+
+        slot = printer.primary_multi_color_box_loaded_slot
+
+        if slot is None or slot < 0:
+            return False
+
+        printers = self._filament.setdefault("printers", {})
+        state = printers.setdefault(str(printer.id), {})
+
+        if state.get(ATTR_FEEDING_SLOT) == slot:
+            return False
+
+        state[ATTR_FEEDING_SLOT] = slot
+
         return True
 
     async def _async_update_filament(self) -> None:
@@ -1217,6 +1253,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for printer in self._anycubic_printers.values():
             try:
                 if self._check_spool_changes(printer):
+                    changed = True
+                if self._remember_feeding_slot(printer):
                     changed = True
                 if self._record_finished_job(printer):
                     changed = True
