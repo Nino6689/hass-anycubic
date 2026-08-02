@@ -76,6 +76,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [4. Choose a connect mode](#4-choose-a-connect-mode)
 - [Entities](#entities)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
+- [📱 ReSpool — write your own spool tags *(beta)*](#-respool--an-ios-app-for-writing-spool-tags-beta)
 - [Automation examples](#automation-examples)
 - [Troubleshooting](#troubleshooting)
 - [🔐 Security](#-security)
@@ -524,6 +525,58 @@ entry. That is what the reset button is for.
 - Manual extrusion and filament changes done at the panel
 
 Treat it as "roughly how much is left", not a scale.
+
+---
+
+## 📱 ReSpool — an iOS app for writing spool tags *(beta)*
+
+The ACE identifies filament from an NFC tag, and only Anycubic's own spools carry one.
+**ReSpool** writes those tags, so any brand of filament is recognised — and gives each
+reel an identity this integration can tell apart.
+
+It is **in beta and testers are welcome**:
+
+### 👉 [Join the TestFlight beta](https://testflight.apple.com/join/3sGsKNSM)
+
+*iPhone 7 or newer. The link goes live once Apple finishes reviewing the first
+build — if it says the beta isn't accepting testers, try again shortly.*
+
+### What it does
+
+- **Makes third-party filament work.** Pick the material and colour, hold a blank
+  tag to your phone, stick it on the spool. The ACE recognises it like its own.
+- **Gives every reel a unique identity.** The tag's SKU carries six characters
+  derived from the tag's own serial, so two identical reels stop sharing one
+  entry here — the case the section above describes as needing the reset button.
+- **Reads any spool tag**, genuine or written, and shows the decoded fields down
+  to the raw bytes.
+- **A shared catalogue.** Scanning a genuine Anycubic spool adds that product to a
+  public catalogue, so anyone can write that filament without owning a reel of it.
+- **Part-used reels.** Weigh the spool, tell it what an empty one weighs, and it
+  works out what is left.
+
+### Confirmed on hardware
+
+A written tag was loaded into a Kobra S1 + ACE Pro. The material and colour were
+recognised, and the full SKU — `AHPLBW-103-A30001`, all 17 characters — reached
+Home Assistant through Anycubic's cloud intact. Two identical reels are now
+distinguishable by their serial suffix alone.
+
+### Worth knowing before you start
+
+- **You need blank NTAG213 stickers** (or larger). A few pence each online.
+- **Anycubic's own tags cannot be reused.** They are password-protected by the
+  manufacturer — `AUTH0` covers the whole payload, and the configuration is
+  locked, so no app can rewrite them. The app detects this and says so rather
+  than failing obscurely.
+- **Filament weight does not reach Home Assistant.** The app writes it to the tag
+  faithfully, but the printer does not forward it. Use the per-slot weight entity
+  here instead; it is remembered with the reel.
+- **Android** works in development but is not distributed yet.
+
+Bug reports and findings are welcome — the tag format is documented in
+[`docs/ios-tag-writer-brief.md`](docs/ios-tag-writer-brief.md), and several of its
+details were corrected by testers scanning real spools.
 
 ---
 
