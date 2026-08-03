@@ -1172,6 +1172,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ignore_init_errors=True,
         )
 
+        # Neither of these reaches a printer that has gone local: the cloud
+        # states what a machine prints and lists what it can do, and there is
+        # no cloud here. Without them every filament and ACE entity is
+        # filtered out as belonging to some other kind of printer.
+        printer.set_material_type_from_device_type(broker.device_type)
+
         # Replay everything already received so the printer starts populated
         # rather than blank until the next poll.
         for message_type, payload in self._lan_reports.items():
