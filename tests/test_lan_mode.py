@@ -660,3 +660,27 @@ class TestFallbackToLocal:
             ),
         ):
             await coordinator._setup_anycubic_api_connection()
+
+
+class TestCloudPollingWhileLocal:
+    """Asking the cloud for a printer that has gone local fails every time."""
+
+    async def test_the_cloud_poll_is_skipped_on_a_local_connection(self, hass: HomeAssistant) -> None:
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True})
+        client = MagicMock()
+        client.is_connected = True
+        coordinator._lan_client = client
+        api = MagicMock()
+        api.printer_info_for_id = AsyncMock(side_effect=AssertionError("must not ask"))
+        coordinator._anycubic_api = api
+
+        assert await coordinator.get_anycubic_updates() is True
+
+    async def test_the_cloud_is_still_polled_without_a_local_connection(self, hass: HomeAssistant) -> None:
+        coordinator = _coordinator(hass)
+        coordinator._anycubic_api = MagicMock()
+
+        with patch.object(coordinator, "_check_or_save_tokens", AsyncMock()) as checked:
+            await coordinator.get_anycubic_updates()
+
+        checked.assert_awaited()

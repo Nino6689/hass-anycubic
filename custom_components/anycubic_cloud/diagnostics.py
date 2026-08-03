@@ -152,6 +152,9 @@ def _build_capabilities(
             "multi_color_box_models": [box.model_id for box in boxes],
             "has_camera": printer.camera_stream_url is not None,
             "chamber_temperature": printer.chamber_temperature,
+            "curr_nozzle_temp": printer.curr_nozzle_temp,
+            "curr_hotbed_temp": printer.curr_hotbed_temp,
+            "has_parameter": printer.parameter is not None,
             "ai_settings": printer.ai_settings,
         })
 

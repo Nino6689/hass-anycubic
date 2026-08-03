@@ -1568,6 +1568,14 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def get_anycubic_updates(self) -> bool:
         """Fetch data from AnycubicCloud."""
 
+        if self.lan_is_connected:
+            # The cloud drops a printer that has gone local, so asking it for
+            # one fails every time -- and failing here aborted the refresh
+            # before the local reports were ever built into coordinator data,
+            # leaving every entity unavailable on a working connection.
+            self._last_state_update = int(time.time())
+            return True
+
         if self._failed_updates >= MAX_FAILED_UPDATES:
             self._last_state_update = int(time.time()) + FAILED_UPDATE_DELAY
             self._failed_updates = 0
