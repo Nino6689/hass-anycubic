@@ -1,6 +1,6 @@
 {
   "domain": "anycubic_cloud",
-  "name": "Anycubic Cloud",
+  "name": "Anycubic 3D Printers",
   "after_dependencies": [
     "panel_custom"
   ],
@@ -25,5 +25,5 @@
     "anycubic-cloud-api==0.3.3",
     "anycubic-cloud-frontend==0.1.1"
   ],
-  "version": "1.2.0"
+  "version": "1.2.1"
 }
