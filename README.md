@@ -25,6 +25,8 @@
 | 🎮 **Controls** | Pause, resume, cancel, drying, run-out refill and file management |
 | 🖼️ **Live preview** | The job preview image, as a camera-style entity |
 | 📈 **Lifetime stats** | Total filament used, total print time and print count |
+| 📷 **Camera** | The printer's own video stream, straight off the printer — [local connection](#5-optional-talk-to-the-printer-directly) only |
+| 🔌 **Cloud or local** | Talk to the printer through Anycubic's cloud *or* directly on your network, switchable in one place |
 | 🔐 **Verified connection** | TLS to Anycubic's cloud is properly verified — see [Security](#-security) |
 
 Around **60 entities** per printer, across two devices: the printer, and the ACE as a child device.
@@ -376,9 +378,25 @@ you're there.
 ⋯ → Reconfigure → Connection**. Change it at the printer first, then match it here. Your entity IDs
 are the same in both modes, so history and automations carry across.
 
+### Where the local connection is up to
+
+Confirmed end to end on a Kobra S1 running firmware 2.7.2.7. The handshake, the local broker, ACE
+data, the capability map and the camera are all proved against real hardware.
+
+**It is not yet a complete replacement for the cloud connection.** Being straight about which:
+
+| Working on a local-only printer | Not yet |
+|---|---|
+| Setup with the cloud reporting the printer as deleted | Temperature, job and ACE **entities** — the data is read correctly and appears in diagnostics, but entity creation is still gated behind a cloud-only field |
+| Camera, chamber light, online status | Cloud file library, uploads, print history *(cloud-only by nature)* |
+| Diagnostics, including the capability map | |
+
+So today the toggle is for **"cloud works and I want local as well"**, not yet for running local-only
+and expecting every entity. That last gap is the next job, and it's tracked in the
+[roadmap](#-roadmap).
+
 > [!NOTE]
-> Confirmed end to end on a Kobra S1 running firmware 2.7.2.7 — handshake, ACE data, and camera. Other
-> models in the Kobra 3 / S1 family speak the same protocol but have not been tried;
+> Other models in the Kobra 3 / S1 family speak the same protocol but have not been tried —
 > [a report either way](https://github.com/Nino6689/hass-anycubic_cloud/issues/new/choose) is genuinely
 > useful.
 
@@ -784,6 +802,17 @@ for what landed when.
 | **Reels are remembered** | Take a part-used spool out and put it back, in any slot, and its consumption and weight come back with it |
 | **Prints started at the printer count** | Those jobs carry no per-slot breakdown and the printer forgets which slot fed them the moment they end, so the feeding slot is noted while the job runs |
 
+### Talking to the printer directly *(new)*
+
+| Change | Why |
+|---|---|
+| **Local (LAN Mode) connection** | The printer runs its own MQTT broker speaking the same protocol as the cloud. Reached through a signed handshake and an AES-encrypted credential exchange. Nothing is stored on disk — the credentials are rotated by the printer and only mean anything on your own network |
+| **Switch cloud ↔ local in one place** | Reconfigure → Connection, validated against the printer before it saves, and reachable even when the entry hasn't loaded — which is the state you're in right after flipping LAN Mode |
+| **Camera** | The printer names its own stream endpoint and serves it once told to start capturing. Both facts are local-only; the cloud never mentions either |
+| **AI / foreign-object detection** | The printer sends an `aiSettings` message nobody had captured. Now a sensor, with the full settings in diagnostics |
+| **Capability map in diagnostics** | The printer lists what it physically supports — twelve flags. That, plus model id and firmware, is what makes a bug report about hardware I don't own actionable |
+| **Diagnostics survive a dead cloud** | They called the cloud for everything and failed outright when it was unreachable — exactly when you most want them |
+
 ### Printing and files *(new)*
 
 | Change | Why |
@@ -793,6 +822,14 @@ for what landed when.
 | **Cloud files carry their detail** | Thumbnail, print-time estimate, material, layer height, filament usage and dimensions — all sent by the cloud and previously discarded in favour of name and size |
 | **Head position** | Live X/Y/Z, via a printer command absent from Anycubic's published list |
 | **External filament holder** | Material and loaded state for printers fed from a single external spool |
+
+### Fixes that lose data on hardware other than mine
+
+| Change | Why |
+|---|---|
+| **A second ACE no longer vanishes** | A report naming one box replaced the whole list, so the second unit disappeared until the next full refresh |
+| **Partial print updates are kept** | Six temperature and speed fields were read unguarded, and one missing key threw the entire update away. Open-frame printers and progress-only updates both hit this |
+| **An ACE reporting fewer fields is detected** | Rather than silently vanishing |
 
 ### Quality *(new)*
 
@@ -857,6 +894,7 @@ see [testing scope](#hardware-and-testing-scope).
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are wired up, and a bug that made the second unit vanish whenever a report named only one box is fixed. Still needs someone with two units to confirm |
 | ~~LAN / local mode~~ ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Done and proved on hardware** — see [local connection](#5-optional-talk-to-the-printer-directly). Handshake, local broker, ACE data and camera all confirmed on a Kobra S1 running 2.7.2.7 |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
+| Full entity set on a local-only printer | The last piece of LAN Mode. Entity creation is gated on `current_status`, which only the cloud builds, so temperature/job/ACE entities aren't created when there is no cloud record — even though the data is parsed and visible in diagnostics. Needs that status derived from the local reports |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
 | ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--an-ios-app-for-writing-spool-tags-beta) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
