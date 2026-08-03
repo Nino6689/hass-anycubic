@@ -1,0 +1,30 @@
+Anycubic 3D Printers — Home Assistant integration
+=================================================
+
+Copyright (C) 2024-2026 WaresWichall
+Copyright (C) 2026 Nino Bondonno
+
+This integration is a fork of "hass-anycubic_cloud" by WaresWichall:
+
+    https://github.com/WaresWichall/hass-anycubic_cloud
+
+The original is the substantial majority of this work. It has been
+modified and extended by Nino Bondonno from 2026 onwards; those changes
+include compatibility with paho-mqtt 2.x and current Home Assistant,
+verified TLS to the cloud broker, the LAN Mode connection, per-slot
+filament tracking, the camera, and the test suite.
+
+The full list of changes is in the README under "Changes from upstream".
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
