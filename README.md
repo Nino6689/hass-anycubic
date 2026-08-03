@@ -331,7 +331,7 @@ You'll get the printer device, the ACE as a child device, and a sidebar panel wi
 
 MQTT is what gives sub-second updates. Staying connected permanently puts a little extra load on
 Anycubic's broker, so you choose when it's on:
-**Settings → Devices & services → Anycubic Cloud → Configure**.
+**Settings → Devices & services → Anycubic 3D Printers → Configure**.
 
 | Mode | MQTT connects |
 |---|---|
@@ -351,7 +351,7 @@ should come on within 5–15 seconds.
 
 The printer can run its own MQTT broker on your network, so Home Assistant talks to it without
 Anycubic's cloud in the middle. Turn it on under
-**Settings → Devices & services → Anycubic Cloud → Configure → Local connection (LAN Mode)**.
+**Settings → Devices & services → Anycubic 3D Printers → Configure → Local connection (LAN Mode)**.
 
 > [!CAUTION]
 > **Switching LAN Mode on removes the printer from your Anycubic account, and switching it back off
@@ -422,7 +422,7 @@ counters for a camera, independence from a cloud service, and a printer that kee
 your internet doesn't. Everything the printer itself knows, you get either way — **including
 filament tracking**, which is the feature most people install this for.
 
-**Switching back and forth** is a single page: **Settings → Devices & services → Anycubic Cloud →
+**Switching back and forth** is a single page: **Settings → Devices & services → Anycubic 3D Printers →
 ⋯ → Reconfigure → Connection**. Change it at the printer first, then match it here. Your entity IDs
 are the same in both modes, so history and automations carry across.
 
