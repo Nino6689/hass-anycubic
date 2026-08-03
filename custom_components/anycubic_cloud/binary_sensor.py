@@ -33,6 +33,13 @@ class AnycubicBinarySensorEntityDescription(
 
 PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
     AnycubicBinarySensorEntityDescription(
+        key="ai_detection_enabled",
+        translation_key="ai_detection_enabled",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    AnycubicBinarySensorEntityDescription(
         key="external_spool_loaded",
         translation_key="external_spool_loaded",
         printer_entity_type=PrinterEntityType.PRINTER,

@@ -4,3 +4,4 @@ pytest-homeassistant-custom-component>=0.13
 ruff>=0.6
 mypy
 pytest-cov
+PyTurboJPEG

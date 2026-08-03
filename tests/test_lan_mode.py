@@ -397,3 +397,266 @@ class TestPrinterMissingFromCloud:
 
         assert isinstance(error, ConfigEntryNotReady)
         assert "LAN Mode" in str(error)
+
+
+class TestConnectionReconfigure:
+    """Switching between cloud and local without starting over.
+
+    This lives in the reconfigure flow as well as options because it is what
+    someone reaches for right after flipping LAN Mode at the printer -- when
+    the cloud has dropped the printer and the entry may not be loaded.
+    """
+
+    async def _flow(self, hass: HomeAssistant, mock_entry):
+        from custom_components.anycubic_cloud.config_flow import AnycubicCloudConfigFlow
+
+        flow = AnycubicCloudConfigFlow()
+        flow.hass = hass
+        flow._is_reconfigure = True
+        flow.entry = mock_entry
+
+        return flow
+
+    async def test_the_menu_offers_it(self, hass: HomeAssistant, mock_entry) -> None:
+        flow = await self._flow(hass, mock_entry)
+
+        result = await flow.async_step_reauth_or_choose_printer()
+
+        assert "connection" in result["menu_options"]
+
+    async def test_the_form_shows_current_settings(self, hass: HomeAssistant, mock_entry) -> None:
+        hass.config_entries.async_update_entry(mock_entry, options={CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.0.9"})
+        flow = await self._flow(hass, mock_entry)
+
+        result = await flow.async_step_connection()
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "connection"
+
+    async def test_switching_to_local_checks_the_printer_first(self, hass: HomeAssistant, mock_entry) -> None:
+        flow = await self._flow(hass, mock_entry)
+
+        with patch(HANDSHAKE, _handshake_returning()):
+            result = await flow.async_step_connection({CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+
+        assert result["type"] == FlowResultType.ABORT
+        assert mock_entry.options[CONF_LAN_MODE_ENABLED] is True
+        assert mock_entry.options[CONF_LAN_HOST] == "10.0.66.28"
+
+    async def test_switching_back_to_cloud_needs_no_printer(self, hass: HomeAssistant, mock_entry) -> None:
+        """The printer may already be unreachable by the time you switch back."""
+        hass.config_entries.async_update_entry(mock_entry, options={CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        flow = await self._flow(hass, mock_entry)
+
+        result = await flow.async_step_connection({CONF_LAN_MODE_ENABLED: False})
+
+        assert result["type"] == FlowResultType.ABORT
+        assert mock_entry.options[CONF_LAN_MODE_ENABLED] is False
+
+    async def test_a_printer_still_in_cloud_mode_is_explained(self, hass: HomeAssistant, mock_entry) -> None:
+        flow = await self._flow(hass, mock_entry)
+
+        with patch(HANDSHAKE, _handshake_raising(AnycubicLANCloudModeError("cloud"))):
+            result = await flow.async_step_connection({CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+
+        assert result["errors"] == {"base": "lan_printer_in_cloud_mode"}
+        assert mock_entry.options.get(CONF_LAN_MODE_ENABLED) is not True
+
+    async def test_local_without_an_address_is_refused(self, hass: HomeAssistant, mock_entry) -> None:
+        flow = await self._flow(hass, mock_entry)
+
+        result = await flow.async_step_connection({CONF_LAN_MODE_ENABLED: True})
+
+        assert result["errors"] == {CONF_LAN_HOST: "lan_host_required"}
+
+
+class TestCamera:
+    """The stream endpoint is only ever named over the local connection."""
+
+    def _camera(self, hass: HomeAssistant, url):
+        from custom_components.anycubic_cloud.camera import CAMERA_TYPES, AnycubicCamera
+
+        coordinator = _coordinator(hass)
+        coordinator.data = {"printers": {1: {"states": {"camera_stream_url": url}, "attributes": {}}}}
+        coordinator.last_update_success = True
+
+        with patch.object(AnycubicCamera, "__init__", lambda self, *a, **k: None):
+            camera = AnycubicCamera()
+
+        camera.coordinator = coordinator
+        camera._printer_id = 1
+        camera.entity_description = CAMERA_TYPES[0]
+
+        return camera, coordinator
+
+    def test_the_url_is_read_from_the_printer(self, hass: HomeAssistant) -> None:
+        camera, _ = self._camera(hass, "http://10.0.66.28:18088/flv")
+
+        assert camera._stream_url == "http://10.0.66.28:18088/flv"
+
+    def test_a_cloud_only_setup_has_no_url(self, hass: HomeAssistant) -> None:
+        camera, _ = self._camera(hass, None)
+
+        assert camera._stream_url is None
+
+    async def test_asking_for_a_stream_starts_the_capture(self, hass: HomeAssistant) -> None:
+        """The endpoint answers but sends nothing until the printer is told."""
+        camera, coordinator = self._camera(hass, "http://10.0.66.28:18088/flv")
+        client = MagicMock()
+        client.is_connected = True
+        coordinator._lan_client = client
+
+        url = await camera.stream_source()
+
+        assert url == "http://10.0.66.28:18088/flv"
+        published = client.publish.call_args.args
+        assert published[0] == "video"
+        assert published[1]["action"] == "startCapture"
+
+    async def test_no_url_means_no_stream_and_no_command(self, hass: HomeAssistant) -> None:
+        camera, coordinator = self._camera(hass, None)
+        client = MagicMock()
+        coordinator._lan_client = client
+
+        assert await camera.stream_source() is None
+        client.publish.assert_not_called()
+
+    async def test_starting_the_camera_without_a_connection_is_harmless(self, hass: HomeAssistant) -> None:
+        await _coordinator(hass).async_start_camera(1)
+
+    async def test_a_failed_start_is_swallowed(self, hass: HomeAssistant) -> None:
+        coordinator = _coordinator(hass)
+        client = MagicMock()
+        client.is_connected = True
+        client.publish.side_effect = AnycubicLANError("gone")
+        coordinator._lan_client = client
+
+        await coordinator.async_start_camera(1)
+
+
+class TestPrinterFromLan:
+    """Building a printer with no cloud to ask."""
+
+    def _ready(self, hass: HomeAssistant, report=None):
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        coordinator._anycubic_api = MagicMock()
+        client = MagicMock()
+        client.broker = BROKER
+        client.is_connected = True
+        client.report_topic = "anycubic/anycubicCloud/v1/printer/public/20025/DEVICE1234"
+
+        def query(_kind):
+            if report is not None:
+                coordinator._lan_reports["info"] = report
+                if coordinator._lan_report_seen is not None:
+                    coordinator._lan_report_seen.set()
+
+        client.query = query
+        coordinator._lan_client = client
+
+        return coordinator
+
+    async def test_a_printer_is_built_from_the_local_report(self, hass: HomeAssistant) -> None:
+        coordinator = self._ready(
+            hass,
+            {
+                "type": "info",
+                "action": "report",
+                "state": "done",
+                "data": {"printerName": "Kobra S1", "version": "2.7.2.7"},
+            },
+        )
+
+        printer = await coordinator._async_printer_from_lan(7)
+
+        assert printer is not None
+        # The configured id is reused so entity ids survive a mode switch.
+        assert printer.id == 7
+        assert printer.machine_type == 20025
+        assert printer.key == "DEVICE1234"
+
+    async def test_a_silent_printer_yields_nothing(self, hass: HomeAssistant) -> None:
+        import custom_components.anycubic_cloud.coordinator as coordinator_module
+
+        coordinator = self._ready(hass, report=None)
+
+        with patch.object(coordinator_module, "LAN_FIRST_REPORT_TIMEOUT", 0.1):
+            assert await coordinator._async_printer_from_lan(7) is None
+
+    async def test_no_connection_yields_nothing(self, hass: HomeAssistant) -> None:
+        coordinator = _coordinator(hass)
+
+        assert await coordinator._async_printer_from_lan(7) is None
+
+
+class TestFallbackToLocal:
+    """When the cloud cannot supply a printer, the local connection can."""
+
+    def _coordinator_with_api(self, hass: HomeAssistant, options, printer_info):
+        coordinator = _coordinator(hass, options)
+        api = MagicMock()
+        api.printer_info_for_id = printer_info
+        coordinator._anycubic_api = api
+
+        return coordinator
+
+    async def test_a_cloud_failure_falls_back_when_local_is_enabled(self, hass: HomeAssistant) -> None:
+        built = _printer()
+        coordinator = self._coordinator_with_api(
+            hass,
+            {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"},
+            AsyncMock(side_effect=AttributeError("printer has been deleted")),
+        )
+
+        with (
+            patch.object(coordinator, "_async_load_filament", AsyncMock()),
+            patch.object(coordinator, "_async_printer_from_lan", AsyncMock(return_value=built)),
+        ):
+            await coordinator._setup_anycubic_printer_objects()
+
+        assert coordinator.printers[1] is built
+
+    async def test_a_cloud_failure_still_raises_without_local(self, hass: HomeAssistant) -> None:
+        from homeassistant.exceptions import ConfigEntryError
+
+        coordinator = self._coordinator_with_api(hass, {}, AsyncMock(side_effect=AttributeError("boom")))
+
+        with (
+            patch.object(coordinator, "_async_load_filament", AsyncMock()),
+            pytest.raises(ConfigEntryError),
+        ):
+            await coordinator._setup_anycubic_printer_objects()
+
+    async def test_neither_source_working_raises(self, hass: HomeAssistant) -> None:
+        from homeassistant.exceptions import ConfigEntryError
+
+        coordinator = self._coordinator_with_api(
+            hass,
+            {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"},
+            AsyncMock(return_value=None),
+        )
+
+        with (
+            patch.object(coordinator, "_async_load_filament", AsyncMock()),
+            patch.object(coordinator, "_async_printer_from_lan", AsyncMock(return_value=None)),
+            pytest.raises(ConfigEntryError),
+        ):
+            await coordinator._setup_anycubic_printer_objects()
+
+    async def test_setup_skips_the_cloud_check_in_local_mode(self, hass: HomeAssistant) -> None:
+        """The cloud has no printer to check once it has gone local."""
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        api = MagicMock()
+        api.check_api_tokens = AsyncMock(return_value=True)
+        api.get_auth_config_dict = MagicMock(return_value={})
+        api.printer_info_for_id = AsyncMock(side_effect=AssertionError("must not be called"))
+
+        with (
+            patch("custom_components.anycubic_cloud.coordinator.AnycubicAPI", return_value=api),
+            patch("custom_components.anycubic_cloud.coordinator.async_load_saved_tokens", AsyncMock()),
+            patch(
+                "custom_components.anycubic_cloud.coordinator.async_token_store",
+                return_value=MagicMock(async_save=AsyncMock()),
+            ),
+        ):
+            await coordinator._setup_anycubic_api_connection()

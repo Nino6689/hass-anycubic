@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
 from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData
+from anycubic_cloud_api.data_models.printer import AnycubicPrinter
 from anycubic_cloud_api.exceptions.exceptions import (
     AnycubicAPIError,
     AnycubicAPIParsingError,
@@ -102,10 +103,11 @@ from .helpers import (
 )
 
 if TYPE_CHECKING:
-    from anycubic_cloud_api.data_models.printer import AnycubicPrinter
 
     from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
 
+
+LAN_FIRST_REPORT_TIMEOUT = 20
 
 PRINTER_NOT_IN_CLOUD = (
     "The Anycubic cloud did not return this printer. If you have just switched "
@@ -139,6 +141,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._mqtt_idle_since: int | None = None
         self._mqtt_last_action: int | None = None
         self._lan_client: AnycubicLANClient | None = None
+        self._lan_reports: dict[str, dict[str, Any]] = {}
+        self._lan_report_seen: asyncio.Event | None = None
         self._lan_printer_id: int | None = None
         self._lan_unmatched_logged: bool = False
         self._mqtt_connect_check_lock = asyncio.Lock()
@@ -274,6 +278,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         states = {
             "id": printer.id,
             "name": printer.name,
+            # Reported only over the local connection.
+            "camera_stream_url": printer.camera_stream_url,
+            "ai_detection_enabled": printer.ai_detection_enabled,
+            "chamber_temp": printer.chamber_temperature,
             "printer_online": printer.printer_online,
             "is_busy": printer.is_busy,
             "is_available": printer.is_available,
@@ -518,6 +526,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 
     @property
+    def printers(self) -> dict[int, AnycubicPrinter]:
+        """The loaded printers, by id."""
+        return dict(self._anycubic_printers)
+
+    @property
     def lan_mode_enabled(self) -> bool:
         """Whether the user has opted into talking to the printer directly."""
         return bool(self.entry.options.get(CONF_LAN_MODE_ENABLED))
@@ -618,6 +631,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if client is None:
             return
+
+        self._lan_reports[message_type] = payload
+
+        if self._lan_report_seen is not None:
+            self.hass.loop.call_soon_threadsafe(self._lan_report_seen.set)
 
         printer = self._lan_target_printer(client.broker.model_id)
 
@@ -1033,6 +1051,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             first_printer_id = self.entry.data[CONF_PRINTER_ID_LIST][0]
 
+            if self.lan_mode_enabled:
+                # The cloud drops a printer that has gone local, so there is
+                # nothing to check here -- the local connection is the one that
+                # matters and it is proved when the printer object is built.
+                return
+
             try:
                 printer_status = await self._anycubic_api.printer_info_for_id(first_printer_id)
             except Exception as error:
@@ -1058,19 +1082,105 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 f"Coordinator authentication failed with unknown Error. Check credentials {error}"
             ) from error
 
+
+
+    async def async_start_camera(self, printer_id: int) -> None:
+        """Ask the printer to start sending video.
+
+        The stream endpoint answers but sends nothing until this is published,
+        so it goes out every time a stream is requested rather than being
+        tracked -- the printer is happy to be told twice.
+        """
+        client = self._lan_client
+
+        if client is None or not client.is_connected:
+            return
+
+        try:
+            client.publish(
+                "video", {"type": "video", "action": "startCapture", "data": {}}
+            )
+        except AnycubicLANError as err:
+            LOGGER.debug(f"Anycubic could not start the camera: {err}")
+
+    async def _async_printer_from_lan(self, printer_id: int) -> AnycubicPrinter | None:
+        """Build a printer from what it reports locally.
+
+        Used when the cloud cannot supply one -- which is the normal state for
+        a printer in LAN Mode, since the cloud drops it the moment it goes
+        local. The configured printer id is reused so entity ids survive
+        switching between the two modes.
+        """
+        await self._async_setup_lan_connection()
+
+        client = self._lan_client
+
+        if client is None:
+            return None
+
+        self._lan_report_seen = asyncio.Event()
+        client.query("info")
+
+        try:
+            async with asyncio.timeout(LAN_FIRST_REPORT_TIMEOUT):
+                while "info" not in self._lan_reports:
+                    self._lan_report_seen.clear()
+                    await self._lan_report_seen.wait()
+        except (TimeoutError, asyncio.CancelledError):
+            LOGGER.debug("Anycubic printer did not report over the local connection.")
+            return None
+        finally:
+            self._lan_report_seen = None
+
+        report = self._lan_reports["info"]
+        data = report.get("data") or {}
+        broker = client.broker
+
+        printer = AnycubicPrinter(
+            api_parent=self.anycubic_api,
+            machine_type=int(broker.model_id),
+            machine_name=broker.model_name or str(data.get("model") or "Anycubic printer"),
+            id=printer_id,
+            name=str(data.get("printerName") or broker.model_name or "Anycubic printer"),
+            key=broker.device_id,
+            ignore_init_errors=True,
+        )
+
+        # Replay everything already received so the printer starts populated
+        # rather than blank until the next poll.
+        for message_type, payload in self._lan_reports.items():
+            try:
+                printer.process_mqtt_update(
+                    client.report_topic + "/" + message_type,
+                    AnycubicConsumableData(payload),
+                )
+            except Exception:
+                LOGGER.debug(f"Anycubic local {message_type} report not applied.")
+
+        client.query_all()
+
+        return printer
+
     async def _setup_anycubic_printer_objects(self) -> None:
         await self._async_load_filament()
 
         for printer_id in self.entry.data[CONF_PRINTER_ID_LIST]:
+            printer = None
+
             try:
                 printer = await self.anycubic_api.printer_info_for_id(printer_id)
-                if not printer:
-                    raise ConfigEntryError(f"Failed to load printer object for {printer_id}")
-                self._anycubic_printers[int(printer_id)] = printer
-            except ConfigEntryError:
-                raise
             except Exception as error:
-                raise ConfigEntryError(error) from error
+                if not self.lan_mode_enabled:
+                    raise ConfigEntryError(error) from error
+                LOGGER.debug(f"Cloud could not supply printer {printer_id}: {error}")
+
+            if not printer and self.lan_mode_enabled:
+                printer = await self._async_printer_from_lan(int(printer_id))
+
+            if not printer:
+                raise ConfigEntryError(f"Failed to load printer object for {printer_id}")
+
+            self._anycubic_printers[int(printer_id)] = printer
 
         if not self._anycubic_printers:
             raise ConfigEntryError("No Anycubic printers could be loaded.")

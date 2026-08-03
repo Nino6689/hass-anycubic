@@ -10,6 +10,7 @@
   ],
   "config_flow": true,
   "dependencies": [
+    "camera",
     "file_upload",
     "http",
     "image"
@@ -21,8 +22,8 @@
     "custom_components.anycubic_cloud"
   ],
   "requirements": [
-    "anycubic-cloud-api==0.2.0",
+    "anycubic-cloud-api==0.3.0",
     "anycubic-cloud-frontend==0.1.1"
   ],
-  "version": "1.1.0"
+  "version": "1.2.0"
 }

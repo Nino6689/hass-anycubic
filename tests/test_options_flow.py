@@ -169,7 +169,7 @@ class TestReconfigure:
         result = await mock_entry.start_reconfigure_flow(hass)
 
         assert result["type"] is FlowResultType.MENU
-        assert set(result["menu_options"]) == {"reauth", "printer"}
+        assert set(result["menu_options"]) == {"reauth", "printer", "connection"}
 
     async def test_choosing_printers_lists_the_account_printers(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
         api, printer = mock_api

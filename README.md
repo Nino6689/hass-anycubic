@@ -368,12 +368,19 @@ you're there.
 | Update latency | Sub-second while MQTT is connected | Polled every few seconds |
 | **Filament tracking** | ✓ | ✓ — the printer reports the same figure locally |
 | Cloud file library, uploads, print history | ✓ | ✗ |
+| **Camera** | ✗ | ✓ |
+| **AI / foreign-object detection state** | ✗ | ✓ |
+| Capability map in diagnostics | ✗ | ✓ |
+
+**Switching back and forth** is a single page: **Settings → Devices & services → Anycubic Cloud →
+⋯ → Reconfigure → Connection**. Change it at the printer first, then match it here. Your entity IDs
+are the same in both modes, so history and automations carry across.
 
 > [!NOTE]
-> This is new and hasn't yet been confirmed against a printer in LAN Mode — development happens on a
-> Kobra S1 that lives on the cloud connection. If you try it, a
-> [bug report](https://github.com/Nino6689/hass-anycubic_cloud/issues/new/choose) either way is
-> genuinely useful.
+> Confirmed end to end on a Kobra S1 running firmware 2.7.2.7 — handshake, ACE data, and camera. Other
+> models in the Kobra 3 / S1 family speak the same protocol but have not been tried;
+> [a report either way](https://github.com/Nino6689/hass-anycubic_cloud/issues/new/choose) is genuinely
+> useful.
 
 **Want local only, with no Anycubic account at all?** That's a different shape of thing, and
 [chrisfore/anycubic_ha_local](https://github.com/chrisfore/anycubic_ha_local) does it properly —
@@ -846,15 +853,15 @@ see [testing scope](#hardware-and-testing-scope).
 
 | Item | Status |
 |---|---|
-| Camera / print stream ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | Closer than it was: the printer responds to `video/startCapture` and `video/stopCapture`, found while probing undocumented commands. What it does with the stream once started is still unknown |
-| 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are already wired up; needs someone with two units to confirm |
-| LAN / local mode ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Implemented, awaiting hardware validation** — see [local connection](#5-optional-talk-to-the-printer-directly). The handshake and local broker client are written and unit-tested; what remains is proving it against a printer actually switched into LAN Mode |
+| ~~Camera / print stream~~ ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | **Done, over the local connection.** The printer names its own stream endpoint and serves HTTP-FLV once `video/startCapture` is sent. There is no equivalent over the cloud, so the camera entity is unavailable on a cloud-only setup |
+| 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are wired up, and a bug that made the second unit vanish whenever a report named only one box is fixed. Still needs someone with two units to confirm |
+| ~~LAN / local mode~~ ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Done and proved on hardware** — see [local connection](#5-optional-talk-to-the-printer-directly). Handshake, local broker, ACE data and camera all confirmed on a Kobra S1 running 2.7.2.7 |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
 | ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--an-ios-app-for-writing-spool-tags-beta) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
-| `aiSettings` message type | The printer advertises AI and foreign-object detection and sends an `aiSettings` message, but its contents haven't been captured yet |
-| Chamber temperature | The printer answers with `curr_chamber_temp` and `target_chamber_temp`, but both read `0` on a Kobra S1. Not exposed — an always-zero entity is worse than none. Would be trivial to add if a machine is found that populates them |
+| ~~`aiSettings` message type~~ | **Captured and exposed.** `{status, type, count, notice_type, sensitivity_level}`. Surfaced as an `AI detection` binary sensor, with the rest in diagnostics. Local connection only |
+| Chamber temperature | Confirmed again over the local connection: a Kobra S1 omits the fields entirely rather than sending zero, so it genuinely has no chamber sensor. Parsed and kept when a printer does send it; still no entity until a machine is found that populates it |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
 
 ---

@@ -124,6 +124,40 @@ def parse_all_json_data(
     return output_dict
 
 
+def _build_capabilities(
+    coordinator: AnycubicCloudDataUpdateCoordinator,
+) -> list[dict[str, Any]]:
+    """What each printer says it is and what it can do.
+
+    This is the part that makes a report about hardware nobody here owns
+    actionable: the model id, the printer's own feature map, and whether the
+    optional pieces are actually present. None of it identifies anyone.
+    """
+    capabilities = []
+
+    for printer_id, printer in coordinator.printers.items():
+        boxes = printer.multi_color_box or []
+        capabilities.append({
+            "printer_id": printer_id,
+            "model_id": printer.machine_type,
+            "model_name": printer.machine_name,
+            "firmware": (
+                printer.fw_version.firmware_version if printer.fw_version else None
+            ),
+            "local_firmware": printer.local_firmware_version,
+            "connection": "local" if coordinator.lan_is_connected else "cloud",
+            # Reported only over the local connection; empty on cloud setups.
+            "features": printer.features,
+            "multi_color_box_count": len(boxes),
+            "multi_color_box_models": [box.model_id for box in boxes],
+            "has_camera": printer.camera_stream_url is not None,
+            "chamber_temperature": printer.chamber_temperature,
+            "ai_settings": printer.ai_settings,
+        })
+
+    return capabilities
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -133,10 +167,27 @@ async def async_get_config_entry_diagnostics(
     tRedacter = TaggedRedacter()
 
     assert coordinator.anycubic_api
-    user_info: dict[str, Any] = await coordinator.anycubic_api.get_user_info(raw_data=True)
-    printer_info: dict[str, Any] = await coordinator.anycubic_api.list_my_printers(raw_data=True)
-    projects_info: dict[str, Any] = await coordinator.anycubic_api.list_all_projects(raw_data=True)
+
+    capabilities = _build_capabilities(coordinator)
+
+    # A printer in LAN Mode is dropped by the cloud, so every call below fails.
+    # The capability block above is the useful part in that case, and returning
+    # it beats failing the whole download.
+    empty: dict[str, Any] = {"data": []}
+
+    try:
+        user_info: dict[str, Any] = await coordinator.anycubic_api.get_user_info(raw_data=True)
+        printer_info: dict[str, Any] = await coordinator.anycubic_api.list_my_printers(raw_data=True)
+        projects_info: dict[str, Any] = await coordinator.anycubic_api.list_all_projects(raw_data=True)
+    except Exception as err:
+        return {
+            "capabilities": capabilities,
+            "cloud_unavailable": str(err),
+        }
+
     latest_project_info = {}
+
+    projects_info = projects_info or empty
 
     if projects_info['data'] and len(projects_info['data']) > 0:
         latest_project_info = await coordinator.anycubic_api.project_info_for_id(
@@ -154,6 +205,7 @@ async def async_get_config_entry_diagnostics(
                 )
             )
     return {
+        "capabilities": capabilities,
         "user_info": tRedacter.redact_data(
             async_redact_data(
                 parse_all_json_data(user_info),

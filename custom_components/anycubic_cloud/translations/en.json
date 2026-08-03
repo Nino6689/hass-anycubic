@@ -10,7 +10,11 @@
       "cannot_connect": "Cannot connect.",
       "no_printers": "No printers found.",
       "invalid_printer": "Invalid printer.",
-      "invalid_token_format": "That doesn't look like an Anycubic token. It should be a long string of letters and numbers — slicer tokens start with \"eyJ\". Try one of the one-click helpers in the tools folder, then paste the result here."
+      "invalid_token_format": "That doesn't look like an Anycubic token. It should be a long string of letters and numbers — slicer tokens start with \"eyJ\". Try one of the one-click helpers in the tools folder, then paste the result here.",
+      "lan_host_required": "Enter the printer's address on your network.",
+      "lan_unreachable": "Could not reach the printer at that address. Check the address, and that LAN Mode is switched on at the printer.",
+      "lan_printer_in_cloud_mode": "The printer answered, but it is still in cloud mode. Switch LAN Mode on at the printer: Settings → Network → LAN Mode.",
+      "lan_unsupported_printer": "This printer does not use the local protocol this integration speaks (Kobra 3 / S1 generation). Please open an issue with your model and firmware version."
     },
     "step": {
       "auth_mode_web": {
@@ -55,7 +59,8 @@
         "description": "Are you re-authenticating or changing your monitored printer(s)?",
         "menu_options": {
           "reauth": "Re-Authenticate",
-          "printer": "Change Printer(s)"
+          "printer": "Change Printer(s)",
+          "connection": "Connection (cloud or local)"
         }
       },
       "user": {
@@ -68,6 +73,17 @@
         "data_description": {
           "user_token": "A slicer token gives live, second-by-second updates and the control buttons. A web token gives status only. Whichever you paste, it's detected automatically.",
           "user_device_id": "Leave this empty unless you extracted a token from the Android app's network traffic."
+        }
+      },
+      "connection": {
+        "title": "Connection",
+        "description": "Choose how Home Assistant reaches the printer.\n\nThe printer does one or the other, never both. Switching LAN Mode on at the printer (Settings → Network → LAN Mode) drops its cloud connection; switching it off drops the local one. Change it at the printer first, then match it here.\n\nYour entity IDs stay the same either way.",
+        "data": {
+          "lan_mode_enabled": "Use the local connection (LAN Mode)",
+          "lan_host": "Printer address on your network"
+        },
+        "data_description": {
+          "lan_host": "For example 10.0.0.42. Only needed for the local connection."
         }
       }
     }
@@ -169,6 +185,9 @@
       },
       "external_spool_loaded": {
         "name": "External spool loaded"
+      },
+      "ai_detection_enabled": {
+        "name": "AI detection"
       }
     },
     "button": {
@@ -474,6 +493,11 @@
       },
       "ace_slot_4_spool_weight": {
         "name": "ACE slot 4 spool weight"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Camera"
       }
     }
   },

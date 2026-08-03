@@ -111,6 +111,7 @@ LOGGER = logging.getLogger(__package__)
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
+    Platform.CAMERA,
     Platform.BUTTON,
     Platform.IMAGE,
     Platform.LIGHT,

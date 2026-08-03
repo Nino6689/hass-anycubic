@@ -151,6 +151,25 @@ async def async_load_tokens_from_store(
         anycubic_api.load_auth_config_from_dict(config, minimal=True)
 
 
+async def check_lan_host(hass: HomeAssistant, host: str) -> dict[str, str]:
+    """Prove the printer is reachable and in LAN Mode before saving."""
+    handshake = AnycubicLANHandshake(async_create_clientsession(hass), host, LOGGER)
+
+    try:
+        await handshake.async_authenticate()
+    except AnycubicLANCloudModeError:
+        return {"base": "lan_printer_in_cloud_mode"}
+    except AnycubicLANUnsupportedError:
+        return {"base": "lan_unsupported_printer"}
+    except AnycubicLANError:
+        return {"base": "lan_unreachable"}
+    except Exception:
+        LOGGER.debug(f"Unexpected error checking LAN Mode:\n{traceback.format_exc()}")
+        return {"base": "lan_unreachable"}
+
+    return {}
+
+
 class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for AnycubicCloud integration."""
 
@@ -543,8 +562,61 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_menu(
             step_id="reauth_or_choose_printer",
-            menu_options=["reauth", "printer"],
+            menu_options=["reauth", "printer", "connection"],
         )
+
+    async def async_step_connection(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Switch between the cloud and the printer's own local connection.
+
+        Kept here rather than only in options because this is what someone
+        reaches for after flipping LAN Mode at the printer -- at which point
+        the cloud has dropped the printer and the entry may not be loaded.
+        """
+        errors: dict[str, str] = {}
+        entry = self.entry
+
+        if entry is None:
+            return self.async_abort(reason="reconfigure_successful")
+
+        if user_input:
+            host = str(user_input.get(CONF_LAN_HOST) or "").strip()
+            enabled = bool(user_input.get(CONF_LAN_MODE_ENABLED))
+
+            if enabled and not host:
+                errors[CONF_LAN_HOST] = "lan_host_required"
+            elif enabled:
+                errors = await self._async_check_lan_host(host)
+
+            if not errors:
+                self.hass.config_entries.async_update_entry(
+                    entry,
+                    options={
+                        **entry.options,
+                        CONF_LAN_MODE_ENABLED: enabled,
+                        CONF_LAN_HOST: host,
+                    },
+                )
+                return self.async_abort(reason="reconfigure_successful")
+
+        return self.async_show_form(
+            step_id="connection",
+            data_schema=vol.Schema({
+                vol.Optional(
+                    CONF_LAN_MODE_ENABLED,
+                    default=entry.options.get(CONF_LAN_MODE_ENABLED, False),
+                ): BooleanSelector(),
+                vol.Optional(
+                    CONF_LAN_HOST,
+                    default=entry.options.get(CONF_LAN_HOST, ""),
+                ): cv.string,
+            }),
+            errors=errors,
+        )
+
+    async def _async_check_lan_host(self, host: str) -> dict[str, str]:
+        return await check_lan_host(self.hass, host)
 
 
 class AnycubicCloudOptionsFlowHandler(OptionsFlow):
@@ -688,22 +760,7 @@ class AnycubicCloudOptionsFlowHandler(OptionsFlow):
                 # Check the printer before saving. Turning this on when the
                 # printer is still in cloud mode would otherwise leave the
                 # integration with no working connection at all.
-                session = async_create_clientsession(self.hass)
-                handshake = AnycubicLANHandshake(session, host, LOGGER)
-
-                try:
-                    await handshake.async_authenticate()
-                except AnycubicLANCloudModeError:
-                    errors["base"] = "lan_printer_in_cloud_mode"
-                except AnycubicLANUnsupportedError:
-                    errors["base"] = "lan_unsupported_printer"
-                except AnycubicLANError:
-                    errors["base"] = "lan_unreachable"
-                except Exception:
-                    LOGGER.debug(
-                        f"Unexpected error checking LAN Mode:\n{traceback.format_exc()}"
-                    )
-                    errors["base"] = "lan_unreachable"
+                errors = await check_lan_host(self.hass, host)
 
                 if not errors:
                     return self.async_create_entry_with_existing_options({
