@@ -559,11 +559,24 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             broker = await AnycubicLANHandshake(
                 session, host, LOGGER
             ).async_authenticate()
+        except AnycubicLANError as err:
+            LOGGER.debug(f"Anycubic local handshake failed: {err} ({err.__cause__!r})")
+            return
+        except Exception:
+            LOGGER.debug(
+                f"Unexpected error in the Anycubic local handshake:\n"
+                f"{traceback.format_exc()}"
+            )
+            return
 
+        try:
             client = AnycubicLANClient(broker, self._lan_on_message, LOGGER)
             await client.async_connect()
         except AnycubicLANError as err:
-            LOGGER.debug(f"Anycubic local connection unavailable: {err}")
+            LOGGER.debug(
+                f"Anycubic local broker refused the connection: {err} "
+                f"({err.__cause__!r})"
+            )
             return
         except Exception:
             LOGGER.debug(
@@ -601,6 +614,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         printers = list(self._anycubic_printers.values())
 
+        if not printers:
+            # Reports start arriving while the printer object is still being
+            # built from them, which is expected rather than a mismatch.
+            return None
+
         if len(printers) == 1:
             return printers[0]
 
@@ -630,6 +648,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         client = self._lan_client
 
         if client is None:
+            return
+
+        # Bare {"msgid": ""} acknowledgements carry no type and are not
+        # reports; the parser requires one, so they are dropped here.
+        if "type" not in payload:
             return
 
         self._lan_reports[message_type] = payload
@@ -1143,6 +1166,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             id=printer_id,
             name=str(data.get("printerName") or broker.model_name or "Anycubic printer"),
             key=broker.device_id,
+            # The discovery document carries it in the URN, which is the only
+            # place it appears when the cloud has never seen this printer.
+            machine_mac=broker.mac,
             ignore_init_errors=True,
         )
 

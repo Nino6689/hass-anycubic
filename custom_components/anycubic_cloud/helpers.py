@@ -45,12 +45,16 @@ def build_printer_device_info(
 ) -> DeviceInfo:
     printer_data = coordinator_data['printers'][printer_id]['states']
     user_data = coordinator_data['user_info']
+    mac = printer_data.get("machine_mac")
+
     return DeviceInfo(
         identifiers={(DOMAIN, f"{user_data['id']}-{printer_data['id']}")},
         manufacturer=MANUFACTURER,
         model=printer_data["machine_name"],
         name=printer_data["name"],
-        connections={(CONNECTION_NETWORK_MAC, printer_data["machine_mac"])},
+        # A printer that has never been seen through the cloud may not report
+        # one, and the device registry rejects a null connection outright.
+        connections={(CONNECTION_NETWORK_MAC, mac)} if mac else set(),
         sw_version=printer_data["fw_version"],
         hw_version=f"Printer ID: {printer_id}",
         serial_number=f"{printer_id}",
