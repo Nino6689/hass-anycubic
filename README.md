@@ -777,7 +777,7 @@ were all arriving in messages that were being discarded.
 <br>
 
 Your token expired. Re-extract via [step 2](#2-get-an-auth-token), then **Settings → Devices &
-services → Anycubic Cloud → Reconfigure → Re-Auth**. Entity IDs, history and automations are all
+services → Anycubic 3D Printers → Reconfigure → Re-Auth**. Entity IDs, history and automations are all
 preserved.
 
 </details>
