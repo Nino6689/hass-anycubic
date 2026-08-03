@@ -73,7 +73,7 @@ it is also quarantined, so Gatekeeper blocks it even after you fix the flag.
 Run this once to put a *working* copy on your Desktop:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Nino6689/hass-anycubic_cloud/main/tools/get-anycubic-token-macos.command -o ~/Desktop/AnycubicToken.command && chmod +x ~/Desktop/AnycubicToken.command && xattr -c ~/Desktop/AnycubicToken.command && echo "Saved to your Desktop"
+curl -fsSL https://raw.githubusercontent.com/Nino6689/hass-anycubic/main/tools/get-anycubic-token-macos.command -o ~/Desktop/AnycubicToken.command && chmod +x ~/Desktop/AnycubicToken.command && xattr -c ~/Desktop/AnycubicToken.command && echo "Saved to your Desktop"
 ```
 
 `chmod +x` restores the executable flag and `xattr -c` clears the quarantine.
@@ -122,7 +122,7 @@ the one‑liner above instead.
 > The macOS instructions above were tested end to end on a real Mac. The Windows
 > steps follow the same reasoning but have **not** been verified on a Windows
 > machine — if they don't work for you, please
-> [open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) and say
+> [open an issue](https://github.com/Nino6689/hass-anycubic/issues) and say
 > what you saw.
 
 > Windows may ask whether you're sure about running a script — that prompt

@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or setup help
-    url: https://github.com/Nino6689/hass-anycubic_cloud/discussions
+    url: https://github.com/Nino6689/hass-anycubic/discussions
     about: Not sure something is a bug? Ask here.
   - name: Local-only alternative (no cloud account)
     url: https://github.com/chrisfore/anycubic_ha_local

@@ -15,9 +15,9 @@
     "http",
     "image"
   ],
-  "documentation": "https://github.com/Nino6689/hass-anycubic_cloud",
+  "documentation": "https://github.com/Nino6689/hass-anycubic",
   "iot_class": "cloud_push",
-  "issue_tracker": "https://github.com/Nino6689/hass-anycubic_cloud/issues",
+  "issue_tracker": "https://github.com/Nino6689/hass-anycubic/issues",
   "loggers": [
     "custom_components.anycubic_cloud"
   ],

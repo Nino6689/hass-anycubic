@@ -1,7 +1,7 @@
 # Brief: iOS NFC tag writer for Anycubic ACE spools
 
 **Audience:** the developer/agent building the iOS app.
-**Author of this brief:** maintainer of the [Anycubic Cloud Home Assistant integration](https://github.com/Nino6689/hass-anycubic_cloud), who owns the Home Assistant side of this and is not building the app.
+**Author of this brief:** maintainer of the [Anycubic Cloud Home Assistant integration](https://github.com/Nino6689/hass-anycubic), who owns the Home Assistant side of this and is not building the app.
 
 ---
 

@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Nino6689/hass-anycubic_cloud/releases/latest"><img src="https://img.shields.io/github/v/release/Nino6689/hass-anycubic_cloud?style=for-the-badge&color=41BDF5" alt="Release"></a>
+  <a href="https://github.com/Nino6689/hass-anycubic/releases/latest"><img src="https://img.shields.io/github/v/release/Nino6689/hass-anycubic?style=for-the-badge&color=41BDF5" alt="Release"></a>
   <a href="https://github.com/hacs/default/pull/7780"><img src="https://img.shields.io/badge/HACS-Default-41BDF5?style=for-the-badge&logo=home-assistant&logoColor=white" alt="In the HACS default catalog"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-GPL_3.0-blue?style=for-the-badge" alt="Licence"></a>
   <a href="https://buymeacoffee.com/nino6689"><img src="https://img.shields.io/badge/buy_me_a_coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
@@ -131,7 +131,7 @@ Otherwise the step-by-step below explains everything.
 | Photon Mono M5s *(basic)* | M7 Pro *(basic)* |
 
 Tried a model that isn't listed, or one of the "reported" ones and it misbehaved?
-[Open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) — including for the ones
+[Open an issue](https://github.com/Nino6689/hass-anycubic/issues) — including for the ones
 that *do* work, so this list can rest on something firmer than inference.
 
 ---
@@ -155,14 +155,14 @@ HACS reads a data feed that is rebuilt periodically, so a newly added repository
 a day or so to become searchable. In the meantime, add it manually:
 
 **HACS** → **⋮** (top right) → **Custom repositories** → add
-`https://github.com/Nino6689/hass-anycubic_cloud` with category **Integration**.
+`https://github.com/Nino6689/hass-anycubic` with category **Integration**.
 
 You can remove the custom entry once it appears in the catalog on its own.
 </details>
 
 ### Manually
 
-Grab the latest [release zip](https://github.com/Nino6689/hass-anycubic_cloud/releases/latest),
+Grab the latest [release zip](https://github.com/Nino6689/hass-anycubic/releases/latest),
 extract `custom_components/anycubic_cloud/` into your HA `config/custom_components/` directory,
 and restart.
 
@@ -213,7 +213,7 @@ plutil -extract anycubic_cloud.access_token raw -o - ~/Library/Application\ Supp
 Run this once to put a working helper on your Desktop:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Nino6689/hass-anycubic_cloud/main/tools/get-anycubic-token-macos.command -o ~/Desktop/AnycubicToken.command && chmod +x ~/Desktop/AnycubicToken.command && xattr -c ~/Desktop/AnycubicToken.command && echo "Saved to your Desktop"
+curl -fsSL https://raw.githubusercontent.com/Nino6689/hass-anycubic/main/tools/get-anycubic-token-macos.command -o ~/Desktop/AnycubicToken.command && chmod +x ~/Desktop/AnycubicToken.command && xattr -c ~/Desktop/AnycubicToken.command && echo "Saved to your Desktop"
 ```
 
 Double-click `AnycubicToken.command` any time to refresh your token.
@@ -397,7 +397,7 @@ and expecting every entity. That last gap is the next job, and it's tracked in t
 
 > [!NOTE]
 > Other models in the Kobra 3 / S1 family speak the same protocol but have not been tried —
-> [a report either way](https://github.com/Nino6689/hass-anycubic_cloud/issues/new/choose) is genuinely
+> [a report either way](https://github.com/Nino6689/hass-anycubic/issues/new/choose) is genuinely
 > useful.
 
 **Want local only, with no Anycubic account at all?** That's a different shape of thing, and
@@ -729,7 +729,7 @@ details were corrected by testers scanning real spools.
 else still flows normally. They're logged once at WARNING, not repeatedly.
 
 If you see one, it's genuinely useful to
-[open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues) with the line. It's how
+[open an issue](https://github.com/Nino6689/hass-anycubic/issues) with the line. It's how
 new printer features get found — the printer light, the ACE spool details and the auxiliary fan
 were all arriving in messages that were being discarded.
 
@@ -751,7 +751,7 @@ preserved.
 
 <br>
 
-[Open an issue](https://github.com/Nino6689/hass-anycubic_cloud/issues/new) with:
+[Open an issue](https://github.com/Nino6689/hass-anycubic/issues/new) with:
 
 - Your **printer model** — especially if it isn't a Kobra S1, see [testing scope](#hardware-and-testing-scope)
 - Home Assistant version
@@ -791,7 +791,7 @@ Found a security issue? See [SECURITY.md](SECURITY.md).
 ## 📦 Changes from upstream
 
 Versioned independently of upstream, whose last release was **v0.2.2** in December 2024.
-Everything below is on top of that. See the [releases](https://github.com/Nino6689/hass-anycubic_cloud/releases)
+Everything below is on top of that. See the [releases](https://github.com/Nino6689/hass-anycubic/releases)
 for what landed when.
 
 ### Filament tracking *(new)*
