@@ -1,8 +1,8 @@
-<h1 align="center">Anycubic Cloud for Home Assistant</h1>
+<h1 align="center">Anycubic 3D Printers for Home Assistant</h1>
 
 <p align="center">
-  Monitor and control your <b>Anycubic Kobra</b> or <b>Photon</b> 3D printer from Home Assistant,<br>
-  with sub-second live updates over MQTT.
+  Monitor and control your <b>Anycubic Kobra</b> or <b>Photon</b> from Home Assistant —<br>
+  through Anycubic's cloud, or <b>directly over your own network</b>.
 </p>
 
 <p align="center">
@@ -107,10 +107,10 @@ Know your way around HACS? Here's the speed run:
 
 [![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Nino6689&repository=hass-anycubic_cloud&category=integration)
 
-1. Click the button above (or search HACS for **Anycubic Cloud**) → **Download**
+1. Click the button above (or search HACS for **Anycubic**) → **Download**
 2. Restart Home Assistant
 3. Grab a token — the [slicer method](#option-a--slicer-token-recommended) (recommended) or the [web console snippet](#option-b--web-token-easiest)
-4. **Settings → Devices & services → Add integration** → **Anycubic Cloud** → paste the token
+4. **Settings → Devices & services → Add integration** → **Anycubic 3D Printers** → paste the token
 5. Select your printer
 
 Otherwise the step-by-step below explains everything.
@@ -144,7 +144,7 @@ This integration is in the **HACS default catalog**, so no custom repository is 
 
 [![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Nino6689&repository=hass-anycubic_cloud&category=integration)
 
-1. Click the button above, or open **HACS** and search for **Anycubic Cloud**
+1. Click the button above, or open **HACS** and search for **Anycubic**
 2. **Download**
 3. **Restart Home Assistant**
 
@@ -318,7 +318,7 @@ more involved, and not recommended without a specific reason.
 ## 3. Add it to Home Assistant
 
 1. **Settings → Devices & services → + Add integration**
-2. Search **Anycubic Cloud**
+2. Search **Anycubic**
 3. Pick the **auth mode** matching your token (Slicer / Web / Android)
 4. Paste the token — and **Device ID** too, for Android
 5. Choose which printers to track
