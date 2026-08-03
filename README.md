@@ -87,7 +87,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [2. Get an auth token](#2-get-an-auth-token) — [Slicer](#option-a--slicer-token-recommended) · [Web](#option-b--web-token-easiest) · [Android](#option-c--android-token-advanced)
 - [3. Add it to Home Assistant](#3-add-it-to-home-assistant)
 - [4. Choose a connect mode](#4-choose-a-connect-mode)
-- [5. Talk to the printer directly *(LAN Mode)*](#5-optional-talk-to-the-printer-directly)
+- [5. Talk to the printer directly *(LAN Mode)*](#5-optional-talk-to-the-printer-directly) — [which to choose](#which-should-you-choose) · [what each gives you](#what-each-mode-gives-you)
 - [Entities](#entities)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
 - [Filament remaining *(estimated)*](#filament-remaining-estimated)
@@ -377,17 +377,50 @@ handshake runs before the setting is saved, so if the printer is still in cloud 
 rather than ending up with nothing connected. Give the printer a fixed address on your router while
 you're there.
 
-| | Cloud | Local |
+### Which should you choose?
+
+**Most people should stay on cloud.** It is the default for good reason: everything works, nothing
+has to be re-paired, and the file library is genuinely useful. Local is for people who have a
+specific reason to want it.
+
+> **Pick cloud if** you upload sliced files from your computer, you like browsing the printer's file
+> library from Home Assistant, or you simply want the thing that works with the fewest surprises.
+>
+> **Pick local if** your printer is on an isolated VLAN with no internet, you want the camera in
+> Home Assistant, you don't trust a cloud service to still be there next year, or you object to your
+> printer phoning home at all.
+
+### What each mode gives you
+
+**Both modes give you the core of it** — live temperatures, every ACE slot with its material and
+colour, per-slot filament remaining, the chamber light, printer status, and every control that acts
+on the printer itself.
+
+| | ☁️ Cloud | 🏠 Local |
 |---|---|---|
-| Works without internet | ✗ | ✓ |
-| Survives Anycubic changing their API | ✗ | ✓ |
-| Update latency | Sub-second while MQTT is connected | Polled every few seconds |
-| **Filament tracking** | ✓ | ✓ — the printer reports the same figure locally |
-| Cloud file library, uploads, print history | ✓ | ✗ |
-| **Camera** | ✗ | ✓ |
-| **Head position** | ✓ | ✓ |
-| **AI / foreign-object detection state** | ✗ | ✓ |
-| Capability map in diagnostics | ✗ | ✓ |
+| **Live telemetry** — nozzle, bed, ACE temps and humidity | ✓ | ✓ |
+| **Per-slot filament** — material, colour, and how much is left | ✓ | ✓ |
+| **Print controls** — pause, resume, cancel, drying, speed | ✓ | ✓ |
+| **Chamber light** | ✓ | ✓ |
+| **Head position** — live X/Y/Z | ✓ | ✓ |
+| **Job tracking** — progress, ETA, layers | ✓ | ✓ |
+| Update speed | **Sub-second** push while MQTT is connected | Polled every ~15 s |
+| Works with no internet | ✗ | **✓** |
+| Survives Anycubic changing or withdrawing their API | ✗ | **✓** |
+| Keeps working if your token expires | ✗ | **✓** — no token involved |
+| **📷 Camera** | ✗ | **✓** — the printer's own stream |
+| **🤖 AI / foreign-object detection state** | ✗ | **✓** |
+| Capability map in diagnostics | ✗ | **✓** |
+| **📁 File library** — browse, upload, print from cloud | **✓** | ✗ |
+| **Job preview image** | **✓** | ✗ |
+| **Lifetime totals** — filament used, print count | **✓** | ✗ |
+| Multiple printers on one account | **✓** | One entry per printer |
+| Reachable away from home | **✓** | Local network only |
+
+**The honest summary:** local trades Anycubic's file library, the job thumbnail and your lifetime
+counters for a camera, independence from a cloud service, and a printer that keeps working when
+your internet doesn't. Everything the printer itself knows, you get either way — **including
+filament tracking**, which is the feature most people install this for.
 
 **Switching back and forth** is a single page: **Settings → Devices & services → Anycubic Cloud →
 ⋯ → Reconfigure → Connection**. Change it at the printer first, then match it here. Your entity IDs
