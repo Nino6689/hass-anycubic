@@ -77,7 +77,7 @@
       },
       "connection": {
         "title": "Connection",
-        "description": "Choose how Home Assistant reaches the printer.\n\nThe printer does one or the other, never both. Switching LAN Mode on at the printer (Settings → Network → LAN Mode) drops its cloud connection; switching it off drops the local one. Change it at the printer first, then match it here.\n\nYour entity IDs stay the same either way.",
+        "description": "Choose how Home Assistant reaches the printer.\n\n⚠ Switching LAN Mode on REMOVES the printer from your Anycubic account. Switching it back off does not restore it, and nor does a power cycle — the printer has to be added again in the Anycubic app. This is the printer's behaviour, not the integration's.\n\nChange it at the printer first, then match it here. Your entity IDs stay the same either way.",
         "data": {
           "lan_mode_enabled": "Use the local connection (LAN Mode)",
           "lan_host": "Printer address on your network"
@@ -134,7 +134,7 @@
       },
       "local": {
         "title": "Local connection (LAN Mode)",
-        "description": "Talk to the printer directly on your network instead of through Anycubic's cloud.\n\nThe printer does one or the other, never both: switching LAN Mode on at the printer (Settings → Network → LAN Mode) drops its cloud connection, and cloud-only features such as the file library stop working. Filament tracking keeps working either way.\n\nSwitch LAN Mode on at the printer first, then enable it here.",
+        "description": "Talk to the printer directly on your network instead of through Anycubic's cloud.\n\n⚠ Switching LAN Mode on REMOVES the printer from your Anycubic account. Switching it back off does not restore it, and nor does a power cycle — the printer has to be added again in the Anycubic app. This is the printer's behaviour, not the integration's.\n\nCloud-only features (the file library, uploads, print history) stop working. Everything the printer itself knows, including filament tracking, keeps working.\n\nSwitch LAN Mode on at the printer first, then enable it here.",
         "data": {
           "lan_mode_enabled": "Use the local connection",
           "lan_host": "Printer address on your network"

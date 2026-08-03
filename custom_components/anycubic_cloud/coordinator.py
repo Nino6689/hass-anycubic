@@ -110,9 +110,11 @@ if TYPE_CHECKING:
 LAN_FIRST_REPORT_TIMEOUT = 20
 
 PRINTER_NOT_IN_CLOUD = (
-    "The Anycubic cloud did not return this printer. If you have just switched "
-    "the printer into LAN Mode, this is expected -- the cloud drops it when it "
-    "goes local. Enable the local connection in the integration's options. ({})"
+    "The Anycubic cloud does not have this printer. If it is in LAN Mode, that "
+    "is expected -- enable the local connection in this integration's options. "
+    "Note that LAN Mode removes the printer from your Anycubic account, and "
+    "neither switching LAN Mode off nor a power cycle brings it back: it has to "
+    "be added again in the Anycubic app. ({})"
 )
 
 
@@ -1210,7 +1212,13 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 printer = await self._async_printer_from_lan(int(printer_id))
 
             if not printer:
-                raise ConfigEntryError(f"Failed to load printer object for {printer_id}")
+                # Neither source could supply it. Most often this is the gap
+                # after switching a printer out of LAN Mode, where the cloud
+                # has not re-registered it yet -- so retry rather than fail
+                # terminally, which left the entry dead until reloaded by hand.
+                raise ConfigEntryNotReady(PRINTER_NOT_IN_CLOUD.format(
+                    f"printer {printer_id} not available from the cloud or locally"
+                ))
 
             self._anycubic_printers[int(printer_id)] = printer
 

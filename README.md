@@ -353,10 +353,23 @@ The printer can run its own MQTT broker on your network, so Home Assistant talks
 Anycubic's cloud in the middle. Turn it on under
 **Settings → Devices & services → Anycubic Cloud → Configure → Local connection (LAN Mode)**.
 
-> [!IMPORTANT]
-> **The printer does one or the other, never both.** Switching LAN Mode on at the printer
-> (*Settings → Network → LAN Mode*) drops its cloud connection, and switching it back off drops the
-> local one. This isn't a choice the integration makes — it's how the firmware works.
+> [!CAUTION]
+> **Switching LAN Mode on removes the printer from your Anycubic account, and switching it back off
+> does not restore it.** Read this before you flip it.
+>
+> Confirmed on a Kobra S1 (firmware 2.7.2.7): with LAN Mode on, the cloud reports the printer as
+> deleted (`code 1007`) and the account lists **zero printers**. Turning LAN Mode back off is not
+> enough, and **neither is a power cycle** — both were tested. The printer has to be **added again
+> in the Anycubic app**, as though it were new.
+>
+> Your Home Assistant entities survive the round trip: they are keyed to the printer's MAC address
+> rather than its cloud record, so re-pairing reattaches them instead of creating duplicates. If the
+> printer comes back with a different cloud id, use **Reconfigure → Change Printer(s)** to select it
+> again.
+>
+> This is the printer's behaviour, not the integration's. It is the reason a local-first project
+> like [anycubic_ha_local](https://github.com/chrisfore/anycubic_ha_local) may suit you better if
+> you never want the cloud at all.
 
 **Switch LAN Mode on at the printer first**, then enable it here and give the printer's address. The
 handshake runs before the setting is saved, so if the printer is still in cloud mode you're told so

@@ -627,22 +627,6 @@ class TestFallbackToLocal:
         ):
             await coordinator._setup_anycubic_printer_objects()
 
-    async def test_neither_source_working_raises(self, hass: HomeAssistant) -> None:
-        from homeassistant.exceptions import ConfigEntryError
-
-        coordinator = self._coordinator_with_api(
-            hass,
-            {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"},
-            AsyncMock(return_value=None),
-        )
-
-        with (
-            patch.object(coordinator, "_async_load_filament", AsyncMock()),
-            patch.object(coordinator, "_async_printer_from_lan", AsyncMock(return_value=None)),
-            pytest.raises(ConfigEntryError),
-        ):
-            await coordinator._setup_anycubic_printer_objects()
-
     async def test_setup_skips_the_cloud_check_in_local_mode(self, hass: HomeAssistant) -> None:
         """The cloud has no printer to check once it has gone local."""
         coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
@@ -684,3 +668,31 @@ class TestCloudPollingWhileLocal:
             await coordinator.get_anycubic_updates()
 
         checked.assert_awaited()
+
+
+class TestSwitchingBackToCloud:
+    """The gap after a printer leaves LAN Mode.
+
+    Anycubic's cloud takes a few minutes to re-register a printer that has
+    come back from local, and the printer refuses the local handshake the
+    moment it switches. Failing terminally in that window left the entry dead
+    until it was reloaded by hand.
+    """
+
+    async def test_neither_source_working_retries_rather_than_dying(self, hass: HomeAssistant) -> None:
+        from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        api = MagicMock()
+        api.printer_info_for_id = AsyncMock(return_value=None)
+        coordinator._anycubic_api = api
+
+        with (
+            patch.object(coordinator, "_async_load_filament", AsyncMock()),
+            patch.object(coordinator, "_async_printer_from_lan", AsyncMock(return_value=None)),
+            pytest.raises(ConfigEntryNotReady) as caught,
+        ):
+            await coordinator._setup_anycubic_printer_objects()
+
+        assert not isinstance(caught.value, ConfigEntryError)
+        assert "LAN Mode" in str(caught.value)
