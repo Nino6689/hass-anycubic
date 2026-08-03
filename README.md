@@ -362,10 +362,11 @@ Anycubic's cloud in the middle. Turn it on under
 > enough, and **neither is a power cycle** — both were tested. The printer has to be **added again
 > in the Anycubic app**, as though it were new.
 >
-> Your Home Assistant entities survive the round trip: they are keyed to the printer's MAC address
-> rather than its cloud record, so re-pairing reattaches them instead of creating duplicates. If the
-> printer comes back with a different cloud id, use **Reconfigure → Change Printer(s)** to select it
-> again.
+> **The good news:** re-pairing is clean. Tested end to end — the printer came back with the *same*
+> cloud id, the integration picked it up with no reconfiguring, and all 84 entities reattached with
+> **zero duplicates and zero orphans**. Entities are keyed to the printer's MAC rather than its cloud
+> record, which is what makes that work. If yours does come back under a different id, use
+> **Reconfigure → Change Printer(s)** to select it.
 >
 > This is the printer's behaviour, not the integration's. It is the reason a local-first project
 > like [anycubic_ha_local](https://github.com/chrisfore/anycubic_ha_local) may suit you better if
