@@ -649,17 +649,13 @@ class TestSingleMaterialAttribution:
 
     def test_it_no_longer_charges_slot_zero(self):
         """The exact regression: paint_index 0 read as ACE slot 1."""
-        per_slot = attribute_job_to_slots(
-            self.USAGE_MM, self.JOB, {2: "PLA+"}, loaded_slot=2
-        )
+        per_slot = attribute_job_to_slots(self.USAGE_MM, self.JOB, {2: "PLA+"}, loaded_slot=2)
 
         assert 0 not in per_slot
 
     def test_the_amount_matches_what_the_printer_reported(self):
         """16727 mm of PLA is ~50 g, and the slicer independently said 49.76."""
-        per_slot = attribute_job_to_slots(
-            self.USAGE_MM, self.JOB, {2: "PLA+"}, loaded_slot=2
-        )
+        per_slot = attribute_job_to_slots(self.USAGE_MM, self.JOB, {2: "PLA+"}, loaded_slot=2)
 
         assert per_slot[2] == pytest.approx(49.76, abs=1.5)
 
