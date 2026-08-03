@@ -678,7 +678,7 @@ A written tag was loaded into a Kobra S1 + ACE Pro. Material and colour were rec
 - **Filament weight doesn't reach Home Assistant.** The app writes it to the tag faithfully, but the
   printer doesn't forward it. Use the per-slot weight entity here instead — it's remembered with the
   reel.
-- **Android** works in development but isn't distributed yet.
+- **Android** builds from the same Flutter codebase but isn't distributed yet.
 
 ---
 
