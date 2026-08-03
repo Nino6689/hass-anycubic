@@ -122,9 +122,17 @@ def attribute_job_to_slots(
     materials = slot_materials or {}
     shares = slot_shares(paint_infos)
 
+    # `paint_index` numbers the materials within the slicer's list for a job,
+    # not the ACE slots they were drawn from. On a single-material print it is
+    # therefore always 0 -- which is not a statement that slot 1 fed the job,
+    # and reading it as one charged every such print to the wrong spool.
+    # With one material there is nothing to apportion anyway, so the slot the
+    # printer reports as feeding is both simpler and correct.
+    if len(shares) <= 1 and loaded_slot is not None and loaded_slot >= 0:
+        shares = {loaded_slot: 1.0}
+
     if not shares:
-        # No per-slot breakdown: a single-material print, or one sliced outside
-        # the cloud. Charge it to the slot that was loaded, if we know it.
+        # Nothing to go on: no breakdown, and no idea which slot was loaded.
         if loaded_slot is None or loaded_slot < 0:
             return {}
         shares = {loaded_slot: 1.0}

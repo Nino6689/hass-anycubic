@@ -622,3 +622,61 @@ class TestPrintsStartedAtThePrinter:
             await c._async_update_filament()
 
         assert c._filament_slot_state(PRINTER_ID, 2)["filament_used_g"] == 0.0
+
+
+class TestSingleMaterialAttribution:
+    """`paint_index` numbers materials within a job, not ACE slots.
+
+    Caught by watching a real print rather than by reading the code: a
+    single-material job fed from slot 3 reported `paint_index: 0`, and the
+    whole 51 g was charged to slot 1. Every single-material print was affected,
+    for every user, whenever the feeding slot wasn't the first one.
+    """
+
+    # Captured verbatim from job 110832999 on a Kobra S1.
+    JOB = [{"filament_used": 49.76, "material_type": "PLA", "paint_index": 0}]
+    USAGE_MM = 16727
+
+    def test_it_charges_the_slot_that_actually_fed_the_print(self):
+        per_slot = attribute_job_to_slots(
+            supplies_usage_mm=self.USAGE_MM,
+            paint_infos=self.JOB,
+            slot_materials={2: "PLA+"},
+            loaded_slot=2,
+        )
+
+        assert list(per_slot) == [2]
+
+    def test_it_no_longer_charges_slot_zero(self):
+        """The exact regression: paint_index 0 read as ACE slot 1."""
+        per_slot = attribute_job_to_slots(
+            self.USAGE_MM, self.JOB, {2: "PLA+"}, loaded_slot=2
+        )
+
+        assert 0 not in per_slot
+
+    def test_the_amount_matches_what_the_printer_reported(self):
+        """16727 mm of PLA is ~50 g, and the slicer independently said 49.76."""
+        per_slot = attribute_job_to_slots(
+            self.USAGE_MM, self.JOB, {2: "PLA+"}, loaded_slot=2
+        )
+
+        assert per_slot[2] == pytest.approx(49.76, abs=1.5)
+
+    def test_without_a_known_slot_it_still_falls_back_to_paint_index(self):
+        """A guess beats losing the usage entirely."""
+        per_slot = attribute_job_to_slots(self.USAGE_MM, self.JOB, {}, loaded_slot=None)
+
+        assert list(per_slot) == [0]
+
+    def test_multi_material_still_apportions_by_paint_index(self):
+        """With several materials the proportions are the useful part."""
+        infos = [
+            {"filament_used": 30.0, "paint_index": 0},
+            {"filament_used": 10.0, "paint_index": 2},
+        ]
+
+        per_slot = attribute_job_to_slots(10000, infos, {}, loaded_slot=1)
+
+        assert set(per_slot) == {0, 2}
+        assert per_slot[0] == pytest.approx(per_slot[2] * 3, rel=0.01)
