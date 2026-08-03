@@ -696,3 +696,31 @@ class TestSwitchingBackToCloud:
 
         assert not isinstance(caught.value, ConfigEntryError)
         assert "LAN Mode" in str(caught.value)
+
+
+class TestLocalConnectionFailurePaths:
+    """Both ways the local broker can refuse, kept covered."""
+
+    async def _attempt(self, hass: HomeAssistant, error):
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        client = MagicMock()
+        client.async_connect = AsyncMock(side_effect=error)
+
+        with (
+            patch(CO_HANDSHAKE, _handshake_returning()),
+            patch(CO_CLIENT, return_value=client),
+        ):
+            await coordinator._async_setup_lan_connection()
+
+        return coordinator
+
+    async def test_a_refused_broker_leaves_no_connection(self, hass: HomeAssistant) -> None:
+        coordinator = await self._attempt(hass, AnycubicLANError("refused"))
+
+        assert coordinator.lan_is_connected is False
+
+    async def test_an_unexpected_error_is_also_survivable(self, hass: HomeAssistant) -> None:
+        """The cloud may still be the working connection -- never fail setup."""
+        coordinator = await self._attempt(hass, RuntimeError("boom"))
+
+        assert coordinator.lan_is_connected is False

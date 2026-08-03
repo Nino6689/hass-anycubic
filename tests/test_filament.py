@@ -680,3 +680,34 @@ class TestSingleMaterialAttribution:
 
         assert set(per_slot) == {0, 2}
         assert per_slot[0] == pytest.approx(per_slot[2] * 3, rel=0.01)
+
+
+class TestAttributionEdges:
+    """The paths that only fire on odd data, kept covered so they stay correct."""
+
+    def test_a_malformed_paint_entry_is_skipped(self):
+        """A list with junk in it must not take the whole job down."""
+        infos = ["not a dict", {"paint_index": 1, "filament_used": 10.0}]
+
+        assert slot_shares(infos) == {1: 1.0}
+
+    @pytest.mark.parametrize(
+        "entry",
+        [
+            {"paint_index": "one", "filament_used": 10.0},
+            {"paint_index": 1, "filament_used": "ten"},
+            {"filament_used": 10.0},
+            {"paint_index": 1},
+        ],
+    )
+    def test_entries_missing_usable_numbers_are_skipped(self, entry):
+        assert slot_shares([entry]) == {}
+
+    def test_no_breakdown_and_no_loaded_slot_attributes_nothing(self):
+        """Better to record nothing than to charge an arbitrary spool."""
+        assert attribute_job_to_slots(16727, None, {}, loaded_slot=None) == {}
+
+    def test_no_breakdown_but_a_known_slot_charges_that_slot(self):
+        per_slot = attribute_job_to_slots(16727, None, {2: "PLA"}, loaded_slot=2)
+
+        assert list(per_slot) == [2]
