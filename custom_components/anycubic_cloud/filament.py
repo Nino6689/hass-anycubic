@@ -169,10 +169,20 @@ def remaining_grams(spool_weight_g: float, used_g: float) -> float:
 
 
 def remaining_percent(spool_weight_g: float, used_g: float) -> float | None:
-    """Filament left as a percentage of the spool it started as."""
-    if spool_weight_g <= 0:
+    """Filament left as a percentage of a full reel.
+
+    Measured against a full reel rather than against however much happened to
+    be on this one when it was set up. A part-used spool entered as 334 g and
+    now down to 283 g is 28% of a reel, not 85% -- and 85% next to a genuinely
+    full slot reading 100% invites exactly the wrong decision about which one
+    to start a long print on.
+
+    A reel larger than the standard kilo is measured against its own size, so
+    a 5 kg spool still reads 100% when full.
+    """
+    nominal = max(spool_weight_g, DEFAULT_SPOOL_WEIGHT_G)
+
+    if nominal <= 0:
         return None
 
-    return round(
-        max(0.0, min(100.0, (spool_weight_g - used_g) / spool_weight_g * 100)), 1
-    )
+    return round(max(0.0, min(100.0, (spool_weight_g - used_g) / nominal * 100)), 1)

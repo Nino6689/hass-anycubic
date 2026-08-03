@@ -1,8 +1,13 @@
 """Numbers for Anycubic Cloud.
 
-One entry per ACE slot, holding how much filament that spool started with. The
-printer can't weigh a spool, so this is the figure the remaining-filament
-estimate counts down from -- change it if you load a 750 g or 5 kg reel.
+One entry per ACE slot, holding how much filament is actually on that reel
+right now. The printer can't weigh a spool, so this is the figure the
+remaining-filament estimate counts down from.
+
+Set it to what the reel really holds -- 334 g for a part-used one, 5000 for a
+5 kg roll. The grams sensor counts down from here; the percentage sensor
+reports against a full reel, so a part-used spool reads as the fraction of a
+reel it is rather than as nearly full.
 """
 
 from __future__ import annotations

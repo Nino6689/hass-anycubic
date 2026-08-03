@@ -672,6 +672,23 @@ reel.
 > count the same filament many times over. On a long print, expect no movement for
 > hours and then a single drop.
 
+### What the percentage means
+
+**The grams sensor counts down from the weight you set. The percentage is measured against a full
+reel**, so the two answer different questions:
+
+| | |
+|---|---|
+| `..._filament_remaining` | How much is left, in grams. Counts down from the `Spool Weight` you set |
+| `..._filament_remaining_percent` | How much of a **full reel** that is |
+
+So a part-used spool entered as **334 g**, now down to **283 g**, reads **283 g** and **28%** — not
+85%. It is 28% of a reel, and saying 85% next to a genuinely full slot at 100% invites exactly the
+wrong decision about which one to start a long print on.
+
+A reel larger than the standard kilo is measured against its own size, so a 5 kg spool still reads
+100% when full.
+
 ### Reels are remembered
 
 A reel is identified by its colour, material and SKU. Take a part-used reel out, put

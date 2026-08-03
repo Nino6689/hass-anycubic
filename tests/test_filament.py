@@ -209,7 +209,9 @@ class TestRemaining:
         assert remaining_percent(DEFAULT_SPOOL_WEIGHT_G, 0) == 100.0
 
     def test_an_unset_spool_weight_has_no_percentage(self) -> None:
-        assert remaining_percent(0, 100) is None
+        # A reel set to zero grams is empty, which is a fact rather than an
+        # absence of one -- 0% says more than "unknown".
+        assert remaining_percent(0, 100) == 0.0
 
 
 class TestTrackingThroughTheCoordinator:
@@ -707,3 +709,35 @@ class TestAttributionEdges:
         per_slot = attribute_job_to_slots(16727, None, {2: "PLA"}, loaded_slot=2)
 
         assert list(per_slot) == [2]
+
+
+class TestPercentageIsAgainstAFullReel:
+    """A part-used reel should not read as nearly full.
+
+    Reported from real use: a spool entered at 334 g, down to 283 g, showed
+    85%. Sitting beside a genuinely full slot at 100%, that invites exactly
+    the wrong decision about which reel to start a long print on. It is 28%
+    of a reel, and that is what it should say.
+    """
+
+    def test_a_part_used_reel_reads_against_a_full_one(self):
+        assert remaining_percent(334, 51.4) == pytest.approx(28.3, abs=0.1)
+
+    def test_a_part_used_reel_untouched_is_not_one_hundred(self):
+        """Loading a 334 g reel does not make it a full spool."""
+        assert remaining_percent(334, 0) == pytest.approx(33.4, abs=0.1)
+
+    def test_a_full_kilo_still_reads_one_hundred(self):
+        assert remaining_percent(1000, 0) == 100.0
+
+    def test_a_larger_reel_is_measured_against_its_own_size(self):
+        """A 5 kg spool is full at 5 kg, not 500%."""
+        assert remaining_percent(5000, 0) == 100.0
+        assert remaining_percent(5000, 1000) == 80.0
+
+    def test_grams_are_unaffected(self):
+        """Only the percentage changes meaning; the weight is still the weight."""
+        assert remaining_grams(334, 51.4) == pytest.approx(282.6, abs=0.1)
+
+    def test_it_never_exceeds_one_hundred(self):
+        assert remaining_percent(1000, -50) == 100.0
