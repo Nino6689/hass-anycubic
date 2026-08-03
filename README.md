@@ -96,6 +96,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [Troubleshooting](#troubleshooting)
 - [🔐 Security](#-security)
 - [📦 Changes from upstream](#-changes-from-upstream)
+- [Translating](#translating)
 - [🧭 Roadmap](#-roadmap)
 - [Credits](#credits)
 
@@ -930,12 +931,36 @@ see [testing scope](#hardware-and-testing-scope).
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are wired up, and a bug that made the second unit vanish whenever a report named only one box is fixed. Still needs someone with two units to confirm |
 | ~~LAN / local mode~~ ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Done and proved on hardware** — see [local connection](#5-optional-talk-to-the-printer-directly). Handshake, local broker, ACE data and camera all confirmed on a Kobra S1 running 2.7.2.7 |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
-| Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | English only today. PRs very welcome |
+| Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | **German added**, covering the config flow, options, errors and all entity names. Machine-drafted and not checked by a native speaker — corrections very welcome, and so are other languages. See [Translating](#translating) |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
 | ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--an-ios-app-for-writing-spool-tags-beta) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
 | ~~`aiSettings` message type~~ | **Captured and exposed.** `{status, type, count, notice_type, sensitivity_level}`. Surfaced as an `AI detection` binary sensor, with the rest in diagnostics. Local connection only |
 | Chamber temperature | Confirmed again over the local connection: a Kobra S1 omits the fields entirely rather than sending zero, so it genuinely has no chamber sensor. Parsed and kept when a printer does send it; still no entity until a machine is found that populates it |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
+
+---
+
+## Translating
+
+The integration ships **English** and **German**. German covers everything a user actually reads —
+the setup flow, the options pages, every error message and all 110 entity names. The 350 action
+descriptions are deliberately left in English; they only appear in Developer Tools.
+
+> [!NOTE]
+> **The German was drafted by machine and has not been checked by a native speaker.** If something
+> reads badly, it probably does — please say so. A correction to one string is a welcome
+> contribution, not a nuisance.
+
+**To fix a string:** edit [`custom_components/anycubic_cloud/translations/de.json`](custom_components/anycubic_cloud/translations/de.json)
+and open a pull request. Nothing else needs touching.
+
+**To add a language:** copy `translations/en.json` to `translations/<code>.json` and translate the
+`config`, `options`, `entity`, `exceptions` and `issues` sections. Leave `services` in English unless
+you want the extra work. Any key you leave out falls back to English automatically, so a partial
+translation is genuinely useful — you don't have to finish it.
+
+Most wanted, by how many Home Assistant installs are in each country: **Dutch**, **French**,
+**Chinese (Simplified)**, **Italian**, **Spanish**, **Polish**.
 
 ---
 

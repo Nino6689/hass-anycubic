@@ -1,0 +1,526 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Already configured.",
+      "reauth_successful": "Re-authentication successful."
+    },
+    "error": {
+      "invalid_auth": "Ungültige Authentifizierung.",
+      "invalid_token": "Ungültiges Benutzer-Token.",
+      "cannot_connect": "Verbindung nicht möglich.",
+      "no_printers": "Keine Drucker gefunden.",
+      "invalid_printer": "Ungültiger Drucker.",
+      "invalid_token_format": "Das sieht nicht nach einem Anycubic-Token aus. Es sollte eine lange Zeichenkette sein, die mit eyJ beginnt.",
+      "lan_host_required": "Geben Sie die Adresse des Druckers im Netzwerk ein.",
+      "lan_unreachable": "Der Drucker war unter dieser Adresse nicht erreichbar. Prüfen Sie die Adresse und ob der LAN-Modus am Drucker eingeschaltet ist.",
+      "lan_printer_in_cloud_mode": "Der Drucker hat geantwortet, ist aber noch im Cloud-Modus. Schalten Sie den LAN-Modus am Drucker ein: Einstellungen → Netzwerk → LAN-Modus.",
+      "lan_unsupported_printer": "Dieser Drucker verwendet nicht das lokale Protokoll, das diese Integration spricht (Generation Kobra 3 / S1). Bitte melden Sie ein Issue mit Modell und Firmware-Version."
+    },
+    "step": {
+      "auth_mode_web": {
+        "title": "Authentifizierung – Web",
+        "description": "Token von der Anycubic-Cloud-Website holen (siehe Anleitung in der Integration).",
+        "data": {
+          "user_token": "Benutzer-Token"
+        }
+      },
+      "auth_mode_slicer": {
+        "title": "Authentifizierung – Slicer Next",
+        "description": "Das access_token aus der Konfigurationsdatei von Anycubic Slicer Next auslesen.",
+        "data": {
+          "user_token": "Slicer-Access-Token"
+        }
+      },
+      "auth_mode_android": {
+        "title": "Authentifizierung – Android-App",
+        "description": "Benötigt sowohl Token als auch device_id.",
+        "data": {
+          "user_token": "Benutzer-Token"
+        }
+      },
+      "printer": {
+        "title": "Drucker auswählen",
+        "data": {
+          "printer_ids": "Monitored Printers"
+        }
+      },
+      "auth_mode_pick": {
+        "title": "Authentifizierungsmethode",
+        "description": "Which authentication mode would you like to use?",
+        "menu_options": {
+          "auth_mode_web": "Web (No MQTT)",
+          "auth_mode_slicer": "Slicer Next (Win)",
+          "auth_mode_android": "Android"
+        }
+      },
+      "reauth_or_choose_printer": {
+        "title": "Neu anmelden oder Drucker wählen",
+        "description": "Möchten Sie sich neu anmelden oder die überwachten Drucker ändern?",
+        "menu_options": {
+          "reauth": "Neu anmelden",
+          "printer": "Drucker ändern",
+          "connection": "Verbindung (Cloud oder lokal)"
+        }
+      },
+      "user": {
+        "title": "Anycubic-Konto verbinden",
+        "description": "Home Assistant kann sich nicht für Sie bei Anycubic anmelden – deren Login lässt das nicht zu. Sie holen sich stattdessen einmalig ein Token und fügen es hier ein.",
+        "data": {
+          "user_token": "Token hier einfügen",
+          "user_device_id": "Geräte-ID (nur bei der Android-Methode – sonst leer lassen)"
+        },
+        "data_description": {
+          "user_token": "Ein Slicer-Token liefert Live-Aktualisierungen im Sekundentakt und alle Funktionen. Ein Web-Token funktioniert, aber ohne MQTT und damit ohne Live-Updates.",
+          "user_device_id": "Leer lassen, sofern Sie das Token nicht aus der Android-App extrahiert haben."
+        }
+      },
+      "connection": {
+        "title": "Verbindung",
+        "description": "Legen Sie fest, wie Home Assistant den Drucker erreicht.\n\n⚠ Wird der LAN-Modus am Drucker eingeschaltet, wird der Drucker AUS IHREM Anycubic-Konto ENTFERNT. Ihn wieder auszuschalten stellt das nicht wieder her, ein Neustart ebenso wenig – der Drucker muss in der Anycubic-App erneut hinzugefügt werden. Das ist das Verhalten des Druckers, nicht der Integration.\n\nÄndern Sie es zuerst am Drucker und stellen Sie es hier passend ein. Ihre Entitäts-IDs bleiben in beiden Fällen gleich.",
+        "data": {
+          "lan_mode_enabled": "Lokale Verbindung verwenden (LAN-Modus)",
+          "lan_host": "Adresse des Druckers im Netzwerk"
+        },
+        "data_description": {
+          "lan_host": "Zum Beispiel 10.0.0.42. Nur für die lokale Verbindung nötig."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "options_menu": {
+        "title": "Anycubic-Optionen",
+        "menu_options": {
+          "mqtt": "MQTT-Einstellungen",
+          "local": "Lokale Verbindung (LAN-Modus)",
+          "drying": "Trocknungs-Voreinstellungen",
+          "card_config": "Karten-Konfiguration",
+          "debug": "Debug-Einstellungen"
+        }
+      },
+      "mqtt": {
+        "title": "MQTT-Einstellungen",
+        "data": {
+          "mqtt_connect_mode": "MQTT Connection Mode"
+        }
+      },
+      "drying": {
+        "title": "Drying Presets",
+        "data": {
+          "drying_preset_duration_1": "Dry Preset 1 Duration",
+          "drying_preset_temperature_1": "Dry Preset 1 Temperature",
+          "drying_preset_duration_2": "Dry Preset 2 Duration",
+          "drying_preset_temperature_2": "Dry Preset 2 Temperature",
+          "drying_preset_duration_3": "Dry Preset 3 Duration",
+          "drying_preset_temperature_3": "Dry Preset 3 Temperature",
+          "drying_preset_duration_4": "Dry Preset 4 Duration",
+          "drying_preset_temperature_4": "Dry Preset 4 Temperature"
+        }
+      },
+      "card_config": {
+        "title": "Panel Card Config",
+        "data": {
+          "card_config": "Panel Card Config (YAML format)"
+        }
+      },
+      "debug": {
+        "title": "Debug-Einstellungen",
+        "data": {
+          "debug_mqtt_msg": "Alle MQTT-Nachrichten protokollieren",
+          "debug_api_calls": "Alle API-Aufrufe protokollieren"
+        }
+      },
+      "local": {
+        "title": "Lokale Verbindung (LAN-Modus)",
+        "description": "Den Drucker direkt im eigenen Netzwerk ansprechen statt über die Anycubic-Cloud.\n\n⚠ Wird der LAN-Modus am Drucker eingeschaltet, wird der Drucker AUS IHREM Anycubic-Konto ENTFERNT. Ihn wieder auszuschalten stellt das nicht wieder her, ein Neustart ebenso wenig – der Drucker muss in der Anycubic-App erneut hinzugefügt werden.\n\nReine Cloud-Funktionen (Dateibibliothek, Uploads, Druckverlauf) entfallen. Alles, was der Drucker selbst weiß – auch die Filamentverfolgung – funktioniert weiter.\n\nSchalten Sie den LAN-Modus zuerst am Drucker ein und aktivieren Sie ihn dann hier.",
+        "data": {
+          "lan_mode_enabled": "Lokale Verbindung verwenden",
+          "lan_host": "Adresse des Druckers im Netzwerk"
+        },
+        "data_description": {
+          "lan_host": "For example 10.0.0.42. A fixed address is strongly recommended."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "job_in_progress": {
+        "name": "Druck läuft"
+      },
+      "job_complete": {
+        "name": "Druck abgeschlossen"
+      },
+      "job_failed": {
+        "name": "Druck fehlgeschlagen"
+      },
+      "job_is_paused": {
+        "name": "Druck pausiert"
+      },
+      "printer_online": {
+        "name": "Drucker online"
+      },
+      "mqtt_connection_active": {
+        "name": "MQTT-Verbindung aktiv"
+      },
+      "is_busy": {
+        "name": "Is Busy"
+      },
+      "is_available": {
+        "name": "Verfügbar"
+      },
+      "dry_status_is_drying": {
+        "name": "Trocknen Active"
+      },
+      "secondary_dry_status_is_drying": {
+        "name": "Trocknen aktiv (2. ACE)"
+      },
+      "external_spool_loaded": {
+        "name": "External spool loaded"
+      },
+      "ai_detection_enabled": {
+        "name": "KI-Erkennung"
+      }
+    },
+    "button": {
+      "drying_start_preset_1": {
+        "name": "Trocknungs-Voreinstellung 1"
+      },
+      "drying_start_preset_2": {
+        "name": "Trocknungs-Voreinstellung 2"
+      },
+      "drying_start_preset_3": {
+        "name": "Trocknungs-Voreinstellung 3"
+      },
+      "drying_start_preset_4": {
+        "name": "Trocknungs-Voreinstellung 4"
+      },
+      "drying_stop": {
+        "name": "Trocknen stoppen"
+      },
+      "secondary_drying_start_preset_1": {
+        "name": "Trocknungs-Voreinstellung 1 (2. ACE)"
+      },
+      "secondary_drying_start_preset_2": {
+        "name": "Trocknungs-Voreinstellung 2 (2. ACE)"
+      },
+      "secondary_drying_start_preset_3": {
+        "name": "Trocknungs-Voreinstellung 3 (2. ACE)"
+      },
+      "secondary_drying_start_preset_4": {
+        "name": "Trocknungs-Voreinstellung 4 (2. ACE)"
+      },
+      "secondary_drying_stop": {
+        "name": "Trocknen stoppen (2. ACE)"
+      },
+      "pause_print": {
+        "name": "Druck pausieren"
+      },
+      "resume_print": {
+        "name": "Druck fortsetzen"
+      },
+      "cancel_print": {
+        "name": "Druck abbrechen"
+      },
+      "request_file_list_local": {
+        "name": "Dateiliste abrufen (lokal)"
+      },
+      "request_file_list_udisk": {
+        "name": "Dateiliste abrufen (USB-Stick)"
+      },
+      "request_file_list_cloud": {
+        "name": "Dateiliste abrufen (Cloud)"
+      },
+      "refresh_mqtt_connection": {
+        "name": "MQTT-Verbindung erneuern"
+      },
+      "ace_refresh_spools": {
+        "name": "ACE-Spulen aktualisieren"
+      },
+      "ace_slot_1_reset_spool": {
+        "name": "ACE slot 1 reset spool"
+      },
+      "ace_slot_2_reset_spool": {
+        "name": "ACE slot 2 reset spool"
+      },
+      "ace_slot_3_reset_spool": {
+        "name": "ACE slot 3 reset spool"
+      },
+      "ace_slot_4_reset_spool": {
+        "name": "ACE slot 4 reset spool"
+      },
+      "request_axis_position": {
+        "name": "Request head position"
+      }
+    },
+    "image": {
+      "job_image_url": {
+        "name": "Druckvorschau"
+      }
+    },
+    "sensor": {
+      "current_status": {
+        "name": "Aktueller Status"
+      },
+      "curr_nozzle_temp": {
+        "name": "Düsentemperatur"
+      },
+      "curr_hotbed_temp": {
+        "name": "Betttemperatur"
+      },
+      "job_name": {
+        "name": "Druckauftrag"
+      },
+      "job_progress": {
+        "name": "Druckfortschritt %"
+      },
+      "job_time_elapsed": {
+        "name": "Verstrichene Zeit"
+      },
+      "job_time_remaining": {
+        "name": "Restzeit"
+      },
+      "job_eta": {
+        "name": "Voraussichtliches Ende"
+      },
+      "job_state": {
+        "name": "Druckstatus"
+      },
+      "job_current_layer": {
+        "name": "Aktuelle Schicht"
+      },
+      "job_total_layers": {
+        "name": "Schichten gesamt"
+      },
+      "job_speed_mode": {
+        "name": "Geschwindigkeitsmodus"
+      },
+      "job_z_thick": {
+        "name": "Schichthöhe"
+      },
+      "job_model_height": {
+        "name": "Modellhöhe"
+      },
+      "job_anti_alias_count": {
+        "name": "Kantenglättung"
+      },
+      "job_on_time": {
+        "name": "Belichtungszeit"
+      },
+      "job_off_time": {
+        "name": "Pausenzeit"
+      },
+      "job_bottom_time": {
+        "name": "Belichtungszeit Basisschichten"
+      },
+      "job_bottom_layers": {
+        "name": "Basisschichten"
+      },
+      "job_z_up_height": {
+        "name": "Z-Hubhöhe"
+      },
+      "job_z_up_speed": {
+        "name": "Z-Hubgeschwindigkeit"
+      },
+      "job_z_down_speed": {
+        "name": "Z-Senkgeschwindigkeit"
+      },
+      "target_nozzle_temp": {
+        "name": "Solltemperatur Düse"
+      },
+      "target_hotbed_temp": {
+        "name": "Solltemperatur Bett"
+      },
+      "print_speed_pct": {
+        "name": "Druckgeschwindigkeit %"
+      },
+      "fan_speed_pct": {
+        "name": "Lüftergeschwindigkeit %"
+      },
+      "file_list_local": {
+        "name": "Dateiliste (lokal)"
+      },
+      "file_list_udisk": {
+        "name": "Dateiliste (USB-Stick)"
+      },
+      "file_list_cloud": {
+        "name": "Dateiliste (Cloud)"
+      },
+      "ace_spools": {
+        "name": "ACE Spools"
+      },
+      "ace_current_temperature": {
+        "name": "ACE Current Temperatur"
+      },
+      "dry_status_target_temperature": {
+        "name": "Trocknen Target Temperatur"
+      },
+      "dry_status_total_duration": {
+        "name": "Trocknungsdauer gesamt"
+      },
+      "dry_status_remaining_time": {
+        "name": "Trocknung Restzeit"
+      },
+      "secondary_ace_spools": {
+        "name": "Zweites ACE Spools"
+      },
+      "secondary_ace_current_temperature": {
+        "name": "Aktuelle Temperatur (2. ACE)"
+      },
+      "secondary_dry_status_target_temperature": {
+        "name": "Solltemperatur Trocknung (2. ACE)"
+      },
+      "secondary_dry_status_total_duration": {
+        "name": "Trocknungsdauer gesamt (2. ACE)"
+      },
+      "secondary_dry_status_remaining_time": {
+        "name": "Trocknung Restzeit (2. ACE)"
+      },
+      "job_filament_used": {
+        "name": "Verbrauchtes Filament"
+      },
+      "material_used_total": {
+        "name": "Material gesamt"
+      },
+      "print_time_total_hrs": {
+        "name": "Druckzeit gesamt"
+      },
+      "print_count_total": {
+        "name": "Druckaufträge gesamt"
+      },
+      "ace_loaded_slot": {
+        "name": "Geladenes ACE-Fach"
+      },
+      "ace_slot_1": {
+        "name": "ACE-Fach 1"
+      },
+      "ace_slot_2": {
+        "name": "ACE-Fach 2"
+      },
+      "ace_slot_3": {
+        "name": "ACE-Fach 3"
+      },
+      "ace_slot_4": {
+        "name": "ACE-Fach 4"
+      },
+      "aux_fan_speed_pct": {
+        "name": "Zusatzlüfter"
+      },
+      "box_fan_level": {
+        "name": "ACE-Boxlüfter"
+      },
+      "ace_slot_1_filament_remaining": {
+        "name": "ACE slot 1 filament remaining"
+      },
+      "ace_slot_1_filament_remaining_percent": {
+        "name": "ACE slot 1 filament remaining percent"
+      },
+      "ace_slot_2_filament_remaining": {
+        "name": "ACE slot 2 filament remaining"
+      },
+      "ace_slot_2_filament_remaining_percent": {
+        "name": "ACE slot 2 filament remaining percent"
+      },
+      "ace_slot_3_filament_remaining": {
+        "name": "ACE slot 3 filament remaining"
+      },
+      "ace_slot_3_filament_remaining_percent": {
+        "name": "ACE slot 3 filament remaining percent"
+      },
+      "ace_slot_4_filament_remaining": {
+        "name": "ACE slot 4 filament remaining"
+      },
+      "ace_slot_4_filament_remaining_percent": {
+        "name": "ACE slot 4 filament remaining percent"
+      },
+      "external_spool_material": {
+        "name": "External spool material"
+      },
+      "axis_position_x": {
+        "name": "Kopfposition X"
+      },
+      "axis_position_y": {
+        "name": "Kopfposition Y"
+      },
+      "axis_position_z": {
+        "name": "Kopfposition Z"
+      }
+    },
+    "switch": {
+      "multi_color_box_runout_refill": {
+        "name": "ACE Run-out Refill"
+      },
+      "secondary_multi_color_box_runout_refill": {
+        "name": "Zweites ACE Run-out Refill"
+      },
+      "manual_mqtt_connection_enabled": {
+        "name": "Manuelle MQTT-Verbindung"
+      }
+    },
+    "update": {
+      "fw_version": {
+        "name": "Drucker-Firmware"
+      },
+      "multi_color_box_fw_version": {
+        "name": "ACE Firmware"
+      },
+      "secondary_multi_color_box_fw_version": {
+        "name": "Zweites ACE Firmware"
+      }
+    },
+    "light": {
+      "printer_light": {
+        "name": "Druckerbeleuchtung"
+      }
+    },
+    "number": {
+      "ace_slot_1_spool_weight": {
+        "name": "ACE slot 1 spool weight"
+      },
+      "ace_slot_2_spool_weight": {
+        "name": "ACE slot 2 spool weight"
+      },
+      "ace_slot_3_spool_weight": {
+        "name": "ACE slot 3 spool weight"
+      },
+      "ace_slot_4_spool_weight": {
+        "name": "ACE slot 4 spool weight"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Kamera"
+      }
+    }
+  },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "Diese Anycubic-Konfiguration wurde nicht gefunden."
+    },
+    "config_entry_not_loaded": {
+      "message": "Die Anycubic-Integration ist nicht geladen. Prüfen Sie, ob sie eingerichtet und verbunden ist, und versuchen Sie es erneut."
+    },
+    "one_printer_at_a_time": {
+      "message": "Diese Aktion kann jeweils nur einen Drucker betreffen."
+    },
+    "printer_not_found": {
+      "message": "Dieser Anycubic-Drucker wurde nicht gefunden. Möglicherweise wurde er aus Ihrem Konto entfernt."
+    },
+    "gcode_read_failed": {
+      "message": "Diese G-Code-Datei konnte nicht gelesen werden. Prüfen Sie, ob die Datei korrekt hochgeladen wurde."
+    },
+    "mqtt_connect_timeout": {
+      "message": "Timed out connecting to the printer. Try turning on the manual MQTT connection switch, then retry."
+    },
+    "printer_busy": {
+      "message": "Der Drucker ist beschäftigt. Warten Sie das Ende des laufenden Auftrags ab."
+    }
+  },
+  "issues": {
+    "token_expiring": {
+      "title": "Anycubic-Token läuft in {days} Tagen ab",
+      "description": "Das Token für **{name}** läuft in etwa **{days} Tagen** ab. Anycubic-Tokens gelten 90 Tage und können nicht automatisch erneuert werden, daher verliert Home Assistant beim Ablauf den Zugriff.\n\nZum Beheben ein neues Token holen und unter **Einstellungen → Geräte & Dienste → Anycubic 3D Printers → Neu konfigurieren → Neu anmelden** eintragen. Entitäts-IDs, Verlauf und Automationen bleiben erhalten."
+    }
+  }
+}
