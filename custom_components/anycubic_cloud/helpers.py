@@ -581,8 +581,13 @@ def detect_auth_mode(
     Saves the user having to understand the difference before they've even set
     the integration up:
       * a device id is only ever supplied for the Android flow
-      * slicer tokens are long JWTs (they start `eyJ`)
-      * anything else is an opaque web token
+      * anything else is guessed as a slicer token, since that is the mode
+        worth having -- it is the only one that gets live MQTT updates
+
+    This is a guess and cannot be anything else: web tokens are JWTs too, so
+    nothing about a token distinguishes them. A wrong guess is recovered from
+    rather than prevented -- the slicer login is tried, and if the server
+    rejects it the token is retried as a web token instead.
     """
     if device_id:
         return AnycubicAuthMode.ANDROID
