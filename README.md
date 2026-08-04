@@ -1,4 +1,6 @@
-<h1 align="center">Anycubic 3D Printers for Home Assistant</h1>
+<h1 align="center">Anycubic Cloud &amp; LAN</h1>
+
+<p align="center"><b>Home Assistant integration for Anycubic 3D printers</b></p>
 
 <p align="center">
   Monitor and control your <b>Anycubic Kobra</b> or <b>Photon</b> from Home Assistant —<br>
@@ -111,7 +113,7 @@ Know your way around HACS? Here's the speed run:
 1. Click the button above (or search HACS for **Anycubic**) → **Download**
 2. Restart Home Assistant
 3. Grab a token — the [slicer method](#option-a--slicer-token-recommended) (recommended) or the [web console snippet](#option-b--web-token-easiest)
-4. **Settings → Devices & services → Add integration** → **Anycubic 3D Printers** → paste the token
+4. **Settings → Devices & services → Add integration** → **Anycubic Cloud & LAN** → paste the token
 5. Select your printer
 
 Otherwise the step-by-step below explains everything.
@@ -332,7 +334,7 @@ You'll get the printer device, the ACE as a child device, and a sidebar panel wi
 
 MQTT is what gives sub-second updates. Staying connected permanently puts a little extra load on
 Anycubic's broker, so you choose when it's on:
-**Settings → Devices & services → Anycubic 3D Printers → Configure**.
+**Settings → Devices & services → Anycubic Cloud & LAN → Configure**.
 
 | Mode | MQTT connects |
 |---|---|
@@ -352,7 +354,7 @@ should come on within 5–15 seconds.
 
 The printer can run its own MQTT broker on your network, so Home Assistant talks to it without
 Anycubic's cloud in the middle. Turn it on under
-**Settings → Devices & services → Anycubic 3D Printers → Configure → Local connection (LAN Mode)**.
+**Settings → Devices & services → Anycubic Cloud & LAN → Configure → Local connection (LAN Mode)**.
 
 > [!CAUTION]
 > **Switching LAN Mode on removes the printer from your Anycubic account, and switching it back off
@@ -423,7 +425,7 @@ counters for a camera, independence from a cloud service, and a printer that kee
 your internet doesn't. Everything the printer itself knows, you get either way — **including
 filament tracking**, which is the feature most people install this for.
 
-**Switching back and forth** is a single page: **Settings → Devices & services → Anycubic 3D Printers →
+**Switching back and forth** is a single page: **Settings → Devices & services → Anycubic Cloud & LAN →
 ⋯ → Reconfigure → Connection**. Change it at the printer first, then match it here. Your entity IDs
 are the same in both modes, so history and automations carry across.
 
@@ -795,7 +797,7 @@ were all arriving in messages that were being discarded.
 <br>
 
 Your token expired. Re-extract via [step 2](#2-get-an-auth-token), then **Settings → Devices &
-services → Anycubic 3D Printers → Reconfigure → Re-Auth**. Entity IDs, history and automations are all
+services → Anycubic Cloud & LAN → Reconfigure → Re-Auth**. Entity IDs, history and automations are all
 preserved.
 
 </details>

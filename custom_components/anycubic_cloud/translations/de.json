@@ -520,7 +520,7 @@
   "issues": {
     "token_expiring": {
       "title": "Anycubic-Token läuft in {days} Tagen ab",
-      "description": "Das Token für **{name}** läuft in etwa **{days} Tagen** ab. Anycubic-Tokens gelten 90 Tage und können nicht automatisch erneuert werden, daher verliert Home Assistant beim Ablauf den Zugriff.\n\nZum Beheben ein neues Token holen und unter **Einstellungen → Geräte & Dienste → Anycubic 3D Printers → Neu konfigurieren → Neu anmelden** eintragen. Entitäts-IDs, Verlauf und Automationen bleiben erhalten."
+      "description": "Das Token für **{name}** läuft in etwa **{days} Tagen** ab. Anycubic-Tokens gelten 90 Tage und können nicht automatisch erneuert werden, daher verliert Home Assistant beim Ablauf den Zugriff.\n\nZum Beheben ein neues Token holen und unter **Einstellungen → Geräte & Dienste → Anycubic Cloud & LAN → Neu konfigurieren → Neu anmelden** eintragen. Entitäts-IDs, Verlauf und Automationen bleiben erhalten."
     }
   }
 }

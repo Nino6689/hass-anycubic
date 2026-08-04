@@ -17,7 +17,7 @@ INTEGRATION_FOLDER = DOMAIN
 PANEL_FOLDER = "frontend_panel"
 PANEL_FILENAME = "dist/anycubic-cloud-panel.js"
 PANEL_NAME = "anycubic-cloud-panel"
-PANEL_TITLE = "Anycubic 3D Printers"
+PANEL_TITLE = "Anycubic Cloud & LAN"
 PANEL_ICON = "mdi:printer-3d"
 
 ATTR_CONFIG_ENTRY = "config_entry"
