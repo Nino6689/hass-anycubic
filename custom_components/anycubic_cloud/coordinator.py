@@ -11,6 +11,9 @@ from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
 from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData
 from anycubic_cloud_api.data_models.printer import AnycubicPrinter
+from anycubic_cloud_api.data_models.printer_properties import (
+    SPOOL_EDIT_STATUS_EMPTY,
+)
 from anycubic_cloud_api.exceptions.exceptions import (
     AnycubicAPIError,
     AnycubicAPIParsingError,
@@ -379,6 +382,16 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             if primary_ace_spool_info and len(primary_ace_spool_info) >= slot_num:
                 spool = primary_ace_spool_info[slot_num - 1]
+
+            # The ACE keeps reporting the last material, colour and SKU it saw
+            # in a slot long after the reel has been taken out, so an empty
+            # slot reads as still holding whatever was in it last. Only
+            # `edit_status` says otherwise. Treating an empty slot as no slot
+            # keeps the material, the grams and the percentage consistent --
+            # the stored spool history is untouched, so putting the reel back
+            # restores it.
+            if spool and spool.get("edit_status") == SPOOL_EDIT_STATUS_EMPTY:
+                spool = None
 
             states[f"ace_slot_{slot_num}"] = (
                 spool.get("material_type") if spool else None

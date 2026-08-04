@@ -741,3 +741,42 @@ class TestPercentageIsAgainstAFullReel:
 
     def test_it_never_exceeds_one_hundred(self):
         assert remaining_percent(1000, -50) == 100.0
+
+
+class TestEmptySlotsReadAsEmpty:
+    """The ACE keeps reporting the last reel it saw in a slot.
+
+    Reported on #3: slots show "latest registered material" rather than what
+    is actually loaded. Confirmed on a Kobra S1 holding a single reel in
+    slot 3 -- the other three still showed PETG, PLA+ and PETG, with SKUs,
+    while physically empty.
+
+    `edit_status` is the only field that distinguishes them: 0 read from a
+    tag, 1 entered by hand, 2 empty.
+    """
+
+    def test_the_constant_matches_what_the_printer_sends(self):
+        from anycubic_cloud_api.data_models.printer_properties import (
+            SPOOL_EDIT_STATUS_EMPTY,
+        )
+
+        assert SPOOL_EDIT_STATUS_EMPTY == 2
+
+    def test_spool_present_is_false_only_when_empty(self):
+        from anycubic_cloud_api.data_models.printer_properties import AnycubicSpoolInfo
+
+        def spool(edit_status):
+            return AnycubicSpoolInfo.from_json(
+                {
+                    "index": 0,
+                    "sku": "X",
+                    "type": "PLA",
+                    "color": [1, 2, 3],
+                    "status": 4,
+                    "edit_status": edit_status,
+                }
+            )
+
+        assert spool(0).spool_present is True, "read from a tag"
+        assert spool(1).spool_present is True, "entered by hand"
+        assert spool(2).spool_present is False, "empty"
