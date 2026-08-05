@@ -78,6 +78,12 @@ TOKEN_EXPIRY_WARN_DAYS = 14
 # living inside translation files themselves.
 TOOLS_URL = "https://github.com/Nino6689/hass-anycubic/tree/main/tools"
 
+# Direct links for the token-expiry repair. hassfest rejects URLs inside
+# translation strings, so they are passed in as placeholders instead.
+TOOL_URL_MACOS = f"{TOOLS_URL}/get-anycubic-token-macos.command"
+TOOL_URL_WINDOWS = f"{TOOLS_URL}/Get-AnycubicToken-Windows.ps1"
+TOOL_URL_BOOKMARKLET = f"{TOOLS_URL}/web-token-bookmarklet.txt"
+
 STORAGE_KEY = DOMAIN
 STORAGE_VERSION = 1
 

@@ -74,6 +74,9 @@ from .const import (
     MQTT_SCAN_INTERVAL,
     PRINT_JOB_STARTED_UPDATE_DELAY,
     TOKEN_EXPIRY_WARN_DAYS,
+    TOOL_URL_BOOKMARKLET,
+    TOOL_URL_MACOS,
+    TOOL_URL_WINDOWS,
     TOOLS_URL,
 )
 from .filament import (
@@ -750,6 +753,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 translation_placeholders={
                     "days": str(max(0, int(days_left))),
                     "name": self.entry.title,
+                    # hassfest rejects URLs inside translation strings, so the
+                    # links are supplied here instead of being written inline.
+                    "reauth_url": (
+                        "https://my.home-assistant.io/redirect/integration"
+                        f"/?domain={DOMAIN}"
+                    ),
+                    "tool_macos": TOOL_URL_MACOS,
+                    "tool_windows": TOOL_URL_WINDOWS,
+                    "tool_browser": TOOL_URL_BOOKMARKLET,
                 },
             )
         else:

@@ -25,5 +25,5 @@
     "anycubic-cloud-api==0.4.7",
     "anycubic-cloud-frontend==0.1.1"
   ],
-  "version": "1.4.3"
+  "version": "1.4.4"
 }
