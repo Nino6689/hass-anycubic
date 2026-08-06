@@ -14,7 +14,8 @@
       "lan_host_required": "Geben Sie die Adresse des Druckers im Netzwerk ein.",
       "lan_unreachable": "Der Drucker war unter dieser Adresse nicht erreichbar. Prüfen Sie die Adresse und ob der LAN-Modus am Drucker eingeschaltet ist.",
       "lan_printer_in_cloud_mode": "Der Drucker hat geantwortet, ist aber noch im Cloud-Modus. Schalten Sie den LAN-Modus am Drucker ein: Einstellungen → Netzwerk → LAN-Modus.",
-      "lan_unsupported_printer": "Dieser Drucker verwendet nicht das lokale Protokoll, das diese Integration spricht (Generation Kobra 3 / S1). Bitte melden Sie ein Issue mit Modell und Firmware-Version."
+      "lan_unsupported_printer": "Dieser Drucker verwendet nicht das lokale Protokoll, das diese Integration spricht (Generation Kobra 3 / S1). Bitte melden Sie ein Issue mit Modell und Firmware-Version.",
+      "wrong_token_type": "Das scheint der falsche Token-Typ zu sein. Anycubic vergibt mehrere; benötigt wird der mit dem Typ \"access-token\" – die anderen werden mit \"User does not exist\" abgelehnt. Bei einer Wiederherstellung aus einem Speicherabbild sind dort meist mehrere Tokens enthalten; probieren Sie den nächsten Treffer."
     },
     "step": {
       "auth_mode_web": {

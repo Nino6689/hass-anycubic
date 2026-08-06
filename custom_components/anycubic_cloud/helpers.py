@@ -623,3 +623,55 @@ def token_expiry_timestamp(token: str | None) -> int | None:
     expiry = claims.get("exp")
 
     return int(expiry) if isinstance(expiry, (int, float)) else None
+
+# What a working Anycubic slicer token carries. A JWT with anything else in
+# `tokenType` is a real token, just not the one the API accepts -- and the
+# server's answer to those is a flat "User does not exist", which sends people
+# looking for account problems they don't have.
+TOKEN_TYPE_EXPECTED = "access-token"
+
+
+def describe_token(token: str | None) -> dict[str, Any]:
+    """The non-identifying claims of a pasted token, for diagnostics.
+
+    Deliberately excludes `sub`, `id`, `email` and `phone` -- this ends up in
+    debug logs that get pasted into issue reports.
+    """
+    if not token or not token.startswith("eyJ"):
+        return {}
+
+    parts = token.split(".")
+
+    if len(parts) < 2:
+        return {}
+
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)
+
+    try:
+        claims = json.loads(base64.urlsafe_b64decode(payload))
+    except Exception:  # noqa: BLE001
+        return {}
+
+    if not isinstance(claims, dict):
+        return {}
+
+    return {
+        k: claims[k]
+        for k in ("tokenType", "scope", "iss", "aud")
+        if k in claims
+    }
+
+
+def token_type_looks_wrong(token: str | None) -> str | None:
+    """The token's own `tokenType`, when it is not the one the API wants.
+
+    Returns None when the token is fine, unreadable, or does not say -- only a
+    positive, contradictory answer is worth reporting to the user.
+    """
+    kind = describe_token(token).get("tokenType")
+
+    if kind and kind != TOKEN_TYPE_EXPECTED:
+        return str(kind)
+
+    return None

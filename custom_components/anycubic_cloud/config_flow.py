@@ -49,12 +49,15 @@ from .const import (
     TOOLS_URL,
 )
 from .helpers import (
+    TOKEN_TYPE_EXPECTED,
     AnycubicMQTTConnectMode,
     async_load_saved_tokens,
+    describe_token,
     detect_auth_mode,
     extract_panel_card_config,
     extract_pasted_token,
     remove_quotes_from_string,
+    token_type_looks_wrong,
 )
 
 if TYPE_CHECKING:
@@ -226,8 +229,25 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _async_check_login_errors(self) -> dict[str, str]:
         LOGGER.debug("Config flow checking auth was successful.")
         assert self._anycubic_api
+
+        # Logged whether or not it works: when a token is refused, its own
+        # claims are the fastest way to see why, and a report that already
+        # contains them saves a round of questions.
+        LOGGER.debug("Pasted token claims: %s", describe_token(self._user_token))
+
         success = await self._anycubic_api.check_api_tokens()
         if not success:
+            wrong_kind = token_type_looks_wrong(self._user_token)
+
+            if wrong_kind:
+                LOGGER.error(
+                    "That token is a %s, not an %s -- Anycubic refuses it with "
+                    "'User does not exist'.",
+                    wrong_kind,
+                    TOKEN_TYPE_EXPECTED,
+                )
+                return {"base": "wrong_token_type"}
+
             LOGGER.error("Authentication failed. Check credentials.")
             return {"base": "invalid_auth"}
 

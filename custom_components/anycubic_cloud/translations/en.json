@@ -14,7 +14,8 @@
       "lan_host_required": "Enter the printer's address on your network.",
       "lan_unreachable": "Could not reach the printer at that address. Check the address, and that LAN Mode is switched on at the printer.",
       "lan_printer_in_cloud_mode": "The printer answered, but it is still in cloud mode. Switch LAN Mode on at the printer: Settings → Network → LAN Mode.",
-      "lan_unsupported_printer": "This printer does not use the local protocol this integration speaks (Kobra 3 / S1 generation). Please open an issue with your model and firmware version."
+      "lan_unsupported_printer": "This printer does not use the local protocol this integration speaks (Kobra 3 / S1 generation). Please open an issue with your model and firmware version.",
+      "wrong_token_type": "That looks like the wrong kind of token. Anycubic issues several, and the integration needs the one whose type is \"access-token\" — the others are refused with \"User does not exist\". If you recovered it from a memory dump, there is usually more than one token in there; try the next match."
     },
     "step": {
       "auth_mode_web": {

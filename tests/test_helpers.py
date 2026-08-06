@@ -13,11 +13,14 @@ import pytest
 from helpers import PRINTER_ID
 
 from custom_components.anycubic_cloud.helpers import (
+    TOKEN_TYPE_EXPECTED,
     build_ace_device_info,
     build_color_swatch_data_uri,
+    describe_token,
     extract_panel_card_config,
     get_value_from_dict_if_type,
     remove_quotes_from_string,
+    token_type_looks_wrong,
     update_dict_and_validate,
     validate_value_is_type,
 )
@@ -227,3 +230,60 @@ class TestExternalShelves:
         assert result["loaded"] is False
         assert result["material"] is None
         assert result["color_hex"] is None
+
+
+class TestTokenDiagnostics:
+    """Anycubic issues several JWTs; only one is accepted.
+
+    Reported on #8: a valid-looking 1234-char token from a memory dump was
+    refused with "User does not exist" — the server's answer to a real token
+    of the wrong kind, which reads like an account problem and isn't one.
+    """
+
+    def _token(self, claims):
+        import base64
+        import json
+
+        body = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+        return f"eyJhbGciOiJSUzI1NiJ9.{body}.signature"
+
+    GOOD = {
+        "tokenType": "access-token",
+        "scope": "read",
+        "iss": "https://uc.makeronline.com",
+        "aud": ["b269a3136d26ac6488bb"],
+        "email": "someone@example.com",
+        "sub": "abc",
+        "id": "abc",
+        "phone": "123",
+    }
+
+    def test_the_expected_type_matches_a_real_working_token(self):
+        assert TOKEN_TYPE_EXPECTED == "access-token"
+
+    def test_a_good_token_is_not_flagged(self):
+        assert token_type_looks_wrong(self._token(self.GOOD)) is None
+
+    @pytest.mark.parametrize("kind", ["refresh-token", "id-token", "something-else"])
+    def test_the_wrong_type_is_named(self, kind):
+        token = self._token({**self.GOOD, "tokenType": kind})
+
+        assert token_type_looks_wrong(token) == kind
+
+    @pytest.mark.parametrize("token", [None, "", "not-a-jwt", "eyJ-but-not-really", "eyJhbGci.only-two"])
+    def test_unreadable_tokens_are_not_flagged(self, token):
+        """Only a positive, contradictory answer is worth telling the user."""
+        assert token_type_looks_wrong(token) is None
+
+    def test_a_token_that_does_not_say_is_not_flagged(self):
+        claims = {k: v for k, v in self.GOOD.items() if k != "tokenType"}
+
+        assert token_type_looks_wrong(self._token(claims)) is None
+
+    def test_the_description_excludes_identifying_claims(self):
+        """This goes into debug logs that get pasted into issue reports."""
+        described = describe_token(self._token(self.GOOD))
+
+        assert set(described) == {"tokenType", "scope", "iss", "aud"}
+        for leaked in ("email", "sub", "id", "phone"):
+            assert leaked not in described
