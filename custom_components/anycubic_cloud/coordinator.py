@@ -80,6 +80,7 @@ from .const import (
     DOMAIN,
     ENTITY_ID_DRYING_START_PRESET_,
     FAILED_UPDATE_DELAY,
+    HOME_POLL_SECONDS,
     HOME_SEQUENCE_TIMEOUT,
     LOGGER,
     MAX_DRYING_PRESETS,
@@ -2214,16 +2215,66 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         sequence is what makes a single "home everything" possible at all.
         """
         await self.async_move_axis(printer_id, axis=4, move_type=2)
-
-        # Give the first home time to finish; the printer refuses a second
-        # move while one is running.
-        for _ in range(HOME_SEQUENCE_TIMEOUT):
-            await asyncio.sleep(1)
-            printer = self.get_printer_for_id(printer_id)
-            if printer is not None and not printer.axis_is_moving:
-                break
-
+        await self._async_wait_until_idle(printer_id)
         await self.async_move_axis(printer_id, axis=3, move_type=2)
+
+    async def _async_wait_until_idle(self, printer_id: int) -> None:
+        """Wait for the printer to finish moving, refreshing as we go.
+
+        The printer refuses a move while one is running, so the second home
+        has to wait for the first. Its state is actively re-read rather than
+        waited out: a fixed delay is either too short to be safe or long
+        enough to feel broken.
+        """
+        deadline = HOME_SEQUENCE_TIMEOUT
+
+        while deadline > 0:
+            await asyncio.sleep(HOME_POLL_SECONDS)
+            deadline -= HOME_POLL_SECONDS
+
+            printer = self.get_printer_for_id(printer_id)
+
+            if printer is None:
+                return
+
+            try:
+                await self.anycubic_api.printer_info_for_id(
+                    printer.id, update_object=printer
+                )
+            except Exception as err:  # noqa: BLE001 - a poll failure is not fatal
+                LOGGER.debug(f"Anycubic could not refresh while homing: {err}")
+                continue
+
+            if not printer.axis_is_moving and not printer.is_busy:
+                return
+
+    async def async_feed_filament(self, printer_id: int, slot_index: int) -> None:
+        """Feed the reel in one slot through to the hotend."""
+        printer = self.get_printer_for_id(printer_id)
+
+        if printer is None:
+            raise HomeAssistantError("The printer is not available.")
+
+        try:
+            await printer.multi_color_box_feed_filament(slot_index=slot_index)
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
+        await self.force_state_update()
+
+    async def async_retract_filament(self, printer_id: int) -> None:
+        """Retract whatever is currently loaded."""
+        printer = self.get_printer_for_id(printer_id)
+
+        if printer is None:
+            raise HomeAssistantError("The printer is not available.")
+
+        try:
+            await printer.multi_color_box_retract_filament()
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
+        await self.force_state_update()
 
     async def async_disengage_motors(self, printer_id: int) -> None:
         """Release the steppers so the printer can be moved by hand."""

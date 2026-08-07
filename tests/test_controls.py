@@ -460,3 +460,191 @@ class TestHomingAndMotors:
             pytest.raises(HomeAssistantError, match="cannot be released while printing"),
         ):
             await coordinator.async_disengage_motors(PRINTER_ID)
+
+
+class TestFeedAndRetract:
+    """Loading a spool from the ACE device page.
+
+    These calls have been available as actions for a long time; without
+    buttons the ACE page offered no way to load or unload a reel at all.
+    """
+
+    async def test_feeding_a_slot(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        from homeassistant.helpers import entity_registry as er
+
+        await setup_entry(hass, mock_entry)
+        registry = er.async_get(hass)
+        entity_id = next(e.entity_id for e in registry.entities.values() if e.unique_id.endswith("ace_slot_2_feed"))
+        registry.async_update_entity(entity_id, disabled_by=None)
+        await hass.config_entries.async_reload(mock_entry.entry_id)
+        await hass.async_block_till_done()
+
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "multi_color_box_feed_filament", called):
+            await hass.services.async_call("button", "press", {"entity_id": entity_id}, blocking=True)
+
+        called.assert_awaited_once_with(slot_index=1), "slot 2 is index 1"
+
+    async def test_retracting(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "multi_color_box_retract_filament", called):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_ace_pro_ace_retract_filament"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once()
+
+
+class TestHomeAllWaitsProperly:
+    """The second home must wait for the first, without a fixed delay."""
+
+    async def test_it_polls_rather_than_sleeping_out_the_clock(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """A fixed wait is either unsafe or feels broken; this re-reads."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+        moved = AsyncMock()
+        refreshed = AsyncMock()
+
+        with (
+            patch.object(type(printer), "move_axis", moved),
+            patch.object(coordinator.anycubic_api, "printer_info_for_id", refreshed),
+            patch("custom_components.anycubic_cloud.coordinator.asyncio.sleep", AsyncMock()),
+        ):
+            await coordinator.async_home_all_axes(PRINTER_ID)
+
+        assert [c.kwargs["axis"] for c in moved.await_args_list] == [4, 3]
+        assert refreshed.await_count >= 1, "must re-read the printer, not just wait"
+
+
+class TestJogButtons:
+    """Each direction maps to the axis and sign the printer expects.
+
+    axis      1 X, 2 Y, 3 Z
+    move_type 0 minus, 1 plus
+    """
+
+    @pytest.mark.parametrize(
+        ("suffix", "axis", "move_type"),
+        [
+            ("move_x_plus", 1, 1),
+            ("move_x_minus", 1, 0),
+            ("move_y_plus", 2, 1),
+            ("move_y_minus", 2, 0),
+            ("move_z_plus", 3, 1),
+            ("move_z_minus", 3, 0),
+        ],
+    )
+    async def test_each_direction(self, hass: HomeAssistant, mock_entry, mock_api, suffix, axis, move_type) -> None:
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        await coordinator.async_set_axis_step(PRINTER_ID, 15)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "move_axis", called):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": f"button.anycubic_kobra_s1_{suffix.replace('move_', 'move_')}"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(axis=axis, move_type=move_type, distance=15)
+
+    async def test_the_step_select_drives_the_distance(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        await hass.services.async_call(
+            "select",
+            "select_option",
+            {
+                "entity_id": "select.anycubic_kobra_s1_axis_step_size",
+                "option": "50 mm",
+            },
+            blocking=True,
+        )
+
+        with patch.object(type(printer), "move_axis", called):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_move_x_plus"},
+                blocking=True,
+            )
+
+        assert called.await_args.kwargs["distance"] == 50
+
+
+class TestControlFailurePaths:
+    """Every one of these can fail on a printer that has gone away."""
+
+    @pytest.mark.parametrize(
+        ("method", "kwargs"),
+        [
+            ("async_feed_filament", {"slot_index": 0}),
+            ("async_retract_filament", {}),
+            ("async_disengage_motors", {}),
+            ("async_move_axis", {"axis": 1, "move_type": 1, "distance": 1}),
+        ],
+    )
+    async def test_a_missing_printer_is_reported(self, hass: HomeAssistant, mock_entry, mock_api, method, kwargs) -> None:
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+
+        with (
+            patch.object(coordinator, "get_printer_for_id", return_value=None),
+            pytest.raises(HomeAssistantError, match="not available"),
+        ):
+            await getattr(coordinator, method)(PRINTER_ID, **kwargs)
+
+    @pytest.mark.parametrize(
+        ("method", "printer_method", "kwargs"),
+        [
+            ("async_feed_filament", "multi_color_box_feed_filament", {"slot_index": 0}),
+            ("async_retract_filament", "multi_color_box_retract_filament", {}),
+            ("async_disengage_motors", "disengage_motors", {}),
+        ],
+    )
+    async def test_a_refusal_surfaces_rather_than_passing_silently(
+        self, hass: HomeAssistant, mock_entry, mock_api, method, printer_method, kwargs
+    ) -> None:
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        with (
+            patch.object(type(printer), printer_method, AsyncMock(side_effect=RuntimeError("nope"))),
+            pytest.raises(HomeAssistantError),
+        ):
+            await getattr(coordinator, method)(PRINTER_ID, **kwargs)
+
+    async def test_a_refresh_failure_while_homing_is_survivable(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """A poll that fails must not abandon the second home."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+        moved = AsyncMock()
+
+        with (
+            patch.object(type(printer), "move_axis", moved),
+            patch.object(
+                coordinator.anycubic_api,
+                "printer_info_for_id",
+                AsyncMock(side_effect=RuntimeError("cloud hiccup")),
+            ),
+            patch("custom_components.anycubic_cloud.coordinator.asyncio.sleep", AsyncMock()),
+        ):
+            await coordinator.async_home_all_axes(PRINTER_ID)
+
+        assert [c.kwargs["axis"] for c in moved.await_args_list] == [4, 3]

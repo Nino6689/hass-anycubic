@@ -224,14 +224,29 @@
       "ace_refresh_spools": {
         "name": "Refresh ACE Spools"
       },
+      "ace_retract": {
+        "name": "ACE retract filament"
+      },
+      "ace_slot_1_feed": {
+        "name": "ACE slot 1 feed"
+      },
       "ace_slot_1_reset_spool": {
         "name": "ACE slot 1 reset spool"
+      },
+      "ace_slot_2_feed": {
+        "name": "ACE slot 2 feed"
       },
       "ace_slot_2_reset_spool": {
         "name": "ACE slot 2 reset spool"
       },
+      "ace_slot_3_feed": {
+        "name": "ACE slot 3 feed"
+      },
       "ace_slot_3_reset_spool": {
         "name": "ACE slot 3 reset spool"
+      },
+      "ace_slot_4_feed": {
+        "name": "ACE slot 4 feed"
       },
       "ace_slot_4_reset_spool": {
         "name": "ACE slot 4 reset spool"

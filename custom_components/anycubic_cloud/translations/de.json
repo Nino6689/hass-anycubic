@@ -217,14 +217,29 @@
       "ace_refresh_spools": {
         "name": "ACE-Spulen aktualisieren"
       },
+      "ace_retract": {
+        "name": "ACE Filament zurückziehen"
+      },
+      "ace_slot_1_feed": {
+        "name": "ACE Slot 1 einziehen"
+      },
       "ace_slot_1_reset_spool": {
         "name": "ACE slot 1 reset spool"
+      },
+      "ace_slot_2_feed": {
+        "name": "ACE Slot 2 einziehen"
       },
       "ace_slot_2_reset_spool": {
         "name": "ACE slot 2 reset spool"
       },
+      "ace_slot_3_feed": {
+        "name": "ACE Slot 3 einziehen"
+      },
       "ace_slot_3_reset_spool": {
         "name": "ACE slot 3 reset spool"
+      },
+      "ace_slot_4_feed": {
+        "name": "ACE Slot 4 einziehen"
       },
       "ace_slot_4_reset_spool": {
         "name": "ACE slot 4 reset spool"

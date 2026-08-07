@@ -102,6 +102,27 @@ BUTTON_TYPES_AXIS: list[AnycubicButtonEntityDescription] = list([
 ])
 
 
+# Feeding and retracting have been available as actions for a long time but
+# never had buttons, so the ACE device page offered no way to load a spool.
+# The slicer puts Feed and Retract right under the slot picker.
+PRIMARY_FEED_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
+    *[
+        AnycubicButtonEntityDescription(
+            key=f"ace_slot_{slot_num}_feed",
+            translation_key=f"ace_slot_{slot_num}_feed",
+            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+            entity_registry_enabled_default=False,
+        )
+        for slot_num in range(1, ACE_SLOT_COUNT + 1)
+    ],
+    AnycubicButtonEntityDescription(
+        key="ace_retract",
+        translation_key="ace_retract",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+    ),
+])
+
+
 PRIMARY_SPOOL_RESET_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
     AnycubicButtonEntityDescription(
         key=f"ace_slot_{slot_num}_reset_spool",
@@ -223,6 +244,7 @@ async def async_setup_entry(
             + BUTTON_TYPES_AXIS
             + NOZZLE_BUTTON_TYPES
             + AXIS_BUTTON_TYPES
+            + PRIMARY_FEED_BUTTON_TYPES
         ),
     )
 
@@ -274,6 +296,15 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
 
         if key == "axis_motors_off":
             await self.coordinator.async_disengage_motors(self._printer_id)
+            return
+
+        if key.endswith("_feed") and key.startswith("ace_slot_"):
+            slot_index = int(key.split("_")[2]) - 1
+            await self.coordinator.async_feed_filament(self._printer_id, slot_index)
+            return
+
+        if key == "ace_retract":
+            await self.coordinator.async_retract_filament(self._printer_id)
             return
 
         if key == "axis_home_z":

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from helpers import PRINTER_ID
 from helpers import setup_entry as _setup
 from homeassistant.core import HomeAssistant
@@ -29,69 +28,43 @@ def _light(hass: HomeAssistant, entry):
     return next(e for e in platform.entities if isinstance(e, AnycubicLight))
 
 
-class TestLightBrightness:
-    """Anycubic reports 0-100; Home Assistant expects 0-255."""
+class TestLightIsOnOffOnly:
+    """The printer light does not dim.
 
-    @pytest.mark.parametrize(
-        ("reported_pct", "expected"),
-        [(0, 0), (50, 128), (100, 255)],
-    )
-    async def test_brightness_is_scaled_for_home_assistant(
-        self, hass: HomeAssistant, mock_entry, mock_api, reported_pct, expected
-    ) -> None:
-        await _setup(hass, mock_entry)
-        _states(mock_entry)["printer_light_brightness"] = reported_pct
+    It accepts a brightness field and reports one back, but Anycubic's own
+    slicer only ever sends 0 or 100, intermediate values change nothing on a
+    Kobra S1, and the printer returns no light report for them. Advertising
+    a brightness slider that does nothing is worse than not having one.
+    """
 
-        assert _light(hass, mock_entry).brightness == expected
+    async def test_the_entity_does_not_claim_to_dim(self, hass, mock_entry, mock_api) -> None:
+        from helpers import setup_entry
+        from homeassistant.components.light import ColorMode
 
-    async def test_unknown_brightness_stays_unknown(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
-        """Reporting 0 for "not reported" would look like a light that's off."""
-        await _setup(hass, mock_entry)
-        _states(mock_entry)["printer_light_brightness"] = None
+        await setup_entry(hass, mock_entry)
+        state = hass.states.get("light.anycubic_kobra_s1_printer_light")
 
-        assert _light(hass, mock_entry).brightness is None
-
-    @pytest.mark.parametrize(
-        ("requested", "expected_pct"),
-        [(255, 100), (128, 50), (1, 1)],
-    )
-    async def test_requested_brightness_is_scaled_back(
-        self, hass: HomeAssistant, mock_entry, mock_api, requested, expected_pct
-    ) -> None:
-        from homeassistant.components.light import ATTR_BRIGHTNESS
-
-        await _setup(hass, mock_entry)
-        light = _light(hass, mock_entry)
-
-        with patch.object(mock_entry.runtime_data, "set_printer_light", AsyncMock()) as set_light:
-            await light.async_turn_on(**{ATTR_BRIGHTNESS: requested})
-
-        assert set_light.await_args.kwargs["brightness"] == expected_pct
-
-    async def test_the_dimmest_setting_never_rounds_to_off(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
-        """1/255 scales to 0.39%, and 0% would switch the light off instead."""
-        from homeassistant.components.light import ATTR_BRIGHTNESS
-
-        await _setup(hass, mock_entry)
-        light = _light(hass, mock_entry)
-
-        with patch.object(mock_entry.runtime_data, "set_printer_light", AsyncMock()) as set_light:
-            await light.async_turn_on(**{ATTR_BRIGHTNESS: 1})
-
-        assert set_light.await_args.kwargs["brightness"] >= 1
+        assert state is not None
+        assert state.attributes["supported_color_modes"] == [ColorMode.ONOFF]
+        assert "brightness" not in state.attributes
 
 
 class TestLightSwitching:
     """On and off, without a brightness."""
 
-    async def test_turn_on_without_brightness_leaves_it_alone(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+    async def test_turn_on_asks_for_full_brightness(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Full is the only setting the hardware has, so always send it.
+
+        Anycubic's slicer sends 100 to turn on and 0 to turn off; nothing in
+        between does anything.
+        """
         await _setup(hass, mock_entry)
         light = _light(hass, mock_entry)
 
         with patch.object(mock_entry.runtime_data, "set_printer_light", AsyncMock()) as set_light:
             await light.async_turn_on()
 
-        assert set_light.await_args.kwargs["brightness"] is None
+        assert set_light.await_args.kwargs["brightness"] == 100
         assert set_light.await_args.kwargs["light_on"] is True
 
     async def test_turn_off(self, hass: HomeAssistant, mock_entry, mock_api) -> None:

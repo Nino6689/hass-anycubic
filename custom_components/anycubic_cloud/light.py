@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.light import (
-    ATTR_BRIGHTNESS,
     ColorMode,
     LightEntity,
     LightEntityDescription,
@@ -64,8 +63,13 @@ class AnycubicLight(AnycubicCloudEntity, LightEntity):
 
     entity_description: AnycubicLightEntityDescription
 
-    _attr_color_mode = ColorMode.BRIGHTNESS
-    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+    # On/off only. The printer accepts a brightness field and reports one
+    # back, but the light does not dim: Anycubic's own slicer only ever
+    # sends 0 or 100, intermediate values change nothing on a Kobra S1,
+    # and the printer sends no light report in response to them. A slider
+    # that does nothing is worse than no slider.
+    _attr_color_mode = ColorMode.ONOFF
+    _attr_supported_color_modes = {ColorMode.ONOFF}
 
     def __init__(
         self,
@@ -93,29 +97,12 @@ class AnycubicLight(AnycubicCloudEntity, LightEntity):
             printer_state_for_key(self.coordinator, self._printer_id, "printer_light")
         )
 
-    @property
-    def brightness(self) -> int | None:
-        """Anycubic reports 0-100; Home Assistant expects 0-255."""
-        pct = printer_state_for_key(
-            self.coordinator, self._printer_id, "printer_light_brightness"
-        )
-
-        if pct is None:
-            return None
-
-        return round(int(pct) * 255 / 100)
-
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the light on, optionally at a given brightness."""
-        brightness_pct: int | None = None
-
-        if ATTR_BRIGHTNESS in kwargs:
-            brightness_pct = max(1, round(int(kwargs[ATTR_BRIGHTNESS]) * 100 / 255))
-
+        """Turn the light on. Full brightness is the only setting there is."""
         await self.coordinator.set_printer_light(
             self._printer_id,
             light_on=True,
-            brightness=brightness_pct,
+            brightness=100,
         )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
