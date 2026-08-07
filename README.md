@@ -105,8 +105,8 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [Troubleshooting](#troubleshooting)
 - [🔐 Security](#-security)
 - [📦 Changes from upstream](#-changes-from-upstream)
-- [Translating](#translating)
 - [🧭 Roadmap](#-roadmap)
+- [Translating](#translating)
 - [Credits](#credits)
 
 ---
@@ -774,56 +774,6 @@ model and auto-feed state.
 
 ---
 
-## Automation examples
-
-**What's loaded in slot 3, and what colour**
-
-```jinja
-{{ states('sensor.anycubic_kobra_s1_ace_slot_3') }}
-{{ state_attr('sensor.anycubic_kobra_s1_ace_slot_3', 'color_hex') }}
-```
-
-**Which spool is currently feeding** — reads `unavailable` when nothing is loaded
-
-```jinja
-{{ states('sensor.anycubic_kobra_s1_ace_loaded_slot') }}
-```
-
-**Print finished — turn the light off after 10 minutes**
-
-```yaml
-automation:
-  - alias: Anycubic light off after print
-    triggers:
-      - trigger: state
-        entity_id: binary_sensor.anycubic_kobra_s1_job_complete
-        to: "on"
-        for: "00:10:00"
-    actions:
-      - action: light.turn_off
-        target:
-          entity_id: light.anycubic_kobra_s1_printer_light
-```
-
-**Notify with the ETA when a print actually starts**
-
-```yaml
-automation:
-  - alias: Anycubic print started
-    triggers:
-      - trigger: state
-        entity_id: binary_sensor.anycubic_kobra_s1_job_in_progress
-        to: "on"
-    actions:
-      - action: notify.mobile_app
-        data:
-          message: >
-            {{ states('sensor.anycubic_kobra_s1_job_name') }} started —
-            ETA {{ states('sensor.anycubic_kobra_s1_job_eta') | as_datetime | as_local }}
-```
-
----
-
 ## Filament remaining *(estimated)*
 
 The ACE has no sensor for how full a spool is — Anycubic's own `consumables_percent`
@@ -1054,6 +1004,56 @@ A written tag was loaded into a Kobra S1 + ACE Pro. Material and colour were rec
   printer doesn't forward it. Use the per-slot weight entity here instead — it's remembered with the
   reel.
 - **Android** builds from the same Flutter codebase but isn't distributed yet.
+## Automation examples
+
+**What's loaded in slot 3, and what colour**
+
+```jinja
+{{ states('sensor.anycubic_kobra_s1_ace_slot_3') }}
+{{ state_attr('sensor.anycubic_kobra_s1_ace_slot_3', 'color_hex') }}
+```
+
+**Which spool is currently feeding** — reads `unavailable` when nothing is loaded
+
+```jinja
+{{ states('sensor.anycubic_kobra_s1_ace_loaded_slot') }}
+```
+
+**Print finished — turn the light off after 10 minutes**
+
+```yaml
+automation:
+  - alias: Anycubic light off after print
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.anycubic_kobra_s1_job_complete
+        to: "on"
+        for: "00:10:00"
+    actions:
+      - action: light.turn_off
+        target:
+          entity_id: light.anycubic_kobra_s1_printer_light
+```
+
+**Notify with the ETA when a print actually starts**
+
+```yaml
+automation:
+  - alias: Anycubic print started
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.anycubic_kobra_s1_job_in_progress
+        to: "on"
+    actions:
+      - action: notify.mobile_app
+        data:
+          message: >
+            {{ states('sensor.anycubic_kobra_s1_job_name') }} started —
+            ETA {{ states('sensor.anycubic_kobra_s1_job_eta') | as_datetime | as_local }}
+```
+
+---
+
 
 ---
 
