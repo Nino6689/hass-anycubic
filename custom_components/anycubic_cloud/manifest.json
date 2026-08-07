@@ -1,4 +1,6 @@
 {
+  "domain": "anycubic_cloud",
+  "name": "Anycubic Cloud & LAN",
   "after_dependencies": [
     "panel_custom"
   ],
@@ -25,13 +27,11 @@
     }
   ],
   "documentation": "https://github.com/Nino6689/hass-anycubic",
-  "domain": "anycubic_cloud",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/Nino6689/hass-anycubic/issues",
   "loggers": [
     "custom_components.anycubic_cloud"
   ],
-  "name": "Anycubic Cloud & LAN",
   "requirements": [
     "anycubic-cloud-api==0.4.14",
     "anycubic-cloud-frontend==0.1.1"
