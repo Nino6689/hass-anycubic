@@ -101,6 +101,14 @@ PRINT_JOB_STARTED_UPDATE_DELAY = 5
 
 MAX_DRYING_PRESETS = 4
 
+# The printer serves its own camera here. Named by the printer over a local
+# connection; on a cloud connection nothing reports it, but the port is the
+# same and the video always comes from the printer directly.
+CAMERA_STREAM_PORT = 18088
+# How long to wait for the cloud broker when opening the camera. Long
+# enough for a normal connect, short enough not to hang the UI.
+CAMERA_MQTT_CONNECT_TIMEOUT = 12
+
 
 class PrinterEntityType(IntEnum):
     GLOBAL = 1

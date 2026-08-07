@@ -215,11 +215,93 @@ class TestDrying:
         started.assert_awaited_once_with(duration=240, target_temp=55)
         assert coordinator is not None
 
-    async def test_sensible_defaults_before_anything_is_set(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+    async def test_defaults_come_from_the_loaded_material(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """The captured printer has PETG loaded, which dries at 65 C for 6 h."""
         await setup_entry(hass, mock_entry)
 
         temp = hass.states.get("number.anycubic_kobra_s1_ace_pro_drying_temperature")
         duration = hass.states.get("number.anycubic_kobra_s1_ace_pro_drying_duration")
 
-        assert temp is not None and float(temp.state) == 45.0
-        assert duration is not None and float(duration.state) == 120.0
+        assert temp is not None and float(temp.state) == 65.0
+        assert duration is not None and float(duration.state) == 360.0
+
+
+class TestDryingKnowsTheMaterial:
+    """The ACE reports what's loaded, so nobody should have to look it up.
+
+    Wet filament prints badly and every material wants a different
+    temperature -- and too hot ruins a spool, so the defaults matter.
+    """
+
+    @pytest.mark.parametrize(
+        ("material", "temperature", "minutes"),
+        [
+            ("PLA", 45, 360),
+            ("PLA+", 45, 360),
+            ("PETG", 65, 360),
+            ("ABS", 70, 240),
+            ("TPU", 50, 480),
+            ("PA", 70, 720),
+        ],
+    )
+    def test_each_material_gets_its_own_profile(self, material, temperature, minutes) -> None:
+        from custom_components.anycubic_cloud.filament import drying_profile_for_material
+
+        assert drying_profile_for_material(material) == (temperature, minutes)
+
+    @pytest.mark.parametrize("material", [None, "", "SOMETHING-NEW"])
+    def test_an_unknown_material_gets_a_profile_safe_for_everything(self, material) -> None:
+        """Too cool merely takes longer; too hot destroys the spool."""
+        from custom_components.anycubic_cloud.filament import (
+            DRYING_PROFILES,
+            drying_profile_for_material,
+        )
+
+        temperature, _ = drying_profile_for_material(material)
+
+        assert temperature <= min(t for t, _ in DRYING_PROFILES.values())
+
+    async def test_the_default_follows_the_loaded_spool(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+
+        with (
+            patch.object(
+                type(printer),
+                "primary_multi_color_box_spool_info_object",
+                PropertyMock(return_value=[{"material_type": "PETG", "edit_status": 0}]),
+            ),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
+        ):
+            coordinator = mock_entry.runtime_data
+            temperature = coordinator.get_drying_setting(PRINTER_ID, "temperature", 45)
+            duration = coordinator.get_drying_setting(PRINTER_ID, "duration", 120)
+
+        assert temperature == 65.0, "PETG dries hotter than PLA"
+        assert duration == 360.0
+
+    async def test_an_explicit_setting_always_wins(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """A material default must never override what someone chose."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        await coordinator.async_set_drying_setting(PRINTER_ID, "temperature", 52)
+        _, printer = mock_api
+
+        with patch.object(
+            type(printer),
+            "primary_multi_color_box_spool_info_object",
+            PropertyMock(return_value=[{"material_type": "PETG", "edit_status": 0}]),
+        ):
+            assert coordinator.get_drying_setting(PRINTER_ID, "temperature", 45) == 52.0
+
+    async def test_an_empty_slot_is_not_read_as_its_last_reel(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """The ACE keeps reporting a material long after the reel is gone."""
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+
+        with patch.object(
+            type(printer),
+            "primary_multi_color_box_spool_info_object",
+            PropertyMock(return_value=[{"material_type": "ABS", "edit_status": 2}]),
+        ):
+            assert mock_entry.runtime_data.loaded_material(PRINTER_ID) is None

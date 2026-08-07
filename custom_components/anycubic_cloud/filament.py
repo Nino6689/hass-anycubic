@@ -313,6 +313,48 @@ def history_estimate(samples: list[float] | None) -> float | None:
     return round(sum(usable) / len(usable), 1)
 
 
+# Manufacturer-recommended drying, as (temperature C, hours). Filament picks
+# up moisture from the air and prints badly wet -- stringing, popping, weak
+# layers -- and every material wants something different. The ACE already
+# reports what is in each slot, so there is no reason to make anyone look
+# these up.
+#
+# Temperatures stay under the glass transition of each material, because a
+# spool that softens in the dryer is ruined.
+DRYING_PROFILES: dict[str, tuple[int, int]] = {
+    "PLA": (45, 6),
+    "PLA+": (45, 6),
+    "PLA-SE": (45, 6),
+    "PETG": (65, 6),
+    "ABS": (70, 4),
+    "ASA": (70, 4),
+    "PC": (70, 6),
+    "PA": (70, 12),
+    "PAHT-CF": (70, 12),
+    "PACF": (70, 12),
+    "HIPS": (65, 4),
+    "TPU": (50, 8),
+}
+# Gentle enough not to harm anything, long enough to be worth running.
+DEFAULT_DRYING_PROFILE = (45, 6)
+
+
+def drying_profile_for_material(material: str | None) -> tuple[int, int]:
+    """Recommended (temperature C, duration minutes) for a material.
+
+    Falls back to a profile safe for every filament here rather than
+    guessing high -- too hot ruins a spool, too cool merely takes longer.
+    """
+    temperature, hours = DEFAULT_DRYING_PROFILE
+
+    if material:
+        temperature, hours = DRYING_PROFILES.get(
+            str(material).strip().upper(), DEFAULT_DRYING_PROFILE
+        )
+
+    return temperature, hours * 60
+
+
 def is_abrasive(material: str | None) -> bool:
     """Whether a filament wears the nozzle unusually fast.
 

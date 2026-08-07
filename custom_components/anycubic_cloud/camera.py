@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.camera import Camera, CameraEntityDescription
+from homeassistant.components.camera import Camera, CameraEntityDescription, CameraEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -19,7 +19,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import PrinterEntityType
 from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_state_for_key
 
 # One camera per printer, and starting the stream is a single cloud-free
 # publish, so there is nothing to serialise.
@@ -63,6 +62,10 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
     """The printer's camera, served straight off the printer."""
 
     entity_description: AnycubicCameraEntityDescription
+    # Without this Home Assistant never calls stream_source at all, so the
+    # entity exists, reports idle, and shows nothing -- which is exactly what
+    # it has been doing.
+    _attr_supported_features = CameraEntityFeature.STREAM
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialise both halves -- Camera keeps its own state."""
@@ -71,16 +74,13 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
 
     @property
     def _stream_url(self) -> str | None:
-        url = printer_state_for_key(
-            self.coordinator, self._printer_id, "camera_stream_url"
-        )
-
-        return str(url) if url else None
+        return self.coordinator.camera_stream_url(self._printer_id)
 
     @property
     def available(self) -> bool:
-        # The URL only ever arrives over the local connection, so this stays
-        # unavailable on a cloud-only setup rather than offering a dead stream.
+        # The printer names the stream over a local connection; on a cloud
+        # connection it can still be reached if the printer's address is
+        # known. With neither, stay unavailable rather than offer a dead URL.
         return super().available and self._stream_url is not None
 
     async def stream_source(self) -> str | None:

@@ -64,6 +64,8 @@ from .const import (
     ATTR_SPOOL_SIGNATURE,
     ATTR_SPOOL_WEIGHT_G,
     ATTR_TOTALS,
+    CAMERA_MQTT_CONNECT_TIMEOUT,
+    CAMERA_STREAM_PORT,
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
@@ -99,6 +101,7 @@ from .filament import (
     MIN_PROGRESS_FOR_FORECAST_PCT,
     attribute_job_to_slots,
     cost_of,
+    drying_profile_for_material,
     history_estimate,
     is_abrasive,
     job_grams_required,
@@ -1208,18 +1211,68 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         The stream endpoint answers but sends nothing until this is published,
         so it goes out every time a stream is requested rather than being
         tracked -- the printer is happy to be told twice.
+
+        Sent over the local connection when there is one. Failing that it goes
+        over the cloud broker, which speaks the same protocol on the same
+        message shape: the video itself is always served by the printer
+        directly, but the command that starts it need not be local.
         """
         client = self._lan_client
+        message = {"type": "video", "action": "startCapture", "data": {}}
 
-        if client is None or not client.is_connected:
+        if client is not None and client.is_connected:
+            try:
+                client.publish("video", message)
+            except AnycubicLANError as err:
+                LOGGER.debug(f"Anycubic could not start the camera locally: {err}")
             return
 
+        await self._async_start_camera_via_cloud(printer_id, message)
+
+    async def _async_start_camera_via_cloud(
+        self, printer_id: int, message: dict[str, Any]
+    ) -> None:
+        """Publish the camera start command over the cloud broker."""
+        printer = self.get_printer_for_id(printer_id)
+        api = self._anycubic_api
+
+        if printer is None or api is None:
+            return
+
+        if not api.mqtt_is_started:
+            # The camera is a live view, so the broker has to be up for it.
+            # connect_mqtt blocks, hence the executor -- the same way the
+            # coordinator's own connection is started.
+            try:
+                api.mqtt_add_subscribed_printer(printer)
+                self.hass.async_add_executor_job(api.connect_mqtt)
+                async with asyncio.timeout(CAMERA_MQTT_CONNECT_TIMEOUT):
+                    await api.mqtt_wait_for_connect()
+            except Exception as err:  # noqa: BLE001 - never break a camera open
+                LOGGER.debug(f"Anycubic could not connect for the camera: {err}")
+                return
+
         try:
-            client.publish(
-                "video", {"type": "video", "action": "startCapture", "data": {}}
-            )
-        except AnycubicLANError as err:
-            LOGGER.debug(f"Anycubic could not start the camera: {err}")
+            api._mqtt_publish_to_printer(printer, "video", message)
+            LOGGER.debug("Asked the printer to start its camera over the cloud.")
+        except Exception as err:  # noqa: BLE001
+            LOGGER.debug(f"Anycubic could not start the camera over the cloud: {err}")
+
+    def camera_stream_url(self, printer_id: int) -> str | None:
+        """Where to read the video from.
+
+        The printer names this itself over the local connection. On a cloud
+        connection nothing reports it -- the video is still served by the
+        printer, so it can be built from the local address if one is known.
+        """
+        reported = self.data["printers"][printer_id]["states"].get("camera_stream_url")
+
+        if reported:
+            return str(reported)
+
+        host = self.entry.options.get(CONF_LAN_HOST) or self.entry.data.get(CONF_LAN_HOST)
+
+        return f"http://{host}:{CAMERA_STREAM_PORT}/flv" if host else None
 
     async def _async_printer_from_lan(self, printer_id: int) -> AnycubicPrinter | None:
         """Build a printer from what it reports locally.
@@ -2121,11 +2174,56 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             printer_id, "change_print_setting_speed_mode", mode
         )
 
-    def get_drying_setting(self, printer_id: int, key: str, default: float) -> float:
-        """A stored drying temperature or duration for this printer."""
-        state = self._printer_filament_state(printer_id)
+    def loaded_material(self, printer_id: int) -> str | None:
+        """The material in the slot currently feeding, if any is."""
+        printer = self.get_printer_for_id(printer_id)
 
-        return float((state.get(ATTR_DRYING_SETTINGS) or {}).get(key, default))
+        if printer is None:
+            return None
+
+        spools = printer.primary_multi_color_box_spool_info_object or []
+        slot = _as_slot_index(printer.primary_multi_color_box_loaded_slot)
+
+        if slot is None:
+            slot = _as_slot_index(
+                self._printer_filament_state(printer_id).get(ATTR_FEEDING_SLOT)
+            )
+
+        # Nothing loaded: fall back to whatever the first occupied slot holds,
+        # which is what someone drying a spool is most likely reaching for.
+        candidates = [slot] if slot is not None else list(range(len(spools)))
+
+        for index in candidates:
+            if index is None or index >= len(spools):
+                continue
+            spool = spools[index]
+            if not isinstance(spool, dict):
+                continue
+            if spool.get("edit_status") == SPOOL_EDIT_STATUS_EMPTY:
+                continue
+            if material := spool.get("material_type"):
+                return str(material)
+
+        return None
+
+    def get_drying_setting(self, printer_id: int, key: str, default: float) -> float:
+        """A stored drying temperature or duration, defaulted for the material.
+
+        Nobody should have to look up that PETG wants 65 C and PLA 45 C when
+        the ACE already reports what is loaded. Set explicitly once and the
+        stored value wins; otherwise the material decides.
+        """
+        state = self._printer_filament_state(printer_id)
+        stored = (state.get(ATTR_DRYING_SETTINGS) or {}).get(key)
+
+        if stored is not None:
+            return float(stored)
+
+        temperature, duration = drying_profile_for_material(
+            self.loaded_material(printer_id)
+        )
+
+        return float(temperature if key == ATTR_DRYING_TEMPERATURE else duration)
 
     async def async_set_drying_setting(
         self, printer_id: int, key: str, value: float
