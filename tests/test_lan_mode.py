@@ -471,14 +471,23 @@ class TestConnectionReconfigure:
 
 
 class TestCamera:
-    """The stream endpoint is only ever named over the local connection."""
+    """The stream only ever runs over the local connection.
 
-    def _camera(self, hass: HomeAssistant, url):
+    Tested against real hardware: publishing startCapture on the cloud broker
+    with that connection confirmed up gets the printer to send nothing at
+    all. So a cloud-connected printer must report no camera rather than one
+    that opens and immediately dies.
+    """
+
+    def _camera(self, hass: HomeAssistant, url, *, lan_connected: bool = True):
         from custom_components.anycubic_cloud.camera import CAMERA_TYPES, AnycubicCamera
 
         coordinator = _coordinator(hass)
         coordinator.data = {"printers": {1: {"states": {"camera_stream_url": url}, "attributes": {}}}}
         coordinator.last_update_success = True
+        # Set the client rather than patching the property, which would
+        # mutate the class and leak into every other test in the file.
+        coordinator._lan_client = MagicMock(is_connected=True) if lan_connected else None
 
         with patch.object(AnycubicCamera, "__init__", lambda self, *a, **k: None):
             camera = AnycubicCamera()
@@ -498,6 +507,17 @@ class TestCamera:
         camera, _ = self._camera(hass, None)
 
         assert camera._stream_url is None
+
+    def test_no_local_connection_means_no_camera(self, hass: HomeAssistant) -> None:
+        """Even knowing the address, the printer will not start the stream.
+
+        Offering the URL anyway produced a camera that appeared to work and
+        then failed with "Immediate exit requested" the moment it was opened.
+        """
+        camera, _ = self._camera(hass, "http://10.0.66.28:18088/flv", lan_connected=False)
+
+        assert camera._stream_url is None
+        assert camera.available is False
 
     async def test_asking_for_a_stream_starts_the_capture(self, hass: HomeAssistant) -> None:
         """The endpoint answers but sends nothing until the printer is told."""

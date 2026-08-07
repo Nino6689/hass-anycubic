@@ -64,7 +64,6 @@ from .const import (
     ATTR_SPOOL_SIGNATURE,
     ATTR_SPOOL_WEIGHT_G,
     ATTR_TOTALS,
-    CAMERA_MQTT_CONNECT_TIMEOUT,
     CAMERA_STREAM_PORT,
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
@@ -1212,64 +1211,41 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         so it goes out every time a stream is requested rather than being
         tracked -- the printer is happy to be told twice.
 
-        Sent over the local connection when there is one. Failing that it goes
-        over the cloud broker, which speaks the same protocol on the same
-        message shape: the video itself is always served by the printer
-        directly, but the command that starts it need not be local.
+        ⚠ Local connection only. Publishing the same message on the cloud
+        broker was tested against real hardware with the cloud connection
+        confirmed up: the publish goes out and the printer sends nothing. It
+        only honours this on its own broker.
         """
         client = self._lan_client
-        message = {"type": "video", "action": "startCapture", "data": {}}
 
-        if client is not None and client.is_connected:
-            try:
-                client.publish("video", message)
-            except AnycubicLANError as err:
-                LOGGER.debug(f"Anycubic could not start the camera locally: {err}")
+        if client is None or not client.is_connected:
             return
-
-        await self._async_start_camera_via_cloud(printer_id, message)
-
-    async def _async_start_camera_via_cloud(
-        self, printer_id: int, message: dict[str, Any]
-    ) -> None:
-        """Publish the camera start command over the cloud broker."""
-        printer = self.get_printer_for_id(printer_id)
-        api = self._anycubic_api
-
-        if printer is None or api is None:
-            return
-
-        if not api.mqtt_is_started:
-            # The camera is a live view, so the broker has to be up for it.
-            # connect_mqtt blocks, hence the executor -- the same way the
-            # coordinator's own connection is started.
-            try:
-                api.mqtt_add_subscribed_printer(printer)
-                self.hass.async_add_executor_job(api.connect_mqtt)
-                async with asyncio.timeout(CAMERA_MQTT_CONNECT_TIMEOUT):
-                    await api.mqtt_wait_for_connect()
-            except Exception as err:  # noqa: BLE001 - never break a camera open
-                LOGGER.debug(f"Anycubic could not connect for the camera: {err}")
-                return
 
         try:
-            api._mqtt_publish_to_printer(printer, "video", message)
-            LOGGER.debug("Asked the printer to start its camera over the cloud.")
-        except Exception as err:  # noqa: BLE001
-            LOGGER.debug(f"Anycubic could not start the camera over the cloud: {err}")
+            client.publish(
+                "video", {"type": "video", "action": "startCapture", "data": {}}
+            )
+        except AnycubicLANError as err:
+            LOGGER.debug(f"Anycubic could not start the camera: {err}")
 
     def camera_stream_url(self, printer_id: int) -> str | None:
         """Where to read the video from.
 
-        The printer names this itself over the local connection. On a cloud
-        connection nothing reports it -- the video is still served by the
-        printer, so it can be built from the local address if one is known.
+        The printer names this itself over the local connection, and the
+        stream only ever runs while that connection is up -- it will not start
+        for a cloud-connected printer. So this stays None without one, rather
+        than offering a URL that opens and immediately dies.
         """
+        if not self.lan_is_connected:
+            return None
+
         reported = self.data["printers"][printer_id]["states"].get("camera_stream_url")
 
         if reported:
             return str(reported)
 
+        # A local connection that did not name the stream: the port is fixed,
+        # so the configured address is enough.
         host = self.entry.options.get(CONF_LAN_HOST) or self.entry.data.get(CONF_LAN_HOST)
 
         return f"http://{host}:{CAMERA_STREAM_PORT}/flv" if host else None
