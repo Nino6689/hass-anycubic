@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 import time
 import traceback
 from datetime import timedelta
@@ -10,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
 from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData
+from anycubic_cloud_api.data_models.orders import AnycubicShengwangCredentials
 from anycubic_cloud_api.data_models.printer import AnycubicPrinter
 from anycubic_cloud_api.data_models.printer_properties import (
     SPOOL_EDIT_STATUS_EMPTY,
@@ -858,7 +860,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def add_entities_for_seen_printers[AnycubicCloudEntityT: AnycubicCloudEntity](
         self,
         async_add_entities: AddEntitiesCallback,
-        entity_constructor: type[AnycubicCloudEntityT],
+        # A callable rather than a class, so a platform whose descriptors map
+        # to more than one entity class can pass a dispatcher. Descriptors are
+        # stored per platform and overwrite, so calling this twice for the
+        # same platform would discard the first set.
+        entity_constructor: Callable[..., AnycubicCloudEntityT],
         platform: Platform,
         available_descriptors: list[AnycubicCloudEntityDescription],
     ) -> None:
@@ -1237,6 +1243,43 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
         except AnycubicLANError as err:
             LOGGER.debug(f"Anycubic could not start the camera: {err}")
+
+    async def async_open_cloud_camera(
+        self,
+        printer_id: int,
+    ) -> AnycubicShengwangCredentials:
+        """Ask the cloud for a fresh Agora session for this printer.
+
+        Issuing the order is also what makes the printer join the channel and
+        start publishing, so there is no separate start command on this path.
+
+        The credentials are single use -- ``client_uid`` is issued fresh every
+        time -- so this is called per viewing session and never cached.
+        """
+        printer = self.printers.get(int(printer_id))
+
+        if printer is None:
+            raise HomeAssistantError(
+                f"Anycubic printer {printer_id} is not loaded."
+            )
+
+        credentials = await self.anycubic_api.send_anycubic_camera_open_order(
+            printer=printer,
+        )
+
+        if credentials is None:
+            # Two different causes, and the cloud reports neither: it answers
+            # "Operation successful" with the block missing either way. The
+            # library already retried behind a fresh login, so a session taken
+            # by the slicer or the phone app has been ruled out by this point.
+            raise HomeAssistantError(
+                f"Anycubic returned no camera credentials for printer "
+                f"{printer_id}. Either the printer has no camera, or another "
+                f"Anycubic session (the slicer or the phone app) has taken "
+                f"the account -- close it and try again."
+            )
+
+        return credentials
 
     def camera_stream_url(self, printer_id: int) -> str | None:
         """Where to read the video from.

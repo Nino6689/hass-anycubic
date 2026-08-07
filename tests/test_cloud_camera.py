@@ -1,0 +1,270 @@
+"""Tests for the cloud camera, which is Agora WebRTC rather than a stream URL.
+
+The printer offers two completely different video transports and neither
+substitutes for the other, so they are two entities. The split is not
+cosmetic: Home Assistant decides a camera's stream type from whether its
+*class* overrides ``async_handle_async_webrtc_offer``, once, for every
+instance -- so putting the WebRTC handler on the local camera would silently
+take away its HLS stream. That is the first thing tested here, because it is
+the thing a later refactor is most likely to undo by accident.
+"""
+
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+from homeassistant.components.camera import Camera, StreamType, WebRTCAnswer
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+
+from custom_components.anycubic_cloud.agora import AgoraError
+from custom_components.anycubic_cloud.camera import (
+    CAMERA_TYPES,
+    AnycubicCamera,
+    AnycubicCloudCamera,
+)
+
+
+def _credentials() -> MagicMock:
+    credentials = MagicMock()
+    credentials.appid = "6fc7f83702e44c67a0e1104933b01d4f"
+    credentials.channel = "311f171de29b3b8c0f059b1ddd223215"
+    credentials.client_uid = 139781340
+    credentials.device_uid = 71431
+    credentials.is_encrypted = True
+    credentials.web_encryption_mode = "aes-256-gcm2"
+    return credentials
+
+
+def _cloud_camera(hass: HomeAssistant) -> tuple[AnycubicCloudCamera, MagicMock]:
+    coordinator = MagicMock()
+    coordinator.printers = {1: MagicMock()}
+    coordinator.last_update_success = True
+    coordinator.async_open_cloud_camera = AsyncMock(return_value=_credentials())
+
+    # Skip the entity plumbing; only the WebRTC behaviour is under test.
+    with patch.object(AnycubicCloudCamera, "__init__", lambda self, *a, **k: None):
+        camera = AnycubicCloudCamera()
+
+    camera.coordinator = coordinator
+    camera._printer_id = 1
+    camera.entity_description = CAMERA_TYPES[1]
+    camera._sessions = {}
+    camera.hass = hass
+
+    return camera, coordinator
+
+
+class TestTheTwoTransportsStaySeparate:
+    """The reason there are two entity classes at all."""
+
+    def test_only_the_cloud_camera_overrides_the_webrtc_offer(self) -> None:
+        assert (
+            AnycubicCloudCamera.async_handle_async_webrtc_offer
+            is not Camera.async_handle_async_webrtc_offer
+        )
+        # If this ever becomes true the local camera silently loses HLS.
+        assert (
+            AnycubicCamera.async_handle_async_webrtc_offer
+            is Camera.async_handle_async_webrtc_offer
+        )
+
+    def test_the_descriptors_name_their_own_class(self) -> None:
+        by_key = {description.key: description for description in CAMERA_TYPES}
+
+        assert by_key["camera"].entity_class is AnycubicCamera
+        assert by_key["cloud_camera"].entity_class is AnycubicCloudCamera
+
+    def test_home_assistant_reports_the_expected_stream_types(
+        self, hass: HomeAssistant
+    ) -> None:
+        """The capability is computed per class, from the override above."""
+        local = AnycubicCamera.__new__(AnycubicCamera)
+        Camera.__init__(local)
+        cloud = AnycubicCloudCamera.__new__(AnycubicCloudCamera)
+        Camera.__init__(cloud)
+
+        assert local._supports_native_async_webrtc is False
+        assert cloud._supports_native_async_webrtc is True
+        assert StreamType.WEB_RTC in cloud.camera_capabilities.frontend_stream_types
+
+
+class TestOpeningAStream:
+    async def test_an_offer_is_answered_with_the_agora_answer(
+        self, hass: HomeAssistant
+    ) -> None:
+        camera, coordinator = _cloud_camera(hass)
+        session = AsyncMock()
+        session.async_start = AsyncMock(return_value="v=0\r\na=answer\r\n")
+        messages = []
+
+        with patch(
+            "custom_components.anycubic_cloud.camera.AgoraStreamSession",
+            return_value=session,
+        ):
+            await camera.async_handle_async_webrtc_offer(
+                "v=0\r\na=offer\r\n", "session-1", messages.append
+            )
+
+        assert messages == [WebRTCAnswer("v=0\r\na=answer\r\n")]
+        coordinator.async_open_cloud_camera.assert_awaited_once_with(1)
+        assert camera._sessions["session-1"] is session
+
+    async def test_each_session_asks_the_cloud_for_its_own_credentials(
+        self, hass: HomeAssistant
+    ) -> None:
+        """client_uid is issued fresh every call, so they cannot be reused."""
+        camera, coordinator = _cloud_camera(hass)
+        session = AsyncMock()
+        session.async_start = AsyncMock(return_value="answer")
+
+        with patch(
+            "custom_components.anycubic_cloud.camera.AgoraStreamSession",
+            return_value=session,
+        ):
+            await camera.async_handle_async_webrtc_offer("offer", "one", lambda _m: None)
+            await camera.async_handle_async_webrtc_offer("offer", "two", lambda _m: None)
+
+        assert coordinator.async_open_cloud_camera.await_count == 2
+
+    async def test_a_failed_join_is_reported_and_leaves_nothing_behind(
+        self, hass: HomeAssistant
+    ) -> None:
+        camera, _ = _cloud_camera(hass)
+        session = AsyncMock()
+        session.async_start = AsyncMock(side_effect=AgoraError("gateway refused"))
+
+        with (
+            patch(
+                "custom_components.anycubic_cloud.camera.AgoraStreamSession",
+                return_value=session,
+            ),
+            pytest.raises(HomeAssistantError, match="gateway refused"),
+        ):
+            await camera.async_handle_async_webrtc_offer(
+                "offer", "session-1", lambda _m: None
+            )
+
+        assert camera._sessions == {}
+        session.async_close.assert_awaited_once()
+
+    async def test_a_printer_with_no_camera_surfaces_the_cloud_error(
+        self, hass: HomeAssistant
+    ) -> None:
+        """The cloud answers "Operation successful" and omits the block."""
+        camera, coordinator = _cloud_camera(hass)
+        coordinator.async_open_cloud_camera = AsyncMock(
+            side_effect=HomeAssistantError("no camera credentials")
+        )
+
+        with pytest.raises(HomeAssistantError, match="no camera credentials"):
+            await camera.async_handle_async_webrtc_offer(
+                "offer", "session-1", lambda _m: None
+            )
+
+        assert camera._sessions == {}
+
+
+class TestTheStillImage:
+    """No frame can exist here, but the card must still render."""
+
+    async def test_a_placeholder_is_served_rather_than_a_broken_image(
+        self, hass: HomeAssistant
+    ) -> None:
+        camera, _ = _cloud_camera(hass)
+
+        image = await camera.async_camera_image()
+
+        assert image is not None
+        # PNG magic -- a real image, not an error page or empty bytes.
+        assert image[:8] == b"\x89PNG\r\n\x1a\n"
+
+    async def test_the_placeholder_is_read_from_disk_only_once(
+        self, hass: HomeAssistant
+    ) -> None:
+        import custom_components.anycubic_cloud.camera as camera_module
+
+        camera_module._placeholder_cache = None
+        camera, _ = _cloud_camera(hass)
+
+        first = await camera.async_camera_image()
+        exploding = MagicMock()
+        exploding.read_bytes.side_effect = AssertionError("read twice")
+        with patch.object(camera_module, "_PLACEHOLDER_PATH", exploding):
+            second = await camera.async_camera_image()
+
+        assert first == second
+        exploding.read_bytes.assert_not_called()
+
+    async def test_a_missing_placeholder_does_not_raise(
+        self, hass: HomeAssistant
+    ) -> None:
+        """A packaging slip must not take the whole entity down."""
+        import custom_components.anycubic_cloud.camera as camera_module
+
+        camera_module._placeholder_cache = None
+        camera, _ = _cloud_camera(hass)
+
+        missing = MagicMock()
+        missing.read_bytes.side_effect = OSError("gone")
+        with patch.object(camera_module, "_PLACEHOLDER_PATH", missing):
+            assert await camera.async_camera_image() is None
+
+        camera_module._placeholder_cache = None
+
+
+class TestCandidatesAndTeardown:
+    async def test_candidates_are_passed_to_the_right_session(
+        self, hass: HomeAssistant
+    ) -> None:
+        camera, _ = _cloud_camera(hass)
+        session = AsyncMock()
+        camera._sessions["session-1"] = session
+        candidate = MagicMock()
+
+        await camera.async_on_webrtc_candidate("session-1", candidate)
+
+        session.async_add_candidate.assert_awaited_once_with(candidate)
+
+    async def test_a_candidate_for_an_unknown_session_is_ignored(
+        self, hass: HomeAssistant
+    ) -> None:
+        """They can arrive after teardown; raising would log a stack trace."""
+        camera, _ = _cloud_camera(hass)
+
+        await camera.async_on_webrtc_candidate("gone", MagicMock())
+
+    async def test_closing_drops_the_session(self, hass: HomeAssistant) -> None:
+        camera, _ = _cloud_camera(hass)
+        session = AsyncMock()
+        camera._sessions["session-1"] = session
+
+        camera.close_webrtc_session("session-1")
+        await hass.async_block_till_done()
+
+        assert camera._sessions == {}
+        session.async_close.assert_awaited_once()
+
+    def test_closing_an_unknown_session_does_nothing(
+        self, hass: HomeAssistant
+    ) -> None:
+        camera, _ = _cloud_camera(hass)
+
+        camera.close_webrtc_session("never-existed")
+
+    async def test_removal_closes_every_live_session(
+        self, hass: HomeAssistant
+    ) -> None:
+        camera, _ = _cloud_camera(hass)
+        first, second = AsyncMock(), AsyncMock()
+        camera._sessions.update({"a": first, "b": second})
+
+        with patch.object(
+            Camera, "async_will_remove_from_hass", AsyncMock()
+        ):
+            await camera.async_will_remove_from_hass()
+
+        assert camera._sessions == {}
+        first.async_close.assert_awaited_once()
+        second.async_close.assert_awaited_once()

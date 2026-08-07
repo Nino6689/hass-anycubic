@@ -651,6 +651,9 @@
     "camera": {
       "camera": {
         "name": "Camera"
+      },
+      "cloud_camera": {
+        "name": "Cloud camera"
       }
     },
     "select": {
