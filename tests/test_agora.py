@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import base64
 import logging
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ed25519, padding, rsa
 
 from custom_components.anycubic_cloud.agora import (
     AgoraError,
@@ -30,7 +31,7 @@ from custom_components.anycubic_cloud.agora.encryption import (
     validate_kdf_salt,
     wrap_channel_key,
 )
-from custom_components.anycubic_cloud.agora.sdp import offer_to_ortc, parse_offer, parse_sdp
+from custom_components.anycubic_cloud.agora.sdp import OfferInfo, offer_to_ortc, parse_offer, parse_sdp
 
 LOGGER = logging.getLogger(__name__)
 
@@ -242,6 +243,56 @@ def test_validate_kdf_salt_rejects_wrong_shapes(salt: str) -> None:
         validate_kdf_salt(salt)
 
 
+@pytest.fixture
+def uncached_agora_key() -> Iterator[None]:
+    """`_agora_public_key` is lru_cached, so a stubbed load must not persist."""
+    _agora_public_key.cache_clear()
+    yield
+    _agora_public_key.cache_clear()
+
+
+def test_a_bundled_key_that_will_not_load_is_reported(
+    monkeypatch: pytest.MonkeyPatch,
+    uncached_agora_key: None,
+) -> None:
+    """The key is a literal from the SDK; a bad edit to it must be obvious."""
+    monkeypatch.setattr(
+        "custom_components.anycubic_cloud.agora.encryption.serialization.load_der_public_key",
+        MagicMock(side_effect=ValueError("not a DER document")),
+    )
+
+    with pytest.raises(AgoraError, match="bundled public key could not be loaded"):
+        wrap_channel_key("a1b2c3d4e5f60718293a4b5c6d7e8f90")
+
+
+def test_a_bundled_key_that_is_not_rsa_is_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+    uncached_agora_key: None,
+) -> None:
+    """The wrap is RSA-OAEP, so no other key type could perform it."""
+    monkeypatch.setattr(
+        "custom_components.anycubic_cloud.agora.encryption.serialization.load_der_public_key",
+        MagicMock(return_value=ed25519.Ed25519PrivateKey.generate().public_key()),
+    )
+
+    with pytest.raises(AgoraError, match="not an RSA key"):
+        wrap_channel_key("a1b2c3d4e5f60718293a4b5c6d7e8f90")
+
+
+def test_a_wrap_that_fails_is_reported_as_an_agora_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Whatever cryptography objects to, the caller only handles AgoraError."""
+    key = MagicMock()
+    key.key_size = 1024
+    key.encrypt.side_effect = ValueError("data too large for key size")
+    monkeypatch.setattr(
+        "custom_components.anycubic_cloud.agora.encryption._agora_public_key",
+        lambda: key,
+    )
+
+    with pytest.raises(AgoraError, match="Failed to wrap the channel key"):
+        wrap_channel_key("a1b2c3d4e5f60718293a4b5c6d7e8f90")
+
+
 # --- SDP parsing and the ORTC conversion ------------------------------------
 
 
@@ -384,6 +435,170 @@ def test_offer_without_ice_credentials_is_rejected() -> None:
         offer_to_ortc(parse_sdp(sdp))
 
 
+def _video_offer(*extra_lines: str) -> str:
+    """A minimal offer with a usable transport, plus whatever a test adds."""
+    return "\r\n".join(
+        [
+            "v=0",
+            "o=- 1 2 IN IP4 127.0.0.1",
+            "s=-",
+            "t=0 0",
+            "m=video 9 UDP/TLS/RTP/SAVPF 96",
+            "a=ice-ufrag:abcd",
+            "a=ice-pwd:efghefghefghefghefgh",
+            "a=fingerprint:sha-256 " + GATEWAY_FINGERPRINT,
+            "a=recvonly",
+            "a=rtpmap:96 H264/90000",
+            *extra_lines,
+            "",
+        ]
+    )
+
+
+def test_lines_that_are_not_sdp_are_ignored() -> None:
+    """Browsers add lines freely; an unreadable one is never a reason to fail."""
+    parsed = parse_sdp(_video_offer("", "a", "not an sdp line at all", "b=AS:2000"))
+
+    assert len(parsed["media"]) == 1
+    assert parsed["media"][0]["rtp"][0]["payload"] == 96
+
+
+@pytest.mark.parametrize(
+    "media_line",
+    ["m=video 9", "m=video not-a-port UDP/TLS/RTP/SAVPF 96"],
+)
+def test_a_media_line_that_cannot_be_read_is_fatal(media_line: str) -> None:
+    """Unlike an attribute, a broken m= line means the offer is unusable."""
+    sdp = "\r\n".join(["v=0", "o=- 1 2 IN IP4 127.0.0.1", "s=-", "t=0 0", media_line, ""])
+
+    with pytest.raises(AgoraError, match="Malformed media"):
+        parse_sdp(sdp)
+
+
+def test_attributes_that_cannot_be_read_are_skipped_not_fatal() -> None:
+    """One unparseable attribute must not cost us the whole negotiation."""
+    parsed = parse_sdp(
+        _video_offer(
+            "a=rtpmap:97",
+            "a=rtpmap:not-a-payload-type rtx/90000",
+            "a=fmtp:",
+            "a=fmtp:not-a-payload-type apt=96",
+            "a=rtcp-fb:96",
+            "a=rtcp-fb:not-a-payload-type nack",
+            "a=extmap:3",
+            "a=extmap:not-an-id urn:ietf:params:rtp-hdrext:toffset",
+        )
+    )
+    video = parsed["media"][0]
+
+    assert [rtp["payload"] for rtp in video["rtp"]] == [96]
+    assert video["fmtp"] == []
+    assert video["rtcpFb"] == []
+    assert video["ext"] == []
+
+
+def test_transport_parameters_may_live_at_the_session_level() -> None:
+    """BUNDLE puts them on the first m= section, but session level is legal too."""
+    sdp = "\r\n".join(
+        [
+            "v=0",
+            "o=- 1 2 IN IP4 127.0.0.1",
+            "s=-",
+            "t=0 0",
+            "a=ice-ufrag:sess",
+            "a=ice-pwd:sessionwidepassword12",
+            "a=fingerprint:sha-256 " + GATEWAY_FINGERPRINT,
+            "m=video 9 UDP/TLS/RTP/SAVPF 96",
+            "a=recvonly",
+            "a=rtpmap:96 H264/90000",
+            "",
+        ]
+    )
+
+    ortc = offer_to_ortc(parse_sdp(sdp))
+
+    assert ortc["iceParameters"] == {"iceUfrag": "sess", "icePwd": "sessionwidepassword12"}
+    assert ortc["dtlsParameters"]["fingerprints"][0]["fingerprint"] == GATEWAY_FINGERPRINT
+
+
+def test_offer_without_a_dtls_fingerprint_is_rejected() -> None:
+    """No fingerprint means the gateway could not verify us, so do not join."""
+    sdp = "\r\n".join(
+        [
+            "v=0",
+            "o=- 1 2 IN IP4 127.0.0.1",
+            "s=-",
+            "t=0 0",
+            "m=video 9 UDP/TLS/RTP/SAVPF 96",
+            "a=ice-ufrag:abcd",
+            "a=ice-pwd:efghefghefghefghefgh",
+            "a=recvonly",
+            "",
+        ]
+    )
+
+    with pytest.raises(AgoraError, match="no DTLS fingerprint"):
+        offer_to_ortc(parse_sdp(sdp))
+
+
+MIXED_DIRECTION_OFFER = "\r\n".join(
+    [
+        "v=0",
+        "o=- 1 2 IN IP4 127.0.0.1",
+        "s=-",
+        "t=0 0",
+        "m=video 9 UDP/TLS/RTP/SAVPF 96",
+        "a=ice-ufrag:abcd",
+        "a=ice-pwd:efghefghefghefghefgh",
+        "a=fingerprint:sha-256 " + GATEWAY_FINGERPRINT,
+        "a=sendonly",
+        "a=rtpmap:96 H264/90000",
+        "m=video 9 UDP/TLS/RTP/SAVPF 98",
+        "a=inactive",
+        "a=rtpmap:98 VP8/90000",
+        "m=audio 9 UDP/TLS/RTP/SAVPF 111",
+        "a=rtpmap:111 opus/48000/2",
+        "m=application 9 UDP/DTLS/SCTP webrtc-datachannel",
+        "a=sctp-port:5000",
+        "",
+    ]
+)
+
+
+def test_each_direction_lands_in_the_right_half_of_the_capabilities() -> None:
+    """`send` and `recv` describe what we offered to do, direction by direction.
+
+    An inactive section contributes to neither, and a section with no
+    direction at all defaults to sendrecv, so it contributes to both.
+    """
+    ortc = offer_to_ortc(parse_sdp(MIXED_DIRECTION_OFFER))
+    send = ortc["rtpCapabilities"]["send"]
+    recv = ortc["rtpCapabilities"]["recv"]
+
+    assert [codec["payloadType"] for codec in send["videoCodecs"]] == [96]
+    assert recv["videoCodecs"] == []
+    assert [codec["payloadType"] for codec in send["audioCodecs"]] == [111]
+    assert [codec["payloadType"] for codec in recv["audioCodecs"]] == [111]
+
+
+def test_a_data_channel_section_is_carried_but_not_described() -> None:
+    """It has no codecs to negotiate, and it still has to be answered in order."""
+    offer_info = parse_offer(MIXED_DIRECTION_OFFER)
+
+    assert [media["type"] for media in offer_info.media] == ["video", "video", "audio", "application"]
+    assert offer_info.audio_extensions == []
+    assert offer_info.video_extensions == []
+    # No a=group:BUNDLE in this offer, so the mids fall back to section order.
+    assert offer_info.bundle_mids == "0 1 2 3"
+
+
+def test_an_offer_with_no_media_at_all_is_rejected() -> None:
+    sdp = "\r\n".join(["v=0", "o=- 1 2 IN IP4 127.0.0.1", "s=-", "t=0 0", ""])
+
+    with pytest.raises(AgoraError, match="no media sections"):
+        parse_offer(sdp)
+
+
 # --- answer generation ------------------------------------------------------
 
 
@@ -460,6 +675,66 @@ def test_answer_requires_a_gateway_fingerprint() -> None:
 
     with pytest.raises(AgoraError):
         build_answer_sdp(ortc, parse_offer(CHROME_OFFER))
+
+
+def test_answer_skips_a_fingerprint_entry_with_no_value() -> None:
+    """A placeholder entry must not become `a=fingerprint:sha-256 None`.
+
+    The algorithm is also spelled `algorithm` in some replies, not
+    `hashFunction`, so both are accepted.
+    """
+    ortc = _gateway_ortc()
+    ortc["dtlsParameters"]["fingerprints"] = [
+        {"hashFunction": "sha-256"},
+        {"algorithm": "sha-512", "fingerprint": "AB:CD:EF"},
+    ]
+
+    answer = build_answer_sdp(ortc, parse_offer(CHROME_OFFER))
+
+    assert "a=fingerprint:sha-512 AB:CD:EF" in answer
+    assert "None" not in answer
+
+
+def test_answer_understands_an_unwrapped_capability_block() -> None:
+    """Not every reply nests its codecs under send / recv / sendrecv."""
+    ortc = _gateway_ortc()
+    ortc["rtpCapabilities"] = ortc["rtpCapabilities"]["sendrecv"]
+
+    answer = build_answer_sdp(ortc, parse_offer(CHROME_OFFER))
+
+    assert "a=rtpmap:96 H264/90000" in answer
+
+
+def test_answer_drops_a_candidate_with_no_address() -> None:
+    """A half-described candidate would be an unparseable a=candidate line."""
+    ortc = _gateway_ortc()
+    ortc["iceParameters"]["candidates"] = [
+        {"protocol": "udp", "port": 4701},
+        {"ip": "98.98.143.194"},
+        {"ip": "98.98.143.198", "port": 4715},
+    ]
+
+    answer = build_answer_sdp(ortc, parse_offer(CHROME_OFFER))
+
+    # One usable candidate, repeated once per media section.
+    assert answer.count("a=candidate:") == 2
+    # Everything the gateway left out is defaulted, including the foundation,
+    # which keeps its position in the list so the two stay distinguishable.
+    assert "a=candidate:agora2 1 udp 2103266323 98.98.143.198 4715 typ host" in answer
+
+
+def test_answer_needs_at_least_one_media_section() -> None:
+    """Defensive: an offer that parsed but describes nothing cannot be answered."""
+    empty = OfferInfo(
+        parsed={"media": []},
+        ice_ufrag="F7gI",
+        ice_pwd="x+xNhQ8Q9k1Cp0kFqPXpMlSw",
+        bundle_mids="",
+        extmap_allow_mixed=False,
+    )
+
+    with pytest.raises(AgoraError, match="no media sections to answer"):
+        build_answer_sdp(_gateway_ortc(), empty)
 
 
 # --- the join message -------------------------------------------------------

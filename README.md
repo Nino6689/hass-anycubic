@@ -53,7 +53,7 @@
 | 🎮 **Full control** | Preheat a **cold** printer, jog the axes, release the motors, run the fans, dry a spool, feed and retract — [all as entities](#-controlling-the-printer) |
 | 🖼️ **Live preview** | The job preview image, as a camera-style entity |
 | 📈 **Lifetime stats** | Total filament used, total print time and print count |
-| 📷 **Camera** | The printer's own video stream, straight off the printer — [local connection](#5-optional-talk-to-the-printer-directly) only |
+| 📷 **Camera** | The printer's own video, on **either** connection — [WebRTC over the cloud, or the stream straight off the printer locally](#-watching-the-printer) |
 | 🔌 **Cloud or local** | Talk to the printer through Anycubic's cloud *or* [directly on your network](#5-optional-talk-to-the-printer-directly) — the local route needs **no account at all** |
 | 🔎 **Found automatically** | A printer on your network offers itself in Home Assistant; no address to hunt down |
 | 🔐 **Verified connection** | TLS to Anycubic's cloud is properly verified — see [Security](#-security) |
@@ -118,6 +118,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [4. Choose a connect mode](#4-choose-a-connect-mode)
 - [5. Talk to the printer directly *(LAN Mode)*](#5-optional-talk-to-the-printer-directly) — [which to choose](#which-should-you-choose) · [what each gives you](#what-each-mode-gives-you)
 - [Entities](#entities)
+- [📷 Watching the printer](#-watching-the-printer)
 - [🎮 Controlling the printer](#-controlling-the-printer)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
 - [Filament remaining *(estimated)*](#filament-remaining-estimated)
@@ -609,9 +610,9 @@ specific reason to want it.
 > **Pick cloud if** you upload sliced files from your computer, you like browsing the printer's file
 > library from Home Assistant, or you simply want the thing that works with the fewest surprises.
 >
-> **Pick local if** your printer is on an isolated VLAN with no internet, you want the camera in
-> Home Assistant, you don't trust a cloud service to still be there next year, or you object to your
-> printer phoning home at all.
+> **Pick local if** your printer is on an isolated VLAN with no internet, you want camera
+> snapshots and recording, you don't trust a cloud service to still be there next year, or you
+> object to your printer phoning home at all.
 
 ### What each mode gives you
 
@@ -631,7 +632,8 @@ on the printer itself.
 | Works with no internet | ✗ | **✓** |
 | Survives Anycubic changing or withdrawing their API | ✗ | **✓** |
 | Keeps working if your token expires | ✗ | **✓** — no token involved |
-| **📷 Camera** | ✗ | **✓** — the printer's own stream |
+| **📷 Camera — live view** | **✓** — WebRTC | **✓** — the printer's own stream |
+| **📷 Camera — snapshots and recording** | ✗ | **✓** |
 | **🤖 AI / foreign-object detection state** | ✗ | **✓** |
 | Capability map in diagnostics | ✗ | **✓** |
 | **📁 File library** — browse, upload, print from cloud | **✓** | ✗ |
@@ -747,6 +749,53 @@ It refuses if a job is already running, rather than interrupting or queueing beh
 >     entity_globs:
 >       - sensor.*_file_list_*
 > ```
+
+---
+
+## 📷 Watching the printer
+
+You get **two camera entities per printer**, because the printer serves two completely
+different streams and neither can stand in for the other:
+
+| Entity | How | Available when |
+| --- | --- | --- |
+| `camera.<printer>_camera` | HTTP-FLV off the printer, as HLS | LAN Mode is on |
+| `camera.<printer>_cloud_camera` | Agora WebRTC | the printer is on the cloud |
+
+### Putting it on a dashboard
+
+Add a **Picture Entity** card, pick the camera, and set **camera view** to **Live**.
+
+That last step matters for the cloud camera. The card's default `auto` mode asks for a still
+image, and the cloud camera has none to give, so it shows a placeholder instead of video. Set
+it to live and the stream plays.
+
+```yaml
+type: picture-entity
+entity: camera.anycubic_kobra_s1_cloud_camera
+camera_view: live
+```
+
+### Why the cloud camera has no snapshots
+
+Home Assistant brokers the signalling and nothing else — your browser is the WebRTC peer, so
+the video travels from Agora's edge straight to the browser and never passes through Home
+Assistant. That is what makes it free: no transcoding, no measurable CPU, and it works
+unchanged over Nabu Casa without pushing video through the tunnel.
+
+The trade is that nothing here ever holds a frame, so there is no `camera.snapshot`, no entity
+picture and no recording on the cloud camera. Anycubic's cloud offers no snapshot endpoint
+either, so there is nothing to fall back on. **Snapshots and recording work on the LAN
+camera** — if you need them, use LAN Mode.
+
+### If a stream won't start
+
+Anycubic hands the camera to whichever session logged in **most recently**. Open their slicer
+or the phone app and the cloud quietly stops issuing camera credentials to Home Assistant,
+while every other entity carries on updating as though nothing happened.
+
+The integration notices and logs back in by itself, so it normally recovers on its own. If a
+stream still refuses to start, close the slicer or the app and try again.
 
 ---
 
@@ -1290,7 +1339,8 @@ for what landed when.
 |---|---|
 | **Local (LAN Mode) connection** | The printer runs its own MQTT broker speaking the same protocol as the cloud. Reached through a signed handshake and an AES-encrypted credential exchange. Nothing is stored on disk — the credentials are rotated by the printer and only mean anything on your own network |
 | **Switch cloud ↔ local in one place** | Reconfigure → Connection, validated against the printer before it saves, and reachable even when the entry hasn't loaded — which is the state you're in right after flipping LAN Mode |
-| **Camera** | The printer names its own stream endpoint and serves it once told to start capturing. Both facts are local-only; the cloud never mentions either |
+| **Camera — local** | The printer names its own stream endpoint and serves it once told to start capturing. Neither fact is discoverable from the cloud |
+| **Camera — cloud** | The cloud camera is Agora ("shengwang") WebRTC, which nobody had implemented. Home Assistant brokers only the signalling; the browser is the WebRTC peer, so no video passes through Home Assistant and none of it costs you CPU |
 | **AI / foreign-object detection** | The printer sends an `aiSettings` message nobody had captured. Now a sensor, with the full settings in diagnostics |
 | **Capability map in diagnostics** | The printer lists what it physically supports — twelve flags. That, plus model id and firmware, is what makes a bug report about hardware I don't own actionable |
 | **Diagnostics survive a dead cloud** | They called the cloud for everything and failed outright when it was unreachable — exactly when you most want them |
