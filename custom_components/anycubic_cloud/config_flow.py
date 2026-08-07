@@ -1,6 +1,7 @@
 """Adds config flow for Anycubic Cloud integration."""
 from __future__ import annotations
 
+import time
 import traceback
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
@@ -23,9 +24,13 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.aiohttp_client import (
+    async_create_clientsession,
+    async_get_clientsession,
+)
 from homeassistant.helpers.selector import BooleanSelector, ObjectSelector
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_CARD_CONFIG,
@@ -51,12 +56,14 @@ from .const import (
 from .helpers import (
     TOKEN_TYPE_EXPECTED,
     AnycubicMQTTConnectMode,
+    async_access_token_looks_corrupted,
     async_load_saved_tokens,
     describe_token,
     detect_auth_mode,
     extract_panel_card_config,
     extract_pasted_token,
     remove_quotes_from_string,
+    token_expiry_timestamp,
     token_type_looks_wrong,
 )
 
@@ -227,7 +234,10 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def _async_check_login_errors(self) -> dict[str, str]:
-        LOGGER.debug("Config flow checking auth was successful.")
+        # Worded as a question, not a statement -- the old "checking auth was
+        # successful" read as a success message and was logged immediately
+        # before every failure.
+        LOGGER.debug("Config flow checking whether authentication succeeded.")
         assert self._anycubic_api
 
         # Logged whether or not it works: when a token is refused, its own
@@ -485,7 +495,12 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             if not token:
                 errors = {CONF_USER_TOKEN: "invalid_token_format"}
             else:
-                errors = await self._async_authenticate_detecting_mode(token, device_id)
+                errors = await self._async_precheck_token(token)
+
+                if not errors:
+                    errors = await self._async_authenticate_detecting_mode(
+                        token, device_id
+                    )
 
                 if not errors:
                     if self.entry:
@@ -509,6 +524,31 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             # hassfest forbids URLs inside translation files, so it is passed in.
             description_placeholders={"tools_url": TOOLS_URL},
         )
+
+    async def _async_precheck_token(self, token: str) -> dict[str, str]:
+        """Judge the pasted token locally before the server sees it.
+
+        Anycubic's login answers every invalid token -- corrupted, truncated,
+        expired or stale -- with the same "User does not exist", which reads
+        as an account problem and sends people entirely the wrong way (issue
+        #8 burned a full day on that). An expired or signature-broken token
+        can be named as exactly that, right here.
+        """
+        expiry = token_expiry_timestamp(token)
+        if expiry is not None and expiry <= int(time.time()):
+            LOGGER.error("Pasted token expired on %s.", dt_util.utc_from_timestamp(expiry))
+            return {CONF_USER_TOKEN: "token_expired"}
+
+        if await async_access_token_looks_corrupted(
+            async_get_clientsession(self.hass), token
+        ):
+            LOGGER.error(
+                "Pasted token failed local signature verification -- it was "
+                "damaged in copying, or reassembled wrongly from a memory dump."
+            )
+            return {CONF_USER_TOKEN: "token_corrupted"}
+
+        return {}
 
     async def _async_authenticate_detecting_mode(
         self,

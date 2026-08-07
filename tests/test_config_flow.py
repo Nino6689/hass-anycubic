@@ -266,3 +266,73 @@ async def test_auth_mode_menu_lists_every_mode(hass: HomeAssistant) -> None:
         "auth_mode_slicer",
         "auth_mode_android",
     }
+
+
+async def test_expired_token_is_named_as_expired(hass: HomeAssistant) -> None:
+    """An expired paste must say "expired", not fail as generic bad auth.
+
+    The server's own answer to an expired token is "User does not exist"
+    (issue #8), which reads as an account problem. The expiry claim is right
+    there in the token -- read it and say so before the server muddies things.
+    """
+    import base64
+    import json
+    import time
+
+    body = base64.urlsafe_b64encode(json.dumps({"exp": int(time.time()) - 3600}).encode()).decode().rstrip("=")
+    expired = f"eyJhbGciOiJSUzI1NiJ9.{body}.signature"
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with patch(API_PATH, return_value=_mock_api()) as api_factory:
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": expired})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"user_token": "token_expired"}
+    # The server was never asked -- the verdict is local.
+    api_factory.assert_not_called()
+
+
+async def test_corrupted_token_is_named_as_corrupted(hass: HomeAssistant) -> None:
+    """A signature that fails local verification must be called corruption.
+
+    This is the issue #8 case: a byte lost in a memory-dump extraction leaves
+    perfect-looking claims over a broken signature, and the server answer for
+    it sends people hunting for account problems they don't have.
+    """
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with (
+        patch(
+            "custom_components.anycubic_cloud.config_flow.async_access_token_looks_corrupted",
+            AsyncMock(return_value=True),
+        ),
+        patch(API_PATH, return_value=_mock_api()) as api_factory,
+    ):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"user_token": "token_corrupted"}
+    api_factory.assert_not_called()
+
+
+async def test_precheck_lets_a_healthy_token_through(hass: HomeAssistant) -> None:
+    """The precheck must be invisible when there is nothing to report."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with (
+        patch(
+            "custom_components.anycubic_cloud.config_flow.async_access_token_looks_corrupted",
+            AsyncMock(return_value=False),
+        ),
+        patch(API_PATH, return_value=_mock_api()),
+        patch(
+            "custom_components.anycubic_cloud.config_flow.async_load_tokens_from_store",
+            AsyncMock(),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "printer"
+    assert not result.get("errors")

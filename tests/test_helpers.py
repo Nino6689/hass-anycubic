@@ -8,12 +8,14 @@ spool icon in the wrong colour.
 from __future__ import annotations
 
 import base64
+import json
 
 import pytest
 from helpers import PRINTER_ID
 
 from custom_components.anycubic_cloud.helpers import (
     TOKEN_TYPE_EXPECTED,
+    async_access_token_looks_corrupted,
     build_ace_device_info,
     build_color_swatch_data_uri,
     describe_token,
@@ -287,3 +289,98 @@ class TestTokenDiagnostics:
         assert set(described) == {"tokenType", "scope", "iss", "aud"}
         for leaked in ("email", "sub", "id", "phone"):
             assert leaked not in described
+
+
+class TestAccessTokenCorruption:
+    """Local signature verification of pasted Casdoor access tokens.
+
+    The server answers every invalid token -- corrupted, truncated, stale or
+    nonsense -- with the same "User does not exist" (fingerprinted against the
+    real endpoint, issue #8). Catching a damaged token locally is the only way
+    to give its owner an honest error message.
+
+    The keypair below was generated for these tests and signs nothing real.
+    """
+
+    JWK = {
+        "kid": "test",
+        "kty": "RSA",
+        "alg": "RS256",
+        "n": (
+            "r6zHZNbeklIcc56V2yKLJkdYXTIRLxAAXGxVx3sCWCzrLX3fsaioqmko6kVfqDVQ"
+            "MtmcUwWsUlN0BGm4dm64n5vGL48DudRJggUiZXA3vcHMrlZ6AA7hSqZbk0QE07o7"
+            "no6fcShVGXtTYxp7neaSXeXji00eMIhCFeu9TxKHaH8"
+        ),
+        "e": "AQAB",
+    }
+    SIGNED = (
+        "eyJhbGciOiAiUlMyNTYiLCAia2lkIjogInRlc3QiLCAidHlwIjogIkpXVCJ9."
+        "eyJpc3MiOiAiaHR0cHM6Ly91Yy5tYWtlcm9ubGluZS5jb20iLCAidG9rZW5UeXBl"
+        "IjogImFjY2Vzcy10b2tlbiIsICJleHAiOiA0MTAyNDQ0ODAwfQ."
+        "FJ0IU0ssvEuA6aOz5q0mTeOegbi8NKeYa2fBu6Ffr3m08F2mWvLRiVAzXdgKBX79"
+        "yqsUWx0RNC_2HiSbo8TMYcsi-3cMrZdPSdLyfIkAfdul-u9DYqqewejdcrUFWhMd"
+        "Z3BkThxsws2CYUW0DshJq5VNrEMiziHBiNymuLqvVnU"
+    )
+
+    class _Session:
+        """The two aiohttp behaviours the helper touches, nothing more."""
+
+        def __init__(self, jwks=None, exc=None):
+            self._jwks = jwks
+            self._exc = exc
+            self.requests = 0
+
+        async def get(self, url, **kwargs):
+            self.requests += 1
+            if self._exc:
+                raise self._exc
+            return self
+
+        def raise_for_status(self):
+            pass
+
+        async def json(self, content_type=None):
+            return self._jwks
+
+    def _session(self, **kwargs):
+        return self._Session(jwks={"keys": [self.JWK]}, **kwargs)
+
+    async def test_an_intact_token_passes(self):
+        assert not await async_access_token_looks_corrupted(self._session(), self.SIGNED)
+
+    async def test_a_flipped_signature_character_is_caught(self):
+        tail = "A" if not self.SIGNED.endswith("A") else "B"
+
+        assert await async_access_token_looks_corrupted(self._session(), self.SIGNED[:-1] + tail)
+
+    async def test_a_tampered_payload_is_caught(self):
+        head, payload, sig = self.SIGNED.split(".")
+        # Re-encode the claims with one value changed; signature now lies.
+        claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        claims["tokenType"] = "refresh-token"
+        forged = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
+
+        assert await async_access_token_looks_corrupted(self._session(), f"{head}.{forged}.{sig}")
+
+    async def test_a_missing_signature_segment_is_caught_without_network(self):
+        """A truncated copy that lost the third segment is judged locally."""
+        head, payload, _sig = self.SIGNED.split(".")
+        session = self._session()
+
+        assert await async_access_token_looks_corrupted(session, f"{head}.{payload}")
+        assert session.requests == 0
+
+    async def test_other_issuers_are_never_judged(self):
+        """Anycubic's own HS512 user tokens have no published key to check."""
+        body = base64.urlsafe_b64encode(json.dumps({"user_id": 1, "mode": "web"}).encode()).decode().rstrip("=")
+        token = f"eyJhbGciOiJIUzUxMiJ9.{body}.bogus-signature"
+        session = self._session()
+
+        assert not await async_access_token_looks_corrupted(session, token)
+        assert session.requests == 0
+
+    async def test_an_unreachable_key_endpoint_never_blocks_login(self):
+        """No network is no verdict -- the server stays the authority."""
+        session = self._Session(exc=OSError("no route"))
+
+        assert not await async_access_token_looks_corrupted(session, self.SIGNED)

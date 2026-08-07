@@ -5,16 +5,18 @@
       "reauth_successful": "Re-authentication successful."
     },
     "error": {
-      "invalid_auth": "Invalid authentication.",
-      "invalid_token": "Invalid user token.",
       "cannot_connect": "Cannot connect.",
-      "no_printers": "No printers found.",
+      "invalid_auth": "Invalid authentication.",
       "invalid_printer": "Invalid printer.",
+      "invalid_token": "Invalid user token.",
       "invalid_token_format": "That doesn't look like an Anycubic token. It should be a long string of letters and numbers — slicer tokens start with \"eyJ\". Try one of the one-click helpers in the tools folder, then paste the result here.",
       "lan_host_required": "Enter the printer's address on your network.",
-      "lan_unreachable": "Could not reach the printer at that address. Check the address, and that LAN Mode is switched on at the printer.",
       "lan_printer_in_cloud_mode": "The printer answered, but it is still in cloud mode. Switch LAN Mode on at the printer: Settings → Network → LAN Mode.",
+      "lan_unreachable": "Could not reach the printer at that address. Check the address, and that LAN Mode is switched on at the printer.",
       "lan_unsupported_printer": "This printer does not use the local protocol this integration speaks (Kobra 3 / S1 generation). Please open an issue with your model and firmware version.",
+      "no_printers": "No printers found.",
+      "token_corrupted": "This token is damaged — its signature doesn't match its contents, so a character was lost or changed on its way here. Copy it again in one piece. If it came from a memory dump, sign in again first and take the token from a fresh dump.",
+      "token_expired": "This token has expired. Sign in to the slicer or website again and grab a fresh one — Anycubic tokens last about 90 days.",
       "wrong_token_type": "That looks like the wrong kind of token. Anycubic issues several, and the integration needs the one whose type is \"access-token\" — the others are refused with \"User does not exist\". If you recovered it from a memory dump, there is usually more than one token in there; try the next match."
     },
     "step": {

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 import base64
+import binascii
+import hashlib
 import json
 import re
 from enum import IntEnum
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+import aiohttp
 from anycubic_cloud_api import AnycubicAPI
 from anycubic_cloud_api.const.enums import AnycubicPrinterMaterialType
 from anycubic_cloud_api.models.auth import AnycubicAuthMode
@@ -598,6 +602,30 @@ def detect_auth_mode(
     return AnycubicAuthMode.WEB
 
 
+def _token_claims(token: str | None) -> dict[str, Any]:
+    """Decode a JWT's payload claims, without verifying anything.
+
+    Returns {} for anything that is not a readable JWT -- callers treat that
+    as "the token has nothing to say", never as an error.
+    """
+    if not token or not token.startswith("eyJ"):
+        return {}
+
+    parts = token.split(".")
+    if len(parts) < 2:
+        return {}
+
+    payload = parts[1]
+    payload += "=" * (-len(payload) % 4)  # restore stripped base64 padding
+
+    try:
+        claims = json.loads(base64.urlsafe_b64decode(payload))
+    except Exception:  # noqa: BLE001 - a malformed token simply has no claims
+        return {}
+
+    return claims if isinstance(claims, dict) else {}
+
+
 def token_expiry_timestamp(token: str | None) -> int | None:
     """Read the `exp` claim out of a JWT token, without verifying it.
 
@@ -605,22 +633,7 @@ def token_expiry_timestamp(token: str | None) -> int | None:
     warn before it lapses -- the signature is the server's business, and we
     deliberately don't trust anything else in here.
     """
-    if not token or not token.startswith("eyJ"):
-        return None
-
-    parts = token.split(".")
-    if len(parts) < 2:
-        return None
-
-    payload = parts[1]
-    payload += "=" * (-len(payload) % 4)  # restore stripped base64 padding
-
-    try:
-        claims = json.loads(base64.urlsafe_b64decode(payload))
-    except Exception:  # noqa: BLE001 - a malformed token simply has no expiry
-        return None
-
-    expiry = claims.get("exp")
+    expiry = _token_claims(token).get("exp")
 
     return int(expiry) if isinstance(expiry, (int, float)) else None
 
@@ -637,24 +650,7 @@ def describe_token(token: str | None) -> dict[str, Any]:
     Deliberately excludes `sub`, `id`, `email` and `phone` -- this ends up in
     debug logs that get pasted into issue reports.
     """
-    if not token or not token.startswith("eyJ"):
-        return {}
-
-    parts = token.split(".")
-
-    if len(parts) < 2:
-        return {}
-
-    payload = parts[1]
-    payload += "=" * (-len(payload) % 4)
-
-    try:
-        claims = json.loads(base64.urlsafe_b64decode(payload))
-    except Exception:  # noqa: BLE001
-        return {}
-
-    if not isinstance(claims, dict):
-        return {}
+    claims = _token_claims(token)
 
     return {
         k: claims[k]
@@ -675,3 +671,84 @@ def token_type_looks_wrong(token: str | None) -> str | None:
         return str(kind)
 
     return None
+
+
+# Access tokens are RS256 JWTs from Anycubic's Casdoor instance, which
+# publishes its signing keys. That lets a pasted token be verified locally
+# before the server ever sees it -- which matters because the server's answer
+# to ANY invalid token (corrupted, truncated, stale, or not a token at all) is
+# a flat "User does not exist". Verified empirically by mutating a known-good
+# token four different ways: every mutation got that same message.
+CASDOOR_ISSUER = "https://uc.makeronline.com"
+JWKS_URL = "https://uc.makeronline.com/.well-known/jwks"
+# ASN.1 DigestInfo prefix for SHA-256, per EMSA-PKCS1-v1_5.
+_SHA256_DIGEST_INFO = bytes.fromhex("3031300d060960864801650304020105000420")
+
+
+def _b64url_decode(segment: str) -> bytes:
+    return base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
+
+
+def _rsa_sha256_verifies(signed: bytes, signature: bytes, jwk: dict[str, Any]) -> bool:
+    """Pure-stdlib RSASSA-PKCS1-v1_5 / SHA-256 check against one JWK.
+
+    Implemented directly rather than via a JWT library so nothing new has to
+    be importable inside Home Assistant -- it is one modular exponentiation
+    and a byte comparison.
+    """
+    try:
+        n = int.from_bytes(_b64url_decode(jwk["n"]), "big")
+        e = int.from_bytes(_b64url_decode(jwk["e"]), "big")
+        length = (n.bit_length() + 7) // 8
+        decrypted = pow(int.from_bytes(signature, "big"), e, n).to_bytes(length, "big")
+    except (KeyError, ValueError, OverflowError):
+        return False
+
+    digest_info = _SHA256_DIGEST_INFO + hashlib.sha256(signed).digest()
+    padding_len = length - len(digest_info) - 3
+    if padding_len < 8:  # PKCS#1 requires at least 8 bytes of 0xFF padding
+        return False
+
+    return decrypted == b"\x00\x01" + b"\xff" * padding_len + b"\x00" + digest_info
+
+
+async def async_access_token_looks_corrupted(
+    session: aiohttp.ClientSession,
+    token: str,
+) -> bool:
+    """True only when a Casdoor access token DEFINITELY fails verification.
+
+    Deliberately one-sided. Only tokens claiming Casdoor's issuer are judged
+    at all -- Anycubic's own user tokens are HS512 with no `iss` and cannot be
+    checked against a published key. And when the key set cannot be fetched,
+    the answer is False: never block a login on our inability to check.
+    """
+    if _token_claims(token).get("iss") != CASDOOR_ISSUER:
+        return False
+
+    parts = token.split(".")
+    if len(parts) != 3:
+        # It carries Casdoor claims but has no signature segment to check --
+        # that IS the corruption, most likely a truncated copy.
+        return True
+
+    try:
+        signature = _b64url_decode(parts[2])
+    except (ValueError, binascii.Error):
+        return True
+
+    try:
+        async with asyncio.timeout(15):
+            # The endpoint answers 403 to non-browser user agents.
+            resp = await session.get(
+                JWKS_URL, headers={"User-Agent": "Mozilla/5.0"}
+            )
+            resp.raise_for_status()
+            jwks = await resp.json(content_type=None)
+        keys = jwks["keys"]
+    except Exception:  # noqa: BLE001 - unreachable/changed endpoint: can't judge
+        return False
+
+    signed = f"{parts[0]}.{parts[1]}".encode()
+
+    return not any(_rsa_sha256_verifies(signed, signature, key) for key in keys)
