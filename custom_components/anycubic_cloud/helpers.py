@@ -712,43 +712,94 @@ def _rsa_sha256_verifies(signed: bytes, signature: bytes, jwk: dict[str, Any]) -
     return decrypted == b"\x00\x01" + b"\xff" * padding_len + b"\x00" + digest_info
 
 
-async def async_access_token_looks_corrupted(
+def _signature_length_for(jwk: dict[str, Any]) -> int | None:
+    """How many base64url characters this key's signatures occupy.
+
+    A signature is exactly as long as the modulus, so the key itself says
+    where a signature must end -- which is what makes over-long ones
+    repairable rather than merely detectable.
+    """
+    try:
+        n = int.from_bytes(_b64url_decode(jwk["n"]), "big")
+    except (KeyError, ValueError, binascii.Error):
+        return None
+
+    size = (n.bit_length() + 7) // 8
+
+    return (size * 8 + 5) // 6
+
+
+async def _async_fetch_signing_keys(
+    session: aiohttp.ClientSession,
+) -> list[dict[str, Any]] | None:
+    """Casdoor's published signing keys, or None if they can't be had."""
+    try:
+        async with asyncio.timeout(15):
+            # The endpoint answers 403 to non-browser user agents.
+            resp = await session.get(JWKS_URL, headers={"User-Agent": "Mozilla/5.0"})
+            resp.raise_for_status()
+            jwks = await resp.json(content_type=None)
+        keys = jwks["keys"]
+    except Exception:  # noqa: BLE001 - unreachable/changed endpoint: can't judge
+        return None
+
+    return keys if isinstance(keys, list) else None
+
+
+async def async_repair_access_token(
     session: aiohttp.ClientSession,
     token: str,
-) -> bool:
-    """True only when a Casdoor access token DEFINITELY fails verification.
+) -> tuple[str, bool]:
+    """Verify a pasted access token, trimming stray trailing bytes if needed.
 
-    Deliberately one-sided. Only tokens claiming Casdoor's issuer are judged
-    at all -- Anycubic's own user tokens are HS512 with no `iss` and cannot be
-    checked against a published key. And when the key set cannot be fetched,
-    the answer is False: never block a login on our inability to check.
+    Returns `(token_to_use, definitely_corrupt)`.
+
+    Tokens recovered from a slicer memory dump are found by pattern-matching
+    base64 in raw memory, and the match happily runs on past the end of the
+    signature into whatever bytes follow it. The result decodes perfectly,
+    carries correct claims, and is rejected by the server with "User does not
+    exist" -- the reporter on #8 lost a day to exactly this. The key's modulus
+    says precisely how long its signatures are, so the surplus can simply be
+    cut off and the token used.
+
+    Deliberately one-sided about failure: only tokens claiming Casdoor's
+    issuer are judged at all (Anycubic's own user tokens are HS512 with no
+    published key), and if the key set cannot be fetched nothing is corrupt --
+    never block a login on our own inability to check.
     """
     if _token_claims(token).get("iss") != CASDOOR_ISSUER:
-        return False
+        return token, False
 
     parts = token.split(".")
     if len(parts) != 3:
         # It carries Casdoor claims but has no signature segment to check --
         # that IS the corruption, most likely a truncated copy.
-        return True
+        return token, True
 
-    try:
-        signature = _b64url_decode(parts[2])
-    except (ValueError, binascii.Error):
-        return True
+    keys = await _async_fetch_signing_keys(session)
+    if keys is None:
+        return token, False
 
-    try:
-        async with asyncio.timeout(15):
-            # The endpoint answers 403 to non-browser user agents.
-            resp = await session.get(
-                JWKS_URL, headers={"User-Agent": "Mozilla/5.0"}
-            )
-            resp.raise_for_status()
-            jwks = await resp.json(content_type=None)
-        keys = jwks["keys"]
-    except Exception:  # noqa: BLE001 - unreachable/changed endpoint: can't judge
-        return False
+    head, payload, signature_text = parts
+    signed = f"{head}.{payload}".encode()
 
-    signed = f"{parts[0]}.{parts[1]}".encode()
+    for key in keys:
+        expected_len = _signature_length_for(key)
+        candidates = [signature_text]
 
-    return not any(_rsa_sha256_verifies(signed, signature, key) for key in keys)
+        # Only ever shorten, and only to the length this key demands. A
+        # signature that is too SHORT is genuinely damaged -- there is nothing
+        # to put back -- so no padding is attempted.
+        if expected_len is not None and len(signature_text) > expected_len:
+            candidates.append(signature_text[:expected_len])
+
+        for candidate in candidates:
+            try:
+                signature = _b64url_decode(candidate)
+            except (ValueError, binascii.Error):
+                continue
+
+            if _rsa_sha256_verifies(signed, signature, key):
+                return f"{head}.{payload}.{candidate}", False
+
+    return token, True

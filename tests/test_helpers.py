@@ -15,7 +15,7 @@ from helpers import PRINTER_ID
 
 from custom_components.anycubic_cloud.helpers import (
     TOKEN_TYPE_EXPECTED,
-    async_access_token_looks_corrupted,
+    async_repair_access_token,
     build_ace_device_info,
     build_color_swatch_data_uri,
     describe_token,
@@ -345,13 +345,18 @@ class TestAccessTokenCorruption:
     def _session(self, **kwargs):
         return self._Session(jwks={"keys": [self.JWK]}, **kwargs)
 
-    async def test_an_intact_token_passes(self):
-        assert not await async_access_token_looks_corrupted(self._session(), self.SIGNED)
+    async def test_an_intact_token_passes_through_untouched(self):
+        token, corrupt = await async_repair_access_token(self._session(), self.SIGNED)
+
+        assert not corrupt
+        assert token == self.SIGNED
 
     async def test_a_flipped_signature_character_is_caught(self):
         tail = "A" if not self.SIGNED.endswith("A") else "B"
 
-        assert await async_access_token_looks_corrupted(self._session(), self.SIGNED[:-1] + tail)
+        _token, corrupt = await async_repair_access_token(self._session(), self.SIGNED[:-1] + tail)
+
+        assert corrupt
 
     async def test_a_tampered_payload_is_caught(self):
         head, payload, sig = self.SIGNED.split(".")
@@ -360,14 +365,18 @@ class TestAccessTokenCorruption:
         claims["tokenType"] = "refresh-token"
         forged = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=")
 
-        assert await async_access_token_looks_corrupted(self._session(), f"{head}.{forged}.{sig}")
+        _token, corrupt = await async_repair_access_token(self._session(), f"{head}.{forged}.{sig}")
+
+        assert corrupt
 
     async def test_a_missing_signature_segment_is_caught_without_network(self):
         """A truncated copy that lost the third segment is judged locally."""
         head, payload, _sig = self.SIGNED.split(".")
         session = self._session()
 
-        assert await async_access_token_looks_corrupted(session, f"{head}.{payload}")
+        _token, corrupt = await async_repair_access_token(session, f"{head}.{payload}")
+
+        assert corrupt
         assert session.requests == 0
 
     async def test_other_issuers_are_never_judged(self):
@@ -376,11 +385,39 @@ class TestAccessTokenCorruption:
         token = f"eyJhbGciOiJIUzUxMiJ9.{body}.bogus-signature"
         session = self._session()
 
-        assert not await async_access_token_looks_corrupted(session, token)
+        checked, corrupt = await async_repair_access_token(session, token)
+
+        assert not corrupt
+        assert checked == token
         assert session.requests == 0
 
     async def test_an_unreachable_key_endpoint_never_blocks_login(self):
         """No network is no verdict -- the server stays the authority."""
         session = self._Session(exc=OSError("no route"))
 
-        assert not await async_access_token_looks_corrupted(session, self.SIGNED)
+        _token, corrupt = await async_repair_access_token(session, self.SIGNED)
+
+        assert not corrupt
+
+    @pytest.mark.parametrize("surplus", [1, 8, 40])
+    async def test_trailing_bytes_are_trimmed_and_the_token_used(self, surplus):
+        """The #8 resolution: a dump match that ran past the signature's end.
+
+        The regex that finds a JWT in raw memory keeps matching base64 into
+        whatever bytes follow it, so the token is too LONG rather than
+        damaged. It decodes perfectly and the server still refuses it. The
+        key's modulus says exactly where the signature ends, so the surplus
+        can be cut and the token used as-is.
+        """
+        padded = self.SIGNED + "A" * surplus
+
+        token, corrupt = await async_repair_access_token(self._session(), padded)
+
+        assert not corrupt
+        assert token == self.SIGNED
+
+    async def test_a_short_signature_is_not_padded_into_working(self):
+        """Only ever shorten. Missing bytes are real damage, not surplus."""
+        _token, corrupt = await async_repair_access_token(self._session(), self.SIGNED[:-8])
+
+        assert corrupt

@@ -287,6 +287,124 @@ process. This is a standard Windows feature and nothing leaves your machine. Cre
 
 </details>
 
+<details>
+<summary><b>A3. Recovering the token on macOS</b> — encrypted config, Apple silicon 🍎</summary>
+
+<br>
+
+The same encryption applies on macOS, but there's no Task Manager to dump from. Worked out and
+contributed by [**@hausch1ld** in #8](https://github.com/Nino6689/hass-anycubic/issues/8) — the
+only macOS method anyone has written down.
+
+The approach: make an ad-hoc-signed copy of the slicer (the shipped one refuses a debugger), run
+it under `lldb`, and save a core dump once it has decrypted the token into memory.
+
+1. Open Slicer Next, **sign in**, then quit it.
+
+2. Create a debuggable copy:
+
+   ```bash
+   rm -rf "/private/tmp/AnycubicSlicerNext-Debug.app"
+   ditto "/Applications/AnycubicSlicerNext.app" "/private/tmp/AnycubicSlicerNext-Debug.app"
+   codesign --force --deep --sign - --timestamp=none "/private/tmp/AnycubicSlicerNext-Debug.app"
+   ```
+
+3. Launch it under the debugger, then type `run` at the `(lldb)` prompt:
+
+   ```bash
+   /usr/bin/lldb -- "/private/tmp/AnycubicSlicerNext-Debug.app/Contents/MacOS/AnycubicSlicerNext"
+   ```
+
+4. In the slicer, open your workbench and check you're signed in and your printer is listed.
+
+5. Back in Terminal press **Ctrl+C** (not Cmd) to pause the app, then:
+
+   ```
+   process save-core /private/tmp/AnycubicSlicerNext.core
+   process detach
+   quit
+   ```
+
+6. Extract the token — this verifies each candidate's RSA signature against Anycubic's published
+   keys and copies the newest valid, unexpired one to your clipboard:
+
+   ```bash
+   python3 - <<'PY'
+   import base64, datetime, hashlib, json, mmap, re, subprocess, urllib.request
+   from pathlib import Path
+
+   CORE = Path("/private/tmp/AnycubicSlicerNext.core")
+   JWKS = "https://uc.makeronline.com/.well-known/jwks"
+   PREFIX = bytes.fromhex("3031300d060960864801650304020105000420")
+
+   def b64d(value):
+       if isinstance(value, bytes):
+           value = value.decode()
+       return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+   req = urllib.request.Request(JWKS, headers={"User-Agent": "Mozilla/5.0"})
+   keys = json.load(urllib.request.urlopen(req, timeout=15))["keys"]
+
+   pattern = re.compile(rb"(eyJ[A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{100,})")
+   valid = []
+
+   with CORE.open("rb") as file, mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as mem:
+       for match in pattern.finditer(mem):
+           header, payload, raw_signature = match.groups()
+           try:
+               claims = json.loads(b64d(payload))
+           except Exception:
+               continue
+           if claims.get("tokenType") != "access-token":
+               continue
+           if not all(claims.get(k) for k in ("id", "sub", "email")):
+               continue
+           for key in keys:
+               n = int.from_bytes(b64d(key["n"]), "big")
+               e = int.from_bytes(b64d(key["e"]), "big")
+               size = (n.bit_length() + 7) // 8
+               signature_text = raw_signature[: (size * 8 + 5) // 6]
+               try:
+                   signature = int.from_bytes(b64d(signature_text), "big")
+               except Exception:
+                   continue
+               digest = PREFIX + hashlib.sha256(header + b"." + payload).digest()
+               expected = b"\x00\x01" + b"\xff" * (size - len(digest) - 3) + b"\x00" + digest
+               if pow(signature, e, n).to_bytes(size, "big") == expected:
+                   if claims.get("exp", 0) > datetime.datetime.now().timestamp():
+                       valid.append((claims.get("iat", 0), b".".join((header, payload, signature_text)).decode(), claims))
+                   break
+
+   if not valid:
+       raise SystemExit("Could not find a valid access-token")
+
+   _, token, claims = max(valid, key=lambda item: item[0])
+   subprocess.run(["pbcopy"], input=token, text=True, check=True)
+   print("SIGNATURE VALID")
+   print("Token length:", len(token))
+   print("Valid until:", datetime.datetime.fromtimestamp(claims["exp"], datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
+   print("Access token copied to clipboard")
+   PY
+   ```
+
+7. Paste it into Home Assistant, then clean up:
+
+   ```bash
+   rm -rf "/private/tmp/AnycubicSlicerNext-Debug.app" "/private/tmp/AnycubicSlicerNext.core"
+   pbcopy < /dev/null
+   ```
+
+> 💡 **Why the signature length matters.** A regex searching raw memory keeps matching base64
+> characters past the end of the signature, so the token comes out **too long** — it decodes
+> perfectly, has correct claims, and the server still refuses it with `User does not exist`. The
+> key's modulus says exactly where a signature ends, which is what the `(size * 8 + 5) // 6`
+> above is for. Since **v1.4.7** the integration trims stray trailing characters itself, so a
+> slightly over-long paste is repaired rather than rejected.
+
+> 🔐 **Delete the core file afterwards** — it contains all your live tokens in clear text.
+
+</details>
+
 Tokens last **90 days** (verified from the token's own expiry claim) and may rotate. Home
 Assistant warns you in a Repair notice a fortnight before yours lapses, so you get a chance to
 replace it before anything breaks — just repeat the steps. Running the slicer and HA signed in at the same time works fine.
@@ -987,6 +1105,7 @@ Most wanted, by how many Home Assistant installs are in each country: **Dutch**,
 
 - **[@WaresWichall](https://github.com/WaresWichall)** — the original integration, and by far the larger share of the work here. Massive thanks ⭐
 - **[@simo26246](https://github.com/simo26246)** — worked out the encrypted-slicer-config token recovery
+- **[@hausch1ld](https://github.com/hausch1ld)** — the macOS token recovery method, and the signature-length insight behind the automatic token repair
 - Frontend card concept adapted from [@dangreco](https://github.com/dangreco)'s threedy
 - Maintained by [@Nino6689](https://github.com/Nino6689)
 

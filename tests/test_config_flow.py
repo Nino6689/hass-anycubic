@@ -304,8 +304,8 @@ async def test_corrupted_token_is_named_as_corrupted(hass: HomeAssistant) -> Non
 
     with (
         patch(
-            "custom_components.anycubic_cloud.config_flow.async_access_token_looks_corrupted",
-            AsyncMock(return_value=True),
+            "custom_components.anycubic_cloud.config_flow.async_repair_access_token",
+            AsyncMock(return_value=(JWT, True)),
         ),
         patch(API_PATH, return_value=_mock_api()) as api_factory,
     ):
@@ -322,8 +322,8 @@ async def test_precheck_lets_a_healthy_token_through(hass: HomeAssistant) -> Non
 
     with (
         patch(
-            "custom_components.anycubic_cloud.config_flow.async_access_token_looks_corrupted",
-            AsyncMock(return_value=False),
+            "custom_components.anycubic_cloud.config_flow.async_repair_access_token",
+            AsyncMock(return_value=(JWT, False)),
         ),
         patch(API_PATH, return_value=_mock_api()),
         patch(
@@ -336,3 +336,35 @@ async def test_precheck_lets_a_healthy_token_through(hass: HomeAssistant) -> Non
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "printer"
     assert not result.get("errors")
+
+
+async def test_a_repaired_token_is_the_one_stored(hass: HomeAssistant) -> None:
+    """A token trimmed of stray bytes must be what gets saved and used.
+
+    Storing the original would leave the entry holding a token the server
+    refuses, so it would work once and fail on every restart.
+    """
+    trimmed = f"{JWT}-trimmed"
+    seen: list[str] = []
+
+    def _api_factory(hass_arg, token, auth_mode=None, device_id=None):  # noqa: ANN001
+        seen.append(token)
+        return _mock_api()
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+
+    with (
+        patch(
+            "custom_components.anycubic_cloud.config_flow.async_repair_access_token",
+            AsyncMock(return_value=(trimmed, False)),
+        ),
+        patch(API_PATH, side_effect=_api_factory),
+        patch(
+            "custom_components.anycubic_cloud.config_flow.async_load_tokens_from_store",
+            AsyncMock(),
+        ),
+    ):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
+
+    assert result["step_id"] == "printer"
+    assert seen and all(token == trimmed for token in seen)

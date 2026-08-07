@@ -56,8 +56,8 @@ from .const import (
 from .helpers import (
     TOKEN_TYPE_EXPECTED,
     AnycubicMQTTConnectMode,
-    async_access_token_looks_corrupted,
     async_load_saved_tokens,
+    async_repair_access_token,
     describe_token,
     detect_auth_mode,
     extract_panel_card_config,
@@ -495,7 +495,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             if not token:
                 errors = {CONF_USER_TOKEN: "invalid_token_format"}
             else:
-                errors = await self._async_precheck_token(token)
+                token, errors = await self._async_precheck_token(token)
 
                 if not errors:
                     errors = await self._async_authenticate_detecting_mode(
@@ -525,7 +525,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders={"tools_url": TOOLS_URL},
         )
 
-    async def _async_precheck_token(self, token: str) -> dict[str, str]:
+    async def _async_precheck_token(self, token: str) -> tuple[str, dict[str, str]]:
         """Judge the pasted token locally before the server sees it.
 
         Anycubic's login answers every invalid token -- corrupted, truncated,
@@ -533,22 +533,34 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         as an account problem and sends people entirely the wrong way (issue
         #8 burned a full day on that). An expired or signature-broken token
         can be named as exactly that, right here.
+
+        Returns the token to carry on with, which may have had stray trailing
+        bytes trimmed off its signature.
         """
         expiry = token_expiry_timestamp(token)
         if expiry is not None and expiry <= int(time.time()):
             LOGGER.error("Pasted token expired on %s.", dt_util.utc_from_timestamp(expiry))
-            return {CONF_USER_TOKEN: "token_expired"}
+            return token, {CONF_USER_TOKEN: "token_expired"}
 
-        if await async_access_token_looks_corrupted(
+        checked, corrupt = await async_repair_access_token(
             async_get_clientsession(self.hass), token
-        ):
+        )
+
+        if corrupt:
             LOGGER.error(
                 "Pasted token failed local signature verification -- it was "
                 "damaged in copying, or reassembled wrongly from a memory dump."
             )
-            return {CONF_USER_TOKEN: "token_corrupted"}
+            return token, {CONF_USER_TOKEN: "token_corrupted"}
 
-        return {}
+        if checked != token:
+            LOGGER.debug(
+                "Trimmed %d stray character(s) from the pasted token's "
+                "signature; it verifies once they are removed.",
+                len(token) - len(checked),
+            )
+
+        return checked, {}
 
     async def _async_authenticate_detecting_mode(
         self,
