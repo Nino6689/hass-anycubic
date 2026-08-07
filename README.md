@@ -900,9 +900,19 @@ through it is, which is enough to project the whole job. That means it works for
 started at the printer's own screen too, and it needs no setup beyond the spool weight
 you've already told it.
 
-Nothing is reported below **3% progress** — priming and the first-layer purge are a
-fixed cost rather than a rate, and extrapolating from them would badly overstate the
-total. From there on the estimate settles quickly.
+### Why it doesn't simply divide used-so-far by progress
+
+Because that is wrong, and badly so. A print starts with a purge and a prime — a **fixed
+cost**, not part of the rate. Measured on a real Kobra S1 job: 3.9 g of startup waste,
+then 0.48 g per percent. Dividing total-used by progress reported **125 g at 5% for a
+print that actually took about 52 g**.
+
+A run-out warning that over-projects by 2.4× would cry wolf on nearly every print, which
+is worse than not having one. So the rate is measured **between two observations**, which
+cancels the fixed startup cost exactly.
+
+In practice that means the first answer arrives around **8–10% progress** rather than 3%
+— still early enough to swap a spool, and right.
 
 ```yaml
 automation:

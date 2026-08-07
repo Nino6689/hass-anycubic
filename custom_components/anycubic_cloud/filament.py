@@ -53,10 +53,14 @@ FILAMENT_DIAMETER_MM = 1.75
 # A full spool, when the user hasn't said otherwise.
 DEFAULT_SPOOL_WEIGHT_G = 1000.0
 
-# Below this, the extrapolation from "used so far" to "needed in total" is
-# dominated by priming and the first-layer purge, which are a fixed cost rather
-# than a rate. Waiting a few percent turns a wild guess into a useful one.
+# Where the baseline for the rate is taken. Before this there is barely any
+# printing to measure a rate from.
 MIN_PROGRESS_FOR_FORECAST_PCT = 3.0
+
+# How much progress must pass after the baseline before a rate is trusted.
+# Measured on a real print: too small a window and normal variation between
+# layers swamps the rate.
+MIN_PROGRESS_SPAN_PCT = 5.0
 
 # Filaments loaded with abrasive fill. These chew through a brass nozzle in
 # tens of hours where PLA would barely mark it, so the wear that matters is
@@ -202,28 +206,49 @@ def job_grams_required(
     used_mm: float | None,
     progress_pct: float | None,
     material: str | None = None,
+    baseline: tuple[float, float] | None = None,
 ) -> float | None:
     """What a running job will need in total, from what it has used so far.
 
     The printer reports both the filament it has extruded and how far through
     it is, which is all this needs -- no slicer estimate, so it works for jobs
-    started at the printer's own screen too. Crucially it is answerable within
-    the first minute or two, which is when knowing still lets you do something
-    about it.
+    started at the printer's own screen too.
 
-    Returns None below a few percent, where priming and the first-layer purge
-    still dominate and the extrapolation would badly overstate the total.
+    ⚠ Dividing total used by progress does NOT work. A print begins with a
+    purge and a prime that are a fixed cost, not part of the rate, so early on
+    that ratio is wildly high. Measured on a real Kobra S1 job: at 5% it
+    projected 125 g for a print that actually took ~52 g -- a 2.4x
+    over-estimate, and a run-out warning that over-projects like that is worse
+    than none at all.
+
+    So the rate is measured *between two observations*, which cancels the
+    fixed startup cost exactly. `baseline` is an earlier (used_mm, progress)
+    pair; without one, or before enough progress has passed since it, there is
+    no answer yet.
     """
     if not used_mm or used_mm <= 0:
         return None
 
-    if progress_pct is None or progress_pct < MIN_PROGRESS_FOR_FORECAST_PCT:
+    if progress_pct is None or progress_pct <= 0 or progress_pct > 100:
         return None
 
-    if progress_pct > 100:
+    if baseline is None:
         return None
 
-    return round(mm_to_grams(used_mm, material) / (progress_pct / 100), 1)
+    base_mm, base_pct = baseline
+
+    if progress_pct - base_pct < MIN_PROGRESS_SPAN_PCT:
+        return None
+
+    grams_since = mm_to_grams(used_mm - base_mm, material)
+
+    if grams_since <= 0:
+        return None
+
+    per_pct = grams_since / (progress_pct - base_pct)
+    total = mm_to_grams(used_mm, material) + per_pct * (100 - progress_pct)
+
+    return round(total, 1)
 
 
 def runout_forecast(

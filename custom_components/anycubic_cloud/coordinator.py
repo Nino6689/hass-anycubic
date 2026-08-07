@@ -92,6 +92,7 @@ from .const import (
 )
 from .filament import (
     DEFAULT_SPOOL_WEIGHT_G,
+    MIN_PROGRESS_FOR_FORECAST_PCT,
     attribute_job_to_slots,
     cost_of,
     is_abrasive,
@@ -165,6 +166,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._anycubic_api: AnycubicAPI | None = None
         self._anycubic_printers: dict[int, AnycubicPrinter] = dict()
         self._filament: dict[str, Any] = {}
+        # First (used_mm, progress) seen for the running job, per printer.
+        # The forecast measures a rate between two points rather than from
+        # zero, so the purge and prime at the start of a print don't inflate
+        # it. Deliberately not persisted: a restart mid-print simply takes a
+        # fresh baseline, which is correct rather than merely acceptable.
+        self._job_baseline: dict[int, tuple[Any, float, float]] = {}
         self._cloud_file_list: list[dict[str, Any]] | None = None
         self._last_state_update: int | None = None
         self._failed_updates: int = 0
@@ -1512,10 +1519,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if spool_info and len(spool_info) > slot_index:
             spool = spool_info[slot_index]
 
+        material = spool.get("material_type") if spool else None
+        used_mm = printer.latest_project_supplies_usage
+        progress = printer.latest_project_progress_percentage
+
         required = job_grams_required(
-            printer.latest_project_supplies_usage,
-            printer.latest_project_progress_percentage,
-            spool.get("material_type") if spool else None,
+            used_mm,
+            progress,
+            material,
+            self._job_forecast_baseline(printer, used_mm, progress),
         )
 
         if required is None:
@@ -1542,6 +1554,41 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 required, slot_state.get(ATTR_SPOOL_PRICE_PER_KG, 0.0)
             ),
         }
+
+    def _job_forecast_baseline(
+        self,
+        printer: AnycubicPrinter,
+        used_mm: Any,
+        progress: Any,
+    ) -> tuple[float, float] | None:
+        """The earliest usable (used_mm, progress) pair for the running job.
+
+        Taken once, a few percent in -- early enough that the rest of the
+        print is measured against it, late enough that the purge has finished.
+        Reset when the job changes so one print's baseline can't leak into the
+        next.
+        """
+        if not isinstance(used_mm, (int, float)) or not isinstance(progress, (int, float)):
+            return None
+
+        project = printer.latest_project
+        job_id = project.id if project is not None else None
+
+        if job_id is None:
+            return None
+
+        existing = self._job_baseline.get(printer.id)
+
+        if existing is not None and existing[0] == job_id:
+            return existing[1], existing[2]
+
+        if progress < MIN_PROGRESS_FOR_FORECAST_PCT:
+            # Too early even to anchor: the purge may still be running.
+            return None
+
+        self._job_baseline[printer.id] = (job_id, float(used_mm), float(progress))
+
+        return None
 
     def _totals_states(self, printer: AnycubicPrinter) -> dict[str, Any]:
         """Lifetime spend, nozzle wear and what reels are known about."""

@@ -795,27 +795,56 @@ class TestRunOutForecast:
     """Will the loaded reel see this print out?
 
     The whole point is answering early. A warning at 90% progress is a
-    postmortem; at 4% it is still a decision.
+    postmortem; at 10% it is still a decision. But an early answer is only
+    worth having if it is right -- see the fixed-cost test below.
     """
 
-    def test_needs_a_few_percent_before_guessing(self) -> None:
-        """Priming and the first-layer purge dominate the very start."""
-        assert job_grams_required(500, 0.5) is None
-        assert job_grams_required(500, 0) is None
-        assert job_grams_required(500, None) is None
+    def test_no_baseline_means_no_answer_yet(self) -> None:
+        assert job_grams_required(500, 20, "PLA", None) is None
 
-    def test_projects_the_whole_job_from_part_of_it(self) -> None:
-        """20 g at 10% means about 200 g in total."""
-        grams = job_grams_required(mm_for_grams(20, "PLA"), 10, "PLA")
+    def test_waits_for_enough_progress_after_the_baseline(self) -> None:
+        """Too short a window and layer-to-layer variation swamps the rate."""
+        assert job_grams_required(3000, 7, "PLA", (2000, 5)) is None
 
-        assert grams == pytest.approx(200, rel=0.01)
+    def test_projects_from_the_rate_between_two_points(self) -> None:
+        """Uniform use: 1 g per %, baseline at 10%, so 100 g in total."""
+        mm_per_pct = mm_for_grams(1.0, "PLA")
+        baseline = (mm_per_pct * 10, 10.0)
 
-    def test_nothing_extruded_yet_is_not_a_forecast(self) -> None:
-        assert job_grams_required(0, 50) is None
-        assert job_grams_required(None, 50) is None
+        grams = job_grams_required(mm_per_pct * 40, 40, "PLA", baseline)
 
-    def test_impossible_progress_is_rejected(self) -> None:
-        assert job_grams_required(500, 140) is None
+        assert grams == pytest.approx(100, rel=0.01)
+
+    def test_the_startup_purge_does_not_inflate_the_estimate(self) -> None:
+        """The bug this whole approach exists to avoid.
+
+        Real Kobra S1 job: 3.9 g of purge and priming, then 0.48 g per
+        percent. Dividing total-used by progress reported 125 g at 5% for a
+        print that actually took about 52 g. Measuring the rate between two
+        observations cancels that fixed cost exactly.
+        """
+        purge_g, rate_g = 3.9, 0.48
+
+        def used_mm_at(pct: float) -> float:
+            return mm_for_grams(purge_g + rate_g * pct, "PLA")
+
+        naive = mm_to_grams(used_mm_at(5), "PLA") / 0.05
+        assert naive > 120, "the naive ratio really is this wrong early on"
+
+        grams = job_grams_required(used_mm_at(20), 20, "PLA", (used_mm_at(5), 5.0))
+
+        assert grams == pytest.approx(purge_g + rate_g * 100, rel=0.02)
+        assert grams == pytest.approx(52, abs=2)
+
+    def test_a_job_using_nothing_since_the_baseline_gives_no_answer(self) -> None:
+        assert job_grams_required(2000, 40, "PLA", (2000, 10)) is None
+
+    @pytest.mark.parametrize(
+        ("used", "progress"),
+        [(0, 50), (None, 50), (500, None), (500, 0), (500, 140)],
+    )
+    def test_nonsense_inputs_give_no_answer(self, used, progress) -> None:
+        assert job_grams_required(used, progress, "PLA", (100, 5)) is None
 
     def test_a_job_that_fits_reports_no_shortfall(self) -> None:
         forecast = runout_forecast(120.0, 300.0)
@@ -845,18 +874,15 @@ class TestRunOutForecast:
     def test_missing_inputs_give_no_verdict(self, required, remaining) -> None:
         assert runout_forecast(required, remaining) is None
 
-    def test_the_live_print_that_prompted_this(self) -> None:
-        """From a real Kobra S1 job: 2099 mm of PLA+ at 5% progress.
+    def test_the_real_print_this_was_measured_on(self) -> None:
+        """Two observations from one Kobra S1 job, 531 layers.
 
-        The spool held 132.6 g. It was going to be close -- which is exactly
-        the case worth being told about.
+        5% -> 2099 mm, 46% -> 8694 mm. It finished around 52 g; the naive
+        ratio said 125 g at the first point.
         """
-        required = job_grams_required(2099, 5, "PLA+")
-        forecast = runout_forecast(required, 132.6)
+        grams = job_grams_required(8694, 46, "PLA+", (2099, 5))
 
-        assert forecast is not None
-        assert forecast["required_g"] == pytest.approx(125, abs=2)
-        assert forecast["shortfall_g"] == 0.0
+        assert grams == pytest.approx(52, abs=3)
 
 
 class TestAbrasiveMaterials:
@@ -1037,9 +1063,15 @@ class TestCostAndWearThroughTheCoordinator:
 
 
 class TestForecastEntitiesDuringAPrint:
-    """The forecast as it actually surfaces: entities, mid-print."""
+    """The forecast as it actually surfaces: entities, mid-print.
 
-    async def _running_job(self, hass, mock_entry, mock_api, *, usage_mm, progress, coordinator=None):
+    Every case runs two updates, because that is how it genuinely works -- the
+    first anchors a baseline, the second measures a rate against it. One
+    observation can never produce a forecast, by design.
+    """
+
+    async def _observe(self, hass, mock_entry, mock_api, points, *, coordinator=None):
+        """Feed a sequence of (used_mm, progress) and return the last states."""
         from unittest.mock import MagicMock, PropertyMock, patch
 
         from helpers import PRINTER_ID, setup_entry
@@ -1053,58 +1085,71 @@ class TestForecastEntitiesDuringAPrint:
         project = MagicMock()
         project.id = 1001
         project.slice_material_info_list = [{"paint_index": 0, "filament_used": 50.0}]
-
         spools = [{"material_type": "PLA", "color_hex": "#E10600", "sku": "RUN-1"}]
 
-        with (
-            patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
-            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
-            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=usage_mm)),
-            patch.object(type(printer), "latest_project_progress_percentage", PropertyMock(return_value=progress)),
-            patch.object(
-                type(printer),
-                "primary_multi_color_box_spool_info_object",
-                PropertyMock(return_value=spools),
-            ),
-            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
-        ):
-            # Built directly rather than through _async_update_data, which
-            # re-fetches the printer and would discard these patches.
-            data = coordinator._build_coordinator_data()
+        states: dict = {}
 
-        return coordinator, data["printers"][PRINTER_ID]["states"]
+        for used_mm, progress in points:
+            with (
+                patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+                patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+                patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=used_mm)),
+                patch.object(
+                    type(printer),
+                    "latest_project_progress_percentage",
+                    PropertyMock(return_value=progress),
+                ),
+                patch.object(
+                    type(printer),
+                    "primary_multi_color_box_spool_info_object",
+                    PropertyMock(return_value=spools),
+                ),
+                patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
+            ):
+                # Built directly rather than through _async_update_data, which
+                # re-fetches the printer and would discard these patches.
+                data = coordinator._build_coordinator_data()
+
+            states = data["printers"][PRINTER_ID]["states"]
+
+        return coordinator, states
+
+    async def test_one_observation_is_never_enough(self, hass, mock_entry, mock_api) -> None:
+        """A single point can only give the purge-inflated ratio -- so don't."""
+        _, states = await self._observe(hass, mock_entry, mock_api, [(2099, 5)])
+
+        assert states["job_filament_required"] is None
+        assert states["job_filament_insufficient"] is None
 
     async def test_a_comfortable_job_reports_no_problem(self, hass, mock_entry, mock_api) -> None:
-        """~125 g needed against a full 1 kg reel."""
-        _, states = await self._running_job(hass, mock_entry, mock_api, usage_mm=2099, progress=5)
+        """The real print: ~52 g against a full 1 kg reel."""
+        _, states = await self._observe(hass, mock_entry, mock_api, [(2099, 5), (8694, 46)])
 
-        assert states["job_filament_required"] == pytest.approx(125, abs=5)
+        assert states["job_filament_required"] == pytest.approx(52, abs=5)
         assert states["job_filament_shortfall"] == 0.0
         assert states["job_filament_insufficient"] is False
         assert states["job_filament_runs_out_at"] == 100.0
 
     async def test_a_job_too_big_for_the_reel_raises_the_flag(self, hass, mock_entry, mock_api) -> None:
-        """The case worth having: told at 5%, not at 95%."""
+        """The case worth having, told while a spool swap is still possible."""
         from helpers import PRINTER_ID, setup_entry
 
         await setup_entry(hass, mock_entry)
         coordinator = mock_entry.runtime_data
-        # Leave 40 g on the reel.
-        state = coordinator._filament_slot_state(PRINTER_ID, 0)
-        state["filament_used_g"] = 960.0
+        # Leave 20 g on the reel.
+        coordinator._filament_slot_state(PRINTER_ID, 0)["filament_used_g"] = 980.0
 
-        _, states = await self._running_job(hass, mock_entry, mock_api, usage_mm=2099, progress=5, coordinator=coordinator)
+        _, states = await self._observe(hass, mock_entry, mock_api, [(2099, 5), (8694, 46)], coordinator=coordinator)
 
         assert states["job_filament_insufficient"] is True
         assert states["job_filament_shortfall"] > 0
         assert 0 < states["job_filament_runs_out_at"] < 100
 
-    async def test_too_early_to_say_reports_nothing(self, hass, mock_entry, mock_api) -> None:
-        """A guess from the purge alone would be wildly wrong -- say nothing."""
-        _, states = await self._running_job(hass, mock_entry, mock_api, usage_mm=2099, progress=1)
+    async def test_too_early_to_anchor_reports_nothing(self, hass, mock_entry, mock_api) -> None:
+        """Below the floor the purge may still be running -- take no baseline."""
+        _, states = await self._observe(hass, mock_entry, mock_api, [(300, 1), (600, 2)])
 
         assert states["job_filament_required"] is None
-        assert states["job_filament_insufficient"] is None
 
     async def test_nothing_printing_means_no_forecast(self, hass, mock_entry, mock_api) -> None:
         from helpers import PRINTER_ID, setup_entry
