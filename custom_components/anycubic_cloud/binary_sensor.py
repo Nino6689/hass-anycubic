@@ -34,6 +34,16 @@ class AnycubicBinarySensorEntityDescription(
 ):
     """Describes Anycubic Cloud binary sensor entity."""
 
+    # Report unavailable rather than "off" when there is no state.
+    #
+    # For most of these, off is the honest reading of a missing value -- a job
+    # that isn't paused is not paused. For a PROBLEM sensor it is the opposite:
+    # off means "no problem", and saying that when the answer isn't known yet
+    # is a false reassurance, both to a person glancing at a dashboard and to
+    # an automation gating on it. Opt-in so existing sensors keep their
+    # behaviour.
+    unknown_when_none: bool = False
+
 
 PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
     AnycubicBinarySensorEntityDescription(
@@ -98,6 +108,7 @@ SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
         translation_key="job_filament_insufficient",
         device_class=BinarySensorDeviceClass.PROBLEM,
         printer_entity_type=PrinterEntityType.PRINTER,
+        unknown_when_none=True,
     ),
     AnycubicBinarySensorEntityDescription(
         key="is_busy",
@@ -154,6 +165,19 @@ class AnycubicBinarySensor(AnycubicCloudEntity, BinarySensorEntity):
     ) -> None:
         """Initiate Anycubic Binary Sensor."""
         super().__init__(hass, coordinator, printer_id, entity_description)
+
+    @property
+    def available(self) -> bool:
+        """Whether this sensor has anything to say."""
+        if not self.entity_description.unknown_when_none:
+            return super().available
+
+        return (
+            printer_state_for_key(
+                self.coordinator, self._printer_id, self.entity_description.key
+            )
+            is not None
+        )
 
     @property
     def is_on(self) -> bool:

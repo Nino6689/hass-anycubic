@@ -1245,3 +1245,37 @@ class TestPriceAndNozzleEntities:
         nozzle = coordinator._printer_filament_state(PRINTER_ID)["nozzle"]
         assert nozzle["nozzle_abrasive_g"] == 0.0
         assert nozzle["nozzle_total_g"] == 0.0
+
+
+class TestTheWarningNeverLiesByOmission:
+    """A problem sensor reading "off" is a claim that there is no problem."""
+
+    async def test_unknown_is_unavailable_not_off(self, hass, mock_entry, mock_api) -> None:
+        """Before a forecast exists, the sensor must not say "you're fine".
+
+        `bool(None)` is False, so the obvious implementation reports off --
+        which a dashboard shows as reassuring and an automation gates on.
+        """
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+
+        state = hass.states.get("binary_sensor.anycubic_kobra_s1_filament_insufficient_for_job")
+
+        assert state is not None
+        assert state.state == "unavailable"
+
+    async def test_other_binary_sensors_keep_reading_off(self, hass, mock_entry, mock_api) -> None:
+        """The opt-in must not change anything else.
+
+        For most of these, off is the honest reading of a missing value -- a
+        job that isn't paused is genuinely not paused.
+        """
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+
+        state = hass.states.get("binary_sensor.anycubic_kobra_s1_job_paused")
+
+        assert state is not None
+        assert state.state != "unavailable"
