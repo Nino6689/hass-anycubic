@@ -104,6 +104,18 @@ SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
     # this print out, worked out from actual extrusion within the first couple
     # of percent -- early enough to do something about it.
     AnycubicBinarySensorEntityDescription(
+        key="axis_moving",
+        translation_key="axis_moving",
+        device_class=BinarySensorDeviceClass.MOVING,
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    AnycubicBinarySensorEntityDescription(
+        key="axis_move_failed",
+        translation_key="axis_move_failed",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    AnycubicBinarySensorEntityDescription(
         key="job_filament_insufficient",
         translation_key="job_filament_insufficient",
         device_class=BinarySensorDeviceClass.PROBLEM,

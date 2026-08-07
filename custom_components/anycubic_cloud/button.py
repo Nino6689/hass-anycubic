@@ -56,8 +56,28 @@ NOZZLE_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
 # these and the step comes from a fixed list rather than free text.
 AXIS_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
     AnycubicButtonEntityDescription(
+        key="axis_home_xy",
+        translation_key="axis_home_xy",
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    # Convenience only: the printer has no home-everything command, so this
+    # sends the X/Y home and then the Z one.
+    AnycubicButtonEntityDescription(
         key="axis_home_all",
         translation_key="axis_home_all",
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    AnycubicButtonEntityDescription(
+        key="axis_motors_off",
+        translation_key="axis_motors_off",
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    # ⚠ Home-all does NOT cover Z. Until Z is homed on its own every Z move
+    # is refused, so this button is not a duplicate of the one above -- the
+    # printer's own panel carries both for the same reason.
+    AnycubicButtonEntityDescription(
+        key="axis_home_z",
+        translation_key="axis_home_z",
         printer_entity_type=PrinterEntityType.FDM,
     ),
     *[
@@ -242,9 +262,23 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
             await self.coordinator.async_start_drying(self._printer_id)
             return
 
-        if key == "axis_home_all":
+        if key == "axis_home_xy":
             await self.coordinator.async_move_axis(
                 self._printer_id, axis=4, move_type=2
+            )
+            return
+
+        if key == "axis_home_all":
+            await self.coordinator.async_home_all_axes(self._printer_id)
+            return
+
+        if key == "axis_motors_off":
+            await self.coordinator.async_disengage_motors(self._printer_id)
+            return
+
+        if key == "axis_home_z":
+            await self.coordinator.async_move_axis(
+                self._printer_id, axis=3, move_type=2
             )
             return
 

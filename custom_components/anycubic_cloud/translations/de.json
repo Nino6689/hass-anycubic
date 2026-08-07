@@ -170,6 +170,12 @@
       "ai_detection_enabled": {
         "name": "KI-Erkennung"
       },
+      "axis_move_failed": {
+        "name": "Achsbewegung abgelehnt"
+      },
+      "axis_moving": {
+        "name": "Achse in Bewegung"
+      },
       "dry_status_is_drying": {
         "name": "Trocknen Active"
       },
@@ -226,23 +232,32 @@
       "axis_home_all": {
         "name": "Alle Achsen referenzieren"
       },
+      "axis_home_xy": {
+        "name": "X und Y referenzieren"
+      },
+      "axis_home_z": {
+        "name": "Z-Achse referenzieren"
+      },
+      "axis_motors_off": {
+        "name": "Motoren freigeben"
+      },
       "axis_move_x_minus": {
-        "name": "X- bewegen"
+        "name": "X minus bewegen"
       },
       "axis_move_x_plus": {
-        "name": "X+ bewegen"
+        "name": "X plus bewegen"
       },
       "axis_move_y_minus": {
-        "name": "Y- bewegen"
+        "name": "Y minus bewegen"
       },
       "axis_move_y_plus": {
-        "name": "Y+ bewegen"
+        "name": "Y plus bewegen"
       },
       "axis_move_z_minus": {
-        "name": "Z- bewegen"
+        "name": "Z minus bewegen"
       },
       "axis_move_z_plus": {
-        "name": "Z+ bewegen"
+        "name": "Z plus bewegen"
       },
       "cancel_print": {
         "name": "Druck abbrechen"

@@ -80,6 +80,7 @@ from .const import (
     DOMAIN,
     ENTITY_ID_DRYING_START_PRESET_,
     FAILED_UPDATE_DELAY,
+    HOME_SEQUENCE_TIMEOUT,
     LOGGER,
     MAX_DRYING_PRESETS,
     MAX_FAILED_UPDATES,
@@ -338,7 +339,14 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "printer_online": printer.printer_online,
             "is_busy": printer.is_busy,
             "is_available": printer.is_available,
-            "current_status": printer.current_status,
+            # A move or a home is the printer being genuinely busy, and it
+            # reports neither through current_status nor as a print job -- so
+            # without this the printer looks idle while its gantry is moving.
+            "current_status": (
+                "moving" if printer.axis_is_moving else printer.current_status
+            ),
+            "axis_moving": printer.axis_is_moving,
+            "axis_move_failed": printer.axis_move_failed,
             "curr_nozzle_temp": printer.curr_nozzle_temp,
             "curr_hotbed_temp": printer.curr_hotbed_temp,
             "machine_mac": printer.machine_mac,
@@ -2193,6 +2201,44 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         try:
             await printer.move_axis(axis=axis, move_type=move_type, distance=distance)
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
+        await self.force_state_update()
+
+    async def async_home_all_axes(self, printer_id: int) -> None:
+        """Home X and Y, then Z.
+
+        The printer has no home-everything command -- its panel carries two
+        separate buttons, and axis 4 covers X and Y only. Sending them in
+        sequence is what makes a single "home everything" possible at all.
+        """
+        await self.async_move_axis(printer_id, axis=4, move_type=2)
+
+        # Give the first home time to finish; the printer refuses a second
+        # move while one is running.
+        for _ in range(HOME_SEQUENCE_TIMEOUT):
+            await asyncio.sleep(1)
+            printer = self.get_printer_for_id(printer_id)
+            if printer is not None and not printer.axis_is_moving:
+                break
+
+        await self.async_move_axis(printer_id, axis=3, move_type=2)
+
+    async def async_disengage_motors(self, printer_id: int) -> None:
+        """Release the steppers so the printer can be moved by hand."""
+        printer = self.get_printer_for_id(printer_id)
+
+        if printer is None:
+            raise HomeAssistantError("The printer is not available.")
+
+        if printer.latest_project_print_in_progress:
+            raise HomeAssistantError(
+                "The motors cannot be released while printing."
+            )
+
+        try:
+            await printer.disengage_motors()
         except Exception as error:
             raise HomeAssistantError(error) from error
 

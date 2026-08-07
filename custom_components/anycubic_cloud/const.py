@@ -157,6 +157,9 @@ ATTR_SPOOL_MATERIAL = "material"
 # machine that can crash its own nozzle.
 ATTR_AXIS_STEP = "axis_step"
 AXIS_STEPS_MM = (1, 15, 50)
+# Seconds to let an X/Y home finish before homing Z. The printer
+# refuses a move while one is already running.
+HOME_SEQUENCE_TIMEOUT = 45
 
 ATTR_DRYING_SETTINGS = "drying_settings"
 ATTR_DRYING_TEMPERATURE = "temperature"

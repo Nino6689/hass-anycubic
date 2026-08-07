@@ -129,21 +129,6 @@ class TestAxisMovement:
     {"axis": 1|2|3|4, "move_type": 0|1|2, "distance": mm}
     """
 
-    async def test_home_sends_all_axes(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
-        await setup_entry(hass, mock_entry)
-        _, printer = mock_api
-        called = AsyncMock()
-
-        with patch.object(type(printer), "move_axis", called):
-            await hass.services.async_call(
-                "button",
-                "press",
-                {"entity_id": "button.anycubic_kobra_s1_home_all_axes"},
-                blocking=True,
-            )
-
-        called.assert_awaited_once_with(axis=4, move_type=2, distance=0)
-
     @pytest.mark.parametrize(
         ("entity", "axis", "move_type"),
         [
@@ -387,3 +372,91 @@ class TestDryingKnowsTheMaterial:
             PropertyMock(return_value=[{"material_type": "ABS", "edit_status": 2}]),
         ):
             assert mock_entry.runtime_data.loaded_material(PRINTER_ID) is None
+
+
+class TestHomingAndMotors:
+    """Homing, from what the printer actually does rather than what the
+    button labels suggested.
+
+    Verified on a Kobra S1: axis 4 homes X and Y only. After it, every Z
+    move came back state 'failed' with the position unchanged; homing Z on
+    its own (axis 3) made it movable.
+    """
+
+    async def test_home_xy_sends_axis_four(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "move_axis", called):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_home_x_and_y"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(axis=4, move_type=2, distance=0)
+
+    async def test_home_z_is_its_own_axis(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Not a duplicate of home X/Y -- Z is not covered by it."""
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "move_axis", called):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_home_z_axis"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(axis=3, move_type=2, distance=0)
+
+    async def test_home_all_runs_both_in_sequence(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """The printer has no home-everything order, so this sends both."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with (
+            patch.object(type(printer), "move_axis", called),
+            patch("custom_components.anycubic_cloud.coordinator.asyncio.sleep", AsyncMock()),
+        ):
+            await coordinator.async_home_all_axes(PRINTER_ID)
+
+        axes = [c.kwargs["axis"] for c in called.await_args_list]
+        assert axes == [4, 3], "X/Y must be homed before Z"
+
+    async def test_releasing_the_motors(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "disengage_motors", called):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_release_motors"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once()
+
+    async def test_motors_are_not_released_mid_print(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Dropping the steppers during a print would wreck it."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        with (
+            patch.object(
+                type(printer),
+                "latest_project_print_in_progress",
+                PropertyMock(return_value=True),
+            ),
+            pytest.raises(HomeAssistantError, match="cannot be released while printing"),
+        ):
+            await coordinator.async_disengage_motors(PRINTER_ID)

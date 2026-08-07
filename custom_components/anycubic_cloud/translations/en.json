@@ -177,6 +177,12 @@
       "ai_detection_enabled": {
         "name": "AI detection"
       },
+      "axis_move_failed": {
+        "name": "Axis move refused"
+      },
+      "axis_moving": {
+        "name": "Axis moving"
+      },
       "dry_status_is_drying": {
         "name": "Drying Active"
       },
@@ -233,23 +239,32 @@
       "axis_home_all": {
         "name": "Home all axes"
       },
+      "axis_home_xy": {
+        "name": "Home X and Y"
+      },
+      "axis_home_z": {
+        "name": "Home Z axis"
+      },
+      "axis_motors_off": {
+        "name": "Release motors"
+      },
       "axis_move_x_minus": {
-        "name": "Move X-"
+        "name": "Move X minus"
       },
       "axis_move_x_plus": {
-        "name": "Move X+"
+        "name": "Move X plus"
       },
       "axis_move_y_minus": {
-        "name": "Move Y-"
+        "name": "Move Y minus"
       },
       "axis_move_y_plus": {
-        "name": "Move Y+"
+        "name": "Move Y plus"
       },
       "axis_move_z_minus": {
-        "name": "Move Z-"
+        "name": "Move Z minus"
       },
       "axis_move_z_plus": {
-        "name": "Move Z+"
+        "name": "Move Z plus"
       },
       "cancel_print": {
         "name": "Cancel Print"
