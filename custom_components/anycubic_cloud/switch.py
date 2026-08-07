@@ -30,6 +30,16 @@ class AnycubicSwitchEntityDescription(
 ):
     """Describes Anycubic Cloud switch entity."""
 
+    # Report unknown rather than "off" when the printer hasn't said.
+    #
+    # bool(None) is False, which turns "I have not been told" into a
+    # confident "it is off" -- and unlike a sensor, someone acts on a switch.
+    # Reading off and flicking it on writes a setting based on a reading that
+    # was never real. Returning None leaves the state unknown while keeping
+    # the switch operable, so the first toggle both sets it and settles it.
+    # Opt-in, so switches whose value always arrives keep their behaviour.
+    unknown_when_none: bool = False
+
 
 PRIMARY_MULTI_COLOR_BOX_SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
     AnycubicSwitchEntityDescription(
@@ -52,11 +62,16 @@ SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
     # detection is on, but nothing could change it. Order 1243 does, with
     # every other setting preserved as the printer already has it. Belongs to
     # the printer, not the ACE -- it works on machines with no ACE fitted.
+    #
+    # The settings arrive unprompted over a local connection, but over the
+    # cloud only in reply to a write, so this sits at unknown until either the
+    # printer volunteers them or someone uses the switch.
     AnycubicSwitchEntityDescription(
         key="ai_detection_enabled",
         translation_key="ai_detection_enabled",
         printer_entity_type=PrinterEntityType.PRINTER,
         entity_category=EntityCategory.CONFIG,
+        unknown_when_none=True,
     ),
 ])
 
@@ -105,11 +120,16 @@ class AnycubicSwitch(AnycubicCloudEntity, SwitchEntity):
         super().__init__(hass, coordinator, printer_id, entity_description)
 
     @property
-    def is_on(self) -> bool:
-        """Return true if the switch is on."""
-        return bool(
-            printer_state_for_key(self.coordinator, self._printer_id, self.entity_description.key)
+    def is_on(self) -> bool | None:
+        """Return true if the switch is on, None if the printer hasn't said."""
+        state = printer_state_for_key(
+            self.coordinator, self._printer_id, self.entity_description.key
         )
+
+        if state is None and self.entity_description.unknown_when_none:
+            return None
+
+        return bool(state)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the device on."""

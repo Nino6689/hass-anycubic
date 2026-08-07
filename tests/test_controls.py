@@ -687,6 +687,44 @@ class TestAiDetection:
 
         called.assert_awaited_once_with(False)
 
+    async def test_unreported_state_is_unknown_not_off(
+        self, hass: HomeAssistant, mock_entry, mock_api
+    ) -> None:
+        """A printer that hasn't said must not read as a confident "off".
+
+        Over the cloud the settings only arrive in reply to a write, so this
+        is the state a fresh setup actually sits in. bool(None) is False, and
+        someone reading "off" would flick the switch on and write a setting
+        based on a reading that was never real.
+        """
+        _, printer = mock_api
+        printer._ai_settings = {}
+
+        await setup_entry(hass, mock_entry)
+
+        state = hass.states.get("switch.anycubic_kobra_s1_ai_failure_detection")
+        assert state.state == "unknown"
+
+    async def test_unknown_is_still_operable(
+        self, hass: HomeAssistant, mock_entry, mock_api
+    ) -> None:
+        """Unknown must not mean unavailable -- the first toggle settles it."""
+        _, printer = mock_api
+        printer._ai_settings = {}
+        called = AsyncMock()
+
+        await setup_entry(hass, mock_entry)
+
+        with patch.object(type(printer), "set_ai_detection", called):
+            await hass.services.async_call(
+                "switch",
+                "turn_on",
+                {"entity_id": "switch.anycubic_kobra_s1_ai_failure_detection"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(True)
+
     async def test_other_settings_are_preserved(self) -> None:
         """Only status changes; sensitivity and notice settings are kept."""
         from unittest.mock import MagicMock
