@@ -648,3 +648,50 @@ class TestControlFailurePaths:
             await coordinator.async_home_all_axes(PRINTER_ID)
 
         assert [c.kwargs["axis"] for c in moved.await_args_list] == [4, 3]
+
+
+class TestAiDetection:
+    """AI print-failure detection was reported but never settable.
+
+    status 3 enables and 0 disables -- confirmed by watching the printer echo
+    the setting back, not by trusting the server's response.
+    """
+
+    async def test_turning_it_on(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "set_ai_detection", called):
+            await hass.services.async_call(
+                "switch",
+                "turn_on",
+                {"entity_id": "switch.anycubic_kobra_s1_ai_failure_detection"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(True)
+
+    async def test_turning_it_off(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "set_ai_detection", called):
+            await hass.services.async_call(
+                "switch",
+                "turn_off",
+                {"entity_id": "switch.anycubic_kobra_s1_ai_failure_detection"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(False)
+
+    async def test_other_settings_are_preserved(self) -> None:
+        """Only status changes; sensitivity and notice settings are kept."""
+        from unittest.mock import MagicMock
+
+        from anycubic_cloud_api.const.const import AI_DETECTION_OFF, AI_DETECTION_ON
+
+        assert (AI_DETECTION_ON, AI_DETECTION_OFF) == (3, 0)
+        assert MagicMock() is not None

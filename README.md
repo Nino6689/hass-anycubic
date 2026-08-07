@@ -16,6 +16,30 @@
 
 ---
 
+> ## ⚠️ This release is a **beta**
+>
+> It adds a large amount of new control over the printer — preheating, axis movement, fans,
+> motor release — worked out by watching what Anycubic's own slicer sends, not from any
+> published API. Every one of those has been tested on a **Kobra S1 with an ACE Pro**, and on
+> nothing else.
+>
+> **Commands that move the printer carry real risk.** A jog into an unhomed bed, a heater set
+> by an automation while nobody is in the room, a model this hasn't been tried on that
+> interprets an order differently — these are possible, and they are the reason this is a beta
+> rather than a stable release.
+>
+> **You install and run this at your own risk.** It is provided as-is, with no warranty and no
+> liability for damage to your printer, your prints or anything else — see the
+> [licence](LICENSE), sections 15 and 16. Don't leave a printer unattended while you're testing
+> these controls, and don't put temperature or movement into an automation until you've watched
+> it behave.
+>
+> If something misbehaves, [open an issue](https://github.com/Nino6689/hass-anycubic/issues) —
+> that is exactly what a beta is for. The last stable release is
+> [v1.5.3](https://github.com/Nino6689/hass-anycubic/releases/tag/v1.5.3).
+
+---
+
 ## What you get
 
 |  |  |
@@ -26,8 +50,7 @@
 | 🔮 **Run-out warning** | Whether the loaded reel will see the print out — answered within the first few percent, [no slicer estimate needed](#-will-this-print-finish-on-the-loaded-spool) |
 | 💷 **Print costs** | Per-job and lifetime spend, in your own currency |
 | 🔧 **Nozzle wear** | Abrasive filament tracked separately, because that's what actually wears it out |
-| 💡 **Printer light** | A proper light entity — on, off and brightness |
-| 🎮 **Controls** | Nozzle and bed temperature, print speed mode, all three fans, drying, pause/resume/cancel and file management — [as entities](#-controlling-the-printer), not just actions |
+| 🎮 **Full control** | Preheat a **cold** printer, jog the axes, release the motors, run the fans, dry a spool, feed and retract — [all as entities](#-controlling-the-printer) |
 | 🖼️ **Live preview** | The job preview image, as a camera-style entity |
 | 📈 **Lifetime stats** | Total filament used, total print time and print count |
 | 📷 **Camera** | The printer's own video stream, straight off the printer — [local connection](#5-optional-talk-to-the-printer-directly) only |
@@ -729,37 +752,78 @@ It refuses if a job is already running, rather than interrupting or queueing beh
 
 ## 🎮 Controlling the printer
 
-Everything here has been available as an **action** for a long time. None of it was
-reachable from the device page, which is where people actually look — so the printer
-appeared to do nothing but pause, stop and turn its light on. Same calls, surfaced
-properly.
+Anycubic's own slicer can preheat a cold printer, jog the axes and set the fans. None of
+that was reachable from Home Assistant, because the orders behind it aren't in any
+published API — they were worked out by watching what the slicer actually sends.
+
+### Temperatures and fans — **these work on an idle printer**
 
 | Entity | What it does |
 |---|---|
 | `number.*_set_nozzle_temperature` | Target nozzle temperature |
 | `number.*_set_bed_temperature` | Target bed temperature |
-| `select.*_print_speed_mode` | Quiet / Standard / Sport — **read from the printer**, not a list hardcoded here |
 | `number.*_set_fan_speed` | Part cooling fan |
 | `number.*_set_auxiliary_fan_speed` | Auxiliary fan |
 | `number.*_set_box_fan_level` | Enclosure fan |
+| `select.*_print_speed_mode` | Quiet / Standard / Sport — **read from your printer**, not hardcoded |
 
-> ⏸️ **These report unavailable when nothing is printing.** The printer only accepts a
-> change while a job is running, and accepting a value it would silently discard would
-> look like it worked.
+Preheating works with no job running, exactly as One-Click Preheat does in the slicer.
+Print speed is the exception: the printer only accepts it mid-job, and the slicer greys
+it out when idle for the same reason.
 
-### Drying
-
-Starting a dry cycle previously needed a preset configured in the options first, which
-is why the ACE device page offered a stop button and no way to start. Now:
+### Axis movement
 
 | Entity | |
 |---|---|
-| `number.*_drying_temperature` | Defaults to 45 °C |
-| `number.*_drying_duration` | Defaults to 120 minutes |
+| `button.*_home_x_and_y` | Homes X and Y |
+| `button.*_home_z_axis` | Homes Z |
+| `button.*_home_all_axes` | Runs both, in sequence |
+| `button.*_move_x_plus` … `_move_z_minus` | Jog, six directions |
+| `select.*_axis_step_size` | 1 / 15 / 50 mm |
+| `button.*_release_motors` | Lets you push the gantry by hand |
+
+> ⚠️ **Home Z separately.** A home of X and Y does **not** home Z, and every Z move is
+> refused until Z has been homed on its own. The printer's own panel has two home buttons
+> for exactly this reason. `binary_sensor.*_axis_move_refused` tells you when a move was
+> turned down, which is almost always this.
+
+> 🔒 Moves are refused while printing, and the step size is a fixed list rather than a
+> free-text box — a mistyped 200 mm into a machine that can drive its nozzle into the bed
+> is not a failure worth allowing.
+
+Position isn't reported as it moves; press `button.*_request_head_position` to ask.
+`binary_sensor.*_axis_moving` is on during a move, and `current_status` reads `moving`.
+
+### Drying
+
+Starting a dry cycle previously needed a preset configured in the options first, which is
+why the ACE page offered a stop button and no way to start.
+
+| Entity | |
+|---|---|
+| `number.*_drying_temperature` | **Defaults to what the loaded spool wants** |
+| `number.*_drying_duration` | Same |
 | `button.*_start_drying` | Runs a cycle at those settings |
 
-The preset buttons still work if you have them configured — this is simply the direct
-route that was missing.
+Defaults follow the material in the loaded slot — PLA 45 °C for 6 h, PETG 65 °C for 6 h,
+ABS and PA 70 °C, TPU 50 °C for 8 h — all kept under each material's glass transition,
+because a spool that softens in the dryer is ruined. Set either number by hand and your
+value wins.
+
+### Filament handling
+
+| Entity | |
+|---|---|
+| `button.*_ace_slot_N_feed` | Feed that slot through to the hotend |
+| `button.*_ace_retract_filament` | Retract whatever is loaded |
+| `switch.*_ace_run_out_refill` | Automatic refill on run-out |
+
+### Everything else
+
+| Entity | |
+|---|---|
+| `light.*_printer_light` | On/off. **It does not dim** — the printer accepts a brightness value and reports one back, but the hardware ignores anything between off and full |
+| `switch.*_ai_failure_detection` | AI print-failure detection, now settable rather than read-only |
 
 ---
 
@@ -1308,14 +1372,15 @@ see [testing scope](#hardware-and-testing-scope).
 
 | Item | Status |
 |---|---|
-| ~~Camera / print stream~~ ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | **Done, over the local connection.** The printer names its own stream endpoint and serves HTTP-FLV once `video/startCapture` is sent. There is no equivalent over the cloud, so the camera entity is unavailable on a cloud-only setup |
+| ~~Camera / print stream~~ ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | **Done, over the local connection.** The printer names its own stream endpoint and serves HTTP-FLV once `video/startCapture` is sent |
+| 🔒 Camera over the **cloud** | **Not achievable here.** It is [Agora](https://www.agora.io) WebRTC, end-to-end encrypted with AES-256-GCM2 and joined with per-session keys. The frames never touch MQTT — 60 seconds of capture with the feed live carried no video at all — and the slicer's own topic is ACL-denied. It needs the Agora SDK, which is a real dependency and its own project, not something to bolt on here. The camera entity stays unavailable on a cloud-only setup |
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are wired up, and a bug that made the second unit vanish whenever a report named only one box is fixed. Still needs someone with two units to confirm |
 | ~~LAN / local mode~~ ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Done and proved on hardware** — see [local connection](#5-optional-talk-to-the-printer-directly). Handshake, local broker, ACE data and camera all confirmed on a Kobra S1 running 2.7.2.7 |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | **German added**, covering the config flow, options, errors and all entity names. Machine-drafted and not checked by a native speaker — corrections very welcome, and so are other languages. See [Translating](#translating) |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
 | ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--an-ios-app-for-writing-spool-tags-beta) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
-| ~~`aiSettings` message type~~ | **Captured and exposed.** `{status, type, count, notice_type, sensitivity_level}`. Surfaced as an `AI detection` binary sensor, with the rest in diagnostics. Local connection only |
+| ~~`aiSettings` message type~~ | **Done, and now writable.** Order `1243` sets it, so AI failure detection is a switch rather than a read-only sensor. The other fields — sensitivity, notice type, count — are preserved exactly as the printer already has them |
 | Chamber temperature | Confirmed again over the local connection: a Kobra S1 omits the fields entirely rather than sending zero, so it genuinely has no chamber sensor. Parsed and kept when a printer does send it; still no entity until a machine is found that populates it |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
 

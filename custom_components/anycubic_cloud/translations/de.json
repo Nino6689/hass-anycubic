@@ -565,14 +565,17 @@
       }
     },
     "switch": {
+      "ai_detection_enabled": {
+        "name": "KI-Fehlererkennung"
+      },
+      "manual_mqtt_connection_enabled": {
+        "name": "Manuelle MQTT-Verbindung"
+      },
       "multi_color_box_runout_refill": {
         "name": "ACE Run-out Refill"
       },
       "secondary_multi_color_box_runout_refill": {
         "name": "Zweites ACE Run-out Refill"
-      },
-      "manual_mqtt_connection_enabled": {
-        "name": "Manuelle MQTT-Verbindung"
       }
     },
     "update": {

@@ -2548,6 +2548,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if event_key == 'manual_mqtt_connection_enabled':
             self._mqtt_manually_connected = True
 
+        elif printer and event_key == 'ai_detection_enabled':
+            await printer.set_ai_detection(True)
+
         elif printer and event_key == 'multi_color_box_runout_refill':
             await self._connect_mqtt_for_action_response()
             await printer.multi_color_box_switch_on_auto_feed()
@@ -2570,6 +2573,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if event_key == 'manual_mqtt_connection_enabled':
             self._mqtt_manually_connected = False
+
+        elif printer and event_key == 'ai_detection_enabled':
+            await printer.set_ai_detection(False)
 
         elif printer and event_key == 'multi_color_box_runout_refill':
             await self._connect_mqtt_for_action_response()

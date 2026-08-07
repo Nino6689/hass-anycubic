@@ -48,6 +48,16 @@ SECONDARY_MULTI_COLOR_BOX_SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = 
 ])
 
 SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
+    # Read-only until now: the printer reports whether AI print-failure
+    # detection is on, but nothing could change it. Order 1243 does, with
+    # every other setting preserved as the printer already has it. Belongs to
+    # the printer, not the ACE -- it works on machines with no ACE fitted.
+    AnycubicSwitchEntityDescription(
+        key="ai_detection_enabled",
+        translation_key="ai_detection_enabled",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        entity_category=EntityCategory.CONFIG,
+    ),
 ])
 
 GLOBAL_SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
