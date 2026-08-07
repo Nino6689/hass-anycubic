@@ -69,6 +69,25 @@ PRIMARY_MULTI_COLOR_BOX_NUMBER_TYPES: list[AnycubicNumberEntityDescription] = li
     for slot_num in range(1, ACE_SLOT_COUNT + 1)
 ])
 
+# What the reel cost, per kilogram. Priced per kilo rather than per spool so
+# the figure survives a part-used reel: you paid the same per kilo whether the
+# spool is full or half gone.
+PRIMARY_MULTI_COLOR_BOX_PRICE_TYPES: list[AnycubicNumberEntityDescription] = list([
+    AnycubicNumberEntityDescription(
+        key=f"ace_slot_{slot_num}_spool_price",
+        translation_key=f"ace_slot_{slot_num}_spool_price",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+        slot_index=slot_num - 1,
+        native_min_value=0,
+        native_max_value=1000,
+        native_step=0.01,
+        mode=NumberMode.BOX,
+        entity_category=EntityCategory.CONFIG,
+        entity_registry_enabled_default=False,
+    )
+    for slot_num in range(1, ACE_SLOT_COUNT + 1)
+])
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -80,7 +99,10 @@ async def async_setup_entry(
         async_add_entities=async_add_entities,
         entity_constructor=AnycubicNumber,
         platform=Platform.NUMBER,
-        available_descriptors=list(PRIMARY_MULTI_COLOR_BOX_NUMBER_TYPES),
+        available_descriptors=list(
+            PRIMARY_MULTI_COLOR_BOX_NUMBER_TYPES
+            + PRIMARY_MULTI_COLOR_BOX_PRICE_TYPES
+        ),
     )
 
 
@@ -89,15 +111,43 @@ class AnycubicNumber(AnycubicCloudEntity, NumberEntity):
 
     entity_description: AnycubicNumberEntityDescription
 
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: AnycubicCloudDataUpdateCoordinator,
+        printer_id: int,
+        entity_description: AnycubicNumberEntityDescription,
+    ) -> None:
+        """Initiate the number, giving price entities the local currency."""
+        super().__init__(hass, coordinator, printer_id, entity_description)
+
+        if entity_description.key.endswith("_spool_price"):
+            self._attr_native_unit_of_measurement = hass.config.currency
+
+    @property
+    def _is_price(self) -> bool:
+        return self.entity_description.key.endswith("_spool_price")
+
     @property
     def native_value(self) -> float:
-        """The configured starting weight for this slot's spool."""
+        """The configured starting weight, or price, for this slot's spool."""
+        if self._is_price:
+            return self.coordinator.get_spool_price(
+                self._printer_id, self.entity_description.slot_index
+            )
+
         return self.coordinator.get_spool_weight(
             self._printer_id, self.entity_description.slot_index
         )
 
     async def async_set_native_value(self, value: float) -> None:
-        """Record a new starting weight and recalculate what's left."""
+        """Record a new starting weight or price, and recalculate."""
+        if self._is_price:
+            await self.coordinator.async_set_spool_price(
+                self._printer_id, self.entity_description.slot_index, value
+            )
+            return
+
         await self.coordinator.async_set_spool_weight(
             self._printer_id, self.entity_description.slot_index, value
         )

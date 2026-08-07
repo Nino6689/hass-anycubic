@@ -46,11 +46,21 @@ from .const import (
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
+    ATTR_COST_TOTAL,
     ATTR_FEEDING_SLOT,
     ATTR_FILAMENT_USED_G,
+    ATTR_LAST_JOB_COST,
+    ATTR_LAST_JOB_GRAMS,
     ATTR_LAST_JOB_ID,
+    ATTR_MATERIAL_TOTALS,
+    ATTR_NOZZLE,
+    ATTR_NOZZLE_ABRASIVE_G,
+    ATTR_NOZZLE_TOTAL_G,
+    ATTR_SPOOL_MATERIAL,
+    ATTR_SPOOL_PRICE_PER_KG,
     ATTR_SPOOL_SIGNATURE,
     ATTR_SPOOL_WEIGHT_G,
+    ATTR_TOTALS,
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
@@ -72,6 +82,7 @@ from .const import (
     MQTT_IDLE_DISCONNECT_SECONDS,
     MQTT_REFRESH_INTERVAL,
     MQTT_SCAN_INTERVAL,
+    NOZZLE_ABRASIVE_LIFE_G,
     PRINT_JOB_STARTED_UPDATE_DELAY,
     TOKEN_EXPIRY_WARN_DAYS,
     TOOL_URL_BOOKMARKLET,
@@ -82,8 +93,12 @@ from .const import (
 from .filament import (
     DEFAULT_SPOOL_WEIGHT_G,
     attribute_job_to_slots,
+    cost_of,
+    is_abrasive,
+    job_grams_required,
     remaining_grams,
     remaining_percent,
+    runout_forecast,
     spool_signature,
 )
 from .helpers import (
@@ -122,6 +137,19 @@ PRINTER_NOT_IN_CLOUD = (
     "neither switching LAN Mode off nor a power cycle brings it back: it has to "
     "be added again in the Anycubic app. ({})"
 )
+
+
+def _as_slot_index(value: Any) -> int | None:
+    """A usable ACE slot index, or None.
+
+    The printer reports -1 for "nothing loaded", and a printer object built
+    with ignore_init_errors can hand back something that isn't a number at
+    all -- both have to mean "don't know" rather than raise.
+    """
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+
+    return value if value >= 0 else None
 
 
 class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -411,6 +439,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 remaining_percent(spool_weight, used) if spool else None
             )
 
+        states.update(self._forecast_states(printer, primary_ace_spool_info))
+        states.update(self._totals_states(printer))
+
         external_shelves = safe_external_shelves(printer)
 
         attributes = {
@@ -418,6 +449,17 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "ace_spools": {
                 "spool_info": primary_ace_spool_info,
                 "box_info": printer.primary_multi_color_box_info_object,
+            },
+            # The reels themselves hang off the inventory sensor, so a single
+            # entity answers "what filament do I own and how much is left" --
+            # including reels that aren't in the machine.
+            "spool_inventory_remaining": {"spools": self.spool_inventory()},
+            "filament_cost_total": {
+                "by_material_g": (
+                    self._printer_filament_state(printer.id)
+                    .get(ATTR_TOTALS, {})
+                    .get(ATTR_MATERIAL_TOTALS, {})
+                ),
             },
             **{
                 f"ace_slot_{slot_num}": {
@@ -1388,11 +1430,181 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return state
 
+    def _printer_filament_state(self, printer_id: int) -> dict[str, Any]:
+        """Per-printer filament bookkeeping: totals, nozzle, last job."""
+        printers = self._filament.setdefault("printers", {})
+
+        return printers.setdefault(str(printer_id), {})  # type: ignore[no-any-return]
+
     def get_spool_weight(self, printer_id: int, slot_index: int) -> float:
         """How much filament this slot's spool started with."""
         state = self._filament_slot_state(printer_id, slot_index)
 
         return float(state.get(ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G))
+
+    def get_spool_price(self, printer_id: int, slot_index: int) -> float:
+        """What this slot's reel cost per kilogram. Zero means "not said"."""
+        state = self._filament_slot_state(printer_id, slot_index)
+
+        return float(state.get(ATTR_SPOOL_PRICE_PER_KG, 0.0))
+
+    async def async_set_spool_price(
+        self, printer_id: int, slot_index: int, price_per_kg: float
+    ) -> None:
+        """Record what a reel cost, so its prints can be priced."""
+        state = self._filament_slot_state(printer_id, slot_index)
+        state[ATTR_SPOOL_PRICE_PER_KG] = float(price_per_kg)
+
+        # Price belongs to the reel, not the slot -- same as the weight, so it
+        # survives being moved or taken out and put back.
+        signature = state.get(ATTR_SPOOL_SIGNATURE)
+        if signature:
+            known = self._filament.setdefault("spools", {}).setdefault(signature, {})
+            known[ATTR_SPOOL_PRICE_PER_KG] = float(price_per_kg)
+
+        await self._async_save_filament()
+        await self.force_state_update()
+
+    async def async_reset_nozzle(self, printer_id: int) -> None:
+        """Start the nozzle wear counters again, after fitting a new one."""
+        self._printer_filament_state(printer_id)[ATTR_NOZZLE] = {
+            ATTR_NOZZLE_TOTAL_G: 0.0,
+            ATTR_NOZZLE_ABRASIVE_G: 0.0,
+        }
+        await self._async_save_filament()
+        await self.force_state_update()
+
+    def _forecast_states(
+        self,
+        printer: AnycubicPrinter,
+        spool_info: list[dict[str, Any]] | None,
+    ) -> dict[str, Any]:
+        """Will the loaded reel see this print out?
+
+        The printer says how much it has extruded and how far through it is,
+        which is enough to project the whole job -- no slicer estimate needed,
+        so this works for prints started at the printer's own screen. And it
+        answers within the first minute or two, while there is still something
+        you can do about a shortfall.
+        """
+        blank: dict[str, Any] = {
+            "job_filament_required": None,
+            "job_filament_shortfall": None,
+            "job_filament_runs_out_at": None,
+            "job_filament_insufficient": None,
+            "job_cost": None,
+        }
+
+        if not printer.latest_project_print_in_progress:
+            return blank
+
+        slot_index = _as_slot_index(printer.primary_multi_color_box_loaded_slot)
+
+        if slot_index is None:
+            slot_index = _as_slot_index(
+                self._printer_filament_state(printer.id).get(ATTR_FEEDING_SLOT)
+            )
+
+        if slot_index is None:
+            return blank
+
+        spool = None
+        if spool_info and len(spool_info) > slot_index:
+            spool = spool_info[slot_index]
+
+        required = job_grams_required(
+            printer.latest_project_supplies_usage,
+            printer.latest_project_progress_percentage,
+            spool.get("material_type") if spool else None,
+        )
+
+        if required is None:
+            return blank
+
+        slot_state = self._filament_slot_state(printer.id, slot_index)
+        forecast = runout_forecast(
+            required,
+            remaining_grams(
+                slot_state.get(ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G),
+                slot_state.get(ATTR_FILAMENT_USED_G, 0.0),
+            ),
+        )
+
+        if forecast is None:
+            return blank
+
+        return {
+            "job_filament_required": forecast["required_g"],
+            "job_filament_shortfall": forecast["shortfall_g"],
+            "job_filament_runs_out_at": forecast["runs_out_at_pct"],
+            "job_filament_insufficient": forecast["shortfall_g"] > 0,
+            "job_cost": cost_of(
+                required, slot_state.get(ATTR_SPOOL_PRICE_PER_KG, 0.0)
+            ),
+        }
+
+    def _totals_states(self, printer: AnycubicPrinter) -> dict[str, Any]:
+        """Lifetime spend, nozzle wear and what reels are known about."""
+        printer_state = self._printer_filament_state(printer.id)
+        totals = printer_state.get(ATTR_TOTALS) or {}
+        nozzle = printer_state.get(ATTR_NOZZLE) or {}
+
+        abrasive_g = float(nozzle.get(ATTR_NOZZLE_ABRASIVE_G, 0.0))
+        known = self._filament.get("spools") or {}
+
+        inventory_g = 0.0
+        for entry in known.values():
+            if not isinstance(entry, dict):
+                continue
+            inventory_g += remaining_grams(
+                entry.get(ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G),
+                entry.get(ATTR_FILAMENT_USED_G, 0.0),
+            )
+
+        return {
+            "filament_cost_total": round(float(totals.get(ATTR_COST_TOTAL, 0.0)), 2),
+            "last_job_cost": totals.get(ATTR_LAST_JOB_COST),
+            "last_job_filament": totals.get(ATTR_LAST_JOB_GRAMS),
+            "nozzle_filament_total": round(
+                float(nozzle.get(ATTR_NOZZLE_TOTAL_G, 0.0)), 1
+            ),
+            "nozzle_abrasive_filament": round(abrasive_g, 1),
+            "nozzle_wear_percent": round(
+                min(100.0, abrasive_g / NOZZLE_ABRASIVE_LIFE_G * 100), 1
+            ),
+            "spool_inventory_count": len(known),
+            "spool_inventory_remaining": round(inventory_g, 1),
+        }
+
+    def spool_inventory(self) -> list[dict[str, Any]]:
+        """Every reel ever seen, with what is left of it.
+
+        Spool history is already kept so a part-used reel recovers its figure
+        when it comes back. That is a filament inventory nobody could see --
+        including reels not currently in the machine.
+        """
+        known = self._filament.get("spools") or {}
+        inventory: list[dict[str, Any]] = []
+
+        for signature, entry in known.items():
+            if not isinstance(entry, dict):
+                continue
+
+            material, _, rest = str(signature).partition("|")
+            colour, _, sku = rest.partition("|")
+            weight = entry.get(ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G)
+            used = entry.get(ATTR_FILAMENT_USED_G, 0.0)
+
+            inventory.append({
+                ATTR_SPOOL_MATERIAL: material or None,
+                "color_hex": colour or None,
+                "sku": sku or None,
+                "remaining_g": remaining_grams(weight, used),
+                "remaining_percent": remaining_percent(weight, used),
+                ATTR_SPOOL_PRICE_PER_KG: entry.get(ATTR_SPOOL_PRICE_PER_KG) or None,
+            })
+
+        return sorted(inventory, key=lambda item: item["remaining_g"])
 
     async def async_set_spool_weight(
         self, printer_id: int, slot_index: int, grams: float
@@ -1460,6 +1672,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     ATTR_SPOOL_WEIGHT_G: state.get(
                         ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G
                     ),
+                    ATTR_SPOOL_PRICE_PER_KG: state.get(ATTR_SPOOL_PRICE_PER_KG, 0.0),
                 }
 
         changed = False
@@ -1480,6 +1693,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 state[ATTR_SPOOL_WEIGHT_G] = remembered.get(
                     ATTR_SPOOL_WEIGHT_G, DEFAULT_SPOOL_WEIGHT_G
                 )
+                state[ATTR_SPOOL_PRICE_PER_KG] = remembered.get(
+                    ATTR_SPOOL_PRICE_PER_KG, 0.0
+                )
                 LOGGER.debug(
                     "Slot %s: recognised a reel used before, %.0f g already gone.",
                     slot_index + 1,
@@ -1491,6 +1707,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
                 state[ATTR_FILAMENT_USED_G] = 0.0
                 state[ATTR_SPOOL_WEIGHT_G] = DEFAULT_SPOOL_WEIGHT_G
+                state[ATTR_SPOOL_PRICE_PER_KG] = 0.0
 
             state[ATTR_SPOOL_SIGNATURE] = signature
             changed = True
@@ -1556,9 +1773,73 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         LOGGER.debug("Job %s used %s.", job_id, {k + 1: round(v, 1) for k, v in per_slot.items()})
 
+        self._accrue_job_totals(printer, per_slot, materials)
+
         printer_state.pop(ATTR_FEEDING_SLOT, None)
 
         return True
+
+    def _accrue_job_totals(
+        self,
+        printer: AnycubicPrinter,
+        per_slot: dict[int, float],
+        materials: dict[int, str | None],
+    ) -> None:
+        """Book a finished job against cost, nozzle wear and material totals.
+
+        All three ride on the per-slot grams the estimate already works out, so
+        they cost nothing extra to derive and stay consistent with it. Nozzle
+        wear is counted in filament pushed through rather than hours run --
+        abrasive fill is what actually wears a nozzle, and the material of each
+        job is already known here.
+        """
+        printer_state = self._printer_filament_state(printer.id)
+        totals = printer_state.setdefault(ATTR_TOTALS, {})
+        nozzle = printer_state.setdefault(ATTR_NOZZLE, {})
+        by_material = totals.setdefault(ATTR_MATERIAL_TOTALS, {})
+
+        # Both counters exist from the first job, whatever it was made of. An
+        # absent key and a zero mean the same thing to a reader but different
+        # things to the code, and that gap is where bugs live.
+        nozzle.setdefault(ATTR_NOZZLE_TOTAL_G, 0.0)
+        nozzle.setdefault(ATTR_NOZZLE_ABRASIVE_G, 0.0)
+
+        job_grams = 0.0
+        job_cost = 0.0
+        priced = False
+
+        for slot_index, grams in per_slot.items():
+            material = materials.get(slot_index)
+            job_grams += grams
+
+            nozzle[ATTR_NOZZLE_TOTAL_G] = round(
+                float(nozzle.get(ATTR_NOZZLE_TOTAL_G, 0.0)) + grams, 2
+            )
+            if is_abrasive(material):
+                nozzle[ATTR_NOZZLE_ABRASIVE_G] = round(
+                    float(nozzle.get(ATTR_NOZZLE_ABRASIVE_G, 0.0)) + grams, 2
+                )
+
+            if material:
+                by_material[material] = round(
+                    float(by_material.get(material, 0.0)) + grams, 2
+                )
+
+            slot_state = self._filament_slot_state(printer.id, slot_index)
+            cost = cost_of(grams, slot_state.get(ATTR_SPOOL_PRICE_PER_KG, 0.0))
+            if cost is not None:
+                job_cost += cost
+                priced = True
+
+        totals[ATTR_LAST_JOB_GRAMS] = round(job_grams, 1)
+        # An unpriced job records None rather than 0 -- "free" and "you never
+        # told me what this reel cost" are different answers.
+        totals[ATTR_LAST_JOB_COST] = round(job_cost, 2) if priced else None
+
+        if priced:
+            totals[ATTR_COST_TOTAL] = round(
+                float(totals.get(ATTR_COST_TOTAL, 0.0)) + job_cost, 2
+            )
 
     def _remember_feeding_slot(self, printer: AnycubicPrinter) -> bool:
         """Note which slot is feeding while a job runs.

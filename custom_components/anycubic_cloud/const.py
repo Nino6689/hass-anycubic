@@ -134,3 +134,27 @@ ATTR_SPOOL_WEIGHT_G = "spool_weight_g"
 ATTR_SPOOL_SIGNATURE = "spool_signature"
 ATTR_LAST_JOB_ID = "last_job_id"
 MAX_ACE_SLOTS = 4
+
+# What a reel cost, per kilogram, so a job can be priced. Travels with the
+# spool signature like the weight does, so a reel put back in a different slot
+# keeps its price.
+ATTR_SPOOL_PRICE_PER_KG = "spool_price_per_kg"
+ATTR_SPOOL_MATERIAL = "material"
+
+# Lifetime totals, kept per printer alongside the per-slot figures.
+ATTR_TOTALS = "totals"
+ATTR_COST_TOTAL = "cost_total"
+ATTR_LAST_JOB_COST = "last_job_cost"
+ATTR_LAST_JOB_GRAMS = "last_job_grams"
+ATTR_MATERIAL_TOTALS = "material_totals"
+
+# Nozzle wear, measured in filament pushed through rather than hours run --
+# abrasive fill is what actually wears it, and grams per material is already
+# tracked for the spool estimate.
+ATTR_NOZZLE = "nozzle"
+ATTR_NOZZLE_TOTAL_G = "nozzle_total_g"
+ATTR_NOZZLE_ABRASIVE_G = "nozzle_abrasive_g"
+# A brass nozzle is generally considered due for replacement somewhere around
+# here on abrasive filament. Deliberately a soft guide, surfaced as a
+# percentage rather than a hard alert.
+NOZZLE_ABRASIVE_LIFE_G = 1000.0

@@ -149,8 +149,20 @@
   },
   "entity": {
     "binary_sensor": {
-      "job_in_progress": {
-        "name": "Druck läuft"
+      "ai_detection_enabled": {
+        "name": "KI-Erkennung"
+      },
+      "dry_status_is_drying": {
+        "name": "Trocknen Active"
+      },
+      "external_spool_loaded": {
+        "name": "External spool loaded"
+      },
+      "is_available": {
+        "name": "Verfügbar"
+      },
+      "is_busy": {
+        "name": "Is Busy"
       },
       "job_complete": {
         "name": "Druck abgeschlossen"
@@ -158,86 +170,26 @@
       "job_failed": {
         "name": "Druck fehlgeschlagen"
       },
+      "job_filament_insufficient": {
+        "name": "Filament reicht nicht für Auftrag"
+      },
+      "job_in_progress": {
+        "name": "Druck läuft"
+      },
       "job_is_paused": {
         "name": "Druck pausiert"
-      },
-      "printer_online": {
-        "name": "Drucker online"
       },
       "mqtt_connection_active": {
         "name": "MQTT-Verbindung aktiv"
       },
-      "is_busy": {
-        "name": "Is Busy"
-      },
-      "is_available": {
-        "name": "Verfügbar"
-      },
-      "dry_status_is_drying": {
-        "name": "Trocknen Active"
+      "printer_online": {
+        "name": "Drucker online"
       },
       "secondary_dry_status_is_drying": {
         "name": "Trocknen aktiv (2. ACE)"
-      },
-      "external_spool_loaded": {
-        "name": "External spool loaded"
-      },
-      "ai_detection_enabled": {
-        "name": "KI-Erkennung"
       }
     },
     "button": {
-      "drying_start_preset_1": {
-        "name": "Trocknungs-Voreinstellung 1"
-      },
-      "drying_start_preset_2": {
-        "name": "Trocknungs-Voreinstellung 2"
-      },
-      "drying_start_preset_3": {
-        "name": "Trocknungs-Voreinstellung 3"
-      },
-      "drying_start_preset_4": {
-        "name": "Trocknungs-Voreinstellung 4"
-      },
-      "drying_stop": {
-        "name": "Trocknen stoppen"
-      },
-      "secondary_drying_start_preset_1": {
-        "name": "Trocknungs-Voreinstellung 1 (2. ACE)"
-      },
-      "secondary_drying_start_preset_2": {
-        "name": "Trocknungs-Voreinstellung 2 (2. ACE)"
-      },
-      "secondary_drying_start_preset_3": {
-        "name": "Trocknungs-Voreinstellung 3 (2. ACE)"
-      },
-      "secondary_drying_start_preset_4": {
-        "name": "Trocknungs-Voreinstellung 4 (2. ACE)"
-      },
-      "secondary_drying_stop": {
-        "name": "Trocknen stoppen (2. ACE)"
-      },
-      "pause_print": {
-        "name": "Druck pausieren"
-      },
-      "resume_print": {
-        "name": "Druck fortsetzen"
-      },
-      "cancel_print": {
-        "name": "Druck abbrechen"
-      },
-      "request_file_list_local": {
-        "name": "Dateiliste abrufen (lokal)"
-      },
-      "request_file_list_udisk": {
-        "name": "Dateiliste abrufen (USB-Stick)"
-      },
-      "request_file_list_cloud": {
-        "name": "Dateiliste abrufen (Cloud)"
-      },
-      "refresh_mqtt_connection": {
-        "name": "MQTT-Verbindung erneuern"
-      },
       "ace_refresh_spools": {
         "name": "ACE-Spulen aktualisieren"
       },
@@ -253,8 +205,62 @@
       "ace_slot_4_reset_spool": {
         "name": "ACE slot 4 reset spool"
       },
+      "cancel_print": {
+        "name": "Druck abbrechen"
+      },
+      "drying_start_preset_1": {
+        "name": "Trocknungs-Voreinstellung 1"
+      },
+      "drying_start_preset_2": {
+        "name": "Trocknungs-Voreinstellung 2"
+      },
+      "drying_start_preset_3": {
+        "name": "Trocknungs-Voreinstellung 3"
+      },
+      "drying_start_preset_4": {
+        "name": "Trocknungs-Voreinstellung 4"
+      },
+      "drying_stop": {
+        "name": "Trocknen stoppen"
+      },
+      "pause_print": {
+        "name": "Druck pausieren"
+      },
+      "refresh_mqtt_connection": {
+        "name": "MQTT-Verbindung erneuern"
+      },
       "request_axis_position": {
         "name": "Request head position"
+      },
+      "request_file_list_cloud": {
+        "name": "Dateiliste abrufen (Cloud)"
+      },
+      "request_file_list_local": {
+        "name": "Dateiliste abrufen (lokal)"
+      },
+      "request_file_list_udisk": {
+        "name": "Dateiliste abrufen (USB-Stick)"
+      },
+      "reset_nozzle_wear": {
+        "name": "Düsenverschleiß zurücksetzen"
+      },
+      "resume_print": {
+        "name": "Druck fortsetzen"
+      },
+      "secondary_drying_start_preset_1": {
+        "name": "Trocknungs-Voreinstellung 1 (2. ACE)"
+      },
+      "secondary_drying_start_preset_2": {
+        "name": "Trocknungs-Voreinstellung 2 (2. ACE)"
+      },
+      "secondary_drying_start_preset_3": {
+        "name": "Trocknungs-Voreinstellung 3 (2. ACE)"
+      },
+      "secondary_drying_start_preset_4": {
+        "name": "Trocknungs-Voreinstellung 4 (2. ACE)"
+      },
+      "secondary_drying_stop": {
+        "name": "Trocknen stoppen (2. ACE)"
       }
     },
     "image": {
@@ -263,134 +269,8 @@
       }
     },
     "sensor": {
-      "current_status": {
-        "name": "Aktueller Status"
-      },
-      "curr_nozzle_temp": {
-        "name": "Düsentemperatur"
-      },
-      "curr_hotbed_temp": {
-        "name": "Betttemperatur"
-      },
-      "job_name": {
-        "name": "Druckauftrag"
-      },
-      "job_progress": {
-        "name": "Druckfortschritt %"
-      },
-      "job_time_elapsed": {
-        "name": "Verstrichene Zeit"
-      },
-      "job_time_remaining": {
-        "name": "Restzeit"
-      },
-      "job_eta": {
-        "name": "Voraussichtliches Ende"
-      },
-      "job_state": {
-        "name": "Druckstatus"
-      },
-      "job_current_layer": {
-        "name": "Aktuelle Schicht"
-      },
-      "job_total_layers": {
-        "name": "Schichten gesamt"
-      },
-      "job_speed_mode": {
-        "name": "Geschwindigkeitsmodus"
-      },
-      "job_z_thick": {
-        "name": "Schichthöhe"
-      },
-      "job_model_height": {
-        "name": "Modellhöhe"
-      },
-      "job_anti_alias_count": {
-        "name": "Kantenglättung"
-      },
-      "job_on_time": {
-        "name": "Belichtungszeit"
-      },
-      "job_off_time": {
-        "name": "Pausenzeit"
-      },
-      "job_bottom_time": {
-        "name": "Belichtungszeit Basisschichten"
-      },
-      "job_bottom_layers": {
-        "name": "Basisschichten"
-      },
-      "job_z_up_height": {
-        "name": "Z-Hubhöhe"
-      },
-      "job_z_up_speed": {
-        "name": "Z-Hubgeschwindigkeit"
-      },
-      "job_z_down_speed": {
-        "name": "Z-Senkgeschwindigkeit"
-      },
-      "target_nozzle_temp": {
-        "name": "Solltemperatur Düse"
-      },
-      "target_hotbed_temp": {
-        "name": "Solltemperatur Bett"
-      },
-      "print_speed_pct": {
-        "name": "Druckgeschwindigkeit %"
-      },
-      "fan_speed_pct": {
-        "name": "Lüftergeschwindigkeit %"
-      },
-      "file_list_local": {
-        "name": "Dateiliste (lokal)"
-      },
-      "file_list_udisk": {
-        "name": "Dateiliste (USB-Stick)"
-      },
-      "file_list_cloud": {
-        "name": "Dateiliste (Cloud)"
-      },
-      "ace_spools": {
-        "name": "ACE Spools"
-      },
       "ace_current_temperature": {
         "name": "ACE Current Temperatur"
-      },
-      "dry_status_target_temperature": {
-        "name": "Trocknen Target Temperatur"
-      },
-      "dry_status_total_duration": {
-        "name": "Trocknungsdauer gesamt"
-      },
-      "dry_status_remaining_time": {
-        "name": "Trocknung Restzeit"
-      },
-      "secondary_ace_spools": {
-        "name": "Zweites ACE Spools"
-      },
-      "secondary_ace_current_temperature": {
-        "name": "Aktuelle Temperatur (2. ACE)"
-      },
-      "secondary_dry_status_target_temperature": {
-        "name": "Solltemperatur Trocknung (2. ACE)"
-      },
-      "secondary_dry_status_total_duration": {
-        "name": "Trocknungsdauer gesamt (2. ACE)"
-      },
-      "secondary_dry_status_remaining_time": {
-        "name": "Trocknung Restzeit (2. ACE)"
-      },
-      "job_filament_used": {
-        "name": "Verbrauchtes Filament"
-      },
-      "material_used_total": {
-        "name": "Material gesamt"
-      },
-      "print_time_total_hrs": {
-        "name": "Druckzeit gesamt"
-      },
-      "print_count_total": {
-        "name": "Druckaufträge gesamt"
       },
       "ace_loaded_slot": {
         "name": "Geladenes ACE-Fach"
@@ -398,26 +278,14 @@
       "ace_slot_1": {
         "name": "ACE-Fach 1"
       },
-      "ace_slot_2": {
-        "name": "ACE-Fach 2"
-      },
-      "ace_slot_3": {
-        "name": "ACE-Fach 3"
-      },
-      "ace_slot_4": {
-        "name": "ACE-Fach 4"
-      },
-      "aux_fan_speed_pct": {
-        "name": "Zusatzlüfter"
-      },
-      "box_fan_level": {
-        "name": "ACE-Boxlüfter"
-      },
       "ace_slot_1_filament_remaining": {
         "name": "ACE slot 1 filament remaining"
       },
       "ace_slot_1_filament_remaining_percent": {
         "name": "ACE slot 1 filament remaining percent"
+      },
+      "ace_slot_2": {
+        "name": "ACE-Fach 2"
       },
       "ace_slot_2_filament_remaining": {
         "name": "ACE slot 2 filament remaining"
@@ -425,11 +293,17 @@
       "ace_slot_2_filament_remaining_percent": {
         "name": "ACE slot 2 filament remaining percent"
       },
+      "ace_slot_3": {
+        "name": "ACE-Fach 3"
+      },
       "ace_slot_3_filament_remaining": {
         "name": "ACE slot 3 filament remaining"
       },
       "ace_slot_3_filament_remaining_percent": {
         "name": "ACE slot 3 filament remaining percent"
+      },
+      "ace_slot_4": {
+        "name": "ACE-Fach 4"
       },
       "ace_slot_4_filament_remaining": {
         "name": "ACE slot 4 filament remaining"
@@ -437,8 +311,11 @@
       "ace_slot_4_filament_remaining_percent": {
         "name": "ACE slot 4 filament remaining percent"
       },
-      "external_spool_material": {
-        "name": "External spool material"
+      "ace_spools": {
+        "name": "ACE Spools"
+      },
+      "aux_fan_speed_pct": {
+        "name": "Zusatzlüfter"
       },
       "axis_position_x": {
         "name": "Kopfposition X"
@@ -448,6 +325,171 @@
       },
       "axis_position_z": {
         "name": "Kopfposition Z"
+      },
+      "box_fan_level": {
+        "name": "ACE-Boxlüfter"
+      },
+      "curr_hotbed_temp": {
+        "name": "Betttemperatur"
+      },
+      "curr_nozzle_temp": {
+        "name": "Düsentemperatur"
+      },
+      "current_status": {
+        "name": "Aktueller Status"
+      },
+      "dry_status_remaining_time": {
+        "name": "Trocknung Restzeit"
+      },
+      "dry_status_target_temperature": {
+        "name": "Trocknen Target Temperatur"
+      },
+      "dry_status_total_duration": {
+        "name": "Trocknungsdauer gesamt"
+      },
+      "external_spool_material": {
+        "name": "External spool material"
+      },
+      "fan_speed_pct": {
+        "name": "Lüftergeschwindigkeit %"
+      },
+      "filament_cost_total": {
+        "name": "Filamentkosten gesamt"
+      },
+      "file_list_cloud": {
+        "name": "Dateiliste (Cloud)"
+      },
+      "file_list_local": {
+        "name": "Dateiliste (lokal)"
+      },
+      "file_list_udisk": {
+        "name": "Dateiliste (USB-Stick)"
+      },
+      "job_anti_alias_count": {
+        "name": "Kantenglättung"
+      },
+      "job_bottom_layers": {
+        "name": "Basisschichten"
+      },
+      "job_bottom_time": {
+        "name": "Belichtungszeit Basisschichten"
+      },
+      "job_cost": {
+        "name": "Auftragskosten"
+      },
+      "job_current_layer": {
+        "name": "Aktuelle Schicht"
+      },
+      "job_eta": {
+        "name": "Voraussichtliches Ende"
+      },
+      "job_filament_required": {
+        "name": "Benötigtes Filament für Auftrag"
+      },
+      "job_filament_runs_out_at": {
+        "name": "Filament reicht bis"
+      },
+      "job_filament_shortfall": {
+        "name": "Fehlendes Filament für Auftrag"
+      },
+      "job_filament_used": {
+        "name": "Verbrauchtes Filament"
+      },
+      "job_model_height": {
+        "name": "Modellhöhe"
+      },
+      "job_name": {
+        "name": "Druckauftrag"
+      },
+      "job_off_time": {
+        "name": "Pausenzeit"
+      },
+      "job_on_time": {
+        "name": "Belichtungszeit"
+      },
+      "job_progress": {
+        "name": "Druckfortschritt %"
+      },
+      "job_speed_mode": {
+        "name": "Geschwindigkeitsmodus"
+      },
+      "job_state": {
+        "name": "Druckstatus"
+      },
+      "job_time_elapsed": {
+        "name": "Verstrichene Zeit"
+      },
+      "job_time_remaining": {
+        "name": "Restzeit"
+      },
+      "job_total_layers": {
+        "name": "Schichten gesamt"
+      },
+      "job_z_down_speed": {
+        "name": "Z-Senkgeschwindigkeit"
+      },
+      "job_z_thick": {
+        "name": "Schichthöhe"
+      },
+      "job_z_up_height": {
+        "name": "Z-Hubhöhe"
+      },
+      "job_z_up_speed": {
+        "name": "Z-Hubgeschwindigkeit"
+      },
+      "last_job_cost": {
+        "name": "Kosten letzter Auftrag"
+      },
+      "last_job_filament": {
+        "name": "Filament letzter Auftrag"
+      },
+      "material_used_total": {
+        "name": "Material gesamt"
+      },
+      "nozzle_abrasive_filament": {
+        "name": "Abrasives Filament durch Düse"
+      },
+      "nozzle_filament_total": {
+        "name": "Filament durch Düse gesamt"
+      },
+      "nozzle_wear_percent": {
+        "name": "Düsenverschleiß"
+      },
+      "print_count_total": {
+        "name": "Druckaufträge gesamt"
+      },
+      "print_speed_pct": {
+        "name": "Druckgeschwindigkeit %"
+      },
+      "print_time_total_hrs": {
+        "name": "Druckzeit gesamt"
+      },
+      "secondary_ace_current_temperature": {
+        "name": "Aktuelle Temperatur (2. ACE)"
+      },
+      "secondary_ace_spools": {
+        "name": "Zweites ACE Spools"
+      },
+      "secondary_dry_status_remaining_time": {
+        "name": "Trocknung Restzeit (2. ACE)"
+      },
+      "secondary_dry_status_target_temperature": {
+        "name": "Solltemperatur Trocknung (2. ACE)"
+      },
+      "secondary_dry_status_total_duration": {
+        "name": "Trocknungsdauer gesamt (2. ACE)"
+      },
+      "spool_inventory_count": {
+        "name": "Anzahl bekannter Spulen"
+      },
+      "spool_inventory_remaining": {
+        "name": "Filamentbestand verbleibend"
+      },
+      "target_hotbed_temp": {
+        "name": "Solltemperatur Bett"
+      },
+      "target_nozzle_temp": {
+        "name": "Solltemperatur Düse"
       }
     },
     "switch": {
@@ -478,14 +520,26 @@
       }
     },
     "number": {
+      "ace_slot_1_spool_price": {
+        "name": "ACE Slot 1 Spulenpreis pro kg"
+      },
       "ace_slot_1_spool_weight": {
         "name": "ACE slot 1 spool weight"
+      },
+      "ace_slot_2_spool_price": {
+        "name": "ACE Slot 2 Spulenpreis pro kg"
       },
       "ace_slot_2_spool_weight": {
         "name": "ACE slot 2 spool weight"
       },
+      "ace_slot_3_spool_price": {
+        "name": "ACE Slot 3 Spulenpreis pro kg"
+      },
       "ace_slot_3_spool_weight": {
         "name": "ACE slot 3 spool weight"
+      },
+      "ace_slot_4_spool_price": {
+        "name": "ACE Slot 4 Spulenpreis pro kg"
       },
       "ace_slot_4_spool_weight": {
         "name": "ACE slot 4 spool weight"

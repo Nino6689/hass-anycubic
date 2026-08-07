@@ -4,7 +4,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorEntityDescription
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, Platform
 from homeassistant.core import HomeAssistant
@@ -84,6 +88,15 @@ SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
     AnycubicBinarySensorEntityDescription(
         key="printer_online",
         translation_key="printer_online",
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    # The one that earns its keep: on means the reel now loaded will not see
+    # this print out, worked out from actual extrusion within the first couple
+    # of percent -- early enough to do something about it.
+    AnycubicBinarySensorEntityDescription(
+        key="job_filament_insufficient",
+        translation_key="job_filament_insufficient",
+        device_class=BinarySensorDeviceClass.PROBLEM,
         printer_entity_type=PrinterEntityType.PRINTER,
     ),
     AnycubicBinarySensorEntityDescription(

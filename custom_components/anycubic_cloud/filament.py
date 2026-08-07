@@ -53,6 +53,16 @@ FILAMENT_DIAMETER_MM = 1.75
 # A full spool, when the user hasn't said otherwise.
 DEFAULT_SPOOL_WEIGHT_G = 1000.0
 
+# Below this, the extrapolation from "used so far" to "needed in total" is
+# dominated by priming and the first-layer purge, which are a fixed cost rather
+# than a rate. Waiting a few percent turns a wild guess into a useful one.
+MIN_PROGRESS_FOR_FORECAST_PCT = 3.0
+
+# Filaments loaded with abrasive fill. These chew through a brass nozzle in
+# tens of hours where PLA would barely mark it, so the wear that matters is
+# how much of THIS went through -- not how long the printer has been running.
+ABRASIVE_MARKERS = ("CF", "GF", "CARBON", "GLASS", "GLOW", "GLITTER", "WOOD", "METAL")
+
 
 def density_for_material(material: str | None) -> float:
     """Density for a material name as the printer reports it."""
@@ -186,3 +196,78 @@ def remaining_percent(spool_weight_g: float, used_g: float) -> float | None:
         return None
 
     return round(max(0.0, min(100.0, (spool_weight_g - used_g) / nominal * 100)), 1)
+
+
+def job_grams_required(
+    used_mm: float | None,
+    progress_pct: float | None,
+    material: str | None = None,
+) -> float | None:
+    """What a running job will need in total, from what it has used so far.
+
+    The printer reports both the filament it has extruded and how far through
+    it is, which is all this needs -- no slicer estimate, so it works for jobs
+    started at the printer's own screen too. Crucially it is answerable within
+    the first minute or two, which is when knowing still lets you do something
+    about it.
+
+    Returns None below a few percent, where priming and the first-layer purge
+    still dominate and the extrapolation would badly overstate the total.
+    """
+    if not used_mm or used_mm <= 0:
+        return None
+
+    if progress_pct is None or progress_pct < MIN_PROGRESS_FOR_FORECAST_PCT:
+        return None
+
+    if progress_pct > 100:
+        return None
+
+    return round(mm_to_grams(used_mm, material) / (progress_pct / 100), 1)
+
+
+def runout_forecast(
+    required_g: float | None,
+    remaining_g: float | None,
+) -> dict[str, float] | None:
+    """Whether the loaded spool holds enough, and where it would run dry.
+
+    Returns None when there isn't enough to say. Otherwise `shortfall_g` is
+    zero for a job that fits, and `runs_out_at_pct` is the progress the spool
+    would empty at -- 100 when it lasts.
+    """
+    if required_g is None or remaining_g is None or required_g <= 0:
+        return None
+
+    shortfall = max(0.0, required_g - remaining_g)
+    runs_out_at = 100.0 if shortfall <= 0 else remaining_g / required_g * 100
+
+    return {
+        "required_g": round(required_g, 1),
+        "remaining_g": round(remaining_g, 1),
+        "shortfall_g": round(shortfall, 1),
+        "runs_out_at_pct": round(min(100.0, runs_out_at), 1),
+    }
+
+
+def is_abrasive(material: str | None) -> bool:
+    """Whether a filament wears the nozzle unusually fast.
+
+    Matched on the name the printer reports, which is all there is to go on --
+    generous by design, since under-reporting wear is the more expensive
+    mistake and a false positive only inflates a maintenance counter.
+    """
+    if not material:
+        return False
+
+    name = str(material).strip().upper()
+
+    return any(marker in name for marker in ABRASIVE_MARKERS)
+
+
+def cost_of(grams: float | None, price_per_kg: float | None) -> float | None:
+    """What a quantity of filament cost, or None if the price isn't known."""
+    if not grams or grams <= 0 or not price_per_kg or price_per_kg <= 0:
+        return None
+
+    return round(grams / 1000 * price_per_kg, 2)

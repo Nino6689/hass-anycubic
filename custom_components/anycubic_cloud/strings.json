@@ -156,8 +156,20 @@
   },
   "entity": {
     "binary_sensor": {
-      "job_in_progress": {
-        "name": "Job In Progress"
+      "ai_detection_enabled": {
+        "name": "AI detection"
+      },
+      "dry_status_is_drying": {
+        "name": "Drying Active"
+      },
+      "external_spool_loaded": {
+        "name": "External spool loaded"
+      },
+      "is_available": {
+        "name": "Is Available"
+      },
+      "is_busy": {
+        "name": "Is Busy"
       },
       "job_complete": {
         "name": "Job Complete"
@@ -165,86 +177,26 @@
       "job_failed": {
         "name": "Job Failed"
       },
+      "job_filament_insufficient": {
+        "name": "Filament insufficient for job"
+      },
+      "job_in_progress": {
+        "name": "Job In Progress"
+      },
       "job_is_paused": {
         "name": "Job Paused"
-      },
-      "printer_online": {
-        "name": "Printer Online"
       },
       "mqtt_connection_active": {
         "name": "MQTT Connection Active"
       },
-      "is_busy": {
-        "name": "Is Busy"
-      },
-      "is_available": {
-        "name": "Is Available"
-      },
-      "dry_status_is_drying": {
-        "name": "Drying Active"
+      "printer_online": {
+        "name": "Printer Online"
       },
       "secondary_dry_status_is_drying": {
         "name": "Secondary Drying Active"
-      },
-      "external_spool_loaded": {
-        "name": "External spool loaded"
-      },
-      "ai_detection_enabled": {
-        "name": "AI detection"
       }
     },
     "button": {
-      "drying_start_preset_1": {
-        "name": "Drying Preset 1"
-      },
-      "drying_start_preset_2": {
-        "name": "Drying Preset 2"
-      },
-      "drying_start_preset_3": {
-        "name": "Drying Preset 3"
-      },
-      "drying_start_preset_4": {
-        "name": "Drying Preset 4"
-      },
-      "drying_stop": {
-        "name": "Drying Stop"
-      },
-      "secondary_drying_start_preset_1": {
-        "name": "Secondary Drying Preset 1"
-      },
-      "secondary_drying_start_preset_2": {
-        "name": "Secondary Drying Preset 2"
-      },
-      "secondary_drying_start_preset_3": {
-        "name": "Secondary Drying Preset 3"
-      },
-      "secondary_drying_start_preset_4": {
-        "name": "Secondary Drying Preset 4"
-      },
-      "secondary_drying_stop": {
-        "name": "Secondary Drying Stop"
-      },
-      "pause_print": {
-        "name": "Pause Print"
-      },
-      "resume_print": {
-        "name": "Resume Print"
-      },
-      "cancel_print": {
-        "name": "Cancel Print"
-      },
-      "request_file_list_local": {
-        "name": "Request File List (Local)"
-      },
-      "request_file_list_udisk": {
-        "name": "Request File List (USB Disk)"
-      },
-      "request_file_list_cloud": {
-        "name": "Request File List (Cloud)"
-      },
-      "refresh_mqtt_connection": {
-        "name": "Refresh MQTT Connection"
-      },
       "ace_refresh_spools": {
         "name": "Refresh ACE Spools"
       },
@@ -260,8 +212,62 @@
       "ace_slot_4_reset_spool": {
         "name": "ACE slot 4 reset spool"
       },
+      "cancel_print": {
+        "name": "Cancel Print"
+      },
+      "drying_start_preset_1": {
+        "name": "Drying Preset 1"
+      },
+      "drying_start_preset_2": {
+        "name": "Drying Preset 2"
+      },
+      "drying_start_preset_3": {
+        "name": "Drying Preset 3"
+      },
+      "drying_start_preset_4": {
+        "name": "Drying Preset 4"
+      },
+      "drying_stop": {
+        "name": "Drying Stop"
+      },
+      "pause_print": {
+        "name": "Pause Print"
+      },
+      "refresh_mqtt_connection": {
+        "name": "Refresh MQTT Connection"
+      },
       "request_axis_position": {
         "name": "Request head position"
+      },
+      "request_file_list_cloud": {
+        "name": "Request File List (Cloud)"
+      },
+      "request_file_list_local": {
+        "name": "Request File List (Local)"
+      },
+      "request_file_list_udisk": {
+        "name": "Request File List (USB Disk)"
+      },
+      "reset_nozzle_wear": {
+        "name": "Reset nozzle wear"
+      },
+      "resume_print": {
+        "name": "Resume Print"
+      },
+      "secondary_drying_start_preset_1": {
+        "name": "Secondary Drying Preset 1"
+      },
+      "secondary_drying_start_preset_2": {
+        "name": "Secondary Drying Preset 2"
+      },
+      "secondary_drying_start_preset_3": {
+        "name": "Secondary Drying Preset 3"
+      },
+      "secondary_drying_start_preset_4": {
+        "name": "Secondary Drying Preset 4"
+      },
+      "secondary_drying_stop": {
+        "name": "Secondary Drying Stop"
       }
     },
     "image": {
@@ -270,134 +276,8 @@
       }
     },
     "sensor": {
-      "current_status": {
-        "name": "Current Status"
-      },
-      "curr_nozzle_temp": {
-        "name": "Nozzle Temperature"
-      },
-      "curr_hotbed_temp": {
-        "name": "Hotbed Temperature"
-      },
-      "job_name": {
-        "name": "Job Name"
-      },
-      "job_progress": {
-        "name": "Job Progress %"
-      },
-      "job_time_elapsed": {
-        "name": "Job Time Elapsed"
-      },
-      "job_time_remaining": {
-        "name": "Job Time Remaining"
-      },
-      "job_eta": {
-        "name": "Job ETA"
-      },
-      "job_state": {
-        "name": "Job State"
-      },
-      "job_current_layer": {
-        "name": "Job Current Layer"
-      },
-      "job_total_layers": {
-        "name": "Job Total Layers"
-      },
-      "job_speed_mode": {
-        "name": "Job Speed Mode"
-      },
-      "job_z_thick": {
-        "name": "Job Z Thickness"
-      },
-      "job_model_height": {
-        "name": "Job Model Height"
-      },
-      "job_anti_alias_count": {
-        "name": "Job Anti Alias"
-      },
-      "job_on_time": {
-        "name": "Job On Time"
-      },
-      "job_off_time": {
-        "name": "Job Off Time"
-      },
-      "job_bottom_time": {
-        "name": "Job Bottom Time"
-      },
-      "job_bottom_layers": {
-        "name": "Job Bottom Layers"
-      },
-      "job_z_up_height": {
-        "name": "Job Z Up Height"
-      },
-      "job_z_up_speed": {
-        "name": "Job Z Up Speed"
-      },
-      "job_z_down_speed": {
-        "name": "Job Z Down Speed"
-      },
-      "target_nozzle_temp": {
-        "name": "Target Nozzle Temperature"
-      },
-      "target_hotbed_temp": {
-        "name": "Target Hotbed Temperature"
-      },
-      "print_speed_pct": {
-        "name": "Print Speed %"
-      },
-      "fan_speed_pct": {
-        "name": "Fan Speed %"
-      },
-      "file_list_local": {
-        "name": "File List (Local)"
-      },
-      "file_list_udisk": {
-        "name": "File List (USB Disk)"
-      },
-      "file_list_cloud": {
-        "name": "File List (Cloud)"
-      },
-      "ace_spools": {
-        "name": "ACE Spools"
-      },
       "ace_current_temperature": {
         "name": "ACE Current Temperature"
-      },
-      "dry_status_target_temperature": {
-        "name": "Drying Target Temperature"
-      },
-      "dry_status_total_duration": {
-        "name": "Drying Total Duration"
-      },
-      "dry_status_remaining_time": {
-        "name": "Drying Remaining Time"
-      },
-      "secondary_ace_spools": {
-        "name": "Secondary ACE Spools"
-      },
-      "secondary_ace_current_temperature": {
-        "name": "Secondary ACE Current Temperature"
-      },
-      "secondary_dry_status_target_temperature": {
-        "name": "Secondary Drying Target Temperature"
-      },
-      "secondary_dry_status_total_duration": {
-        "name": "Secondary Drying Total Duration"
-      },
-      "secondary_dry_status_remaining_time": {
-        "name": "Secondary Drying Remaining Time"
-      },
-      "job_filament_used": {
-        "name": "Job Filament Used"
-      },
-      "material_used_total": {
-        "name": "Total Material Used"
-      },
-      "print_time_total_hrs": {
-        "name": "Total Print Time"
-      },
-      "print_count_total": {
-        "name": "Total Print Count"
       },
       "ace_loaded_slot": {
         "name": "ACE Loaded Slot"
@@ -405,26 +285,14 @@
       "ace_slot_1": {
         "name": "ACE Slot 1"
       },
-      "ace_slot_2": {
-        "name": "ACE Slot 2"
-      },
-      "ace_slot_3": {
-        "name": "ACE Slot 3"
-      },
-      "ace_slot_4": {
-        "name": "ACE Slot 4"
-      },
-      "aux_fan_speed_pct": {
-        "name": "Auxiliary Fan Speed"
-      },
-      "box_fan_level": {
-        "name": "ACE Box Fan Level"
-      },
       "ace_slot_1_filament_remaining": {
         "name": "ACE slot 1 filament remaining"
       },
       "ace_slot_1_filament_remaining_percent": {
         "name": "ACE slot 1 filament remaining percent"
+      },
+      "ace_slot_2": {
+        "name": "ACE Slot 2"
       },
       "ace_slot_2_filament_remaining": {
         "name": "ACE slot 2 filament remaining"
@@ -432,11 +300,17 @@
       "ace_slot_2_filament_remaining_percent": {
         "name": "ACE slot 2 filament remaining percent"
       },
+      "ace_slot_3": {
+        "name": "ACE Slot 3"
+      },
       "ace_slot_3_filament_remaining": {
         "name": "ACE slot 3 filament remaining"
       },
       "ace_slot_3_filament_remaining_percent": {
         "name": "ACE slot 3 filament remaining percent"
+      },
+      "ace_slot_4": {
+        "name": "ACE Slot 4"
       },
       "ace_slot_4_filament_remaining": {
         "name": "ACE slot 4 filament remaining"
@@ -444,8 +318,11 @@
       "ace_slot_4_filament_remaining_percent": {
         "name": "ACE slot 4 filament remaining percent"
       },
-      "external_spool_material": {
-        "name": "External spool material"
+      "ace_spools": {
+        "name": "ACE Spools"
+      },
+      "aux_fan_speed_pct": {
+        "name": "Auxiliary Fan Speed"
       },
       "axis_position_x": {
         "name": "Head position X"
@@ -455,6 +332,171 @@
       },
       "axis_position_z": {
         "name": "Head position Z"
+      },
+      "box_fan_level": {
+        "name": "ACE Box Fan Level"
+      },
+      "curr_hotbed_temp": {
+        "name": "Hotbed Temperature"
+      },
+      "curr_nozzle_temp": {
+        "name": "Nozzle Temperature"
+      },
+      "current_status": {
+        "name": "Current Status"
+      },
+      "dry_status_remaining_time": {
+        "name": "Drying Remaining Time"
+      },
+      "dry_status_target_temperature": {
+        "name": "Drying Target Temperature"
+      },
+      "dry_status_total_duration": {
+        "name": "Drying Total Duration"
+      },
+      "external_spool_material": {
+        "name": "External spool material"
+      },
+      "fan_speed_pct": {
+        "name": "Fan Speed %"
+      },
+      "filament_cost_total": {
+        "name": "Filament cost total"
+      },
+      "file_list_cloud": {
+        "name": "File List (Cloud)"
+      },
+      "file_list_local": {
+        "name": "File List (Local)"
+      },
+      "file_list_udisk": {
+        "name": "File List (USB Disk)"
+      },
+      "job_anti_alias_count": {
+        "name": "Job Anti Alias"
+      },
+      "job_bottom_layers": {
+        "name": "Job Bottom Layers"
+      },
+      "job_bottom_time": {
+        "name": "Job Bottom Time"
+      },
+      "job_cost": {
+        "name": "Job cost"
+      },
+      "job_current_layer": {
+        "name": "Job Current Layer"
+      },
+      "job_eta": {
+        "name": "Job ETA"
+      },
+      "job_filament_required": {
+        "name": "Job filament required"
+      },
+      "job_filament_runs_out_at": {
+        "name": "Job filament runs out at"
+      },
+      "job_filament_shortfall": {
+        "name": "Job filament shortfall"
+      },
+      "job_filament_used": {
+        "name": "Job Filament Used"
+      },
+      "job_model_height": {
+        "name": "Job Model Height"
+      },
+      "job_name": {
+        "name": "Job Name"
+      },
+      "job_off_time": {
+        "name": "Job Off Time"
+      },
+      "job_on_time": {
+        "name": "Job On Time"
+      },
+      "job_progress": {
+        "name": "Job Progress %"
+      },
+      "job_speed_mode": {
+        "name": "Job Speed Mode"
+      },
+      "job_state": {
+        "name": "Job State"
+      },
+      "job_time_elapsed": {
+        "name": "Job Time Elapsed"
+      },
+      "job_time_remaining": {
+        "name": "Job Time Remaining"
+      },
+      "job_total_layers": {
+        "name": "Job Total Layers"
+      },
+      "job_z_down_speed": {
+        "name": "Job Z Down Speed"
+      },
+      "job_z_thick": {
+        "name": "Job Z Thickness"
+      },
+      "job_z_up_height": {
+        "name": "Job Z Up Height"
+      },
+      "job_z_up_speed": {
+        "name": "Job Z Up Speed"
+      },
+      "last_job_cost": {
+        "name": "Last job cost"
+      },
+      "last_job_filament": {
+        "name": "Last job filament"
+      },
+      "material_used_total": {
+        "name": "Total Material Used"
+      },
+      "nozzle_abrasive_filament": {
+        "name": "Nozzle abrasive filament"
+      },
+      "nozzle_filament_total": {
+        "name": "Nozzle filament total"
+      },
+      "nozzle_wear_percent": {
+        "name": "Nozzle wear"
+      },
+      "print_count_total": {
+        "name": "Total Print Count"
+      },
+      "print_speed_pct": {
+        "name": "Print Speed %"
+      },
+      "print_time_total_hrs": {
+        "name": "Total Print Time"
+      },
+      "secondary_ace_current_temperature": {
+        "name": "Secondary ACE Current Temperature"
+      },
+      "secondary_ace_spools": {
+        "name": "Secondary ACE Spools"
+      },
+      "secondary_dry_status_remaining_time": {
+        "name": "Secondary Drying Remaining Time"
+      },
+      "secondary_dry_status_target_temperature": {
+        "name": "Secondary Drying Target Temperature"
+      },
+      "secondary_dry_status_total_duration": {
+        "name": "Secondary Drying Total Duration"
+      },
+      "spool_inventory_count": {
+        "name": "Spool inventory count"
+      },
+      "spool_inventory_remaining": {
+        "name": "Spool inventory remaining"
+      },
+      "target_hotbed_temp": {
+        "name": "Target Hotbed Temperature"
+      },
+      "target_nozzle_temp": {
+        "name": "Target Nozzle Temperature"
       }
     },
     "switch": {
@@ -485,14 +527,26 @@
       }
     },
     "number": {
+      "ace_slot_1_spool_price": {
+        "name": "ACE slot 1 spool price per kg"
+      },
       "ace_slot_1_spool_weight": {
         "name": "ACE slot 1 spool weight"
+      },
+      "ace_slot_2_spool_price": {
+        "name": "ACE slot 2 spool price per kg"
       },
       "ace_slot_2_spool_weight": {
         "name": "ACE slot 2 spool weight"
       },
+      "ace_slot_3_spool_price": {
+        "name": "ACE slot 3 spool price per kg"
+      },
       "ace_slot_3_spool_weight": {
         "name": "ACE slot 3 spool weight"
+      },
+      "ace_slot_4_spool_price": {
+        "name": "ACE slot 4 spool price per kg"
       },
       "ace_slot_4_spool_weight": {
         "name": "ACE slot 4 spool weight"

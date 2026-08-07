@@ -410,6 +410,115 @@ SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
         entity_category=EntityCategory.DIAGNOSTIC,
         printer_entity_type=PrinterEntityType.PRINTER,
     ),
+    # Will the loaded reel see this print out? Derived from what the printer
+    # has extruded against how far through it is, so it needs no slicer
+    # estimate and answers within the first couple of percent -- while there is
+    # still time to swap a spool, rather than finding out four hours in.
+    AnycubicSensorEntityDescription(
+        key="job_filament_required",
+        translation_key="job_filament_required",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        suggested_display_precision=0,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="job_filament_shortfall",
+        translation_key="job_filament_shortfall",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        suggested_display_precision=0,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="job_filament_runs_out_at",
+        translation_key="job_filament_runs_out_at",
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=0,
+        entity_registry_enabled_default=False,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    # Cost, priced from what you paid per reel. An unpriced reel leaves these
+    # unknown rather than reporting a job as free.
+    AnycubicSensorEntityDescription(
+        key="job_cost",
+        translation_key="job_cost",
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=2,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="last_job_cost",
+        translation_key="last_job_cost",
+        device_class=SensorDeviceClass.MONETARY,
+        suggested_display_precision=2,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="filament_cost_total",
+        translation_key="filament_cost_total",
+        device_class=SensorDeviceClass.MONETARY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="last_job_filament",
+        translation_key="last_job_filament",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        suggested_display_precision=0,
+        entity_registry_enabled_default=False,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    # Nozzle wear counted in filament pushed through rather than hours run:
+    # abrasive fill is what actually wears a nozzle, and the material of every
+    # job is already known here.
+    AnycubicSensorEntityDescription(
+        key="nozzle_abrasive_filament",
+        translation_key="nozzle_abrasive_filament",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=0,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="nozzle_wear_percent",
+        translation_key="nozzle_wear_percent",
+        native_unit_of_measurement=PERCENTAGE,
+        suggested_display_precision=0,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="nozzle_filament_total",
+        translation_key="nozzle_filament_total",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=0,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    # Every reel ever seen, including ones not in the machine. The spool
+    # history has always been kept; nothing ever showed it.
+    AnycubicSensorEntityDescription(
+        key="spool_inventory_remaining",
+        translation_key="spool_inventory_remaining",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        suggested_display_precision=0,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
+    AnycubicSensorEntityDescription(
+        key="spool_inventory_count",
+        translation_key="spool_inventory_count",
+        entity_registry_enabled_default=False,
+        printer_entity_type=PrinterEntityType.PRINTER,
+    ),
 ])
 
 GLOBAL_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
@@ -466,6 +575,12 @@ class AnycubicSensor(AnycubicCloudEntity, SensorEntity):
                 self._attr_device_class = SensorDeviceClass.TEMPERATURE
             elif unit in (UnitOfTime.SECONDS, UnitOfTime.MINUTES):
                 self._attr_device_class = SensorDeviceClass.DURATION
+
+        # A monetary sensor has to carry a currency, and the only sensible one
+        # is whatever Home Assistant is already set to -- asking the user for
+        # it again would be a configuration step to state something known.
+        if self.entity_description.device_class == SensorDeviceClass.MONETARY:
+            self._attr_native_unit_of_measurement = hass.config.currency
 
         if self.entity_description.not_measured:
             self._attr_state_class = None

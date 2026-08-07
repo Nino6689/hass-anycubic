@@ -23,6 +23,9 @@
 | 🌡️ **Live telemetry** | Nozzle, bed and ACE temperatures, fan speeds, print speed — updating every second while printing |
 | 📊 **Job tracking** | Progress, current and total layers, elapsed and remaining time, and a real timestamp ETA |
 | 🧵 **Per-slot filament** | Every ACE slot as its own entity, showing material **and colour**, with a spool-shaped icon |
+| 🔮 **Run-out warning** | Whether the loaded reel will see the print out — answered within the first few percent, [no slicer estimate needed](#-will-this-print-finish-on-the-loaded-spool) |
+| 💷 **Print costs** | Per-job and lifetime spend, in your own currency |
+| 🔧 **Nozzle wear** | Abrasive filament tracked separately, because that's what actually wears it out |
 | 💡 **Printer light** | A proper light entity — on, off and brightness |
 | 🎮 **Controls** | Pause, resume, cancel, drying, run-out refill and file management |
 | 🖼️ **Live preview** | The job preview image, as a camera-style entity |
@@ -31,7 +34,7 @@
 | 🔌 **Cloud or local** | Talk to the printer through Anycubic's cloud *or* directly on your network, switchable in one place |
 | 🔐 **Verified connection** | TLS to Anycubic's cloud is properly verified — see [Security](#-security) |
 
-Around **60 entities** per printer, across two devices: the printer, and the ACE as a child device.
+Around **75 entities** per printer, across two devices: the printer, and the ACE as a child device.
 
 ---
 
@@ -93,6 +96,10 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [Entities](#entities)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
 - [Filament remaining *(estimated)*](#filament-remaining-estimated)
+- [🔮 Will this print finish on the loaded spool?](#-will-this-print-finish-on-the-loaded-spool)
+- [💷 What your prints cost](#-what-your-prints-cost)
+- [🔧 Nozzle wear](#-nozzle-wear)
+- [📚 Spool inventory](#-spool-inventory)
 - [📱 ReSpool — write your own spool tags *(beta)*](#-respool--an-ios-app-for-writing-spool-tags-beta)
 - [Automation examples](#automation-examples)
 - [Troubleshooting](#troubleshooting)
@@ -873,6 +880,111 @@ wrong decision about which one to start a long print on.
 
 A reel larger than the standard kilo is measured against its own size, so a 5 kg spool still reads
 100% when full.
+
+---
+
+## 🔮 Will this print finish on the loaded spool?
+
+Knowing what's left on a reel is only half the question. The useful one is whether it
+will **see the current print out** — and you want that answer at 4%, not at 94%.
+
+| Entity | What it is |
+|---|---|
+| `binary_sensor.*_filament_insufficient_for_job` | **On** when the loaded reel won't last the print |
+| `sensor.*_job_filament_required` | Grams the whole job will take |
+| `sensor.*_job_filament_shortfall` | Grams short — `0` when it fits |
+| `sensor.*_job_filament_runs_out_at` | The progress % the reel would run dry at |
+
+**No slicer estimate is involved.** The printer reports what it has extruded and how far
+through it is, which is enough to project the whole job. That means it works for prints
+started at the printer's own screen too, and it needs no setup beyond the spool weight
+you've already told it.
+
+Nothing is reported below **3% progress** — priming and the first-layer purge are a
+fixed cost rather than a rate, and extrapolating from them would badly overstate the
+total. From there on the estimate settles quickly.
+
+```yaml
+automation:
+  - alias: Warn me before the spool runs out
+    triggers:
+      - trigger: state
+        entity_id: binary_sensor.anycubic_kobra_s1_filament_insufficient_for_job
+        to: "on"
+    actions:
+      - action: notify.mobile_app_your_phone
+        data:
+          title: Filament won't last
+          message: >-
+            This print needs
+            {{ states('sensor.anycubic_kobra_s1_job_filament_required') }} g but the
+            reel runs dry at
+            {{ states('sensor.anycubic_kobra_s1_job_filament_runs_out_at') }}%.
+```
+
+---
+
+## 💷 What your prints cost
+
+Tell each slot what the reel cost per kilogram and every job gets a price. Cost entities
+use **whatever currency Home Assistant is set to** — there's nothing extra to configure.
+
+| Entity | What it is |
+|---|---|
+| `number.*_ace_slot_N_spool_price_per_kg` | What you paid, per kg. Set once per reel |
+| `sensor.*_job_cost` | What the running job will cost |
+| `sensor.*_last_job_cost` | What the last finished job cost |
+| `sensor.*_filament_cost_total` | Lifetime spend. Attributes break grams down by material |
+
+Price is priced per **kilo**, not per spool, so it stays right on a part-used reel — and
+like the weight, it travels with the reel when it moves slot or comes back later.
+
+> An unpriced reel reports **unknown**, not £0.00. "Free" and "you never told me what
+> this cost" are different answers, and quietly booking zero would corrupt the lifetime
+> total.
+
+---
+
+## 🔧 Nozzle wear
+
+Carbon-fibre, glass-filled, glow and glitter filaments wear a brass nozzle out in tens of
+hours where PLA barely marks it. So wear is counted in **filament actually pushed
+through** — and because the material of every job is already known here, the abrasive
+share can be separated from the rest.
+
+| Entity | What it is |
+|---|---|
+| `sensor.*_nozzle_abrasive_filament` | Grams of abrasive filament through this nozzle |
+| `sensor.*_nozzle_wear_percent` | That against a ~1 kg rule of thumb for brass |
+| `sensor.*_nozzle_filament_total` | Grams of everything through this nozzle |
+| `button.*_reset_nozzle_wear` | Press after fitting a new nozzle |
+
+The percentage is **a guide, not a measurement** — nozzle life depends on the filament,
+the temperature and the nozzle's own material. Treat it as a prompt to inspect, not a
+deadline. Hardened steel will outlast it comfortably.
+
+---
+
+## 📚 Spool inventory
+
+Every reel the integration has ever seen is remembered by material, colour and SKU, so a
+part-used spool recovers its figure when it goes back in — in any slot. That history is
+a filament inventory, including reels **not currently in the machine**.
+
+| Entity | What it is |
+|---|---|
+| `sensor.*_spool_inventory_remaining` | Total grams across every known reel |
+| `sensor.*_spool_inventory_count` | How many reels are known |
+
+The reels themselves are on the inventory sensor's attributes — material, colour, SKU,
+grams left, percentage and price each — so one template can answer "what's nearly gone".
+
+```jinja
+{% for spool in state_attr('sensor.anycubic_kobra_s1_spool_inventory_remaining', 'spools')
+   if spool.remaining_g < 200 %}
+{{ spool.material }} {{ spool.color_hex }} — {{ spool.remaining_g }} g left
+{% endfor %}
+```
 
 ### Reels are remembered
 

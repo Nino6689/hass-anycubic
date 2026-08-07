@@ -37,6 +37,20 @@ class AnycubicButtonEntityDescription(
 # Zero a slot's consumption estimate. Swapping a spool is normally detected
 # automatically from its colour, material and SKU, but two identical reels look
 # the same, so this covers that case.
+# Nozzle wear is tracked in filament pushed through, so fitting a new nozzle
+# has to be told to it -- there is nothing the printer reports that would
+# reveal a nozzle change on its own.
+NOZZLE_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
+    AnycubicButtonEntityDescription(
+        key="reset_nozzle_wear",
+        translation_key="reset_nozzle_wear",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        entity_category=EntityCategory.CONFIG,
+        entity_registry_enabled_default=False,
+    ),
+])
+
+
 BUTTON_TYPES_AXIS: list[AnycubicButtonEntityDescription] = list([
     AnycubicButtonEntityDescription(
         key="request_axis_position",
@@ -162,6 +176,7 @@ async def async_setup_entry(
             + GLOBAL_BUTTON_TYPES
             + PRIMARY_SPOOL_RESET_BUTTON_TYPES
             + BUTTON_TYPES_AXIS
+            + NOZZLE_BUTTON_TYPES
         ),
     )
 
@@ -191,6 +206,10 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
         if key.endswith("_reset_spool"):
             slot_index = int(key.split("_")[2]) - 1
             await self.coordinator.async_reset_spool(self._printer_id, slot_index)
+            return
+
+        if key == "reset_nozzle_wear":
+            await self.coordinator.async_reset_nozzle(self._printer_id)
             return
 
         await self.coordinator.button_press_event(self._printer_id, key)
