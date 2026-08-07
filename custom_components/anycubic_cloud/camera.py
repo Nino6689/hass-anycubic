@@ -58,7 +58,7 @@ class AnycubicCameraEntityDescription(
 
     # Which entity class serves this descriptor. The two transports need
     # different classes because the stream type is decided per class.
-    entity_class: type[Camera] | None = None
+    entity_class: type[AnycubicCloudEntity] | None = None
 
 
 CAMERA_TYPES: list[AnycubicCameraEntityDescription] = list([
@@ -116,7 +116,7 @@ def _build_camera(
     coordinator: AnycubicCloudDataUpdateCoordinator,
     printer_id: int,
     description: AnycubicCameraEntityDescription,
-) -> Camera:
+) -> AnycubicCloudEntity:
     """Pick the entity class the descriptor asks for."""
     entity_class = description.entity_class
 

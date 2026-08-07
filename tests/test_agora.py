@@ -95,10 +95,7 @@ CHROME_OFFER = "\r\n".join(
     ]
 )
 
-GATEWAY_FINGERPRINT = (
-    "35:28:40:20:80:F6:E0:11:E4:40:42:E8:7C:55:D4:34"
-    ":18:F4:35:04:F3:3F:1A:EB:66:7A:13:85:6A:33:D2:6B"
-)
+GATEWAY_FINGERPRINT = "35:28:40:20:80:F6:E0:11:E4:40:42:E8:7C:55:D4:34:18:F4:35:04:F3:3F:1A:EB:66:7A:13:85:6A:33:D2:6B"
 
 
 def _gateway_ortc() -> dict[str, Any]:
@@ -119,9 +116,7 @@ def _gateway_ortc() -> dict[str, Any]:
             ],
         },
         "dtlsParameters": {
-            "fingerprints": [
-                {"hashFunction": "sha-256", "fingerprint": GATEWAY_FINGERPRINT}
-            ],
+            "fingerprints": [{"hashFunction": "sha-256", "fingerprint": GATEWAY_FINGERPRINT}],
             "role": "server",
         },
         "rtpCapabilities": {
@@ -160,9 +155,7 @@ def _gateway_ortc() -> dict[str, Any]:
                 "videoExtensions": [
                     {
                         "entry": 2,
-                        "extensionName": (
-                            "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
-                        ),
+                        "extensionName": ("http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"),
                     },
                     {"entry": 9, "extensionName": "urn:not:offered:by:the:browser"},
                 ],
@@ -273,9 +266,7 @@ def test_parse_sdp_reads_rtcp_feedback() -> None:
     """`a=rtcp-fb` is parsed -- the reference implementation never did."""
     video = parse_sdp(CHROME_OFFER)["media"][0]
 
-    assert {
-        (feedback["type"], feedback["subtype"]) for feedback in video["rtcpFb"]
-    } == {
+    assert {(feedback["type"], feedback["subtype"]) for feedback in video["rtcpFb"]} == {
         ("goog-remb", None),
         ("transport-cc", None),
         ("ccm", "fir"),
@@ -322,16 +313,9 @@ def test_offer_to_ortc_carries_rtcp_feedback_onto_codecs() -> None:
     so a stream that loses a packet never recovers.
     """
     ortc = offer_to_ortc(parse_sdp(CHROME_OFFER))
-    h264 = next(
-        codec
-        for codec in ortc["rtpCapabilities"]["recv"]["videoCodecs"]
-        if codec["payloadType"] == 96
-    )
+    h264 = next(codec for codec in ortc["rtpCapabilities"]["recv"]["videoCodecs"] if codec["payloadType"] == 96)
 
-    assert {
-        (feedback["type"], feedback["parameter"])
-        for feedback in h264["rtcpFeedbacks"]
-    } == {
+    assert {(feedback["type"], feedback["parameter"]) for feedback in h264["rtcpFeedbacks"]} == {
         ("goog-remb", None),
         ("transport-cc", None),
         ("ccm", "fir"),
@@ -340,11 +324,7 @@ def test_offer_to_ortc_carries_rtcp_feedback_onto_codecs() -> None:
     }
 
     # And the rtx codec, which was offered no feedback, still has none.
-    rtx = next(
-        codec
-        for codec in ortc["rtpCapabilities"]["recv"]["videoCodecs"]
-        if codec["payloadType"] == 97
-    )
+    rtx = next(codec for codec in ortc["rtpCapabilities"]["recv"]["videoCodecs"] if codec["payloadType"] == 97)
     assert rtx["rtcpFeedbacks"] == []
 
 
@@ -364,9 +344,7 @@ def test_offer_to_ortc_parses_fmtp_and_extensions() -> None:
         "clockRate": 90000,
         "encodingParameters": None,
     }
-    assert {
-        extension["extensionName"] for extension in recv["videoExtensions"]
-    } == {
+    assert {extension["extensionName"] for extension in recv["videoExtensions"]} == {
         "urn:ietf:params:rtp-hdrext:toffset",
         "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time",
         "urn:3gpp:video-orientation",
@@ -396,17 +374,12 @@ def test_rtcp_feedback_wildcard_applies_to_every_codec() -> None:
     codecs = offer_to_ortc(parse_sdp(sdp))["rtpCapabilities"]["recv"]["videoCodecs"]
 
     assert [codec["payloadType"] for codec in codecs] == [96, 98]
-    assert all(
-        codec["rtcpFeedbacks"] == [{"type": "nack", "parameter": None}]
-        for codec in codecs
-    )
+    assert all(codec["rtcpFeedbacks"] == [{"type": "nack", "parameter": None}] for codec in codecs)
 
 
 def test_offer_without_ice_credentials_is_rejected() -> None:
     """A malformed offer fails loudly rather than producing a dead answer."""
-    sdp = "\r\n".join(
-        ["v=0", "o=- 1 2 IN IP4 127.0.0.1", "s=-", "t=0 0", "m=video 9 RTP/AVP 96", ""]
-    )
+    sdp = "\r\n".join(["v=0", "o=- 1 2 IN IP4 127.0.0.1", "s=-", "t=0 0", "m=video 9 RTP/AVP 96", ""])
     with pytest.raises(AgoraError):
         offer_to_ortc(parse_sdp(sdp))
 
@@ -468,10 +441,7 @@ def test_answer_only_advertises_extensions_the_browser_offered() -> None:
     """Extension IDs come from the offer; unoffered ones are dropped."""
     answer = build_answer_sdp(_gateway_ortc(), parse_offer(CHROME_OFFER))
 
-    assert (
-        "a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"
-        in answer
-    )
+    assert "a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time" in answer
     assert "urn:not:offered:by:the:browser" not in answer
 
 
