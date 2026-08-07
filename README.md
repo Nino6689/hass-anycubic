@@ -27,11 +27,12 @@
 | 💷 **Print costs** | Per-job and lifetime spend, in your own currency |
 | 🔧 **Nozzle wear** | Abrasive filament tracked separately, because that's what actually wears it out |
 | 💡 **Printer light** | A proper light entity — on, off and brightness |
-| 🎮 **Controls** | Pause, resume, cancel, drying, run-out refill and file management |
+| 🎮 **Controls** | Nozzle and bed temperature, print speed mode, all three fans, drying, pause/resume/cancel and file management — [as entities](#-controlling-the-printer), not just actions |
 | 🖼️ **Live preview** | The job preview image, as a camera-style entity |
 | 📈 **Lifetime stats** | Total filament used, total print time and print count |
 | 📷 **Camera** | The printer's own video stream, straight off the printer — [local connection](#5-optional-talk-to-the-printer-directly) only |
-| 🔌 **Cloud or local** | Talk to the printer through Anycubic's cloud *or* directly on your network, switchable in one place |
+| 🔌 **Cloud or local** | Talk to the printer through Anycubic's cloud *or* [directly on your network](#5-optional-talk-to-the-printer-directly) — the local route needs **no account at all** |
+| 🔎 **Found automatically** | A printer on your network offers itself in Home Assistant; no address to hunt down |
 | 🔐 **Verified connection** | TLS to Anycubic's cloud is properly verified — see [Security](#-security) |
 
 Around **75 entities** per printer, across two devices: the printer, and the ACE as a child device.
@@ -94,6 +95,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [4. Choose a connect mode](#4-choose-a-connect-mode)
 - [5. Talk to the printer directly *(LAN Mode)*](#5-optional-talk-to-the-printer-directly) — [which to choose](#which-should-you-choose) · [what each gives you](#what-each-mode-gives-you)
 - [Entities](#entities)
+- [🎮 Controlling the printer](#-controlling-the-printer)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
 - [Filament remaining *(estimated)*](#filament-remaining-estimated)
 - [🔮 Will this print finish on the loaded spool?](#-will-this-print-finish-on-the-loaded-spool)
@@ -119,9 +121,14 @@ Know your way around HACS? Here's the speed run:
 
 1. Click the button above (or search HACS for **Anycubic**) → **Download**
 2. Restart Home Assistant
-3. Grab a token — the [slicer method](#option-a--slicer-token-recommended) (recommended) or the [web console snippet](#option-b--web-token-easiest)
-4. **Settings → Devices & services → Add integration** → **Anycubic Cloud & LAN** → paste the token
+3. **Settings → Devices & services → Add integration** → **Anycubic Cloud & LAN**
+4. Choose how to connect:
+   - **Directly on your network** — needs [LAN Mode](#5-optional-talk-to-the-printer-directly) on the printer and **nothing else**. No account, no token.
+   - **Anycubic account** — grab a token via the [slicer method](#option-a--slicer-token-recommended) or the [web console snippet](#option-b--web-token-easiest)
 5. Select your printer
+
+If your printer is on the network, Home Assistant may well have **found it already** —
+check Settings → Devices & services for a discovered Anycubic printer.
 
 Otherwise the step-by-step below explains everything.
 
@@ -720,6 +727,42 @@ It refuses if a job is already running, rather than interrupting or queueing beh
 
 ---
 
+## 🎮 Controlling the printer
+
+Everything here has been available as an **action** for a long time. None of it was
+reachable from the device page, which is where people actually look — so the printer
+appeared to do nothing but pause, stop and turn its light on. Same calls, surfaced
+properly.
+
+| Entity | What it does |
+|---|---|
+| `number.*_set_nozzle_temperature` | Target nozzle temperature |
+| `number.*_set_bed_temperature` | Target bed temperature |
+| `select.*_print_speed_mode` | Quiet / Standard / Sport — **read from the printer**, not a list hardcoded here |
+| `number.*_set_fan_speed` | Part cooling fan |
+| `number.*_set_auxiliary_fan_speed` | Auxiliary fan |
+| `number.*_set_box_fan_level` | Enclosure fan |
+
+> ⏸️ **These report unavailable when nothing is printing.** The printer only accepts a
+> change while a job is running, and accepting a value it would silently discard would
+> look like it worked.
+
+### Drying
+
+Starting a dry cycle previously needed a preset configured in the options first, which
+is why the ACE device page offered a stop button and no way to start. Now:
+
+| Entity | |
+|---|---|
+| `number.*_drying_temperature` | Defaults to 45 °C |
+| `number.*_drying_duration` | Defaults to 120 minutes |
+| `button.*_start_drying` | Runs a cycle at those settings |
+
+The preset buttons still work if you have them configured — this is simply the direct
+route that was missing.
+
+---
+
 ## 🧵 Filament and the ACE
 
 The ACE appears as its **own device**, linked to the printer rather than buried inside it — so
@@ -850,7 +893,21 @@ through it is, which is enough to project the whole job. That means it works for
 started at the printer's own screen too, and it needs no setup beyond the spool weight
 you've already told it.
 
-### Why it doesn't simply divide used-so-far by progress
+### Two sources, and it says which it used
+
+**If you've printed this model before, the answer is available immediately** — before
+the first layer. A model's consumption barely varies between runs: three runs of one
+model here took 50.34 g, 49.49 g and 49.49 g. So the last few runs are averaged and
+that is the estimate, from 0% progress.
+
+Measured against a real print, history predicted **49.8 g** and the job actually took
+**49.9 g** — 0.2% out, known before it started.
+
+For something never printed before there is no history, so the estimate is extrapolated
+from the rate instead — see below. The `job_filament_required` sensor carries a
+`source` attribute saying which answered: `history` or `extrapolated`.
+
+### Why extrapolation doesn't simply divide used-so-far by progress
 
 Because that is wrong, and badly so. A print starts with a purge and a prime — a **fixed
 cost**, not part of the rate. Measured on a real Kobra S1 job: 3.9 g of startup waste,

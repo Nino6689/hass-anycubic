@@ -20,32 +20,12 @@
       "wrong_token_type": "That looks like the wrong kind of token. Anycubic issues several, and the integration needs the one whose type is \"access-token\" — the others are refused with \"User does not exist\". If you recovered it from a memory dump, there is usually more than one token in there; try the next match."
     },
     "step": {
-      "auth_mode_web": {
-        "title": "Authentication Mode - Web",
-        "description": "Retrieve your token from the Anycubic Cloud website (see the integration readme for the exact steps — open your browser's developer console on the file page and read window.localStorage XX-Token).",
-        "data": {
-          "user_token": "User Token"
-        }
-      },
-      "auth_mode_slicer": {
-        "title": "Authentication Mode - Slicer Next",
-        "description": "Retrieve the access_token from your Anycubic Slicer Next config (see the integration readme — on Windows it's AppData/AnycubicSlicerNext/AnycubicSlicerNext.conf; on macOS it's under Library/Application Support).",
-        "data": {
-          "user_token": "Slicer Access Token"
-        }
-      },
       "auth_mode_android": {
         "title": "Authentication Mode - Android App",
         "description": "Requires both token and device_id.",
         "data": {
           "user_token": "User Token",
           "user_device_id": "Device ID (Required for Android)"
-        }
-      },
-      "printer": {
-        "title": "Choose your printers.",
-        "data": {
-          "printer_ids": "Monitored Printers"
         }
       },
       "auth_mode_pick": {
@@ -55,6 +35,60 @@
           "auth_mode_web": "Web (No MQTT)",
           "auth_mode_slicer": "Slicer Next (Win)",
           "auth_mode_android": "Android"
+        }
+      },
+      "auth_mode_slicer": {
+        "title": "Authentication Mode - Slicer Next",
+        "description": "Retrieve the access_token from your Anycubic Slicer Next config (see the integration readme — on Windows it's AppData/AnycubicSlicerNext/AnycubicSlicerNext.conf; on macOS it's under Library/Application Support).",
+        "data": {
+          "user_token": "Slicer Access Token"
+        }
+      },
+      "auth_mode_web": {
+        "title": "Authentication Mode - Web",
+        "description": "Retrieve your token from the Anycubic Cloud website (see the integration readme for the exact steps — open your browser's developer console on the file page and read window.localStorage XX-Token).",
+        "data": {
+          "user_token": "User Token"
+        }
+      },
+      "cloud": {
+        "title": "Connect your Anycubic account",
+        "description": "Home Assistant can't sign in to Anycubic for you — their login uses a captcha and 2-factor check. Instead, paste a **token**: a \"you're already signed in\" pass.\n\n**The easy way — no terminal needed.** The integration's tools folder ({tools_url}) has one-click helpers:\n• **Browser bookmark** — click it on the Anycubic site, token copied. No terminal at all.\n• **Mac** — double-click a file.  • **Windows** — right-click → Run.\n\nEach one only *reads* a value your computer already saved and copies it. They never connect to the internet, ask for your password, or change anything.\n\nThen just paste it below — don't worry about tidying it up, and you don't need to know which type it is. Extra quotes, spaces or even the whole config file are fine, and the right mode is detected for you.",
+        "data": {
+          "user_token": "Paste your token here",
+          "user_device_id": "Device ID (only for the Android method — leave blank otherwise)"
+        },
+        "data_description": {
+          "user_token": "A slicer token gives live, second-by-second updates and the control buttons. A web token gives status only. Whichever you paste, it's detected automatically.",
+          "user_device_id": "Leave this empty unless you extracted a token from the Android app's network traffic."
+        }
+      },
+      "confirm_discovery": {
+        "title": "Anycubic printer found",
+        "description": "A printer was found at {host}. Set it up now?"
+      },
+      "connection": {
+        "title": "Connection",
+        "description": "Choose how Home Assistant reaches the printer.\n\n⚠ Switching LAN Mode on REMOVES the printer from your Anycubic account. Switching it back off does not restore it, and nor does a power cycle — the printer has to be added again in the Anycubic app. This is the printer's behaviour, not the integration's.\n\nChange it at the printer first, then match it here. Your entity IDs stay the same either way.",
+        "data": {
+          "lan_mode_enabled": "Use the local connection (LAN Mode)",
+          "lan_host": "Printer address on your network"
+        },
+        "data_description": {
+          "lan_host": "For example 10.0.0.42. Only needed for the local connection."
+        }
+      },
+      "local": {
+        "title": "Connect directly to the printer",
+        "description": "Your printer must have **LAN Mode** switched on — Settings → Network → LAN Mode, on the printer's own screen.\n\nNo Anycubic account or token is needed. You'll get temperatures, job progress, all four ACE slots, filament tracking and the camera. Cloud file management and the print queue aren't available this way.\n\n⚠️ Turning LAN Mode on removes the printer from your Anycubic account. You can add it back in the app later, but it isn't automatic.",
+        "data": {
+          "lan_host": "Printer IP address"
+        }
+      },
+      "printer": {
+        "title": "Choose your printers.",
+        "data": {
+          "printer_ids": "Monitored Printers"
         }
       },
       "reauth_or_choose_printer": {
@@ -67,26 +101,10 @@
         }
       },
       "user": {
-        "title": "Connect your Anycubic account",
-        "description": "Home Assistant can't sign in to Anycubic for you — their login uses a captcha and 2-factor check. Instead, paste a **token**: a \"you're already signed in\" pass.\n\n**The easy way — no terminal needed.** The integration's tools folder ({tools_url}) has one-click helpers:\n• **Browser bookmark** — click it on the Anycubic site, token copied. No terminal at all.\n• **Mac** — double-click a file.  • **Windows** — right-click → Run.\n\nEach one only *reads* a value your computer already saved and copies it. They never connect to the internet, ask for your password, or change anything.\n\nThen just paste it below — don't worry about tidying it up, and you don't need to know which type it is. Extra quotes, spaces or even the whole config file are fine, and the right mode is detected for you.",
-        "data": {
-          "user_token": "Paste your token here",
-          "user_device_id": "Device ID (only for the Android method — leave blank otherwise)"
-        },
-        "data_description": {
-          "user_token": "A slicer token gives live, second-by-second updates and the control buttons. A web token gives status only. Whichever you paste, it's detected automatically.",
-          "user_device_id": "Leave this empty unless you extracted a token from the Android app's network traffic."
-        }
-      },
-      "connection": {
-        "title": "Connection",
-        "description": "Choose how Home Assistant reaches the printer.\n\n⚠ Switching LAN Mode on REMOVES the printer from your Anycubic account. Switching it back off does not restore it, and nor does a power cycle — the printer has to be added again in the Anycubic app. This is the printer's behaviour, not the integration's.\n\nChange it at the printer first, then match it here. Your entity IDs stay the same either way.",
-        "data": {
-          "lan_mode_enabled": "Use the local connection (LAN Mode)",
-          "lan_host": "Printer address on your network"
-        },
-        "data_description": {
-          "lan_host": "For example 10.0.0.42. Only needed for the local connection."
+        "title": "How should Home Assistant reach your printer?",
+        "menu_options": {
+          "cloud": "Anycubic account (cloud)",
+          "local": "Directly on my network (LAN Mode) — no account needed"
         }
       }
     }
@@ -214,6 +232,9 @@
       },
       "cancel_print": {
         "name": "Cancel Print"
+      },
+      "drying_start": {
+        "name": "Start drying"
       },
       "drying_start_preset_1": {
         "name": "Drying Preset 1"
@@ -550,11 +571,37 @@
       },
       "ace_slot_4_spool_weight": {
         "name": "ACE slot 4 spool weight"
+      },
+      "drying_set_duration": {
+        "name": "Drying duration"
+      },
+      "drying_set_temperature": {
+        "name": "Drying temperature"
+      },
+      "set_aux_fan_speed_pct": {
+        "name": "Set auxiliary fan speed"
+      },
+      "set_box_fan_level": {
+        "name": "Set box fan level"
+      },
+      "set_fan_speed_pct": {
+        "name": "Set fan speed"
+      },
+      "set_target_hotbed_temp": {
+        "name": "Set bed temperature"
+      },
+      "set_target_nozzle_temp": {
+        "name": "Set nozzle temperature"
       }
     },
     "camera": {
       "camera": {
         "name": "Camera"
+      }
+    },
+    "select": {
+      "set_speed_mode": {
+        "name": "Print speed mode"
       }
     }
   },

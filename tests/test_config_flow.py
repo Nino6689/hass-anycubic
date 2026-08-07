@@ -39,17 +39,43 @@ def _mock_api(*, tokens_ok: bool = True) -> MagicMock:
     return api
 
 
-async def test_form_shown_with_single_paste_step(hass: HomeAssistant) -> None:
-    """Setup opens straight on one step -- no auth-mode menu to wade through."""
+async def _choose_cloud(hass: HomeAssistant, result):
+    """Pick the cloud branch of the opening menu.
+
+    Setup now asks how to reach the printer first, because LAN Mode needs no
+    token at all -- leading with the token sent people hunting for a
+    credential they may not need.
+    """
+    if result["type"] is FlowResultType.MENU:
+        return await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "cloud"})
+    return result
+
+
+async def test_setup_asks_how_to_reach_the_printer_first(hass: HomeAssistant) -> None:
+    """LAN Mode needs no token, so the token must not be the first thing asked.
+
+    Reported on #8: someone spent a day recovering a credential for a printer
+    they could have reached directly.
+    """
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
 
+    assert result["type"] is FlowResultType.MENU
+    assert set(result["menu_options"]) == {"cloud", "local"}
+
+
+async def test_the_cloud_branch_is_a_single_paste(hass: HomeAssistant) -> None:
+    """Once cloud is chosen there is still no auth-mode menu to wade through."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
+
     assert result["type"] is FlowResultType.FORM
-    assert result["step_id"] == "user"
+    assert result["step_id"] == "cloud"
 
 
 async def test_messy_paste_is_accepted(hass: HomeAssistant) -> None:
     """A quoted, whitespace-padded token still gets through."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with (
         patch(API_PATH, return_value=_mock_api()),
@@ -69,6 +95,7 @@ async def test_messy_paste_is_accepted(hass: HomeAssistant) -> None:
 async def test_nonsense_paste_gives_helpful_error(hass: HomeAssistant) -> None:
     """Prose must produce a specific error, not a generic auth failure."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"user_token": "I don't know where my token is"}
@@ -92,6 +119,7 @@ async def test_falls_back_to_other_auth_mode(hass: HomeAssistant) -> None:
         return _mock_api(tokens_ok=len(attempted) > 1)
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with (
         patch(API_PATH, side_effect=_api_factory),
@@ -116,6 +144,7 @@ async def test_device_id_selects_android(hass: HomeAssistant) -> None:
         return _mock_api()
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with (
         patch(API_PATH, side_effect=_api_factory),
@@ -134,6 +163,7 @@ async def test_device_id_selects_android(hass: HomeAssistant) -> None:
 async def test_all_modes_rejected_reports_invalid_auth(hass: HomeAssistant) -> None:
     """When nothing works, the user gets a real error rather than a loop."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with (
         patch(API_PATH, return_value=_mock_api(tokens_ok=False)),
@@ -152,6 +182,7 @@ async def test_all_modes_rejected_reports_invalid_auth(hass: HomeAssistant) -> N
 async def test_empty_token_rejected(hass: HomeAssistant, token: str) -> None:
     """An empty paste shouldn't reach the API at all."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": token})
 
@@ -161,6 +192,7 @@ async def test_empty_token_rejected(hass: HomeAssistant, token: str) -> None:
 async def test_successful_setup_creates_the_entry(hass: HomeAssistant) -> None:
     """The happy path all the way through to a config entry."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with patch(API_PATH, return_value=_mock_api()):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
@@ -182,6 +214,7 @@ async def test_account_with_no_printers_is_reported(hass: HomeAssistant) -> None
     api.list_my_printers = AsyncMock(return_value=[])
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with patch(API_PATH, return_value=api):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
@@ -197,6 +230,7 @@ async def test_unreachable_printer_is_reported(hass: HomeAssistant) -> None:
     api = _mock_api()
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with patch(API_PATH, return_value=api):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
@@ -215,6 +249,7 @@ async def test_the_same_account_cannot_be_added_twice(hass: HomeAssistant) -> No
     MockConfigEntry(domain=DOMAIN, unique_id="99", data={"user_token": JWT, "printer_ids": [4242]}).add_to_hass(hass)
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with patch(API_PATH, return_value=_mock_api()):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
@@ -231,6 +266,7 @@ async def test_a_cloud_error_while_listing_printers_is_reported(
     api.list_my_printers = AsyncMock(side_effect=Exception("cloud unreachable"))
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with patch(API_PATH, return_value=api):
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": JWT})
@@ -246,6 +282,7 @@ async def test_a_cloud_error_while_listing_printers_is_reported(
 async def test_manual_auth_mode_steps_are_reachable(hass: HomeAssistant, step: str) -> None:
     """The per-mode forms remain available for anyone who needs them."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
     flow = hass.config_entries.flow._progress[result["flow_id"]]
 
     result = await getattr(flow, f"async_step_{step}")()
@@ -256,6 +293,7 @@ async def test_manual_auth_mode_steps_are_reachable(hass: HomeAssistant, step: s
 
 async def test_auth_mode_menu_lists_every_mode(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
     flow = hass.config_entries.flow._progress[result["flow_id"]]
 
     result = await flow.async_step_auth_mode_pick()
@@ -283,6 +321,7 @@ async def test_expired_token_is_named_as_expired(hass: HomeAssistant) -> None:
     expired = f"eyJhbGciOiJSUzI1NiJ9.{body}.signature"
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with patch(API_PATH, return_value=_mock_api()) as api_factory:
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"user_token": expired})
@@ -301,6 +340,7 @@ async def test_corrupted_token_is_named_as_corrupted(hass: HomeAssistant) -> Non
     it sends people hunting for account problems they don't have.
     """
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with (
         patch(
@@ -319,6 +359,7 @@ async def test_corrupted_token_is_named_as_corrupted(hass: HomeAssistant) -> Non
 async def test_precheck_lets_a_healthy_token_through(hass: HomeAssistant) -> None:
     """The precheck must be invisible when there is nothing to report."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with (
         patch(
@@ -352,6 +393,7 @@ async def test_a_repaired_token_is_the_one_stored(hass: HomeAssistant) -> None:
         return _mock_api()
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await _choose_cloud(hass, result)
 
     with (
         patch(
@@ -368,3 +410,106 @@ async def test_a_repaired_token_is_the_one_stored(hass: HomeAssistant) -> None:
 
     assert result["step_id"] == "printer"
     assert seen and all(token == trimmed for token in seen)
+
+
+class TestLocalSetupNeedsNoAccount:
+    """LAN Mode needs no token, so setup must not insist on one.
+
+    Issue #8 is the whole argument: someone spent a day recovering a
+    credential for a printer they could have talked to directly.
+    """
+
+    def _broker(self):
+        broker = MagicMock()
+        broker.device_id = "778899"
+        broker.mac = "a4:e8:8d:80:54:c8"
+        broker.model_name = "Kobra S1"
+        return broker
+
+    async def test_a_local_printer_is_set_up_without_a_token(self, hass: HomeAssistant) -> None:
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "local"})
+
+        assert result["step_id"] == "local"
+
+        with patch(
+            "custom_components.anycubic_cloud.config_flow.async_lan_handshake",
+            AsyncMock(return_value=({}, self._broker())),
+        ):
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {"lan_host": "10.0.0.5"})
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert "user_token" not in result["data"], "a local setup must not need a token"
+        assert result["data"]["lan_host"] == "10.0.0.5"
+        assert result["options"]["lan_mode_enabled"] is True
+
+    async def test_the_printer_id_comes_from_the_handshake(self, hass: HomeAssistant) -> None:
+        """There is no cloud account to enumerate printers from.
+
+        Without this the entry has no printer id list and every platform
+        raises KeyError on setup.
+        """
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "local"})
+
+        with patch(
+            "custom_components.anycubic_cloud.config_flow.async_lan_handshake",
+            AsyncMock(return_value=({}, self._broker())),
+        ):
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {"lan_host": "10.0.0.5"})
+
+        assert result["data"]["printer_ids"] == [778899]
+
+    async def test_a_printer_still_on_the_cloud_says_so(self, hass: HomeAssistant) -> None:
+        """Better than creating an entry that could never work."""
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "local"})
+
+        with patch(
+            "custom_components.anycubic_cloud.config_flow.async_lan_handshake",
+            AsyncMock(return_value=({"base": "lan_printer_in_cloud_mode"}, None)),
+        ):
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {"lan_host": "10.0.0.5"})
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["errors"] == {"base": "lan_printer_in_cloud_mode"}
+
+    async def test_a_blank_address_is_rejected(self, hass: HomeAssistant) -> None:
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "local"})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"lan_host": "   "})
+
+        assert result["errors"] == {"lan_host": "lan_host_required"}
+
+
+class TestDiscovery:
+    """A printer on the network should offer itself, not wait to be typed in."""
+
+    async def _discover(self, hass: HomeAssistant):
+        from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+
+        return await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_DHCP},
+            data=DhcpServiceInfo(
+                ip="10.0.66.28",
+                hostname="kobra-s1",
+                macaddress="a4e88d8054c8",
+            ),
+        )
+
+    async def test_a_discovered_printer_offers_setup(self, hass: HomeAssistant) -> None:
+        result = await self._discover(hass)
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "confirm_discovery"
+        assert result["description_placeholders"]["host"] == "10.0.66.28"
+
+    async def test_the_discovered_address_is_offered_as_the_default(self, hass: HomeAssistant) -> None:
+        """Nobody should have to type in an address that was just found."""
+        result = await self._discover(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "local"})
+
+        assert result["step_id"] == "local"
+        assert result["data_schema"]({})["lan_host"] == "10.0.66.28"

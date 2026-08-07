@@ -20,31 +20,11 @@
       "wrong_token_type": "Das scheint der falsche Token-Typ zu sein. Anycubic vergibt mehrere; benötigt wird der mit dem Typ \"access-token\" – die anderen werden mit \"User does not exist\" abgelehnt. Bei einer Wiederherstellung aus einem Speicherabbild sind dort meist mehrere Tokens enthalten; probieren Sie den nächsten Treffer."
     },
     "step": {
-      "auth_mode_web": {
-        "title": "Authentifizierung – Web",
-        "description": "Token von der Anycubic-Cloud-Website holen (siehe Anleitung in der Integration).",
-        "data": {
-          "user_token": "Benutzer-Token"
-        }
-      },
-      "auth_mode_slicer": {
-        "title": "Authentifizierung – Slicer Next",
-        "description": "Das access_token aus der Konfigurationsdatei von Anycubic Slicer Next auslesen.",
-        "data": {
-          "user_token": "Slicer-Access-Token"
-        }
-      },
       "auth_mode_android": {
         "title": "Authentifizierung – Android-App",
         "description": "Benötigt sowohl Token als auch device_id.",
         "data": {
           "user_token": "Benutzer-Token"
-        }
-      },
-      "printer": {
-        "title": "Drucker auswählen",
-        "data": {
-          "printer_ids": "Monitored Printers"
         }
       },
       "auth_mode_pick": {
@@ -54,6 +34,60 @@
           "auth_mode_web": "Web (No MQTT)",
           "auth_mode_slicer": "Slicer Next (Win)",
           "auth_mode_android": "Android"
+        }
+      },
+      "auth_mode_slicer": {
+        "title": "Authentifizierung – Slicer Next",
+        "description": "Das access_token aus der Konfigurationsdatei von Anycubic Slicer Next auslesen.",
+        "data": {
+          "user_token": "Slicer-Access-Token"
+        }
+      },
+      "auth_mode_web": {
+        "title": "Authentifizierung – Web",
+        "description": "Token von der Anycubic-Cloud-Website holen (siehe Anleitung in der Integration).",
+        "data": {
+          "user_token": "Benutzer-Token"
+        }
+      },
+      "cloud": {
+        "title": "Anycubic-Konto verbinden",
+        "description": "Home Assistant kann sich nicht für Sie bei Anycubic anmelden – deren Login lässt das nicht zu. Sie holen sich stattdessen einmalig ein Token und fügen es hier ein.",
+        "data": {
+          "user_token": "Token hier einfügen",
+          "user_device_id": "Geräte-ID (nur bei der Android-Methode – sonst leer lassen)"
+        },
+        "data_description": {
+          "user_token": "Ein Slicer-Token liefert Live-Aktualisierungen im Sekundentakt und alle Funktionen. Ein Web-Token funktioniert, aber ohne MQTT und damit ohne Live-Updates.",
+          "user_device_id": "Leer lassen, sofern Sie das Token nicht aus der Android-App extrahiert haben."
+        }
+      },
+      "confirm_discovery": {
+        "title": "Anycubic-Drucker gefunden",
+        "description": "Ein Drucker wurde unter {host} gefunden. Jetzt einrichten?"
+      },
+      "connection": {
+        "title": "Verbindung",
+        "description": "Legen Sie fest, wie Home Assistant den Drucker erreicht.\n\n⚠ Wird der LAN-Modus am Drucker eingeschaltet, wird der Drucker AUS IHREM Anycubic-Konto ENTFERNT. Ihn wieder auszuschalten stellt das nicht wieder her, ein Neustart ebenso wenig – der Drucker muss in der Anycubic-App erneut hinzugefügt werden. Das ist das Verhalten des Druckers, nicht der Integration.\n\nÄndern Sie es zuerst am Drucker und stellen Sie es hier passend ein. Ihre Entitäts-IDs bleiben in beiden Fällen gleich.",
+        "data": {
+          "lan_mode_enabled": "Lokale Verbindung verwenden (LAN-Modus)",
+          "lan_host": "Adresse des Druckers im Netzwerk"
+        },
+        "data_description": {
+          "lan_host": "Zum Beispiel 10.0.0.42. Nur für die lokale Verbindung nötig."
+        }
+      },
+      "local": {
+        "title": "Direkt mit dem Drucker verbinden",
+        "description": "Am Drucker muss der **LAN-Modus** aktiviert sein – Einstellungen → Netzwerk → LAN-Modus, direkt am Drucker.\n\nEin Anycubic-Konto oder Token wird nicht benötigt. Sie erhalten Temperaturen, Auftragsfortschritt, alle vier ACE-Slots, Filamentverfolgung und die Kamera. Cloud-Dateiverwaltung und Druckwarteschlange stehen so nicht zur Verfügung.\n\n⚠️ Das Aktivieren des LAN-Modus entfernt den Drucker aus Ihrem Anycubic-Konto. Sie können ihn später in der App wieder hinzufügen, das geschieht aber nicht automatisch.",
+        "data": {
+          "lan_host": "IP-Adresse des Druckers"
+        }
+      },
+      "printer": {
+        "title": "Drucker auswählen",
+        "data": {
+          "printer_ids": "Monitored Printers"
         }
       },
       "reauth_or_choose_printer": {
@@ -66,26 +100,10 @@
         }
       },
       "user": {
-        "title": "Anycubic-Konto verbinden",
-        "description": "Home Assistant kann sich nicht für Sie bei Anycubic anmelden – deren Login lässt das nicht zu. Sie holen sich stattdessen einmalig ein Token und fügen es hier ein.",
-        "data": {
-          "user_token": "Token hier einfügen",
-          "user_device_id": "Geräte-ID (nur bei der Android-Methode – sonst leer lassen)"
-        },
-        "data_description": {
-          "user_token": "Ein Slicer-Token liefert Live-Aktualisierungen im Sekundentakt und alle Funktionen. Ein Web-Token funktioniert, aber ohne MQTT und damit ohne Live-Updates.",
-          "user_device_id": "Leer lassen, sofern Sie das Token nicht aus der Android-App extrahiert haben."
-        }
-      },
-      "connection": {
-        "title": "Verbindung",
-        "description": "Legen Sie fest, wie Home Assistant den Drucker erreicht.\n\n⚠ Wird der LAN-Modus am Drucker eingeschaltet, wird der Drucker AUS IHREM Anycubic-Konto ENTFERNT. Ihn wieder auszuschalten stellt das nicht wieder her, ein Neustart ebenso wenig – der Drucker muss in der Anycubic-App erneut hinzugefügt werden. Das ist das Verhalten des Druckers, nicht der Integration.\n\nÄndern Sie es zuerst am Drucker und stellen Sie es hier passend ein. Ihre Entitäts-IDs bleiben in beiden Fällen gleich.",
-        "data": {
-          "lan_mode_enabled": "Lokale Verbindung verwenden (LAN-Modus)",
-          "lan_host": "Adresse des Druckers im Netzwerk"
-        },
-        "data_description": {
-          "lan_host": "Zum Beispiel 10.0.0.42. Nur für die lokale Verbindung nötig."
+        "title": "Wie soll Home Assistant den Drucker erreichen?",
+        "menu_options": {
+          "cloud": "Anycubic-Konto (Cloud)",
+          "local": "Direkt im Netzwerk (LAN-Modus) – ohne Konto"
         }
       }
     }
@@ -207,6 +225,9 @@
       },
       "cancel_print": {
         "name": "Druck abbrechen"
+      },
+      "drying_start": {
+        "name": "Trocknung starten"
       },
       "drying_start_preset_1": {
         "name": "Trocknungs-Voreinstellung 1"
@@ -543,11 +564,37 @@
       },
       "ace_slot_4_spool_weight": {
         "name": "ACE slot 4 spool weight"
+      },
+      "drying_set_duration": {
+        "name": "Trocknungsdauer"
+      },
+      "drying_set_temperature": {
+        "name": "Trocknungstemperatur"
+      },
+      "set_aux_fan_speed_pct": {
+        "name": "Hilfslüfter einstellen"
+      },
+      "set_box_fan_level": {
+        "name": "Boxlüfterstufe einstellen"
+      },
+      "set_fan_speed_pct": {
+        "name": "Lüftergeschwindigkeit einstellen"
+      },
+      "set_target_hotbed_temp": {
+        "name": "Betttemperatur einstellen"
+      },
+      "set_target_nozzle_temp": {
+        "name": "Düsentemperatur einstellen"
       }
     },
     "camera": {
       "camera": {
         "name": "Kamera"
+      }
+    },
+    "select": {
+      "set_speed_mode": {
+        "name": "Druckgeschwindigkeitsmodus"
       }
     }
   },

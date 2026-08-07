@@ -97,6 +97,11 @@ PRIMARY_MULTI_COLOR_BOX_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = li
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,
     ),
     AnycubicButtonEntityDescription(
+        key="drying_start",
+        translation_key="drying_start",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+    ),
+    AnycubicButtonEntityDescription(
         key="ace_refresh_spools",
         translation_key="ace_refresh_spools",
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,
@@ -210,6 +215,10 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
 
         if key == "reset_nozzle_wear":
             await self.coordinator.async_reset_nozzle(self._printer_id)
+            return
+
+        if key == "drying_start":
+            await self.coordinator.async_start_drying(self._printer_id)
             return
 
         await self.coordinator.button_press_event(self._printer_id, key)

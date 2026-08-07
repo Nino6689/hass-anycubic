@@ -15,9 +15,11 @@ from custom_components.anycubic_cloud.filament import (
     attribute_job_to_slots,
     cost_of,
     density_for_material,
+    history_estimate,
     is_abrasive,
     job_grams_required,
     mm_to_grams,
+    normalise_job_name,
     remaining_grams,
     remaining_percent,
     runout_forecast,
@@ -1279,3 +1281,187 @@ class TestTheWarningNeverLiesByOmission:
 
         assert state is not None
         assert state.state != "unavailable"
+
+
+class TestJobHistoryForecast:
+    """What a model took last time beats extrapolating a rate.
+
+    Measured against a real print: history said 49.8 g and the job charged
+    49.9 g -- 0.2% out, available before the first layer. The rate-based
+    forecast was 17% low at 39% progress on the same job.
+    """
+
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("0803-2007-Nesting_Cup_plate(04)_PLA_0.24_1h15m", "Nesting_Cup_plate(04)_PLA_0.24_1h15m"),
+            ("0731-1537-LATCH_BOX_LID", "LATCH_BOX_LID"),
+            ("Kotbeutelspender_Spender_PLA", "Kotbeutelspender_Spender_PLA"),
+        ],
+    )
+    def test_the_slice_timestamp_is_stripped(self, raw, expected) -> None:
+        """The same model sliced twice gets two names; only the stamp differs."""
+        assert normalise_job_name(raw) == expected
+
+    @pytest.mark.parametrize("name", [None, "", "   "])
+    def test_a_nameless_job_has_no_identity(self, name) -> None:
+        assert normalise_job_name(name) is None
+
+    def test_averages_what_the_model_actually_took(self) -> None:
+        """The three real runs behind this feature."""
+        assert history_estimate([50.34, 49.49, 49.49]) == pytest.approx(49.8, abs=0.1)
+
+    @pytest.mark.parametrize("samples", [None, [], [0], [-5]])
+    def test_no_usable_history_is_no_estimate(self, samples) -> None:
+        assert history_estimate(samples) is None
+
+    async def test_a_repeat_print_is_forecast_before_the_first_layer(self, hass, mock_entry, mock_api) -> None:
+        """The whole point: an answer at 0%, not at 50%."""
+        from unittest.mock import MagicMock, PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        coordinator._filament.setdefault("jobs", {})["Cup_plate(04)_PLA"] = [
+            50.34,
+            49.49,
+            49.49,
+        ]
+
+        project = MagicMock()
+        project.id = 5150
+        project.name = "0807-1130-Cup_plate(04)_PLA"
+        project.slice_material_info_list = None
+        spools = [{"material_type": "PLA", "color_hex": "#E10600", "sku": "H-1"}]
+
+        _, printer = mock_api
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=10)),
+            patch.object(type(printer), "latest_project_progress_percentage", PropertyMock(return_value=0)),
+            patch.object(
+                type(printer),
+                "primary_multi_color_box_spool_info_object",
+                PropertyMock(return_value=spools),
+            ),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
+        ):
+            data = coordinator._build_coordinator_data()
+
+        states = data["printers"][PRINTER_ID]["states"]
+        attrs = data["printers"][PRINTER_ID]["attributes"]
+
+        assert states["job_filament_required"] == pytest.approx(49.8, abs=0.2)
+        assert attrs["job_filament_required"]["source"] == "history"
+
+    async def test_a_nearly_empty_reel_is_flagged_before_the_print_starts(self, hass, mock_entry, mock_api) -> None:
+        """The real case: 33 g left, a 49.8 g job about to begin."""
+        from unittest.mock import MagicMock, PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        coordinator._filament.setdefault("jobs", {})["Cup_plate(04)_PLA"] = [49.8]
+        coordinator._filament_slot_state(PRINTER_ID, 0)["filament_used_g"] = 967.0
+
+        project = MagicMock()
+        project.id = 5151
+        project.name = "0807-1200-Cup_plate(04)_PLA"
+        project.slice_material_info_list = None
+        spools = [{"material_type": "PLA", "color_hex": "#E10600", "sku": "H-1"}]
+
+        _, printer = mock_api
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=5)),
+            patch.object(type(printer), "latest_project_progress_percentage", PropertyMock(return_value=0)),
+            patch.object(
+                type(printer),
+                "primary_multi_color_box_spool_info_object",
+                PropertyMock(return_value=spools),
+            ),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
+        ):
+            data = coordinator._build_coordinator_data()
+
+        states = data["printers"][PRINTER_ID]["states"]
+
+        assert states["job_filament_insufficient"] is True
+        assert states["job_filament_shortfall"] > 0
+
+    async def test_a_new_model_still_falls_back_to_extrapolation(self, hass, mock_entry, mock_api) -> None:
+        """Nothing printed before means no history -- that path must remain."""
+        from unittest.mock import MagicMock, PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+
+        project = MagicMock()
+        project.id = 5152
+        project.name = "0807-1300-Something_Never_Printed"
+        project.slice_material_info_list = None
+        spools = [{"material_type": "PLA", "color_hex": "#E10600", "sku": "H-1"}]
+
+        _, printer = mock_api
+
+        def _observe(used_mm, progress):
+            with (
+                patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+                patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+                patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=used_mm)),
+                patch.object(
+                    type(printer),
+                    "latest_project_progress_percentage",
+                    PropertyMock(return_value=progress),
+                ),
+                patch.object(
+                    type(printer),
+                    "primary_multi_color_box_spool_info_object",
+                    PropertyMock(return_value=spools),
+                ),
+                patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
+            ):
+                return coordinator._build_coordinator_data()
+
+        _observe(2099, 5)
+        data = _observe(8694, 46)
+
+        assert data["printers"][PRINTER_ID]["states"]["job_filament_required"] is not None
+        assert data["printers"][PRINTER_ID]["attributes"]["job_filament_required"]["source"] == "extrapolated"
+
+    async def test_a_finished_job_is_remembered_for_next_time(self, hass, mock_entry, mock_api) -> None:
+        from unittest.mock import MagicMock, PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        project = MagicMock()
+        project.id = 6001
+        project.name = "0807-1400-Repeatable_Thing"
+        project.slice_material_info_list = [{"paint_index": 0, "filament_used": 50.0}]
+        spools = [{"material_type": "PLA", "color_hex": "#E10600", "sku": "H-1"}]
+
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=31783)),
+            patch.object(
+                type(printer),
+                "primary_multi_color_box_spool_info_object",
+                PropertyMock(return_value=spools),
+            ),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
+        ):
+            await coordinator._async_update_filament()
+
+        assert coordinator._filament["jobs"]["Repeatable_Thing"] == [pytest.approx(94, abs=3)]
+        assert PRINTER_ID

@@ -1,13 +1,20 @@
 """Numbers for Anycubic Cloud.
 
-One entry per ACE slot, holding how much filament is actually on that reel
-right now. The printer can't weigh a spool, so this is the figure the
-remaining-filament estimate counts down from.
+Two groups.
 
-Set it to what the reel really holds -- 334 g for a part-used one, 5000 for a
-5 kg roll. The grams sensor counts down from here; the percentage sensor
-reports against a full reel, so a part-used spool reads as the fraction of a
-reel it is rather than as nearly full.
+**Spool settings**, one per ACE slot: what the reel started at and what it
+cost. The printer can't weigh a spool, so these are what the remaining
+estimate and the cost figures are derived from.
+
+**Live print controls**: nozzle and bed temperature, print speed and the
+three fans. These have always been available as actions, but only as actions
+-- so from the device page the printer looked like it could do nothing but
+pause and stop. They're the same calls, surfaced where people actually look
+for them.
+
+⚠ The printer only accepts these while a job is running, so those entities
+report unavailable when it is idle rather than accepting a value that would
+be silently dropped.
 """
 
 from __future__ import annotations
@@ -22,15 +29,25 @@ from homeassistant.components.number import (
     NumberMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, Platform, UnitOfMass
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    Platform,
+    UnitOfMass,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     ACE_SLOT_COUNT,
+    ATTR_DRYING_DURATION,
+    ATTR_DRYING_TEMPERATURE,
     PrinterEntityType,
 )
 from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
+from .helpers import printer_state_for_key
 
 # All data comes from the shared coordinator, and writes go through the
 # cloud API one request at a time, so no per-entity parallelism is wanted.
@@ -47,6 +64,11 @@ class AnycubicNumberEntityDescription(
     """Describes an Anycubic Cloud number entity."""
 
     slot_index: int = 0
+    # Name of the AnycubicPrinter coroutine this entity writes through. When
+    # set, the entity is a live print control rather than a stored setting.
+    printer_method: str | None = None
+    # Coordinator state key holding the current value.
+    state_key: str | None = None
 
 
 PRIMARY_MULTI_COLOR_BOX_NUMBER_TYPES: list[AnycubicNumberEntityDescription] = list([
@@ -89,6 +111,105 @@ PRIMARY_MULTI_COLOR_BOX_PRICE_TYPES: list[AnycubicNumberEntityDescription] = lis
 ])
 
 
+# Live print controls. Every one of these has existed as an action since
+# before this fork; none of them were reachable from the device page, which is
+# where people look. Same calls, surfaced properly.
+PRINT_CONTROL_NUMBER_TYPES: list[AnycubicNumberEntityDescription] = list([
+    AnycubicNumberEntityDescription(
+        key="set_target_nozzle_temp",
+        translation_key="set_target_nozzle_temp",
+        printer_entity_type=PrinterEntityType.FDM,
+        printer_method="change_print_setting_target_nozzle_temp",
+        state_key="target_nozzle_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=NumberDeviceClass.TEMPERATURE,
+        native_min_value=0,
+        native_max_value=320,
+        native_step=1,
+        mode=NumberMode.BOX,
+    ),
+    AnycubicNumberEntityDescription(
+        key="set_target_hotbed_temp",
+        translation_key="set_target_hotbed_temp",
+        printer_entity_type=PrinterEntityType.FDM,
+        printer_method="change_print_setting_target_hotbed_temp",
+        state_key="target_hotbed_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=NumberDeviceClass.TEMPERATURE,
+        native_min_value=0,
+        native_max_value=120,
+        native_step=1,
+        mode=NumberMode.BOX,
+    ),
+    AnycubicNumberEntityDescription(
+        key="set_fan_speed_pct",
+        translation_key="set_fan_speed_pct",
+        printer_entity_type=PrinterEntityType.FDM,
+        printer_method="change_print_setting_fan_speed_pct",
+        state_key="fan_speed_pct",
+        native_unit_of_measurement=PERCENTAGE,
+        native_min_value=0,
+        native_max_value=100,
+        native_step=1,
+        mode=NumberMode.SLIDER,
+    ),
+    AnycubicNumberEntityDescription(
+        key="set_aux_fan_speed_pct",
+        translation_key="set_aux_fan_speed_pct",
+        printer_entity_type=PrinterEntityType.FDM,
+        printer_method="change_print_setting_aux_fan_speed_pct",
+        state_key="aux_fan_speed_pct",
+        native_unit_of_measurement=PERCENTAGE,
+        native_min_value=0,
+        native_max_value=100,
+        native_step=1,
+        mode=NumberMode.SLIDER,
+    ),
+    AnycubicNumberEntityDescription(
+        key="set_box_fan_level",
+        translation_key="set_box_fan_level",
+        printer_entity_type=PrinterEntityType.FDM,
+        printer_method="change_print_setting_box_fan_level",
+        state_key="box_fan_level",
+        native_min_value=0,
+        native_max_value=100,
+        native_step=1,
+        mode=NumberMode.SLIDER,
+    ),
+])
+
+
+# Drying, on the ACE device where the stop button already lives. Starting a
+# dry cycle previously required configuring a preset in the options first,
+# which is why the ACE page offered stop and nothing else.
+DRYING_NUMBER_TYPES: list[AnycubicNumberEntityDescription] = list([
+    AnycubicNumberEntityDescription(
+        key="drying_set_temperature",
+        translation_key="drying_set_temperature",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=NumberDeviceClass.TEMPERATURE,
+        native_min_value=35,
+        native_max_value=70,
+        native_step=1,
+        mode=NumberMode.BOX,
+        entity_category=EntityCategory.CONFIG,
+    ),
+    AnycubicNumberEntityDescription(
+        key="drying_set_duration",
+        translation_key="drying_set_duration",
+        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=NumberDeviceClass.DURATION,
+        native_min_value=1,
+        native_max_value=720,
+        native_step=1,
+        mode=NumberMode.BOX,
+        entity_category=EntityCategory.CONFIG,
+    ),
+])
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
@@ -102,6 +223,8 @@ async def async_setup_entry(
         available_descriptors=list(
             PRIMARY_MULTI_COLOR_BOX_NUMBER_TYPES
             + PRIMARY_MULTI_COLOR_BOX_PRICE_TYPES
+            + PRINT_CONTROL_NUMBER_TYPES
+            + DRYING_NUMBER_TYPES
         ),
     )
 
@@ -129,25 +252,72 @@ class AnycubicNumber(AnycubicCloudEntity, NumberEntity):
         return self.entity_description.key.endswith("_spool_price")
 
     @property
-    def native_value(self) -> float:
-        """The configured starting weight, or price, for this slot's spool."""
+    def _drying_key(self) -> str | None:
+        key = self.entity_description.key
+        if key == "drying_set_temperature":
+            return ATTR_DRYING_TEMPERATURE
+        if key == "drying_set_duration":
+            return ATTR_DRYING_DURATION
+        return None
+
+    @property
+    def available(self) -> bool:
+        """Live controls need a running job; stored settings never do."""
+        if self.entity_description.printer_method is None:
+            return super().available
+
+        return super().available and bool(
+            printer_state_for_key(self.coordinator, self._printer_id, "job_in_progress")
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """The current value, from the printer or from what was stored."""
+        description = self.entity_description
+
+        if description.state_key is not None:
+            state = printer_state_for_key(
+                self.coordinator, self._printer_id, description.state_key
+            )
+            return float(state) if isinstance(state, (int, float)) else None
+
+        if (drying_key := self._drying_key) is not None:
+            default = 45.0 if drying_key == ATTR_DRYING_TEMPERATURE else 120.0
+            return self.coordinator.get_drying_setting(
+                self._printer_id, drying_key, default
+            )
+
         if self._is_price:
             return self.coordinator.get_spool_price(
-                self._printer_id, self.entity_description.slot_index
+                self._printer_id, description.slot_index
             )
 
         return self.coordinator.get_spool_weight(
-            self._printer_id, self.entity_description.slot_index
+            self._printer_id, description.slot_index
         )
 
     async def async_set_native_value(self, value: float) -> None:
-        """Record a new starting weight or price, and recalculate."""
+        """Send the value to the printer, or store it, depending which this is."""
+        description = self.entity_description
+
+        if description.printer_method is not None:
+            await self.coordinator.async_set_print_setting(
+                self._printer_id, description.printer_method, value
+            )
+            return
+
+        if (drying_key := self._drying_key) is not None:
+            await self.coordinator.async_set_drying_setting(
+                self._printer_id, drying_key, value
+            )
+            return
+
         if self._is_price:
             await self.coordinator.async_set_spool_price(
-                self._printer_id, self.entity_description.slot_index, value
+                self._printer_id, description.slot_index, value
             )
             return
 
         await self.coordinator.async_set_spool_weight(
-            self._printer_id, self.entity_description.slot_index, value
+            self._printer_id, description.slot_index, value
         )

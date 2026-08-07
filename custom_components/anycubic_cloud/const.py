@@ -122,6 +122,7 @@ PLATFORMS = [
     Platform.IMAGE,
     Platform.LIGHT,
     Platform.NUMBER,
+    Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,
@@ -140,6 +141,12 @@ MAX_ACE_SLOTS = 4
 # keeps its price.
 ATTR_SPOOL_PRICE_PER_KG = "spool_price_per_kg"
 ATTR_SPOOL_MATERIAL = "material"
+
+# Drying temperature and duration, stored per printer so the ACE device
+# page can start a cycle without a preset being configured first.
+ATTR_DRYING_SETTINGS = "drying_settings"
+ATTR_DRYING_TEMPERATURE = "temperature"
+ATTR_DRYING_DURATION = "duration"
 
 # Lifetime totals, kept per printer alongside the per-slot figures.
 ATTR_TOTALS = "totals"

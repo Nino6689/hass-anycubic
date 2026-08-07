@@ -40,6 +40,9 @@ def build_printer() -> AnycubicPrinter:
         tools=data["tools"],
         multi_color_box=data["multi_color_box"],
         external_shelves=data.get("external_shelves"),
+        # The fixture has always carried this; not passing it left every
+        # FDM-only entity filtered out of every test, silently.
+        material_type=data["base"]["material_type"],
         material_used=data["base"]["material_used"],
         print_totaltime=data["base"]["print_totaltime"],
         print_count=data["base"]["print_count"],

@@ -47,6 +47,9 @@ from .const import (
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
     ATTR_COST_TOTAL,
+    ATTR_DRYING_DURATION,
+    ATTR_DRYING_SETTINGS,
+    ATTR_DRYING_TEMPERATURE,
     ATTR_FEEDING_SLOT,
     ATTR_FILAMENT_USED_G,
     ATTR_LAST_JOB_COST,
@@ -92,11 +95,14 @@ from .const import (
 )
 from .filament import (
     DEFAULT_SPOOL_WEIGHT_G,
+    JOB_HISTORY_SAMPLES,
     MIN_PROGRESS_FOR_FORECAST_PCT,
     attribute_job_to_slots,
     cost_of,
+    history_estimate,
     is_abrasive,
     job_grams_required,
+    normalise_job_name,
     remaining_grams,
     remaining_percent,
     runout_forecast,
@@ -172,6 +178,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # it. Deliberately not persisted: a restart mid-print simply takes a
         # fresh baseline, which is correct rather than merely acceptable.
         self._job_baseline: dict[int, tuple[Any, float, float]] = {}
+        self._forecast_source: str = "unknown"
         self._cloud_file_list: list[dict[str, Any]] | None = None
         self._last_state_update: int | None = None
         self._failed_updates: int = 0
@@ -461,6 +468,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # entity answers "what filament do I own and how much is left" --
             # including reels that aren't in the machine.
             "spool_inventory_remaining": {"spools": self.spool_inventory()},
+            "job_filament_required": {"source": self._forecast_source},
             "filament_cost_total": {
                 "by_material_g": (
                     self._printer_filament_state(printer.id)
@@ -601,6 +609,16 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def lan_mode_enabled(self) -> bool:
         """Whether the user has opted into talking to the printer directly."""
         return bool(self.entry.options.get(CONF_LAN_MODE_ENABLED))
+
+    @property
+    def lan_only(self) -> bool:
+        """Set up against the printer alone, with no Anycubic account.
+
+        LAN Mode needs no token, so requiring one to complete setup asked
+        people for a memory dump they did not need. An entry with a local
+        host and no token never touches the cloud.
+        """
+        return self.lan_mode_enabled and not self.entry.data.get(CONF_USER_TOKEN)
 
     @property
     def lan_is_connected(self) -> bool:
@@ -771,7 +789,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._printer_device_map is None:
             await self._register_printer_devices(data_dict)
 
-        self._check_token_expiry()
+        if not self.lan_only:
+            self._check_token_expiry()
 
         return data_dict
 
@@ -1401,8 +1420,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         setup_retries = 0
         while setup_retries < API_SETUP_RETRIES + 1:
             try:
-                await self._setup_anycubic_api_connection()
-                await self._setup_anycubic_printer_objects()
+                if not self.lan_only:
+                    await self._setup_anycubic_api_connection()
+                    await self._setup_anycubic_printer_objects()
                 return
             except AnycubicAPIParsingError as error:
                 if setup_retries >= API_SETUP_RETRIES:
@@ -1523,12 +1543,22 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         used_mm = printer.latest_project_supplies_usage
         progress = printer.latest_project_progress_percentage
 
-        required = job_grams_required(
-            used_mm,
-            progress,
-            material,
-            self._job_forecast_baseline(printer, used_mm, progress),
-        )
+        # History first. It is available from the moment a job starts, and on
+        # a model printed before it is far more accurate than extrapolating a
+        # rate: measured against a real print, history was 0.2% out where the
+        # rate was 17% out at 39% progress. Extrapolation is the fallback for
+        # something never printed before.
+        source = "history"
+        required = self._job_history_estimate(printer.latest_project)
+
+        if required is None:
+            source = "extrapolated"
+            required = job_grams_required(
+                used_mm,
+                progress,
+                material,
+                self._job_forecast_baseline(printer, used_mm, progress),
+            )
 
         if required is None:
             return blank
@@ -1544,6 +1574,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if forecast is None:
             return blank
+
+        self._forecast_source = source
 
         return {
             "job_filament_required": forecast["required_g"],
@@ -1821,10 +1853,40 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         LOGGER.debug("Job %s used %s.", job_id, {k + 1: round(v, 1) for k, v in per_slot.items()})
 
         self._accrue_job_totals(printer, per_slot, materials)
+        self._record_job_history(project, sum(per_slot.values()))
 
         printer_state.pop(ATTR_FEEDING_SLOT, None)
 
         return True
+
+    def _record_job_history(self, project: Any, grams: float) -> None:
+        """Remember what this model actually took.
+
+        Printing the same thing twice is most of 3D printing, and a model's
+        consumption barely varies between runs -- three runs of one model here
+        took 50.34, 49.49 and 49.49 g. That makes history the best estimate
+        available, and the only one that exists before the first layer.
+        """
+        name = normalise_job_name(getattr(project, "name", None))
+
+        if not name or grams <= 0:
+            return
+
+        jobs = self._filament.setdefault("jobs", {})
+        samples = jobs.setdefault(name, [])
+        samples.append(round(grams, 1))
+        # Keep the most recent few, so changing a model's settings is
+        # reflected quickly rather than averaged away forever.
+        jobs[name] = samples[-JOB_HISTORY_SAMPLES:]
+
+    def _job_history_estimate(self, project: Any) -> float | None:
+        """What this model has taken before, if it has been printed before."""
+        name = normalise_job_name(getattr(project, "name", None))
+
+        if not name:
+            return None
+
+        return history_estimate((self._filament.get("jobs") or {}).get(name))
 
     def _accrue_job_totals(
         self,
@@ -2022,6 +2084,84 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_state_update = None
         await self.async_refresh()
         self._last_state_update = int(time.time()) - DEFAULT_SCAN_INTERVAL + 10
+
+    async def async_set_print_setting(
+        self,
+        printer_id: int,
+        method_name: str,
+        value: float,
+    ) -> None:
+        """Change one live print setting.
+
+        These have always been available as actions; the entities that call
+        this only make them reachable from the device page. The printer
+        rejects them when nothing is printing, so that is checked here rather
+        than letting the call fail opaquely.
+        """
+        printer = self.get_printer_for_id(printer_id)
+
+        if printer is None:
+            raise HomeAssistantError("The printer is not available.")
+
+        if not printer.latest_project_print_in_progress:
+            raise HomeAssistantError(
+                "The printer only accepts print settings while a job is running."
+            )
+
+        try:
+            await getattr(printer, method_name)(int(value))
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
+        await self.force_state_update()
+
+    async def async_set_print_speed_mode(self, printer_id: int, mode: int) -> None:
+        """Choose one of the speed modes the printer says it supports."""
+        await self.async_set_print_setting(
+            printer_id, "change_print_setting_speed_mode", mode
+        )
+
+    def get_drying_setting(self, printer_id: int, key: str, default: float) -> float:
+        """A stored drying temperature or duration for this printer."""
+        state = self._printer_filament_state(printer_id)
+
+        return float((state.get(ATTR_DRYING_SETTINGS) or {}).get(key, default))
+
+    async def async_set_drying_setting(
+        self, printer_id: int, key: str, value: float
+    ) -> None:
+        """Remember a drying temperature or duration for the start button."""
+        state = self._printer_filament_state(printer_id)
+        state.setdefault(ATTR_DRYING_SETTINGS, {})[key] = float(value)
+        await self._async_save_filament()
+        await self.force_state_update()
+
+    async def async_start_drying(self, printer_id: int) -> None:
+        """Start a dry cycle at the temperature and duration set alongside.
+
+        Drying could previously only be started from a preset configured in
+        the options flow, which is why the ACE device page offered a stop
+        button and no way to start.
+        """
+        printer = self.get_printer_for_id(printer_id)
+
+        if printer is None:
+            raise HomeAssistantError("The printer is not available.")
+
+        duration = int(self.get_drying_setting(printer_id, ATTR_DRYING_DURATION, 120))
+        temperature = int(self.get_drying_setting(printer_id, ATTR_DRYING_TEMPERATURE, 45))
+
+        LOGGER.debug("Starting drying: %s min at %s C.", duration, temperature)
+
+        try:
+            await printer.multi_color_box_drying_start(
+                duration=duration,
+                target_temp=temperature,
+            )
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
+        await self.force_state_update()
 
     async def button_press_event(
         self,

@@ -1,6 +1,4 @@
 {
-  "domain": "anycubic_cloud",
-  "name": "Anycubic Cloud & LAN",
   "after_dependencies": [
     "panel_custom"
   ],
@@ -15,12 +13,25 @@
     "http",
     "image"
   ],
+  "dhcp": [
+    {
+      "macaddress": "A4E88D*"
+    },
+    {
+      "hostname": "anycubic*"
+    },
+    {
+      "hostname": "kobra*"
+    }
+  ],
   "documentation": "https://github.com/Nino6689/hass-anycubic",
+  "domain": "anycubic_cloud",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/Nino6689/hass-anycubic/issues",
   "loggers": [
     "custom_components.anycubic_cloud"
   ],
+  "name": "Anycubic Cloud & LAN",
   "requirements": [
     "anycubic-cloud-api==0.4.8",
     "anycubic-cloud-frontend==0.1.1"

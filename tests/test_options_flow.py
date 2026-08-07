@@ -149,7 +149,10 @@ class TestReauth:
         result = await mock_entry.start_reauth_flow(hass)
 
         assert result["type"] is FlowResultType.FORM
-        assert result["step_id"] == "user", "re-auth should reuse the same single-paste step as first-time setup"
+        assert result["step_id"] == "cloud", (
+            "re-auth should go straight to the token form -- an entry only needs "
+            "re-authenticating because it uses a cloud account"
+        )
 
     async def test_reauth_context_is_flagged(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
         await _setup(hass, mock_entry)

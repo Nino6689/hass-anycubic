@@ -28,7 +28,9 @@ from homeassistant.helpers.aiohttp_client import (
     async_create_clientsession,
     async_get_clientsession,
 )
+from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import BooleanSelector, ObjectSelector
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -163,21 +165,34 @@ async def async_load_tokens_from_store(
 
 async def check_lan_host(hass: HomeAssistant, host: str) -> dict[str, str]:
     """Prove the printer is reachable and in LAN Mode before saving."""
+    errors, _broker = await async_lan_handshake(hass, host)
+
+    return errors
+
+
+async def async_lan_handshake(
+    hass: HomeAssistant, host: str
+) -> tuple[dict[str, str], Any]:
+    """Handshake with the printer, returning any error and what it said.
+
+    The broker carries the printer's own device id, which a local-only entry
+    needs -- there is no cloud account to enumerate printers from.
+    """
     handshake = AnycubicLANHandshake(async_create_clientsession(hass), host, LOGGER)
 
     try:
-        await handshake.async_authenticate()
+        broker = await handshake.async_authenticate()
     except AnycubicLANCloudModeError:
-        return {"base": "lan_printer_in_cloud_mode"}
+        return {"base": "lan_printer_in_cloud_mode"}, None
     except AnycubicLANUnsupportedError:
-        return {"base": "lan_unsupported_printer"}
+        return {"base": "lan_unsupported_printer"}, None
     except AnycubicLANError:
-        return {"base": "lan_unreachable"}
+        return {"base": "lan_unreachable"}, None
     except Exception:
         LOGGER.debug(f"Unexpected error checking LAN Mode:\n{traceback.format_exc()}")
-        return {"base": "lan_unreachable"}
+        return {"base": "lan_unreachable"}, None
 
-    return {}
+    return {}, broker
 
 
 class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -196,6 +211,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         self._is_reauth: bool = False
         self._anycubic_api: AnycubicAPI | None = None
         self.entry: ConfigEntry | None = None
+        self._discovered_host: str | None = None
 
     @staticmethod
     @callback
@@ -478,7 +494,103 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step: one paste, mode detected automatically.
+        """Ask how to reach the printer before asking for anything else.
+
+        LAN Mode needs no Anycubic account at all, so leading with the token
+        made people hunt through a memory dump for a credential they did not
+        need. Cloud stays first because it is what most printers are on.
+        """
+        return self.async_show_menu(
+            step_id="user",
+            menu_options=["cloud", "local"],
+        )
+
+    async def async_step_local(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Set up against the printer alone -- no token, no account.
+
+        The handshake proves the printer is reachable and actually in LAN
+        Mode before an entry is created, so a printer still on the cloud says
+        so here rather than producing an entry that never works.
+        """
+        errors: dict[str, str] = {}
+        host = self._discovered_host or ""
+
+        if user_input is not None:
+            host = str(user_input.get(CONF_LAN_HOST) or "").strip()
+
+            broker = None
+
+            if not host:
+                errors[CONF_LAN_HOST] = "lan_host_required"
+            else:
+                errors, broker = await async_lan_handshake(self.hass, host)
+
+            if not errors and broker is not None:
+                # The printer's own id, since there is no cloud account to
+                # enumerate printers from.
+                printer_id = int(broker.device_id)
+                await self.async_set_unique_id(
+                    format_mac(broker.mac) if broker.mac else f"lan-{host}"
+                )
+                self._abort_if_unique_id_configured(updates={CONF_LAN_HOST: host})
+
+                return self.async_create_entry(
+                    title=broker.model_name or f"Anycubic ({host})",
+                    data={
+                        CONF_LAN_HOST: host,
+                        CONF_PRINTER_ID_LIST: [printer_id],
+                    },
+                    options={
+                        CONF_LAN_MODE_ENABLED: True,
+                        CONF_LAN_HOST: host,
+                    },
+                )
+
+        return self.async_show_form(
+            step_id="local",
+            data_schema=vol.Schema({
+                vol.Required(CONF_LAN_HOST, default=host): cv.string,
+            }),
+            errors=errors,
+        )
+
+    async def async_step_dhcp(
+        self, discovery_info: DhcpServiceInfo
+    ) -> ConfigFlowResult:
+        """A printer appeared on the network.
+
+        Offered as a local setup with the address filled in, because that is
+        the path that needs nothing else from the user. Someone who wants the
+        cloud can still pick it from the menu.
+        """
+        await self.async_set_unique_id(format_mac(discovery_info.macaddress))
+        self._abort_if_unique_id_configured(
+            updates={CONF_LAN_HOST: discovery_info.ip}
+        )
+
+        self._discovered_host = discovery_info.ip
+        self.context["title_placeholders"] = {"name": f"Anycubic ({discovery_info.ip})"}
+
+        return await self.async_step_confirm_discovery()
+
+    async def async_step_confirm_discovery(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm a discovered printer before doing anything with it."""
+        if user_input is not None:
+            return await self.async_step_user()
+
+        return self.async_show_form(
+            step_id="confirm_discovery",
+            description_placeholders={"host": self._discovered_host or ""},
+        )
+
+    async def async_step_cloud(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle the token step: one paste, mode detected automatically.
 
         Users can't reasonably choose between Web/Slicer/Android before they
         have a token in hand, so we don't ask. Paste whatever you have and the
@@ -518,7 +630,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                     return await self.async_step_printer()
 
         return self.async_show_form(
-            step_id="user",
+            step_id="cloud",
             data_schema=DATA_SCHEMA_TOKEN,
             errors=errors,
             # hassfest forbids URLs inside translation files, so it is passed in.
@@ -615,8 +727,13 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Re-authenticate using the same single-paste step as initial setup."""
-        return await self.async_step_user(user_input)
+        """Re-authenticate with the same single paste as first-time setup.
+
+        Straight to the token form, not the connection menu: an entry only
+        needs re-authenticating because it uses a cloud account, so asking
+        again how to reach the printer would be a question already answered.
+        """
+        return await self.async_step_cloud(user_input)
 
     async def async_step_reconfigure(
         self, _: dict[str, Any] | None = None
