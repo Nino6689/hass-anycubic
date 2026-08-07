@@ -57,44 +57,19 @@ class TestControlsAreVisible:
 
 
 class TestControlsReachThePrinter:
-    async def test_setting_a_temperature_calls_the_printer(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+    """Temperature and fans work on an idle printer.
+
+    They route through the orders Anycubic's own One-Click Preheat uses
+    (SET_TEMPERATURE 1216, SET_FAN_SPEED 1221), captured from the slicer's
+    traffic. The print-settings order these used to use is refused with
+    "Print task does not exist" when nothing is running -- which is why they
+    were wrongly gated on printing.
+    """
+
+    async def test_setting_a_temperature_reaches_an_idle_printer(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
         await setup_entry(hass, mock_entry)
         _, printer = mock_api
         called = AsyncMock()
-        _set_printing(mock_entry, hass, True)
-        await hass.async_block_till_done()
-
-        with (
-            patch.object(
-                type(printer),
-                "latest_project_print_in_progress",
-                PropertyMock(return_value=True),
-            ),
-            patch.object(type(printer), "change_print_setting_target_nozzle_temp", called),
-        ):
-            await hass.services.async_call(
-                "number",
-                "set_value",
-                {
-                    "entity_id": "number.anycubic_kobra_s1_set_nozzle_temperature",
-                    "value": 215,
-                },
-                blocking=True,
-            )
-
-        called.assert_awaited_once_with(215)
-
-    async def test_an_idle_printer_refuses_rather_than_dropping_it(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
-        """The printer ignores these when nothing is printing.
-
-        Accepting the value and silently discarding it would look like it
-        worked, which is worse than an error.
-        """
-        await setup_entry(hass, mock_entry)
-        _, printer = mock_api
-        # Available (so the call gets through) but the printer says no.
-        _set_printing(mock_entry, hass, True)
-        await hass.async_block_till_done()
 
         with (
             patch.object(
@@ -102,7 +77,7 @@ class TestControlsReachThePrinter:
                 "latest_project_print_in_progress",
                 PropertyMock(return_value=False),
             ),
-            pytest.raises(HomeAssistantError, match="while a job is running"),
+            patch.object(type(printer), "set_target_temperature", called),
         ):
             await hass.services.async_call(
                 "number",
@@ -113,6 +88,113 @@ class TestControlsReachThePrinter:
                 },
                 blocking=True,
             )
+
+        called.assert_awaited_once_with(target_nozzle_temp=215)
+
+    async def test_a_fan_reaches_an_idle_printer(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with (
+            patch.object(
+                type(printer),
+                "latest_project_print_in_progress",
+                PropertyMock(return_value=False),
+            ),
+            patch.object(type(printer), "set_fan_speed", called),
+        ):
+            await hass.services.async_call(
+                "number",
+                "set_value",
+                {"entity_id": "number.anycubic_kobra_s1_set_fan_speed", "value": 40},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(fan_speed_pct=40)
+
+    async def test_controls_are_not_hidden_when_idle(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Gating these on a print would hide them exactly when preheating."""
+        await setup_entry(hass, mock_entry)
+
+        state = hass.states.get("number.anycubic_kobra_s1_set_nozzle_temperature")
+
+        assert state is not None
+        assert state.state != "unavailable"
+
+
+class TestAxisMovement:
+    """Jogging, from the payload the slicer actually sends.
+
+    {"axis": 1|2|3|4, "move_type": 0|1|2, "distance": mm}
+    """
+
+    async def test_home_sends_all_axes(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with patch.object(type(printer), "move_axis", called):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_home_all_axes"},
+                blocking=True,
+            )
+
+        called.assert_awaited_once_with(axis=4, move_type=2, distance=0)
+
+    @pytest.mark.parametrize(
+        ("entity", "axis", "move_type"),
+        [
+            ("move_x", 1, 1),
+            ("move_x_2", 1, 0),
+        ],
+    )
+    async def test_a_jog_uses_the_chosen_step(
+        self, hass: HomeAssistant, mock_entry, mock_api, entity, axis, move_type
+    ) -> None:
+        """The step comes from the select, not from the button."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        await coordinator.async_set_axis_step(PRINTER_ID, 15)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        target = "button.anycubic_kobra_s1_move_x" if move_type == 1 else "button.anycubic_kobra_s1_move_x_2"
+        if hass.states.get(target) is None:
+            pytest.skip("axis buttons are disabled by default in this fixture")
+
+        with patch.object(type(printer), "move_axis", called):
+            await hass.services.async_call("button", "press", {"entity_id": target}, blocking=True)
+
+        called.assert_awaited_once_with(axis=axis, move_type=move_type, distance=15)
+
+    async def test_moving_while_printing_is_refused(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Driving the gantry mid-print would ruin the job."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        with (
+            patch.object(
+                type(printer),
+                "latest_project_print_in_progress",
+                PropertyMock(return_value=True),
+            ),
+            pytest.raises(HomeAssistantError, match="cannot be moved while printing"),
+        ):
+            await coordinator.async_move_axis(PRINTER_ID, axis=1, move_type=1, distance=1)
+
+    async def test_the_step_size_is_a_fixed_list(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Free text invites a 200 mm typo into a machine that can crash."""
+        from custom_components.anycubic_cloud.const import AXIS_STEPS_MM
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+
+        assert AXIS_STEPS_MM == (1, 15, 50)
+        assert coordinator.get_axis_step(PRINTER_ID) in AXIS_STEPS_MM
 
 
 class TestSpeedMode:

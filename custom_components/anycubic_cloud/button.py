@@ -51,6 +51,26 @@ NOZZLE_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
 ])
 
 
+# Axis movement. The printer refuses jogs until it has been homed, and warns
+# about driving the nozzle into the bed, so the home buttons sit alongside
+# these and the step comes from a fixed list rather than free text.
+AXIS_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
+    AnycubicButtonEntityDescription(
+        key="axis_home_all",
+        translation_key="axis_home_all",
+        printer_entity_type=PrinterEntityType.FDM,
+    ),
+    *[
+        AnycubicButtonEntityDescription(
+            key=f"axis_move_{name}",
+            translation_key=f"axis_move_{name}",
+            printer_entity_type=PrinterEntityType.FDM,
+            )
+        for name in ("x_plus", "x_minus", "y_plus", "y_minus", "z_plus", "z_minus")
+    ],
+])
+
+
 BUTTON_TYPES_AXIS: list[AnycubicButtonEntityDescription] = list([
     AnycubicButtonEntityDescription(
         key="request_axis_position",
@@ -182,6 +202,7 @@ async def async_setup_entry(
             + PRIMARY_SPOOL_RESET_BUTTON_TYPES
             + BUTTON_TYPES_AXIS
             + NOZZLE_BUTTON_TYPES
+            + AXIS_BUTTON_TYPES
         ),
     )
 
@@ -219,6 +240,22 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
 
         if key == "drying_start":
             await self.coordinator.async_start_drying(self._printer_id)
+            return
+
+        if key == "axis_home_all":
+            await self.coordinator.async_move_axis(
+                self._printer_id, axis=4, move_type=2
+            )
+            return
+
+        if key.startswith("axis_move_"):
+            axis_name, _, direction = key.removeprefix("axis_move_").partition("_")
+            await self.coordinator.async_move_axis(
+                self._printer_id,
+                axis={"x": 1, "y": 2, "z": 3}[axis_name],
+                move_type=1 if direction == "plus" else 0,
+                distance=self.coordinator.get_axis_step(self._printer_id),
+            )
             return
 
         await self.coordinator.button_press_event(self._printer_id, key)

@@ -152,6 +152,12 @@ ATTR_SPOOL_MATERIAL = "material"
 
 # Drying temperature and duration, stored per printer so the ACE device
 # page can start a cycle without a preset being configured first.
+# Jog distance for the axis buttons, in millimetres. The slicer offers
+# 1/15/50 and so do we -- a free-text field invites a 200 mm typo into a
+# machine that can crash its own nozzle.
+ATTR_AXIS_STEP = "axis_step"
+AXIS_STEPS_MM = (1, 15, 50)
+
 ATTR_DRYING_SETTINGS = "drying_settings"
 ATTR_DRYING_TEMPERATURE = "temperature"
 ATTR_DRYING_DURATION = "duration"

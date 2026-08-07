@@ -12,9 +12,9 @@ three fans. These have always been available as actions, but only as actions
 pause and stop. They're the same calls, surfaced where people actually look
 for them.
 
-⚠ The printer only accepts these while a job is running, so those entities
-report unavailable when it is idle rather than accepting a value that would
-be silently dropped.
+These work on an idle printer as well as a printing one: they use the same
+orders Anycubic's own One-Click Preheat does, rather than the print-settings
+order that is refused when no job exists.
 """
 
 from __future__ import annotations
@@ -262,13 +262,13 @@ class AnycubicNumber(AnycubicCloudEntity, NumberEntity):
 
     @property
     def available(self) -> bool:
-        """Live controls need a running job; stored settings never do."""
-        if self.entity_description.printer_method is None:
-            return super().available
+        """Available whenever the printer is.
 
-        return super().available and bool(
-            printer_state_for_key(self.coordinator, self._printer_id, "job_in_progress")
-        )
+        Temperatures and fans go through orders that work on an idle printer
+        -- the ones the slicer preheats with -- so gating these on a running
+        job would hide them exactly when preheating is what you want.
+        """
+        return super().available
 
     @property
     def native_value(self) -> float | None:

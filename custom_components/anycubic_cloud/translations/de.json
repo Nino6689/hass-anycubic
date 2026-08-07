@@ -223,6 +223,27 @@
       "ace_slot_4_reset_spool": {
         "name": "ACE slot 4 reset spool"
       },
+      "axis_home_all": {
+        "name": "Alle Achsen referenzieren"
+      },
+      "axis_move_x_minus": {
+        "name": "X- bewegen"
+      },
+      "axis_move_x_plus": {
+        "name": "X+ bewegen"
+      },
+      "axis_move_y_minus": {
+        "name": "Y- bewegen"
+      },
+      "axis_move_y_plus": {
+        "name": "Y+ bewegen"
+      },
+      "axis_move_z_minus": {
+        "name": "Z- bewegen"
+      },
+      "axis_move_z_plus": {
+        "name": "Z+ bewegen"
+      },
       "cancel_print": {
         "name": "Druck abbrechen"
       },
@@ -593,6 +614,9 @@
       }
     },
     "select": {
+      "axis_step": {
+        "name": "Schrittweite Achsen"
+      },
       "set_speed_mode": {
         "name": "Druckgeschwindigkeitsmodus"
       }

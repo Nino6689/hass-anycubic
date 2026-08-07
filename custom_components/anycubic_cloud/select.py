@@ -21,7 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import LOGGER, PrinterEntityType
+from .const import AXIS_STEPS_MM, LOGGER, PrinterEntityType
 from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
 from .helpers import printer_attributes_for_key, printer_state_for_key
 
@@ -45,6 +45,12 @@ class AnycubicSelectEntityDescription(
 
 
 SELECT_TYPES: list[AnycubicSelectEntityDescription] = list([
+    AnycubicSelectEntityDescription(
+        key="axis_step",
+        translation_key="axis_step",
+        printer_entity_type=PrinterEntityType.FDM,
+        options=[f"{step} mm" for step in AXIS_STEPS_MM],
+    ),
     AnycubicSelectEntityDescription(
         key="set_speed_mode",
         translation_key="set_speed_mode",
@@ -85,16 +91,25 @@ class AnycubicSelect(AnycubicCloudEntity, SelectEntity):
 
     @property
     def options(self) -> list[str]:
+        if self.entity_description.key == "axis_step":
+            return list(self.entity_description.options or [])
+
         return [str(m.get("description")) for m in self._modes() if m.get("description")]
 
     @property
     def available(self) -> bool:
+        if self.entity_description.key == "axis_step":
+            return super().available
+
         # No options means no job running, and the printer would refuse the
         # change -- better to look unavailable than to accept and drop it.
         return super().available and bool(self.options)
 
     @property
     def current_option(self) -> str | None:
+        if self.entity_description.key == "axis_step":
+            return f"{self.coordinator.get_axis_step(self._printer_id)} mm"
+
         state = printer_state_for_key(
             self.coordinator, self._printer_id, self.entity_description.state_key
         )
@@ -103,6 +118,12 @@ class AnycubicSelect(AnycubicCloudEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Send the printer the mode code behind the chosen name."""
+        if self.entity_description.key == "axis_step":
+            await self.coordinator.async_set_axis_step(
+                self._printer_id, int(option.split()[0])
+            )
+            return
+
         code = next(
             (
                 m.get("mode")

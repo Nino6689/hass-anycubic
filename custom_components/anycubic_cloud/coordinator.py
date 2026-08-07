@@ -46,6 +46,7 @@ from .const import (
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
+    ATTR_AXIS_STEP,
     ATTR_COST_TOTAL,
     ATTR_DRYING_DURATION,
     ATTR_DRYING_SETTINGS,
@@ -2114,34 +2115,99 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.async_refresh()
         self._last_state_update = int(time.time()) - DEFAULT_SCAN_INTERVAL + 10
 
+    # Temperatures and fans have their own orders that work whether or not a
+    # job is running -- the ones the slicer's One-Click Preheat uses. The
+    # print-settings order these used to go through is refused by the server
+    # with "Print task does not exist" when idle, which is why these controls
+    # were previously gated on printing. They are not any more.
+    _IDLE_CAPABLE: dict[str, tuple[str, str]] = {
+        "change_print_setting_target_nozzle_temp": (
+            "set_target_temperature", "target_nozzle_temp",
+        ),
+        "change_print_setting_target_hotbed_temp": (
+            "set_target_temperature", "target_hotbed_temp",
+        ),
+        "change_print_setting_fan_speed_pct": ("set_fan_speed", "fan_speed_pct"),
+        "change_print_setting_aux_fan_speed_pct": (
+            "set_fan_speed", "aux_fan_speed_pct",
+        ),
+        "change_print_setting_box_fan_level": ("set_fan_speed", "box_fan_level"),
+    }
+
     async def async_set_print_setting(
         self,
         printer_id: int,
         method_name: str,
         value: float,
     ) -> None:
-        """Change one live print setting.
+        """Change one printer setting.
 
-        These have always been available as actions; the entities that call
-        this only make them reachable from the device page. The printer
-        rejects them when nothing is printing, so that is checked here rather
-        than letting the call fail opaquely.
+        Routed through the idle-capable order where one exists, so preheating
+        a cold printer works exactly as it does in Anycubic's own slicer.
+        Anything without one still needs a running job, and says so.
         """
         printer = self.get_printer_for_id(printer_id)
 
         if printer is None:
             raise HomeAssistantError("The printer is not available.")
 
-        if not printer.latest_project_print_in_progress:
+        direct = self._IDLE_CAPABLE.get(method_name)
+
+        if direct is None and not printer.latest_project_print_in_progress:
             raise HomeAssistantError(
-                "The printer only accepts print settings while a job is running."
+                "The printer only accepts this setting while a job is running."
             )
 
         try:
-            await getattr(printer, method_name)(int(value))
+            if direct is not None:
+                method, argument = direct
+                await getattr(printer, method)(**{argument: int(value)})
+            else:
+                await getattr(printer, method_name)(int(value))
         except Exception as error:
             raise HomeAssistantError(error) from error
 
+        await self.force_state_update()
+
+    async def async_move_axis(
+        self,
+        printer_id: int,
+        axis: int,
+        move_type: int,
+        distance: int = 0,
+    ) -> None:
+        """Jog or home an axis.
+
+        ⚠ The printer ignores jogs until it has been homed, and its own UI
+        warns about driving the nozzle into the bed -- so the home buttons
+        exist alongside these, and the step size is a deliberate choice
+        rather than a free-text number.
+        """
+        printer = self.get_printer_for_id(printer_id)
+
+        if printer is None:
+            raise HomeAssistantError("The printer is not available.")
+
+        if printer.latest_project_print_in_progress:
+            raise HomeAssistantError("The printer cannot be moved while printing.")
+
+        try:
+            await printer.move_axis(axis=axis, move_type=move_type, distance=distance)
+        except Exception as error:
+            raise HomeAssistantError(error) from error
+
+        await self.force_state_update()
+
+    def get_axis_step(self, printer_id: int) -> int:
+        """The jog distance currently chosen, in millimetres."""
+        state = self._printer_filament_state(printer_id)
+
+        return int(state.get(ATTR_AXIS_STEP, 1))
+
+    async def async_set_axis_step(self, printer_id: int, step: int) -> None:
+        """Choose the jog distance."""
+        self._printer_filament_state(printer_id)[ATTR_AXIS_STEP] = int(step)
+        await self._async_save_filament()
         await self.force_state_update()
 
     async def async_set_print_speed_mode(self, printer_id: int, mode: int) -> None:
