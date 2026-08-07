@@ -58,7 +58,7 @@
 | 🔎 **Found automatically** | A printer on your network offers itself in Home Assistant; no address to hunt down |
 | 🔐 **Verified connection** | TLS to Anycubic's cloud is properly verified — see [Security](#-security) |
 
-Around **75 entities** per printer, across two devices: the printer, and the ACE as a child device.
+Around **118 entities** per printer, across two devices: the printer, and the ACE as a child device.
 
 ---
 
@@ -1389,8 +1389,8 @@ see [testing scope](#hardware-and-testing-scope).
 ## Translating
 
 The integration ships **English** and **German**. German covers everything a user actually reads —
-the setup flow, the options pages, every error message and all 110 entity names. The 350 action
-descriptions are deliberately left in English; they only appear in Developer Tools.
+the setup flow, the options pages, every error message and all 156 entity names. The 350 action
+description strings are deliberately left in English; they only appear in Developer Tools.
 
 > [!NOTE]
 > **The German was drafted by machine and has not been checked by a native speaker.** If something
