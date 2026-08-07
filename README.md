@@ -265,22 +265,87 @@ process. This is a standard Windows feature and nothing leaves your machine. Cre
 
 1. Open Slicer Next and make sure it's **signed in**
 2. **Ctrl+Shift+Esc** → **Details** tab → right-click `AnycubicSlicerNext.exe` (the larger of the two) → **Create dump file**
-3. Run this in PowerShell — **not as Administrator**, which fails with an out-of-memory error:
+3. Run this in PowerShell — **not as Administrator**, which fails with an out-of-memory error.
+   It verifies each candidate's RSA signature against Anycubic's published keys and copies the
+   newest valid, unexpired one:
 
    ```powershell
    $dmp = Get-ChildItem "$env:TEMP\AnycubicSlicerNext*.DMP" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-   $b = [IO.File]::ReadAllBytes($dmp.FullName)
-   $rx = [regex]'eyJhbGciOi[A-Za-z0-9_-]+.[A-Za-z0-9_-]+.[A-Za-z0-9_-]+'
-   $set = @{}
-   foreach($e in @([Text.Encoding]::GetEncoding(28591), [Text.Encoding]::Unicode)){
-   foreach($m in $rx.Matches($e.GetString($b))){ $set[$m.Value] = 1 }
+   if (-not $dmp) { throw "No dump file found in $env:TEMP" }
+
+   $keys = (Invoke-RestMethod -Uri "https://uc.makeronline.com/.well-known/jwks" -Headers @{ "User-Agent" = "Mozilla/5.0" }).keys
+
+   function ConvertFrom-B64Url([string]$s) {
+       [Convert]::FromBase64String($s.Replace('-', '+').Replace('_', '/').PadRight($s.Length + (4 - $s.Length % 4) % 4, '='))
    }
-   $tok = $set.Keys | Sort-Object Length -Descending | Select-Object -First 1
-   Set-Clipboard $tok
-   "Copied slicer token, length $($tok.Length). Paste into Home Assistant (Slicer mode)."
+
+   $bytes = [IO.File]::ReadAllBytes($dmp.FullName)
+   $rx = [regex]'(eyJ[A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{100,})'
+   $seen = @{}
+   $found = @()
+
+   foreach ($enc in @([Text.Encoding]::GetEncoding(28591), [Text.Encoding]::Unicode)) {
+       foreach ($m in $rx.Matches($enc.GetString($bytes))) {
+           $header, $payload, $rawSig = $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value
+           if ($seen.ContainsKey($m.Value)) { continue }
+           $seen[$m.Value] = 1
+
+           try { $claims = [Text.Encoding]::UTF8.GetString((ConvertFrom-B64Url $payload)) | ConvertFrom-Json } catch { continue }
+           if ($claims.tokenType -ne 'access-token') { continue }
+           if (-not ($claims.id -and $claims.sub -and $claims.email)) { continue }
+
+           $signed = [Text.Encoding]::ASCII.GetBytes("$header.$payload")
+
+           foreach ($key in $keys) {
+               $modulus = ConvertFrom-B64Url $key.n
+               # A signature is exactly as long as the modulus, so cut the
+               # match down to size -- see the note below.
+               $sigChars = [int][Math]::Ceiling($modulus.Length * 8 / 6)
+               if ($rawSig.Length -lt $sigChars) { continue }
+               $sigText = $rawSig.Substring(0, $sigChars)
+
+               $rsa = [Security.Cryptography.RSA]::Create()
+               $params = New-Object Security.Cryptography.RSAParameters
+               $params.Modulus = $modulus
+               $params.Exponent = ConvertFrom-B64Url $key.e
+               $rsa.ImportParameters($params)
+
+               $ok = $rsa.VerifyData($signed, (ConvertFrom-B64Url $sigText),
+                   [Security.Cryptography.HashAlgorithmName]::SHA256,
+                   [Security.Cryptography.RSASignaturePadding]::Pkcs1)
+               $rsa.Dispose()
+
+               if ($ok) {
+                   $expiry = [DateTimeOffset]::FromUnixTimeSeconds([long]$claims.exp)
+                   if ($expiry -gt [DateTimeOffset]::UtcNow) {
+                       $found += [pscustomobject]@{ Token = "$header.$payload.$sigText"; Issued = [long]$claims.iat; Expiry = $expiry }
+                   }
+                   break
+               }
+           }
+       }
+   }
+
+   if (-not $found) { throw "No valid, unexpired access token found in the dump." }
+
+   $best = $found | Sort-Object Issued -Descending | Select-Object -First 1
+   Set-Clipboard $best.Token
+   "SIGNATURE VALID"
+   "Token length: $($best.Token.Length)"
+   "Valid until:  $($best.Expiry.ToString('yyyy-MM-dd HH:mm')) UTC"
+   "Access token copied to clipboard - paste it into Home Assistant."
    ```
 
-4. Paste into Home Assistant using auth mode **Slicer**
+4. Paste into Home Assistant
+
+> 💡 **Why this replaced the old one-liner.** The previous script took the **longest** match, which
+> is precisely the wrong choice: a regex searching raw memory keeps matching base64 past the end
+> of the signature, so the longest candidate is the one carrying trailing junk. It decodes
+> perfectly, has correct claims, and the server refuses it with `User does not exist` — which
+> cost [#8](https://github.com/Nino6689/hass-anycubic/issues/8) a full day. Tested against a dump
+> with 8 stray characters: the old script returned an unusable 1211-char token, this one the
+> correct 1203. Since **v1.4.7** the integration also trims stray characters itself, so a slightly
+> over-long paste is repaired rather than rejected.
 
 > 🔐 **Delete the `.DMP` file afterwards** — it contains all your live tokens in clear text. Only
 > ever do this for your own account, on your own machine.
