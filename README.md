@@ -1559,12 +1559,11 @@ appreciated. This is a spare-time project maintained against an API that changes
 and knowing people find it useful is most of what keeps it going.
 
 <!-- Add supporters here as they come in, newest last. Keep it to whatever name they used --
-     no amounts, and nothing they didn't choose to make public.
-     Format: | Name | optional short note | -->
+     no amounts, and nothing they didn't choose to make public. -->
 
 | | |
 | --- | --- |
-| *Your name could be here* | ☕ |
+| ☕ [**@hausch1ld**](https://github.com/hausch1ld) | Who also reported the light going unavailable, and pointed another user at the beta that had the feature they needed — thank you twice over |
 
 Told me about a bug, tested on hardware I don't own, or sent a pull request? That helps just as
 much, and the [credits](#credits) above are where that lands.
