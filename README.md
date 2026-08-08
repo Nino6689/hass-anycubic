@@ -16,27 +16,24 @@
 
 ---
 
-> ## ⚠️ This release is a **beta**
+> ## ⚠️ Commands that move the printer carry real risk
 >
-> It adds a large amount of new control over the printer — preheating, axis movement, fans,
-> motor release — worked out by watching what Anycubic's own slicer sends, not from any
-> published API. Every one of those has been tested on a **Kobra S1 with an ACE Pro**, and on
-> nothing else.
+> This integration can preheat, jog the axes, home, release the motors, run the fans and dry a
+> spool. Those orders were worked out by watching what Anycubic's own slicer sends, not from
+> any published API, and they are tested on a **Kobra S1 with an ACE Pro** — the only hardware
+> here. Other models are supported by report rather than by verification.
 >
-> **Commands that move the printer carry real risk.** A jog into an unhomed bed, a heater set
-> by an automation while nobody is in the room, a model this hasn't been tried on that
-> interprets an order differently — these are possible, and they are the reason this is a beta
-> rather than a stable release.
+> A jog into an unhomed bed, a heater set by an automation while nobody is in the room, a model
+> that interprets an order differently — these are possible.
 >
 > **You install and run this at your own risk.** It is provided as-is, with no warranty and no
 > liability for damage to your printer, your prints or anything else — see the
-> [licence](LICENSE), sections 15 and 16. Don't leave a printer unattended while you're testing
+> [licence](LICENSE), sections 15 and 16. Don't leave a printer unattended while you're trying
 > these controls, and don't put temperature or movement into an automation until you've watched
 > it behave.
 >
 > If something misbehaves, [open an issue](https://github.com/Nino6689/hass-anycubic/issues) —
-> that is exactly what a beta is for. The last stable release is
-> [v1.5.3](https://github.com/Nino6689/hass-anycubic/releases/tag/v1.5.3).
+> reports from hardware I don't own are the only way this list gets firmer.
 
 ---
 
@@ -51,6 +48,7 @@
 | 💷 **Print costs** | Per-job and lifetime spend, in your own currency |
 | 🔧 **Nozzle wear** | Abrasive filament tracked separately, because that's what actually wears it out |
 | 🎮 **Full control** | Preheat a **cold** printer, jog the axes, release the motors, run the fans, dry a spool, feed and retract — [all as entities](#-controlling-the-printer) |
+| 🃏 **A card for your dashboard** | Camera, progress, controls and filament in one place — [nothing to install](#-the-anycubic-card), it's in the card picker |
 | 🖼️ **Live preview** | The job preview image, as a camera-style entity |
 | 📈 **Lifetime stats** | Total filament used, total print time and print count |
 | 📷 **Camera** | The printer's own video, on **either** connection — [WebRTC over the cloud, or the stream straight off the printer locally](#-watching-the-printer) |
@@ -58,7 +56,7 @@
 | 🔎 **Found automatically** | A printer on your network offers itself in Home Assistant; no address to hunt down |
 | 🔐 **Verified connection** | TLS to Anycubic's cloud is properly verified — see [Security](#-security) |
 
-Around **118 entities** per printer, across two devices: the printer, and the ACE as a child device.
+Around **130 entities** per printer, across two devices: the printer, and the ACE as a child device.
 
 ---
 
@@ -628,7 +626,7 @@ on the printer itself.
 | **Per-slot filament** — material, colour, and how much is left | ✓ | ✓ |
 | **Print controls** — pause, resume, cancel, drying, speed | ✓ | ✓ |
 | **Chamber light** | ✓ | ✓ |
-| **Head position** — live X/Y/Z | ✓ | ✓ |
+| **Head position** — X/Y/Z *(on request)* | ✓ | ✓ |
 | **Job tracking** — progress, ETA, layers | ✓ | ✓ |
 | Update speed | **Sub-second** push while MQTT is connected | Polled every ~15 s |
 | Works with no internet | ✗ | **✓** |
@@ -687,6 +685,10 @@ on. Worth a look if the cloud side is of no interest to you.
 ## Entities
 
 All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_job_progress`.
+
+> The ACE is its own device, so **its** entities are prefixed with the ACE's name instead —
+> `sensor.anycubic_kobra_s1_ace_pro_ace_slot_1_filament_remaining`, not the printer's name.
+> Check the entity list rather than assembling ids by hand.
 
 <details open>
 <summary><b>🖨️ Printer device</b></summary>
@@ -1069,7 +1071,7 @@ will **see the current print out** — and you want that answer at 4%, not at 94
 | `binary_sensor.*_filament_insufficient_for_job` | **On** when the loaded reel won't last the print |
 | `sensor.*_job_filament_required` | Grams the whole job will take |
 | `sensor.*_job_filament_shortfall` | Grams short — `0` when it fits |
-| `sensor.*_job_filament_runs_out_at` | The progress % the reel would run dry at |
+| `sensor.*_job_filament_runs_out_at` | The progress % the reel would run dry at. **Disabled by default** — the automation below needs it enabled |
 
 **No slicer estimate is involved.** The printer reports what it has extruded and how far
 through it is, which is enough to project the whole job. That means it works for prints
@@ -1131,7 +1133,7 @@ use **whatever currency Home Assistant is set to** — there's nothing extra to 
 
 | Entity | What it is |
 |---|---|
-| `number.*_ace_slot_N_spool_price_per_kg` | What you paid, per kg. Set once per reel |
+| `number.*_ace_slot_N_spool_price_per_kg` | What you paid, per kg. Set once per reel. **Disabled by default** — enable it in Settings → Entities, or every cost below stays unknown |
 | `sensor.*_job_cost` | What the running job will cost |
 | `sensor.*_last_job_cost` | What the last finished job cost |
 | `sensor.*_filament_cost_total` | Lifetime spend. Attributes break grams down by material |
@@ -1155,7 +1157,7 @@ share can be separated from the rest.
 | Entity | What it is |
 |---|---|
 | `sensor.*_nozzle_abrasive_filament` | Grams of abrasive filament through this nozzle |
-| `sensor.*_nozzle_wear_percent` | That against a ~1 kg rule of thumb for brass |
+| `sensor.*_nozzle_wear` | That against a ~1 kg rule of thumb for brass |
 | `sensor.*_nozzle_filament_total` | Grams of everything through this nozzle |
 | `button.*_reset_nozzle_wear` | Press after fitting a new nozzle |
 
@@ -1411,7 +1413,7 @@ for what landed when.
 | **Switch cloud ↔ local in one place** | Reconfigure → Connection, validated against the printer before it saves, and reachable even when the entry hasn't loaded — which is the state you're in right after flipping LAN Mode |
 | **Camera — local** | The printer names its own stream endpoint and serves it once told to start capturing. Neither fact is discoverable from the cloud |
 | **Camera — cloud** | The cloud camera is Agora ("shengwang") WebRTC, which nobody had implemented. Home Assistant brokers only the signalling; the browser is the WebRTC peer, so no video passes through Home Assistant and none of it costs you CPU |
-| **AI / foreign-object detection** | The printer sends an `aiSettings` message nobody had captured. Now a sensor, with the full settings in diagnostics |
+| **AI / foreign-object detection** | The printer sends an `aiSettings` message nobody had captured. Now a **switch** you can set, with the full settings in diagnostics |
 | **Capability map in diagnostics** | The printer lists what it physically supports — twelve flags. That, plus model id and firmware, is what makes a bug report about hardware I don't own actionable |
 | **Diagnostics survive a dead cloud** | They called the cloud for everything and failed outright when it was unreachable — exactly when you most want them |
 
@@ -1422,7 +1424,7 @@ for what landed when.
 | **Print a file the printer already holds** | `print_local_file`. Previously the only way to print was to upload a file the printer already had. Refuses if a job is running |
 | **File lists report counts** | They reported the string `loaded`, with everything useful buried in an attribute |
 | **Cloud files carry their detail** | Thumbnail, print-time estimate, material, layer height, filament usage and dimensions — all sent by the cloud and previously discarded in favour of name and size |
-| **Head position** | Live X/Y/Z, via a printer command absent from Anycubic's published list |
+| **Head position** | X/Y/Z, via a printer command absent from Anycubic's published list. The printer only answers when asked, so the sensors are disabled by default and refresh when you press **Request head position** |
 | **External filament holder** | Material and loaded state for printers fed from a single external spool |
 
 ### Fixes that lose data on hardware other than mine
@@ -1438,7 +1440,7 @@ for what landed when.
 | Change | Why |
 |---|---|
 | **Meets all 54 Home Assistant quality-scale rules** | Bronze through platinum, measured against Core's own published list. Recorded honestly in `quality_scale.yaml` — an official badge is core-only, so this is measurement rather than a claim |
-| **298 tests at 95% coverage, `mypy --strict`** | Both enforced in CI. The printer fixture is a redacted capture from real hardware fed to the actual API client, so a change in what Anycubic sends fails the build |
+| **805 tests at 95% coverage, `mypy --strict`** | Both enforced in CI. The printer fixture is a redacted capture from real hardware fed to the actual API client, so a change in what Anycubic sends fails the build |
 | **API and panel extracted to PyPI** | [`anycubic-cloud-api`](https://pypi.org/project/anycubic-cloud-api/) and [`anycubic-cloud-frontend`](https://pypi.org/project/anycubic-cloud-frontend/), versioned and tested independently |
 
 ### Security
@@ -1447,7 +1449,7 @@ for what landed when.
 |---|---|
 | **Verified TLS to the cloud broker** | Upstream used `CERT_NONE`, `check_hostname = False` and `tls_insecure_set(True)`, so the session could be intercepted. Now pins Anycubic's root CA with hostname checking on |
 | **One account can't be added twice** | The unique id was set but never enforced, so adding the same account again created a duplicate entry and a second copy of every device and entity |
-| **Actions report failures properly** | Eleven of the twenty-six surfaced cloud errors as raw tracebacks rather than a readable message |
+| **Actions report failures properly** | Eleven of the twenty-seven surfaced cloud errors as raw tracebacks rather than a readable message |
 | **Token expiry warns in advance** | Tokens are 90-day JWTs that cannot be refreshed; a Repair appears a fortnight before yours lapses |
 
 ### New features
@@ -1493,7 +1495,7 @@ see [testing scope](#hardware-and-testing-scope).
 | Item | Status |
 |---|---|
 | ~~Camera / print stream~~ ([#4](https://github.com/WaresWichall/hass-anycubic_cloud/issues/4)) | **Done, over the local connection.** The printer names its own stream endpoint and serves HTTP-FLV once `video/startCapture` is sent |
-| 🔒 Camera over the **cloud** | **Not achievable here.** It is [Agora](https://www.agora.io) WebRTC, end-to-end encrypted with AES-256-GCM2 and joined with per-session keys. The frames never touch MQTT — 60 seconds of capture with the feed live carried no video at all — and the slicer's own topic is ACL-denied. It needs the Agora SDK, which is a real dependency and its own project, not something to bolt on here. The camera entity stays unavailable on a cloud-only setup |
+| ✅ Camera over the **cloud** | **Done, in v2.0.0.** It is [Agora](https://www.agora.io) WebRTC, end-to-end encrypted and joined with per-session keys, and the frames never touch MQTT — which is why it looked impossible. The client was reconstructed from the slicer's own traffic and ships as `agora/` with **no new dependencies**: Home Assistant brokers the signalling and your browser is the WebRTC peer, so no video passes through HA. See [watching the printer](#-watching-the-printer) |
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are wired up, and a bug that made the second unit vanish whenever a report named only one box is fixed. Still needs someone with two units to confirm |
 | ~~LAN / local mode~~ ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Done and proved on hardware** — see [local connection](#5-optional-talk-to-the-printer-directly). Handshake, local broker, ACE data and camera all confirmed on a Kobra S1 running 2.7.2.7 |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
@@ -1549,6 +1551,23 @@ the late-night patching when Anycubic next changes their API 😄
 <a href="https://buymeacoffee.com/nino6689"><img src="https://img.shields.io/badge/Buy_me_a_coffee_or_a_beer-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"></a>
 
 Prefer to support the original author? [@WaresWichall is on the upstream repo](https://github.com/WaresWichall/hass-anycubic_cloud#donations).
+
+### ☕ With thanks
+
+To everyone who has put something in the tip jar — it isn't expected and it's genuinely
+appreciated. This is a spare-time project maintained against an API that changes without notice,
+and knowing people find it useful is most of what keeps it going.
+
+<!-- Add supporters here as they come in, newest last. Keep it to whatever name they used --
+     no amounts, and nothing they didn't choose to make public.
+     Format: | Name | optional short note | -->
+
+| | |
+| --- | --- |
+| *Your name could be here* | ☕ |
+
+Told me about a bug, tested on hardware I don't own, or sent a pull request? That helps just as
+much, and the [credits](#credits) above are where that lands.
 
 ---
 
