@@ -657,6 +657,18 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def lan_is_connected(self) -> bool:
         return self._lan_client is not None and self._lan_client.is_connected
 
+    def _set_api_lan_client(self, client: AnycubicLANClient | None) -> None:
+        """Tell the API where to send orders, if there is an API yet.
+
+        The local connection is brought up while the printer is still being
+        built, which can be before the API object exists, and a printer that
+        answers locally should not be thrown away over that.
+        """
+        if self._anycubic_api is None:
+            return
+
+        self._anycubic_api.set_lan_client(client)
+
     async def _async_setup_lan_connection(self) -> None:
         """Bring up the local connection, if one is configured.
 
@@ -704,6 +716,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return
 
         self._lan_client = client
+        # From here the printer is reachable directly, and -- because LAN Mode
+        # drops its cloud connection -- only directly. Orders that have a
+        # local form now go out over this rather than to a cloud that no
+        # longer has this printer.
+        self._set_api_lan_client(client)
         LOGGER.info(
             f"Anycubic connected to {broker.model_name or 'printer'} "
             f"directly on the local network."
@@ -719,6 +736,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._lan_client = None
         self._lan_printer_id = None
+        self._set_api_lan_client(None)
 
         await client.async_disconnect()
 
@@ -812,6 +830,13 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if self.lan_mode_enabled:
             await self._async_setup_lan_connection()
+            # Re-stated every cycle rather than handed over once. The API
+            # object and the local connection are built by different paths in
+            # an order that depends on whether the cloud still knows this
+            # printer, and a single handshake between them loses whenever the
+            # API is rebuilt afterwards -- leaving every control quietly going
+            # to a cloud that has deleted the printer.
+            self._set_api_lan_client(self._lan_client)
             self._lan_poll()
 
         if not self._last_state_update or int(time.time()) > self._last_state_update + DEFAULT_SCAN_INTERVAL:
@@ -1204,6 +1229,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             self._anycubic_api.set_mqtt_log_all_messages(debug_mqtt_msg)
             self._anycubic_api.set_log_api_call_info(debug_api_calls)
+            # A local connection may already be up: it is what builds the
+            # printer when the cloud has none, and that happens first.
+            self._anycubic_api.set_lan_client(self._lan_client)
 
             success = await self._anycubic_api.check_api_tokens()
             if not success:

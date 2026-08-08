@@ -225,6 +225,89 @@ class TestCoordinatorSetup:
         assert coordinator._lan_client is None
 
 
+class TestCommandsFollowTheConnection:
+    """Where controls are sent has to follow where the printer actually is.
+
+    A printer in LAN Mode is removed from the Anycubic account entirely, so an
+    order sent to the cloud for it has nowhere to land. If the API is not told
+    about the local connection, every button in Home Assistant silently stops
+    working -- which is exactly what LAN Mode used to do.
+    """
+
+    async def test_connecting_locally_tells_the_api_where_to_send(self, hass: HomeAssistant) -> None:
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        api = MagicMock()
+        coordinator._anycubic_api = api
+        client = MagicMock()
+        client.async_connect = AsyncMock()
+
+        with (
+            patch(CO_HANDSHAKE, _handshake_returning()),
+            patch(CO_CLIENT, return_value=client),
+        ):
+            await coordinator._async_setup_lan_connection()
+
+        api.set_lan_client.assert_called_once_with(client)
+
+    async def test_losing_the_connection_sends_orders_back_to_the_cloud(self, hass: HomeAssistant) -> None:
+        coordinator = _coordinator(hass)
+        api = MagicMock()
+        coordinator._anycubic_api = api
+        client = MagicMock()
+        client.async_disconnect = AsyncMock()
+        coordinator._lan_client = client
+
+        await coordinator.async_stop_lan_connection()
+
+        api.set_lan_client.assert_called_once_with(None)
+
+    async def test_an_api_built_after_the_connection_still_learns_about_it(self, hass: HomeAssistant) -> None:
+        """The two are built by different paths, in an order that depends on
+        whether the cloud still knows the printer. Handing the client over once
+        loses whenever the API is rebuilt afterwards, and every control then
+        goes quietly to a cloud that has deleted the printer."""
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        client = MagicMock()
+        client.async_connect = AsyncMock()
+
+        with (
+            patch(CO_HANDSHAKE, _handshake_returning()),
+            patch(CO_CLIENT, return_value=client),
+        ):
+            # Connected while there is no API to tell.
+            coordinator._anycubic_api = None
+            await coordinator._async_setup_lan_connection()
+
+            # The API turns up later, and an update comes round.
+            api = MagicMock()
+            coordinator._anycubic_api = api
+            coordinator._printer_device_map = {}
+            with (
+                patch.object(coordinator, "get_anycubic_updates", AsyncMock()),
+                patch.object(coordinator, "_build_coordinator_data", return_value={}),
+                patch.object(coordinator, "_check_token_expiry"),
+            ):
+                await coordinator._async_update_data()
+
+        api.set_lan_client.assert_called_with(client)
+
+    async def test_connecting_before_the_api_exists_is_not_fatal(self, hass: HomeAssistant) -> None:
+        """The local connection is what builds the printer when the cloud has
+        none, so it comes up first and must not trip over a missing API."""
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        coordinator._anycubic_api = None
+        client = MagicMock()
+        client.async_connect = AsyncMock()
+
+        with (
+            patch(CO_HANDSHAKE, _handshake_returning()),
+            patch(CO_CLIENT, return_value=client),
+        ):
+            await coordinator._async_setup_lan_connection()
+
+        assert coordinator._lan_client is client
+
+
 class TestTargetPrinter:
     """A local report must never be applied to the wrong printer."""
 
