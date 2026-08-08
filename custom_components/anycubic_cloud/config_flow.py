@@ -1,6 +1,7 @@
 """Adds config flow for Anycubic Cloud integration."""
 from __future__ import annotations
 
+import hashlib
 import time
 import traceback
 from collections.abc import Mapping
@@ -161,6 +162,30 @@ async def async_load_tokens_from_store(
 
     if config:
         anycubic_api.load_auth_config_from_dict(config, minimal=True)
+
+
+def lan_printer_id(device_id: str) -> int:
+    """A stable integer handle for a printer known only over the network.
+
+    Printers do not agree on what a device id looks like: a Kobra S1 reports
+    digits, a Kobra 3 V2 reports a 32-character hex string. Everything
+    downstream -- the coordinator's printer map, the entity base class, the
+    service schemas -- treats a printer id as an integer, so the id is mapped
+    to one here, at the only boundary where a local printer gets an identity.
+
+    Digits are kept as they are, so a printer whose local id already matches
+    its cloud id keeps that id and its history if an account is added later.
+    Anything else is digested. 48 bits stays well inside the range Home
+    Assistant can store -- its JSON encoder rejects anything wider than 64
+    bits outright, and silently loses the whole write when it does -- while
+    sitting far above the range real cloud ids occupy, so a digested id
+    cannot collide with a real one.
+    """
+    if device_id.isdigit() and len(device_id) <= 15:
+        return int(device_id)
+
+    digest = hashlib.blake2b(device_id.encode(), digest_size=6).digest()
+    return int.from_bytes(digest, "big")
 
 
 async def check_lan_host(hass: HomeAssistant, host: str) -> dict[str, str]:
@@ -530,7 +555,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             if not errors and broker is not None:
                 # The printer's own id, since there is no cloud account to
                 # enumerate printers from.
-                printer_id = int(broker.device_id)
+                printer_id = lan_printer_id(broker.device_id)
                 await self.async_set_unique_id(
                     format_mac(broker.mac) if broker.mac else f"lan-{host}"
                 )

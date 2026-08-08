@@ -595,7 +595,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "in_progress": printer.secondary_multi_color_box_fw_total_progress,
             },
             "mqtt_connection_active": {
-                "supports_mqtt_login": self.anycubic_api.anycubic_auth.supports_mqtt_login,
+                "supports_mqtt_login": self._supports_mqtt_login(),
             },
         }
 
@@ -618,11 +618,35 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             'attributes': attributes,
         }
 
+    def _api_user_id(self) -> int | None:
+        """The account id, or None when there is no account."""
+        if self.lan_only:
+            return None
+
+        user_id: int | None = self.anycubic_api.anycubic_auth.api_user_id
+        return user_id
+
+    def _supports_mqtt_login(self) -> bool:
+        """Whether the cloud broker would accept this entry.
+
+        Never, with no account: the answer lives on the auth object, and
+        asking an unauthenticated API for one raises rather than saying no.
+        """
+        if self.lan_only:
+            return False
+
+        supported: bool = self.anycubic_api.anycubic_auth.supports_mqtt_login
+        return supported
+
     def _build_coordinator_data(self) -> dict[str, Any]:
         data_dict: dict[str, Any] = dict()
 
         data_dict['user_info'] = {
-            "id": self.anycubic_api.anycubic_auth.api_user_id
+            # A printer reached only over the network has no account behind
+            # it, and asking the API for one raises rather than returning
+            # nothing. The id is only used to name the device, which a
+            # local-only printer still needs.
+            "id": self._api_user_id()
         }
 
         data_dict['printers'] = dict()
@@ -1067,7 +1091,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if (
             self._mqtt_connection_mode == AnycubicMQTTConnectMode.Never_Connect
-            or not self.anycubic_api.anycubic_auth.supports_mqtt_login
+            or not self._supports_mqtt_login()
         ):
             return False
 
@@ -1184,6 +1208,39 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self.anycubic_api.mqtt_wait_for_connect()
                 await asyncio.sleep(2)
                 await printer.request_local_file_list()
+
+    def _setup_anycubic_api_offline(self) -> None:
+        """Build an API object for a printer reached only over the network.
+
+        There is no account to authenticate against, but the API object is
+        still what orders are sent through -- it is what holds the local
+        client and decides that an order has a local form. Without one, a
+        LAN-only entry has no way to send anything, and the data builder
+        raises before any entity is created.
+        """
+        if self._anycubic_api is not None:
+            return
+
+        cookie_jar = CookieJar(unsafe=True)
+        websession = async_create_clientsession(self.hass, cookie_jar=cookie_jar)
+
+        self._anycubic_api = AnycubicAPI(
+            session=websession,
+            cookie_jar=cookie_jar,
+            debug_logger=LOGGER,
+            mqtt_callback_printer_update=self._mqtt_callback_data_updated,
+            mqtt_callback_printer_busy=self._mqtt_callback_print_job_started,
+            mqtt_callback_subscribed=self._mqtt_callback_subscribed,
+        )
+
+        debug_all: bool = bool(self.entry.options.get(CONF_DEBUG_DEPRECATED))
+        self._anycubic_api.set_mqtt_log_all_messages(
+            bool(self.entry.options.get(CONF_DEBUG_MQTT_MSG, debug_all))
+        )
+        self._anycubic_api.set_log_api_call_info(
+            bool(self.entry.options.get(CONF_DEBUG_API_CALLS, debug_all))
+        )
+        self._anycubic_api.set_lan_client(self._lan_client)
 
     async def _setup_anycubic_api_connection(self) -> None:
         LOGGER.debug("Coordinator setting up Anycubic Cloud API connection.")
@@ -1634,9 +1691,14 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         setup_retries = 0
         while setup_retries < API_SETUP_RETRIES + 1:
             try:
-                if not self.lan_only:
+                if self.lan_only:
+                    self._setup_anycubic_api_offline()
+                else:
                     await self._setup_anycubic_api_connection()
-                    await self._setup_anycubic_printer_objects()
+                # Printers are built the same way either way: the cloud is
+                # asked first and the local connection answers when it cannot,
+                # which is always the case with no account.
+                await self._setup_anycubic_printer_objects()
                 return
             except AnycubicAPIParsingError as error:
                 if setup_retries >= API_SETUP_RETRIES:
