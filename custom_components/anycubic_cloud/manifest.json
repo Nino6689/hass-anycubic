@@ -12,6 +12,7 @@
   "dependencies": [
     "camera",
     "file_upload",
+    "frontend",
     "http",
     "image"
   ],
@@ -34,7 +35,7 @@
   ],
   "requirements": [
     "anycubic-cloud-api==0.4.17",
-    "anycubic-cloud-frontend==0.1.1"
+    "anycubic-cloud-frontend==0.1.2"
   ],
   "version": "2.0.0-beta.6"
 }
