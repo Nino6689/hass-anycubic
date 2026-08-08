@@ -85,6 +85,10 @@ export interface HomeAssistant {
       url_path: string;
     };
   };
+  config: {
+    currency?: string;
+    unit_system?: { temperature?: string };
+  };
   devices: HassDeviceList;
   entities: HassEntityInfos;
   states: HassEntities;
@@ -303,6 +307,34 @@ export interface AnycubicCardConfig {
   slotColors?: string[];
   showSettingsButton?: boolean;
   alwaysShow?: boolean;
+  mediaView?: MediaViewType;
+  showControls?: boolean;
+  sections?: CardSectionType[];
+}
+
+/** Which surface the hero area shows. `Auto` never starts the camera on its own:
+ *  a cloud-camera session costs a one-shot Agora token and is taken from whichever
+ *  Anycubic session asked most recently, so it is opt-in per view. */
+export enum MediaViewType {
+  Auto = "auto",
+  Camera = "camera",
+  Preview = "preview",
+  Printer = "printer",
+  None = "none",
+}
+
+export enum CardSectionType {
+  Filament = "filament",
+  Move = "move",
+  Insights = "insights",
+}
+
+/** A camera the card can offer, resolved from the printer's own entities. */
+export interface AnycubicCameraChoice {
+  entity_id: string;
+  /** `true` for the cloud WebRTC camera, which has no still image and no snapshots. */
+  isCloud: boolean;
+  available: boolean;
 }
 
 export enum AnycubicMaterialType {
@@ -461,6 +493,23 @@ export interface EvtTargSpoolEdit extends EventTarget {
   index: number;
   material_type: string;
   color: number[];
+}
+
+export interface EvtTargEntityPress extends EventTarget {
+  entityId: string | undefined;
+}
+
+export interface EvtTargSelectOption extends EventTarget {
+  entityId: string | undefined;
+  option: string;
+}
+
+export interface EvtTargCardSection extends EventTarget {
+  sectionKey: CardSectionType;
+}
+
+export interface EvtTargMediaTab extends EventTarget {
+  tabKey: MediaViewType;
 }
 
 export interface EvtTargColourPreset extends EventTarget {

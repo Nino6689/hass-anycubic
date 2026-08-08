@@ -5,11 +5,13 @@ import * as pkgjson from "../../../package.json";
 
 import {
   AnycubicCardConfig,
+  CardSectionType,
   CustomCardsWindow,
   HassDevice,
   HassDeviceList,
   HomeAssistant,
   LitTemplateResult,
+  MediaViewType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "../../types";
@@ -95,6 +97,18 @@ export class AnycubicPrintercardEditor extends LitElement {
         this.config.scaleFactor,
         defaultConfig.scaleFactor,
       ) as number;
+      this.config.mediaView = undefinedDefault(
+        this.config.mediaView,
+        defaultConfig.mediaView,
+      ) as MediaViewType;
+      this.config.showControls = undefinedDefault(
+        this.config.showControls,
+        defaultConfig.showControls,
+      ) as boolean;
+      this.config.sections = undefinedDefault(
+        this.config.sections,
+        defaultConfig.sections,
+      ) as CardSectionType[];
     }
   }
 
@@ -170,6 +184,15 @@ export class AnycubicCard extends LitElement {
   @state()
   private monitoredStats: PrinterCardStatType[] | undefined;
 
+  @state()
+  private mediaView?: MediaViewType;
+
+  @state()
+  private showControls?: boolean;
+
+  @state()
+  private sections?: CardSectionType[];
+
   // eslint-disable-next-line @typescript-eslint/require-await
   async firstUpdated(): Promise<void> {
     this.printers = getPrinterDevices(this.hass);
@@ -214,6 +237,18 @@ export class AnycubicCard extends LitElement {
       this.scaleFactor = this.config.scaleFactor;
       this.slotColors = this.config.slotColors;
       this.monitoredStats = this.config.monitoredStats;
+      this.mediaView = undefinedDefault(
+        this.config.mediaView,
+        defaultConfig.mediaView,
+      ) as MediaViewType;
+      this.showControls = undefinedDefault(
+        this.config.showControls,
+        defaultConfig.showControls,
+      ) as boolean;
+      this.sections = undefinedDefault(
+        this.config.sections,
+        defaultConfig.sections,
+      ) as CardSectionType[];
       if (this.config.printer_id && this.printers) {
         this.selectedPrinterID = this.config.printer_id;
         this.selectedPrinterDevice = getSelectedPrinter(
@@ -247,12 +282,23 @@ export class AnycubicCard extends LitElement {
         .cameraEntityId=${this.cameraEntityId}
         .scaleFactor=${this.scaleFactor}
         .slotColors=${this.slotColors}
+        .mediaView=${this.mediaView}
+        .showControls=${this.showControls}
+        .sections=${this.sections}
       ></anycubic-printercard-card>
     `;
   }
 
   public getCardSize(): number {
-    return 2;
+    return this.config.mediaView === MediaViewType.None ? 4 : 8;
+  }
+
+  public getGridOptions(): {
+    columns: number;
+    min_columns: number;
+    rows: string;
+  } {
+    return { columns: 12, min_columns: 6, rows: "auto" };
   }
 
   static getConfigElement(): HTMLElement {

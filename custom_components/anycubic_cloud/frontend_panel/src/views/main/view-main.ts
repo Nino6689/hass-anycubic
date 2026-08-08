@@ -329,7 +329,7 @@ export class AnycubicViewMain extends LitElement {
           .scaleFactor=${this.panel.config.scaleFactor}
           .slotColors=${this.panel.config.slotColors}
           .showSettingsButton=${this.panel.config.showSettingsButton ?? true}
-          .alwaysShow=${this.panel.config.alwaysShow}
+          .alwaysShow=${this.panel.config.alwaysShow ?? true}
         ></anycubic-printercard-card>
         <div class="ac-extra-printer-info">
           ${this._renderInfoRow(

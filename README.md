@@ -118,6 +118,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [4. Choose a connect mode](#4-choose-a-connect-mode)
 - [5. Talk to the printer directly *(LAN Mode)*](#5-optional-talk-to-the-printer-directly) — [which to choose](#which-should-you-choose) · [what each gives you](#what-each-mode-gives-you)
 - [Entities](#entities)
+- [🃏 The Anycubic card](#-the-anycubic-card)
 - [📷 Watching the printer](#-watching-the-printer)
 - [🎮 Controlling the printer](#-controlling-the-printer)
 - [🧵 Filament and the ACE](#-filament-and-the-ace)
@@ -547,7 +548,8 @@ more involved, and not recommended without a specific reason.
 4. Paste the token — and **Device ID** too, for Android
 5. Choose which printers to track
 
-You'll get the printer device, the ACE as a child device, and a sidebar panel with a printer card.
+You'll get the printer device, the ACE as a child device, and the **Anycubic card** ready to add
+to any dashboard — see [the card](#-the-anycubic-card). A sidebar panel comes with it.
 
 ---
 
@@ -752,6 +754,71 @@ It refuses if a job is already running, rather than interrupting or queueing beh
 
 ---
 
+## 🃏 The Anycubic card
+
+**Add card → search "Anycubic".** Nothing to install and no dashboard resource to register —
+the integration offers the card to your dashboards itself, and the URL it registers carries the
+build hash so a browser never serves you a stale copy after an update.
+
+There is a sidebar panel too, showing the same card with the printer's details underneath. The
+card is the part meant for your own dashboards.
+
+### What it shows
+
+A hero area, the job, and whatever you want expanded underneath:
+
+- **Hero** — switch between the **camera**, the sliced job's **preview image**, and the animated
+  **printer**. Only the surfaces that actually have something to show get a tab. Pick the printer
+  and the live camera plays *inside the build volume*, with the gantry and nozzle drawn over it.
+- **Progress** — percentage, layer count, and a bar that takes the status colour.
+- **Stats** — the rows you pick in *Monitored Stats*.
+- **Controls** — pause, resume and cancel appear while a job is running; print settings opens the
+  temperature, fan and speed dialog.
+- **Filament** — ACE spools, colours, run-out refill and drying.
+- **Move** — a jog dial for X and Y, a Z column, home buttons, motor release, and the step size.
+- **Insights** — print cost, filament forecast, nozzle wear and spool inventory.
+
+The layout goes two-column when the card is given the width for it, and stacks on a phone.
+
+### Options
+
+Everything is optional. `printer_id` is the device id, which the visual editor fills in for you.
+
+```yaml
+type: custom:anycubic-card
+printer_id: 0b63c1bf6e7d3a8e0df2134da50ce9d8
+mediaView: auto          # auto | camera | preview | printer | none
+sections:                # which expandable sections to offer
+  - filament
+  - move
+  - insights
+showControls: true
+alwaysShow: true         # false collapses the card unless a job is running
+lightEntityId: light.anycubic_kobra_s1_printer_light
+```
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `mediaView` | `auto` | Which hero surface opens first |
+| `sections` | `[filament]` | Expandable sections to offer |
+| `showControls` | `true` | Pause / resume / cancel / print settings row |
+| `alwaysShow` | `false` | Keep the body open when the printer is idle |
+| `showSettingsButton` | `false` | Show print settings even when idle |
+| `vertical` | `false` | Force the stacked layout on a wide card |
+| `scaleFactor` | `1` | How much width the hero takes in the two-column layout |
+| `monitoredStats` | Status, ETA, Elapsed, Remaining | The stat rows |
+| `round` / `use_24hr` / `temperatureUnit` | `false` / `true` / `C` | Number and time formatting |
+| `lightEntityId` / `powerEntityId` | — | Adds a toggle to the header |
+| `cameraEntityId` | auto | Override which camera the hero uses |
+| `slotColors` | `[]` | Colour presets in the spool editor |
+
+> **`mediaView: auto` never opens the camera by itself.** A cloud-camera session spends a
+> single-use token, and Anycubic hands the camera to whichever session asked for it most
+> recently — so a dashboard loading in the background would quietly take the stream away from
+> your phone. Tap the camera tab, or set `mediaView: camera` if you want it live on load.
+
+---
+
 ## 📷 Watching the printer
 
 You get **two camera entities per printer**, because the printer serves two completely
@@ -764,7 +831,10 @@ different streams and neither can stand in for the other:
 
 ### Putting it on a dashboard
 
-Add a **Picture Entity** card, pick the camera, and set **camera view** to **Live**.
+The **Anycubic card** shows the camera without any of this — pick the *Camera* tab on the card,
+or set `mediaView: camera` to have it open there. See [the card](#the-anycubic-card).
+
+To use a plain Picture Entity card instead, pick the camera and set **camera view** to **Live**.
 
 That last step matters for the cloud camera. The card's default `auto` mode asks for a still
 image, and the cloud camera has none to give, so it shows a placeholder instead of video. Set

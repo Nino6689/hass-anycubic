@@ -28,6 +28,18 @@ def process_card_config(
         return {}
 
 
+def async_register_card(hass: HomeAssistant) -> None:
+    """Make the Anycubic card available to dashboards.
+
+    Home Assistant does not load third-party cards into dashboards on its own,
+    so without this the card ships with the integration but never appears in
+    the card picker unless the user adds it as a resource by hand.
+    """
+    frontend.add_extra_js_url(
+        hass, f"{PANEL_URL}/{anycubic_cloud_frontend.card_js_url}"
+    )
+
+
 async def async_register_panel(
     hass: HomeAssistant,
     conf_object: Any,
@@ -47,6 +59,8 @@ async def async_register_panel(
         except RuntimeError as e:
             if "already registered" not in str(e):
                 raise e
+
+        async_register_card(hass)
 
         conf = process_card_config(conf_object)
 

@@ -4,8 +4,10 @@ import {
   intervalToDuration as dfnsIntervalToDuration,
 } from "date-fns";
 
+import { platform } from "./const";
 import { fireEvent } from "./fire_event";
 import {
+  AnycubicCameraChoice,
   AnycubicCardConfig,
   AnycubicLitNode,
   AnycubicMaterialType,
@@ -13,6 +15,7 @@ import {
   AnycubicSpeedModeEntity,
   AnycubicSpeedModes,
   CalculatedTimeType,
+  CardSectionType,
   HassDevice,
   HassDeviceList,
   HassEmptyEntity,
@@ -21,11 +24,16 @@ import {
   HassEntityInfos,
   HassRoute,
   HomeAssistant,
+  MediaViewType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "./types";
 
 const stylePxKeys = ["width", "height", "left", "top"];
+
+/** Shown wherever the printer has not reported a value. An em dash reads as
+ *  "nothing to say", where a zero or an error string reads as a measurement. */
+export const UNKNOWN_VALUE = "\u2014";
 
 export function updateElementStyleWithObject(
   el: HTMLElement | undefined,
@@ -129,6 +137,18 @@ export function getEntityStateBinary(
 }
 
 export function getPrinterDevices(hass: HomeAssistant): HassDeviceList {
+  // Manufacturer alone is not proof of ownership: a network scanner that spots
+  // the printer on the LAN registers its own device with manufacturer
+  // "Anycubic" too, and offering that as a printer yields an entirely blank
+  // card. Require at least one entity actually provided by this integration.
+  const ownedDeviceIDs = new Set<string>();
+  for (const key in hass.entities) {
+    const ent = hass.entities[key];
+    if (ent.platform === platform && ent.device_id) {
+      ownedDeviceIDs.add(ent.device_id);
+    }
+  }
+
   const printers: HassDeviceList = {};
   for (const key in hass.devices) {
     const dev = hass.devices[key];
@@ -136,11 +156,115 @@ export function getPrinterDevices(hass: HomeAssistant): HassDeviceList {
     // Printers are top-level devices. Accessories such as the ACE are also
     // manufactured by Anycubic but hang off a printer via via_device_id, and
     // must not be offered as printers to select.
-    if (dev.manufacturer === "Anycubic" && !dev.via_device_id) {
+    if (
+      dev.manufacturer === "Anycubic" &&
+      !dev.via_device_id &&
+      ownedDeviceIDs.has(dev.id)
+    ) {
       printers[dev.id] = dev;
     }
   }
   return printers;
+}
+
+/** Resolve one of the printer's entities by the integration's own key.
+ *
+ * Preferred over matching on the entity-id suffix: the key is set by the
+ * integration and survives a user renaming the entity, whereas a suffix match
+ * silently returns nothing the moment somebody edits an entity id.
+ */
+export function getEntityByKey(
+  entities: HassEntityInfos,
+  translationKey: string,
+): HassEntityInfo | undefined {
+  for (const key in entities) {
+    if (entities[key].translation_key === translationKey) {
+      return entities[key];
+    }
+  }
+  return undefined;
+}
+
+/** The entity_id for one of the printer's entities, by integration key. */
+export function getEntityIdByKey(
+  entities: HassEntityInfos,
+  translationKey: string,
+): string | undefined {
+  return getEntityByKey(entities, translationKey)?.entity_id;
+}
+
+/** State object for one of the printer's entities, by integration key. */
+export function getStateObjByKey(
+  hass: HomeAssistant,
+  entities: HassEntityInfos,
+  translationKey: string,
+): HassEntity | undefined {
+  const entityId = getEntityIdByKey(entities, translationKey);
+  return entityId ? hass.states[entityId] : undefined;
+}
+
+/** Numeric state for one of the printer's entities, or undefined when the
+ *  entity is missing, disabled, or has nothing to report. */
+export function getStateFloatByKey(
+  hass: HomeAssistant,
+  entities: HassEntityInfos,
+  translationKey: string,
+): number | undefined {
+  const stateObj = getStateObjByKey(hass, entities, translationKey);
+  if (
+    !stateObj ||
+    stateObj.state === "unavailable" ||
+    stateObj.state === "unknown"
+  ) {
+    return undefined;
+  }
+  const asFloat = parseFloat(stateObj.state);
+  return isNaN(asFloat) ? undefined : asFloat;
+}
+
+/** Cameras belonging to this printer, cloud (WebRTC) last.
+ *
+ * Resolved by domain rather than by the shared entity-id prefix: the camera
+ * entities are not always named off the same prefix as the rest of the
+ * printer's entities, so prefix matching is not dependable here.
+ */
+export function getPrinterCameras(
+  hass: HomeAssistant,
+  entities: HassEntityInfos,
+): AnycubicCameraChoice[] {
+  const cameras: AnycubicCameraChoice[] = [];
+  for (const key in entities) {
+    if (!key.startsWith("camera.")) {
+      continue;
+    }
+    const stateObj: HassEntity | undefined = hass.states[key];
+    cameras.push({
+      entity_id: key,
+      isCloud: key.endsWith("cloud_camera"),
+      available:
+        typeof stateObj !== "undefined" && stateObj.state !== "unavailable",
+    });
+  }
+  // The local camera streams from the printer itself and can produce stills, so
+  // prefer it when both are usable.
+  return cameras.sort((a, b) => Number(a.isCloud) - Number(b.isCloud));
+}
+
+/** The camera the card should offer, or undefined when there is nothing usable. */
+export function selectPrinterCamera(
+  cameras: AnycubicCameraChoice[],
+  configuredEntityId: string | undefined,
+): AnycubicCameraChoice | undefined {
+  if (configuredEntityId) {
+    return (
+      cameras.find((c) => c.entity_id === configuredEntityId) ?? {
+        entity_id: configuredEntityId,
+        isCloud: configuredEntityId.endsWith("cloud_camera"),
+        available: true,
+      }
+    );
+  }
+  return cameras.find((c) => c.available) ?? cameras[0];
 }
 
 export function getPrinterEntities(
@@ -559,7 +683,10 @@ export function isPrintStatePrinting(printStateString: string): boolean {
 }
 
 export function printStateStatusColor(printStateString: string): string {
-  if (printStateString === "preheating") {
+  // "busy" is what a printer reports while it is getting on with something the
+  // job sensors cannot describe -- levelling, or any work seen over a local
+  // connection. It is activity, not a fault.
+  if (printStateString === "preheating" || printStateString === "busy") {
     return "#ffc107";
   } else if (isPrintStatePrinting(printStateString)) {
     return "#4caf50";
@@ -567,7 +694,13 @@ export function printStateStatusColor(printStateString: string): string {
     return "#f44336";
   } else if (
     printStateString === "operational" ||
-    printStateString === "finished"
+    printStateString === "finished" ||
+    // A printer sitting idle and reachable is a healthy state, not a fault.
+    // Over a local connection this is all we get, since the job sensors are
+    // reported by the cloud.
+    printStateString === "available" ||
+    printStateString === "idle" ||
+    printStateString === "free"
   ) {
     return "#00bcd4";
   } else {
@@ -633,7 +766,7 @@ export const formatDuration = (
   round: boolean,
 ): string => {
   if (time !== 0 && (!time || isNaN(time as number))) {
-    return "invalid duration";
+    return UNKNOWN_VALUE;
   }
   const dur: dfnsDuration = secondsToDuration(
     round ? Math.ceil(Number(time) / 60) * 60 : Number(time),
@@ -658,7 +791,7 @@ export const formatFutureTime = (
     futureSeconds !== 0 &&
     (!futureSeconds || isNaN(futureSeconds as number))
   ) {
-    return "invalid time";
+    return UNKNOWN_VALUE;
   }
   const fmtSeconds = round ? "" : ":ss";
   const fmtString = use_24hr ? `HH:mm${fmtSeconds}` : `h:mm${fmtSeconds} a`;
@@ -684,7 +817,7 @@ export const calculateTimeStat = (
     case CalculatedTimeType.Elapsed:
       return formatDuration(time, round);
     default:
-      return "<unknown>";
+      return UNKNOWN_VALUE;
   }
 };
 
@@ -824,6 +957,9 @@ export function getDefaultCardConfig(): AnycubicCardConfig {
     slotColors: [],
     showSettingsButton: false,
     alwaysShow: false,
+    mediaView: MediaViewType.Auto,
+    showControls: true,
+    sections: [CardSectionType.Filament],
   };
 }
 

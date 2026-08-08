@@ -9,6 +9,7 @@ import { customElementIfUndef } from "../../../internal/register-custom-element"
 import {
   getPrinterBinarySensorState,
   getPrinterSensorStateObj,
+  isPrintStatePrinting,
   speedModesFromStateObj,
   toTitleCase,
 } from "../../../helpers";
@@ -62,6 +63,9 @@ export class AnycubicPrintercardStatsComponent extends LitElement {
 
   @state()
   private _statTranslations: TranslationDict;
+
+  @state()
+  private _jobRunning: boolean = false;
 
   @state()
   private _entETA: HassEntity;
@@ -145,6 +149,18 @@ export class AnycubicPrintercardStatsComponent extends LitElement {
       changedProperties.has("printerEntities") ||
       changedProperties.has("printerEntityIdPart")
     ) {
+      const printState = getPrinterSensorStateObj(
+        this.hass,
+        this.printerEntities,
+        this.printerEntityIdPart,
+        "job_state",
+        "unknown",
+      ).state.toLowerCase();
+      // Paused counts as a print in progress, but nothing is advancing while it
+      // sits there, so the clocks should hold too.
+      this._jobRunning =
+        isPrintStatePrinting(printState) && printState !== "paused";
+
       this._entETA = getPrinterSensorStateObj(
         this.hass,
         this.printerEntities,
@@ -187,13 +203,19 @@ export class AnycubicPrintercardStatsComponent extends LitElement {
         this.printerEntityIdPart,
         "target_nozzle_temperature",
       );
+      // Falls back to what the printer says about itself when there is no job
+      // state to report, so this agrees with the card header rather than
+      // labelling a healthy local-only printer "Unavailable".
       this._valStatus = toTitleCase(
-        getPrinterSensorStateObj(
-          this.hass,
-          this.printerEntities,
-          this.printerEntityIdPart,
-          "job_state",
-        ).state,
+        printState === "unavailable" || printState === "unknown"
+          ? getPrinterSensorStateObj(
+              this.hass,
+              this.printerEntities,
+              this.printerEntityIdPart,
+              "current_status",
+              "unknown",
+            ).state
+          : printState,
       );
       this._valOnline = getPrinterBinarySensorState(
         this.hass,
@@ -389,6 +411,7 @@ export class AnycubicPrintercardStatsComponent extends LitElement {
                 .timeType=${condition}
                 .name=${this._statTranslations[condition]}
                 .direction=${0}
+                .running=${this._jobRunning}
                 .round=${this.round}
                 .use_24hr=${this.use_24hr}
               ></anycubic-printercard-stat-time>
@@ -400,6 +423,7 @@ export class AnycubicPrintercardStatsComponent extends LitElement {
                 .timeType=${condition}
                 .name=${this._statTranslations[condition]}
                 .direction=${1}
+                .running=${this._jobRunning}
                 .round=${this.round}
                 .use_24hr=${this.use_24hr}
               ></anycubic-printercard-stat-time>
@@ -412,6 +436,7 @@ export class AnycubicPrintercardStatsComponent extends LitElement {
                 .timeType=${condition}
                 .name=${this._statTranslations[condition]}
                 .direction=${-1}
+                .running=${this._jobRunning}
                 .round=${this.round}
                 .use_24hr=${this.use_24hr}
               ></anycubic-printercard-stat-time>

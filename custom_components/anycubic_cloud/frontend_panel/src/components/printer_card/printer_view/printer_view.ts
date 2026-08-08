@@ -29,6 +29,11 @@ export class AnycubicPrintercardPrinterview extends LitElement {
   @property({ attribute: "scale-factor" })
   public scaleFactor?: number;
 
+  /** When set, the live camera plays inside the printer's build volume instead
+   *  of the modelled print. */
+  @property({ attribute: "camera-entity-id" })
+  public cameraEntityId?: string;
+
   render(): LitTemplateResult {
     return html`
       <div class="ac-printercard-printerview" @click=${this._viewClick}>
@@ -38,6 +43,7 @@ export class AnycubicPrintercardPrinterview extends LitElement {
           .printerEntities=${this.printerEntities}
           .printerEntityIdPart=${this.printerEntityIdPart}
           .printerConfig=${printerConfigAnycubic}
+          .cameraEntityId=${this.cameraEntityId}
         ></anycubic-printercard-animated_printer>
       </div>
     `;

@@ -38,7 +38,10 @@
         "power_entity_id": "Power Entity",
         "camera_entity_id": "Camera Entity",
         "scale_factor": "Scale Factor",
-        "slot_colors": "Slot Colour Presets"
+        "slot_colors": "Slot Colour Presets",
+        "media_view": "Main view",
+        "show_controls": "Show control buttons",
+        "sections": "Expandable sections"
       }
     },
     "print_settings": {
@@ -86,8 +89,6 @@
       "Dry Time": "Dry Time",
       "Speed Mode": "Speed Mode",
       "Fan Speed": "Fan Speed",
-      "Dry Status": "Dry Status",
-      "Dry Time": "Dry Time",
       "On Time": "On Time",
       "Off Time": "Off Time",
       "Bottom Time": "Bottom Time",

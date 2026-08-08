@@ -8,6 +8,8 @@ import { animate, Options as motionOptions } from "@lit-labs/motion";
 import { getDimensions } from "./utils";
 import { customElementIfUndef } from "../../../internal/register-custom-element";
 
+import "../media_view/camera_stream.ts";
+
 import {
   getPrinterImageStateUrl,
   getPrinterSensorStateObj,
@@ -86,6 +88,11 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
 
   @property({ attribute: "printer-entity-id-part" })
   public printerEntityIdPart: string | undefined;
+
+  /** Plays the live camera in the build volume in place of the modelled print,
+   *  so the chassis frames the real thing. */
+  @property({ attribute: "camera-entity-id" })
+  public cameraEntityId?: string;
 
   @state()
   private dimensions: AnimatedPrinterDimensions | undefined;
@@ -184,7 +191,12 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
         changedProperties.has("hass")) &&
       this.dimensions
     ) {
-      const progY = this._progressNum * -1 * this.dimensions.BuildArea.height;
+      // Riding up with progress would drag the gantry across the picture and
+      // hide the very thing you opened the camera to see, so with the camera
+      // in the build volume it stays parked clear of it and only sweeps.
+      const progY = this.cameraEntityId
+        ? -this.dimensions.BuildArea.height
+        : this._progressNum * -1 * this.dimensions.BuildArea.height;
       updateElementStyleWithObject(this._elAcAPr_xaxis, {
         ...this.dimensions.XAxis,
         top: this.dimensions.XAxis.top + progY,
@@ -238,16 +250,26 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
                 <div class="ac-apr-hole"></div>
               </div>
               <div class="ac-apr-buildarea">
-                <div class="ac-apr-animprint">
-                  ${this.imagePreviewBgUrl
-                    ? html`
-                        <div
-                          class="ac-apr-imgprev"
-                          style=${styleMap(stylesPreview)}
-                        ></div>
-                      `
-                    : nothing}
-                </div>
+                ${this.cameraEntityId
+                  ? html`
+                      <anycubic-printercard-camera_stream
+                        class="ac-apr-camera"
+                        .hass=${this.hass}
+                        .cameraEntityId=${this.cameraEntityId}
+                      ></anycubic-printercard-camera_stream>
+                    `
+                  : html`
+                      <div class="ac-apr-animprint">
+                        ${this.imagePreviewBgUrl
+                          ? html`
+                              <div
+                                class="ac-apr-imgprev"
+                                style=${styleMap(stylesPreview)}
+                              ></div>
+                            `
+                          : nothing}
+                      </div>
+                    `}
               </div>
               <div class="ac-apr-buildplate"></div>
               <div
@@ -367,6 +389,16 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
       .ac-apr-animprint {
         background-color: var(--primary-text-color);
         width: 100%;
+      }
+
+      /* Fills the build volume so the frame, gantry and nozzle sit over the
+         picture -- it reads as looking into the machine. */
+      .ac-apr-camera {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #000;
       }
 
       .ac-apr-imgprev {

@@ -22,12 +22,14 @@ import {
 import {
   AnycubicCardConfig,
   CalculatedTimeType,
+  CardSectionType,
   FormChangeDetail,
   HaFormBaseSchema,
   HassDeviceList,
   HassEntityInfos,
   HomeAssistant,
   LitTemplateResult,
+  MediaViewType,
   PageChangeDetail,
   PrinterCardStatType,
   StatTypeACE,
@@ -124,6 +126,15 @@ export class AnycubicPrintercardConfigure extends LitElement {
   @state()
   private _labelSlotColors: string;
 
+  @state()
+  private _labelMediaView: string;
+
+  @state()
+  private _labelShowControls: string;
+
+  @state()
+  private _labelSections: string;
+
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
 
@@ -174,6 +185,18 @@ export class AnycubicPrintercardConfigure extends LitElement {
       );
       this._labelSlotColors = localize(
         "card.configure.labels.slot_colors",
+        this.language,
+      );
+      this._labelMediaView = localize(
+        "card.configure.labels.media_view",
+        this.language,
+      );
+      this._labelShowControls = localize(
+        "card.configure.labels.show_controls",
+        this.language,
+      );
+      this._labelSections = localize(
+        "card.configure.labels.sections",
         this.language,
       );
     }
@@ -361,6 +384,12 @@ export class AnycubicPrintercardConfigure extends LitElement {
         return this._labelScaleFactor;
       case "slotColors":
         return this._labelSlotColors;
+      case "mediaView":
+        return this._labelMediaView;
+      case "showControls":
+        return this._labelShowControls;
+      case "sections":
+        return this._labelSections;
       default:
         return this._labelPrinter_id;
     }
@@ -461,6 +490,40 @@ export class AnycubicPrintercardConfigure extends LitElement {
       {
         name: "cameraEntityId",
         selector: { entity: { domain: CAMERA_ENTITY_DOMAINS } },
+      },
+      {
+        name: "mediaView",
+        selector: {
+          select: {
+            options: [
+              { value: MediaViewType.Auto, label: "Automatic" },
+              { value: MediaViewType.Camera, label: "Camera" },
+              { value: MediaViewType.Preview, label: "Job preview" },
+              { value: MediaViewType.Printer, label: "Printer graphic" },
+              { value: MediaViewType.None, label: "Hidden" },
+            ],
+            mode: "dropdown",
+            multiple: false,
+          },
+        },
+      },
+      {
+        name: "showControls",
+        selector: { boolean: {} },
+      },
+      {
+        name: "sections",
+        selector: {
+          select: {
+            options: [
+              { value: CardSectionType.Filament, label: "Filament" },
+              { value: CardSectionType.Move, label: "Move" },
+              { value: CardSectionType.Insights, label: "Insights" },
+            ],
+            mode: "list",
+            multiple: true,
+          },
+        },
       },
     ];
   }

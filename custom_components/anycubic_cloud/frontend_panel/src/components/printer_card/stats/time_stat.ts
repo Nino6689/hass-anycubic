@@ -35,6 +35,15 @@ export class AnycubicPrintercardStatTime extends LitElement {
   @property({ attribute: "is-seconds", type: Boolean })
   public isSeconds?: boolean;
 
+  /** Whether the printer is actually working on the job.
+   *
+   * These clocks run themselves between updates from the printer, so without
+   * this the elapsed time carries on climbing long after a print has finished
+   * and the reading drifts away from what the printer reported.
+   */
+  @property({ type: Boolean })
+  public running: boolean = false;
+
   @state()
   private currentTime: number | string | undefined = 0;
 
@@ -89,11 +98,17 @@ export class AnycubicPrintercardStatTime extends LitElement {
   }
 
   private _incTime(): void {
+    if (!this.running) {
+      return;
+    }
     if (
       this.currentTime === 0 ||
       (this.currentTime && !isNaN(this.currentTime as number))
     ) {
-      this.currentTime = Number(this.currentTime) + this.direction;
+      const next = Number(this.currentTime) + this.direction;
+      // A countdown that runs past zero starts reporting nonsense; hold there
+      // until the printer says otherwise.
+      this.currentTime = next < 0 ? 0 : next;
     }
   }
 
