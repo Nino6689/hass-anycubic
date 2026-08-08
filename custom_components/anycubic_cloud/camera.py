@@ -190,7 +190,16 @@ class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
     def available(self) -> bool:
         # Needs the cloud, not the local connection. The printer being loaded
         # at all means the cloud answered for it.
-        return super().available and self._printer_id in self.coordinator.printers
+        if not super().available or self._printer_id not in self.coordinator.printers:
+            return False
+
+        # Only hide the camera once the printer has positively said it has
+        # none. Silence means it has not answered the peripherals poll yet,
+        # and hiding a working camera because a poll is in flight is the worse
+        # of the two mistakes.
+        has_camera = self.coordinator.printers[self._printer_id].has_peripheral_camera
+
+        return has_camera is not False
 
     async def async_camera_image(
         self,

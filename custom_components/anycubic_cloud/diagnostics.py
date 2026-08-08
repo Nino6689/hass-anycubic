@@ -150,7 +150,16 @@ def _build_capabilities(
             "features": printer.features,
             "multi_color_box_count": len(boxes),
             "multi_color_box_models": [box.model_id for box in boxes],
-            "has_camera": printer.camera_stream_url is not None,
+            # What the printer itself says is fitted. None means it has not
+            # answered the peripherals poll yet, which is a different thing
+            # from saying no -- and the difference decides whether the cloud
+            # camera entity is offered.
+            "peripherals": printer.connected_peripherals,
+            # Whether the LOCAL stream endpoint is known. This used to be
+            # reported as "has_camera", which read as "a camera exists" when
+            # it only ever meant "we have a LAN URL for one".
+            "has_lan_stream_url": printer.camera_stream_url is not None,
+            "has_controllable_light": printer.has_controllable_light,
             "chamber_temperature": printer.chamber_temperature,
             "curr_nozzle_temp": printer.curr_nozzle_temp,
             "curr_hotbed_temp": printer.curr_hotbed_temp,

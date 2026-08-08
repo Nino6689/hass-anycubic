@@ -142,6 +142,31 @@ class TestOpeningAStream:
         assert camera._sessions == {}
 
 
+class TestWhenTheCameraIsOffered:
+    """A printer with no camera should not carry a camera entity.
+
+    But silence is not a no: the printer only says what it has once it has
+    answered the peripherals poll, and hiding a working camera while that is
+    still in flight is the worse of the two mistakes.
+    """
+
+    def _with_camera_flag(self, hass: HomeAssistant, flag: bool | None):
+        camera, coordinator = _cloud_camera(hass)
+        printer = MagicMock()
+        printer.has_peripheral_camera = flag
+        coordinator.printers = {1: printer}
+        return camera
+
+    def test_a_printer_that_reports_a_camera_is_offered(self, hass: HomeAssistant) -> None:
+        assert self._with_camera_flag(hass, True).available is True
+
+    def test_a_printer_that_has_not_answered_yet_is_still_offered(self, hass: HomeAssistant) -> None:
+        assert self._with_camera_flag(hass, None).available is True
+
+    def test_a_printer_that_says_it_has_no_camera_is_hidden(self, hass: HomeAssistant) -> None:
+        assert self._with_camera_flag(hass, False).available is False
+
+
 class TestTheStillImage:
     """No frame can exist here, but the card must still render."""
 

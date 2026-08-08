@@ -85,6 +85,7 @@ from .const import (
     HOME_POLL_SECONDS,
     HOME_SEQUENCE_TIMEOUT,
     LOGGER,
+    MAX_CAPABILITY_POLLS,
     MAX_DRYING_PRESETS,
     MAX_FAILED_UPDATES,
     MQTT_ACTION_RESPONSE_ALIVE_SECONDS,
@@ -193,6 +194,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # of an outage once, rather than on every poll, so a long cloud outage
         # does not fill the log.
         self._connection_lost_logged: bool = False
+        # How many times each printer has been asked what it has. Bounded so a
+        # printer with neither a light nor peripherals isn't polled forever.
+        self._capability_polls: dict[int, int] = {}
         self._mqtt_task: asyncio.Future[None] | None = None
         self._mqtt_manually_connected = False
         self._mqtt_idle_since: int | None = None
@@ -397,7 +401,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "job_speed_mode": printer.latest_project_print_speed_mode_string,
             "print_speed_pct": printer.latest_project_print_speed_pct,
             "job_z_thick": printer.latest_project_z_thick,
-            "fan_speed_pct": printer.latest_project_fan_speed_pct,
+            # The printer's own reading, not the sliced job's setting. The
+            # job's value is 0 whenever nothing is printing, which is how the
+            # fan entity came to show a confident 0% while the fan itself was
+            # running.
+            "fan_speed_pct": printer.fan_speed_pct,
             "job_model_height": printer.latest_project_print_model_height,
             "job_anti_alias_count": printer.latest_project_print_anti_alias_count,
             "job_on_time": printer.latest_project_print_on_time,
@@ -1434,6 +1442,78 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Force device registration and entity creation to run again.
             self._printer_device_map = None
 
+    async def _async_poll_printer_capabilities(self) -> None:
+        """Ask the printer what it has, when it hasn't said.
+
+        Two things are only ever known because the printer volunteered them
+        over MQTT: which peripherals are fitted, and whether there is a light.
+        Nothing asked, so a printer that had not mentioned its light since
+        Home Assistant started left the light entity unavailable, and the
+        camera entity had no way to know whether a camera existed.
+
+        Both replies arrive over MQTT rather than in the response, so this
+        only asks while the link is already up, and rides on whatever brought
+        it up -- a print starting, an action, or a connect mode that holds it
+        open. It deliberately does NOT bring MQTT up itself: Anycubic allows
+        one session per account, and someone who chose "only while printing"
+        did so to leave the printer reachable from the slicer the rest of the
+        time. Seizing that for five minutes on every restart to satisfy a
+        capability poll would be a worse bargain than a light entity that
+        stays unavailable until first contact.
+
+        Once answered, the printer keeps telling us, so this is a one-off per
+        connection rather than a recurring poll.
+
+        None of it is required for the integration to work, so nothing here is
+        allowed to fail the update around it -- losing a capability is a far
+        smaller thing than losing every entity.
+        """
+        try:
+            await self._poll_printer_capabilities()
+        except Exception as error:  # noqa: BLE001 - optional, retried later
+            LOGGER.debug("Could not poll printer capabilities: %s", error)
+
+    async def _poll_printer_capabilities(self) -> None:
+        if not self.anycubic_api.mqtt_is_started:
+            return
+
+        pending = [
+            (printer_id, printer)
+            for printer_id, printer in self._anycubic_printers.items()
+            if (
+                printer.has_peripheral_camera is None
+                or not printer.has_controllable_light
+            )
+            and self._capability_polls.get(printer_id, 0) < MAX_CAPABILITY_POLLS
+        ]
+
+        for printer_id, printer in pending:
+            wants_peripherals = printer.has_peripheral_camera is None
+            wants_light = not printer.has_controllable_light
+
+            self._capability_polls[printer_id] = (
+                self._capability_polls.get(printer_id, 0) + 1
+            )
+
+            try:
+                if wants_peripherals:
+                    await self.anycubic_api.send_order_query_peripherals(
+                        printer=printer,
+                    )
+
+                if wants_light:
+                    await self.anycubic_api.send_order_get_light_status(
+                        printer=printer,
+                    )
+            except AnycubicAPIError as error:
+                # Nothing here is required for the integration to work, so a
+                # failure only costs us the capability, not the update.
+                LOGGER.debug(
+                    "Could not poll capabilities for printer %s: %s",
+                    printer_id,
+                    error,
+                )
+
     async def _register_printer_devices(
         self,
         data_dict: dict[str, Any],
@@ -2109,6 +2189,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._check_anycubic_mqtt_connection()
 
             await self._async_add_new_printers()
+
+            await self._async_poll_printer_capabilities()
 
             await self._async_update_filament()
 

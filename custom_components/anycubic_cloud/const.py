@@ -97,6 +97,11 @@ MQTT_IDLE_DISCONNECT_SECONDS = 60 * 15
 MQTT_ACTION_RESPONSE_ALIVE_SECONDS = 60 * 5
 MQTT_REFRESH_INTERVAL = 60 * 5
 MAX_FILE_UPLOAD_RETRIES = 3
+
+# How many times to ask a printer which peripherals and lights it has.
+# The answer comes back over MQTT, so a couple of tries covers a slow
+# reply; past that the printer simply has neither.
+MAX_CAPABILITY_POLLS = 3
 PRINT_JOB_STARTED_UPDATE_DELAY = 5
 
 MAX_DRYING_PRESETS = 4
