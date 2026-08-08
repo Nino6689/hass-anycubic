@@ -141,6 +141,9 @@ PLATFORMS = [
     Platform.UPDATE,
 ]
 
+# Hardware the printer has told us about, remembered between rebuilds
+ATTR_LIGHT_TYPES = "light_types"
+
 # Filament-remaining estimate
 ATTR_FEEDING_SLOT = "feeding_slot"
 ATTR_FILAMENT_USED_G = "filament_used_g"

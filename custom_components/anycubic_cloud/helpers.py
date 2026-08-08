@@ -150,6 +150,20 @@ def async_filament_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, 
     )
 
 
+def async_capability_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
+    """Per-entry store for what the printer has told us it is fitted with.
+
+    Some things the printer only ever volunteers over MQTT, and only once --
+    whether it has a chamber light is one. That is a fact about the hardware
+    rather than a reading, so forgetting it every time the entry is rebuilt
+    (a reload, an options change, a restart) left the light unavailable until
+    the printer next happened to mention it.
+    """
+    return Store[dict[str, Any]](
+        hass, STORAGE_VERSION, f"{STORAGE_KEY}.capabilities.{entry_id}"
+    )
+
+
 def async_token_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
     """The saved-token store for one config entry.
 

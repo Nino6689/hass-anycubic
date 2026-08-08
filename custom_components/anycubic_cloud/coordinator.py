@@ -58,6 +58,7 @@ from .const import (
     ATTR_LAST_JOB_COST,
     ATTR_LAST_JOB_GRAMS,
     ATTR_LAST_JOB_ID,
+    ATTR_LIGHT_TYPES,
     ATTR_MATERIAL_TOTALS,
     ATTR_NOZZLE,
     ATTR_NOZZLE_ABRASIVE_G,
@@ -118,6 +119,7 @@ from .filament import (
 )
 from .helpers import (
     AnycubicMQTTConnectMode,
+    async_capability_store,
     async_filament_store,
     async_load_saved_tokens,
     async_token_store,
@@ -180,6 +182,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._anycubic_api: AnycubicAPI | None = None
         self._anycubic_printers: dict[int, AnycubicPrinter] = dict()
         self._filament: dict[str, Any] = {}
+        # What each printer has told us it is fitted with, remembered across
+        # rebuilds of this object. See _remembered_light_types.
+        self._capabilities: dict[str, Any] = {}
         # First (used_mm, progress) seen for the running job, per printer.
         # The forecast measures a rate between two points rather than from
         # zero, so the purge and prime at the start of a print don't inflate
@@ -417,9 +422,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "job_z_down_speed": printer.latest_project_print_z_down_speed,
             "manual_mqtt_connection_enabled": self._mqtt_manually_connected,
             "mqtt_connection_active": self.anycubic_api.mqtt_is_started,
-            "printer_light": printer.light_is_on,
+            # None, not False, while the printer has a light we know about but
+            # has not said what it is doing -- "off" and "not reported since the
+            # entry was rebuilt" are different answers, and only one of them is
+            # safe to show on a light that may well be on.
+            "printer_light": (
+                printer.light_is_on if printer.has_controllable_light else None
+            ),
             "printer_light_brightness": printer.light_brightness_pct,
-            "has_controllable_light": printer.has_controllable_light,
+            "has_controllable_light": self.printer_has_light(printer),
             "material_used_total": printer.material_used_kg,
             "print_time_total_hrs": printer.total_print_time_hrs,
             "print_count_total": printer.print_count,
@@ -860,6 +871,14 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
     async def _async_force_data_refresh(self) -> None:
+        # This runs on the back of an MQTT or local report, which is the only
+        # way a printer ever mentions its light -- so it is the first moment
+        # the capability can be written down.
+        try:
+            await self._async_remember_capabilities()
+        except Exception as error:  # noqa: BLE001 - a note to self, never fatal
+            LOGGER.debug("Could not record printer capabilities: %s", error)
+
         self.data = self._build_coordinator_data()
         self.last_update_success = True
         self.async_update_listeners()
@@ -1579,6 +1598,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
     async def _async_setup(self) -> None:
+        # Loaded whether or not there is a cloud to talk to: what the printer
+        # is fitted with is the same either way, and a LAN-only entry rebuilds
+        # its printers from local reports without going near the cloud path.
+        await self._async_load_capabilities()
+
         setup_retries = 0
         while setup_retries < API_SETUP_RETRIES + 1:
             try:
@@ -1883,6 +1907,66 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_load_filament(self) -> None:
         stored = await async_filament_store(self.hass, self.entry.entry_id).async_load()
         self._filament = stored or {}
+
+    # -------------------------------------------------------- capabilities
+
+    async def _async_load_capabilities(self) -> None:
+        stored = await async_capability_store(
+            self.hass, self.entry.entry_id
+        ).async_load()
+        self._capabilities = stored or {}
+
+    def _remembered_light_types(self, printer_id: int) -> list[int]:
+        """Light types this printer has reported at some point in the past."""
+        printers = self._capabilities.get("printers", {})
+        remembered = printers.get(str(printer_id), {}).get(ATTR_LIGHT_TYPES)
+
+        if not isinstance(remembered, list):
+            return []
+
+        return [int(light_type) for light_type in remembered]
+
+    def printer_has_light(self, printer: AnycubicPrinter) -> bool:
+        """Whether this printer has a light, live report or remembered.
+
+        The printer mentions its light over MQTT and then never again, so the
+        live answer is only true while that report is still held. Every rebuild
+        of this coordinator -- a reload, an options change, a restart -- starts
+        from a fresh printer object with no reports in it, which is why the
+        light kept going unavailable mid-session. A light is a fact about the
+        hardware, so once seen it is remembered.
+        """
+        if printer.has_controllable_light:
+            return True
+
+        return bool(self._remembered_light_types(int(printer.id)))
+
+    async def _async_remember_capabilities(self) -> None:
+        """Record anything a printer has newly volunteered about itself."""
+        changed = False
+
+        for printer_id, printer in self._anycubic_printers.items():
+            if not printer.has_controllable_light:
+                continue
+
+            light_type = printer.light_type
+
+            if light_type is None or light_type in self._remembered_light_types(
+                printer_id
+            ):
+                continue
+
+            printers = self._capabilities.setdefault("printers", {})
+            state = printers.setdefault(str(printer_id), {})
+            state[ATTR_LIGHT_TYPES] = sorted(
+                set(self._remembered_light_types(printer_id)) | {int(light_type)}
+            )
+            changed = True
+
+        if changed:
+            await async_capability_store(self.hass, self.entry.entry_id).async_save(
+                self._capabilities
+            )
 
     def _check_spool_changes(self, printer: AnycubicPrinter) -> bool:
         """Follow spools as they move between slots, or out and back again.

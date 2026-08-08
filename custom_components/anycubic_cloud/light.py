@@ -83,8 +83,9 @@ class AnycubicLight(AnycubicCloudEntity, LightEntity):
 
     @property
     def available(self) -> bool:
-        # The printer reports its lights over MQTT. Until it has, we don't know
-        # that it has one -- resin printers and older models may not.
+        # The printer reports its lights over MQTT. Until it has -- ever, on
+        # this config entry -- we don't know that it has one, and resin
+        # printers and older models may not.
         return bool(
             printer_state_for_key(
                 self.coordinator, self._printer_id, "has_controllable_light"
@@ -92,10 +93,20 @@ class AnycubicLight(AnycubicCloudEntity, LightEntity):
         )
 
     @property
-    def is_on(self) -> bool:
-        return bool(
-            printer_state_for_key(self.coordinator, self._printer_id, "printer_light")
+    def is_on(self) -> bool | None:
+        """Whether the light is on, or None while the printer hasn't said.
+
+        A remembered light is available before the printer has reported its
+        state again, and guessing "off" there would show a lit chamber as dark.
+        """
+        state = printer_state_for_key(
+            self.coordinator, self._printer_id, "printer_light"
         )
+
+        if state is None:
+            return None
+
+        return bool(state)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the light on. Full brightness is the only setting there is."""
