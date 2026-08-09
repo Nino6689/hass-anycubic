@@ -52,14 +52,16 @@
       },
       "cloud": {
         "title": "Anycubic-Konto verbinden",
-        "description": "Home Assistant kann sich nicht für Sie bei Anycubic anmelden – deren Login lässt das nicht zu. Sie holen sich stattdessen einmalig ein Token und fügen es hier ein.",
+        "description": "Home Assistant kann sich nicht für Sie bei Anycubic anmelden – deren Login verwendet ein Captcha und eine Zwei-Faktor-Prüfung. Fügen Sie stattdessen ein **Token** ein: einen Ausweis, der belegt, dass Sie bereits angemeldet sind.\n\n**Der einfache Weg – ganz ohne Terminal.** Der tools-Ordner der Integration ({tools_url}) enthält Ein-Klick-Helfer:\n• **Browser-Lesezeichen** – auf der Anycubic-Seite anklicken, Token kopiert. Kein Terminal nötig.\n• **Mac** – eine Datei doppelklicken.  • **Windows** – Rechtsklick → Ausführen.\n\nJeder davon *liest* nur einen Wert, den Ihr Computer ohnehin schon gespeichert hat, und kopiert ihn. Sie verbinden sich nie mit dem Internet, fragen nie nach Ihrem Passwort und ändern nichts.\n\nFügen Sie es dann unten ein – Sie müssen es nicht säubern und nicht wissen, um welchen Typ es sich handelt. Zusätzliche Anführungszeichen, Leerzeichen oder sogar die ganze Konfigurationsdatei sind in Ordnung, und der richtige Modus wird für Sie erkannt.",
         "data": {
           "user_token": "Token hier einfügen",
-          "user_device_id": "Geräte-ID (nur bei der Android-Methode – sonst leer lassen)"
+          "user_device_id": "Geräte-ID (nur bei der Android-Methode – sonst leer lassen)",
+          "region": "Auf welchem Anycubic-Dienst liegt Ihr Konto?"
         },
         "data_description": {
           "user_token": "Ein Slicer-Token liefert Live-Aktualisierungen im Sekundentakt und alle Funktionen. Ein Web-Token funktioniert, aber ohne MQTT und damit ohne Live-Updates.",
-          "user_device_id": "Leer lassen, sofern Sie das Token nicht aus der Android-App extrahiert haben."
+          "user_device_id": "Leer lassen, sofern Sie das Token nicht aus der Android-App extrahiert haben.",
+          "region": "Anycubic betreibt zwei getrennte Dienste, die keine Konten gemeinsam nutzen. Für fast alle ist International richtig. Wählen Sie China nur, wenn Sie sich in der chinesischen App oder unter einer .cn-Adresse registriert haben — ein Konto des einen Dienstes existiert im anderen nicht, sodass die falsche Wahl Ihre Anmeldung als ungültig meldet."
         }
       },
       "confirm_discovery": {

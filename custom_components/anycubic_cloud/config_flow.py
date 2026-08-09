@@ -11,6 +11,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
+from anycubic_cloud_api.const.regions import AnycubicRegion, resolve_region
 from anycubic_cloud_api.exceptions.exceptions import (
     AnycubicLANCloudModeError,
     AnycubicLANError,
@@ -30,7 +31,14 @@ from homeassistant.helpers.aiohttp_client import (
     async_get_clientsession,
 )
 from homeassistant.helpers.device_registry import format_mac
-from homeassistant.helpers.selector import BooleanSelector, ObjectSelector
+from homeassistant.helpers.selector import (
+    BooleanSelector,
+    ObjectSelector,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -46,6 +54,7 @@ from .const import (
     CONF_LAN_MODE_ENABLED,
     CONF_MQTT_CONNECT_MODE,
     CONF_PRINTER_ID_LIST,
+    CONF_REGION,
     CONF_USER_AUTH_MODE,
     CONF_USER_DEVICE_ID,
     CONF_USER_TOKEN,
@@ -91,11 +100,55 @@ DATA_SCHEMA_AUTH_SLICER = vol.Schema(
     }
 )
 
+
+def _region_selector() -> SelectSelector:
+    """Which Anycubic deployment the account belongs to.
+
+    A dropdown on the token form rather than a step of its own: it has to be
+    answered before the token is sent anywhere, but it is a one-click default
+    for almost everybody, and an extra full-screen question would tax every
+    international user to serve a handful of Chinese ones.
+
+    Deliberately not auto-detected. Anycubic's China service is a separate
+    deployment with separate accounts, and the only claim that might identify
+    it -- the token's issuer -- was observed carrying the *international*
+    value on the China token in issue #13. Probing the other cloud to find
+    out would mean sending someone's bearer token to a second operator in
+    another jurisdiction on every failed login, which is not a reasonable
+    thing to do by default.
+    """
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(
+                    value=AnycubicRegion.INTERNATIONAL.value,
+                    label="International — anycubic.com",
+                ),
+                SelectOptionDict(
+                    value=AnycubicRegion.CHINA.value,
+                    label="China / 中国 — anycubicloud.com",
+                ),
+            ],
+            mode=SelectSelectorMode.DROPDOWN,
+            # No translation_key deliberately: the labels carry the operators'
+            # own domain names, and the whole point of showing them is that a
+            # user can match one against the address they actually sign in at.
+            # Translating a hostname would defeat that. Note that passing None
+            # is not the same as omitting it -- the selector schema rejects a
+            # null outright.
+        )
+    )
+
+
 DATA_SCHEMA_TOKEN = vol.Schema(
     {
         vol.Required(CONF_USER_TOKEN): cv.string,
         # Only the Android flow needs this; left blank for Web and Slicer.
         vol.Optional(CONF_USER_DEVICE_ID): cv.string,
+        vol.Optional(
+            CONF_REGION,
+            default=AnycubicRegion.INTERNATIONAL.value,
+        ): _region_selector(),
     }
 )
 
@@ -115,14 +168,31 @@ MQTT_CONNECT_MODES = {
 }
 
 
+def region_from_entry_data(data: Mapping[str, Any]) -> AnycubicRegion:
+    """The region an entry belongs to, for entries that may not name one.
+
+    Every read of the stored value goes through here. Reading it directly is
+    the one mistake in this change with a catastrophic failure mode: entries
+    created before this field existed, and every LAN-only entry, simply have
+    no region -- and `data.get(CONF_REGION) == AnycubicRegion.INTERNATIONAL`
+    is False for those, so a direct comparison would treat every existing
+    install as the non-default case and turn ordinary reauth into an
+    unrecoverable failure.
+    """
+    return resolve_region(data.get(CONF_REGION))
+
+
 def async_create_anycubic_api(
     hass: HomeAssistant,
     auth_token: str | None,
     auth_mode: AnycubicAuthMode | int | None = None,
     device_id: str | None = None,
+    region: AnycubicRegion | str | None = None,
 ) -> AnycubicAPI:
     if not auth_token:
         raise Exception("Missing auth token.")
+
+    resolved = resolve_region(region)
 
     cookie_jar = CookieJar(unsafe=True)
     websession = async_create_clientsession(
@@ -133,12 +203,20 @@ def async_create_anycubic_api(
         session=websession,
         cookie_jar=cookie_jar,
         debug_logger=LOGGER,
+        region=resolved,
     )
 
     api.set_authentication(
         auth_token=auth_token,
         auth_mode=auth_mode,
         device_id=device_id,
+        # Slicer mode normally reclassifies a pasted token as an access token.
+        # China's slicer issues an HS512 user token instead, and only a token
+        # left in _auth_token can be used to log in to MQTT -- reclassify it
+        # and MQTT is quietly unavailable while setup still reports success.
+        # Note the polarity: every other region, and every unrecognised
+        # value, keeps today's True.
+        auto_pick_token=resolved is not AnycubicRegion.CHINA,
     )
 
     return api
@@ -232,6 +310,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         self._user_token: str | None = None
         self._user_auth_mode: AnycubicAuthMode | int | None = None
         self._user_device_id: str | None = None
+        self._user_region: AnycubicRegion = AnycubicRegion.INTERNATIONAL
         self._is_reconfigure: bool = False
         self._is_reauth: bool = False
         self._anycubic_api: AnycubicAPI | None = None
@@ -250,6 +329,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
             self._user_token,
             self._user_auth_mode,
             self._user_device_id,
+            self._user_region,
         )
 
     def _errors_unknown_authentication_failure(
@@ -288,7 +368,11 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
 
         success = await self._anycubic_api.check_api_tokens()
         if not success:
-            wrong_kind = token_type_looks_wrong(self._user_token)
+            wrong_kind = (
+                None
+                if self._user_region is AnycubicRegion.CHINA
+                else token_type_looks_wrong(self._user_token)
+            )
 
             if wrong_kind:
                 LOGGER.error(
@@ -403,6 +487,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                             **self.entry.data,
                             CONF_USER_TOKEN: self._user_token,
                             CONF_USER_AUTH_MODE: self._user_auth_mode,
+                            CONF_REGION: self._user_region.value,
                             CONF_USER_DEVICE_ID: self._user_device_id,
                         },
                     )
@@ -435,6 +520,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._user_token = self.entry.data[CONF_USER_TOKEN]
                 self._user_auth_mode = self.entry.data.get(CONF_USER_AUTH_MODE)
                 self._user_device_id = self.entry.data.get(CONF_USER_DEVICE_ID)
+                self._user_region = region_from_entry_data(self.entry.data)
 
             await self._async_check_anycubic_api_instance_exists()
             errors = await self._async_check_login_errors()
@@ -485,6 +571,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                             **self.entry.data,
                             CONF_USER_TOKEN: self._user_token,
                             CONF_USER_AUTH_MODE: self._user_auth_mode,
+                            CONF_REGION: self._user_region.value,
                             CONF_USER_DEVICE_ID: self._user_device_id,
                             CONF_PRINTER_ID_LIST: printer_id_list,
                         },
@@ -501,6 +588,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_USER_TOKEN: self._user_token,
                         CONF_USER_AUTH_MODE: self._user_auth_mode,
+                        CONF_REGION: self._user_region.value,
                         CONF_USER_DEVICE_ID: self._user_device_id,
                         CONF_PRINTER_ID_LIST: printer_id_list,
                     },
@@ -627,6 +715,9 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             raw_token = user_input.get(CONF_USER_TOKEN)
             device_id = (user_input.get(CONF_USER_DEVICE_ID) or "").strip() or None
+            # Set before anything authenticates: it decides which
+            # service the token is sent to.
+            self._user_region = resolve_region(user_input.get(CONF_REGION))
             token = extract_pasted_token(raw_token)
 
             if not token:
@@ -647,6 +738,7 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                                 **self.entry.data,
                                 CONF_USER_TOKEN: self._user_token,
                                 CONF_USER_AUTH_MODE: self._user_auth_mode,
+                                CONF_REGION: self._user_region.value,
                                 CONF_USER_DEVICE_ID: self._user_device_id,
                             },
                         )
@@ -869,6 +961,7 @@ class AnycubicCloudOptionsFlowHandler(OptionsFlow):
                 self.entry.data[CONF_USER_TOKEN],
                 self.entry.data.get(CONF_USER_AUTH_MODE),
                 self.entry.data.get(CONF_USER_DEVICE_ID),
+                region_from_entry_data(self.entry.data),
             )
 
             await async_load_tokens_from_store(

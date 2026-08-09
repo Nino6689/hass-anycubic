@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
+from anycubic_cloud_api.const.regions import AnycubicRegion
 from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData
 from anycubic_cloud_api.data_models.orders import AnycubicShengwangCredentials
 from anycubic_cloud_api.data_models.printer import AnycubicPrinter
@@ -44,6 +45,7 @@ from homeassistant.helpers.device_registry import async_get as async_get_device_
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .config_flow import region_from_entry_data
 from .const import (
     ACE_SLOT_COUNT,
     API_SETUP_RETRIES,
@@ -1228,6 +1230,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             session=websession,
             cookie_jar=cookie_jar,
             debug_logger=LOGGER,
+            region=region_from_entry_data(self.entry.data),
             mqtt_callback_printer_update=self._mqtt_callback_data_updated,
             mqtt_callback_printer_busy=self._mqtt_callback_print_job_started,
             mqtt_callback_subscribed=self._mqtt_callback_subscribed,
@@ -1249,6 +1252,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.entry.data.get(CONF_USER_TOKEN) is None:
             raise ConfigEntryAuthFailed("Authentication Token not found.")
 
+        region = region_from_entry_data(self.entry.data)
+
         try:
             cookie_jar = CookieJar(unsafe=True)
             websession = async_create_clientsession(
@@ -1259,6 +1264,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 session=websession,
                 cookie_jar=cookie_jar,
                 debug_logger=LOGGER,
+                region=region,
                 mqtt_callback_printer_update=self._mqtt_callback_data_updated,
                 mqtt_callback_printer_busy=self._mqtt_callback_print_job_started,
                 mqtt_callback_subscribed=self._mqtt_callback_subscribed,
@@ -1267,6 +1273,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 auth_token=self.entry.data[CONF_USER_TOKEN],
                 auth_mode=self.entry.data.get(CONF_USER_AUTH_MODE),
                 device_id=self.entry.data.get(CONF_USER_DEVICE_ID),
+                # Must match config_flow, or a China entry authenticates
+                # one way at setup and another on every restart.
+                auto_pick_token=region is not AnycubicRegion.CHINA,
             )
 
             # The pasted token is only the starting point; the cloud refreshes it

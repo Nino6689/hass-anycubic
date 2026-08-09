@@ -26,6 +26,10 @@ ATTR_ANYCUBIC_EVENT = "anycubic_cloud"
 ENTITY_ID_DRYING_START_PRESET_ = "drying_start_preset_"
 
 CONF_USER_AUTH_MODE = "user_auth_mode"
+# Which Anycubic deployment the account belongs to. Absent on every entry
+# created before this existed, and on every LAN-only entry -- both resolve
+# to international, which is what they have always used.
+CONF_REGION = "region"
 CONF_USER_DEVICE_ID = "user_device_id"
 CONF_USER_TOKEN = "user_token"
 CONF_PRINTER_ID = "printer_id"

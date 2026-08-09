@@ -8,6 +8,13 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .config_flow import region_from_entry_data
+
+try:
+    from anycubic_cloud_api.const.regions import AnycubicEndpoints
+except ImportError:  # pragma: no cover - only if the pinned api is older
+    AnycubicEndpoints = None  # type: ignore[assignment,misc]
+
 if TYPE_CHECKING:
     from .coordinator import AnycubicCloudDataUpdateCoordinator
 
@@ -170,6 +177,47 @@ def _build_capabilities(
     return capabilities
 
 
+def _build_endpoints(
+    coordinator: AnycubicCloudDataUpdateCoordinator,
+    entry: ConfigEntry,
+) -> dict[str, Any]:
+    """Which service this entry chose, and what that resolved to.
+
+    The most valuable few lines in a China report. Nobody maintaining this has
+    a China account or printer, so those reports are debugged entirely from
+    the dump -- and "which cloud did it even try" is the first question.
+    api/base.py re-raises every request failure as
+    api_error_server_maintenance, so a misresolved endpoint arrives described
+    as an Anycubic outage unless the dump says otherwise.
+
+    Both the stored choice and the resolved addresses, because the interesting
+    bug is the two disagreeing.
+
+    Hostnames only: no token, no account id, nothing identifying a user.
+    """
+    region = region_from_entry_data(entry.data)
+    endpoints = getattr(coordinator.anycubic_api, "endpoints", None)
+
+    # Checked by type, not truthiness. A duck-typed object answers every
+    # getattr with something plausible, so `is None` would sail past and emit
+    # values that are not strings -- which then fails at JSON encoding, taking
+    # the whole diagnostics download with it rather than just this block.
+    if AnycubicEndpoints is None or not isinstance(endpoints, AnycubicEndpoints):
+        return {
+            "region": region.value,
+            "detail": "installed api package predates region support",
+        }
+
+    return {
+        "region": region.value,
+        "base_url": endpoints.base_url,
+        "public_api_root": endpoints.public_api_root,
+        "auth_domain": endpoints.auth_domain,
+        "mqtt_host": endpoints.mqtt_host,
+        "mqtt_port": endpoints.mqtt_port,
+    }
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -194,6 +242,7 @@ async def async_get_config_entry_diagnostics(
     except Exception as err:
         return {
             "capabilities": capabilities,
+            "endpoints": _build_endpoints(coordinator, entry),
             "cloud_unavailable": str(err),
         }
 
@@ -218,6 +267,7 @@ async def async_get_config_entry_diagnostics(
             )
     return {
         "capabilities": capabilities,
+        "endpoints": _build_endpoints(coordinator, entry),
         "user_info": tRedacter.redact_data(
             async_redact_data(
                 parse_all_json_data(user_info),

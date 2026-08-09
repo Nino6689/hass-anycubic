@@ -113,7 +113,7 @@ async def test_falls_back_to_other_auth_mode(hass: HomeAssistant) -> None:
     """
     attempted: list[AnycubicAuthMode] = []
 
-    def _api_factory(hass_arg, token, auth_mode=None, device_id=None):  # noqa: ANN001
+    def _api_factory(hass_arg, token, auth_mode=None, device_id=None, region=None):  # noqa: ANN001
         attempted.append(auth_mode)
         # Reject the first mode tried, accept the second.
         return _mock_api(tokens_ok=len(attempted) > 1)
@@ -139,7 +139,7 @@ async def test_device_id_selects_android(hass: HomeAssistant) -> None:
     """Supplying a device id pins the flow to the Android mode."""
     attempted: list[AnycubicAuthMode] = []
 
-    def _api_factory(hass_arg, token, auth_mode=None, device_id=None):  # noqa: ANN001
+    def _api_factory(hass_arg, token, auth_mode=None, device_id=None, region=None):  # noqa: ANN001
         attempted.append(auth_mode)
         return _mock_api()
 
@@ -388,7 +388,7 @@ async def test_a_repaired_token_is_the_one_stored(hass: HomeAssistant) -> None:
     trimmed = f"{JWT}-trimmed"
     seen: list[str] = []
 
-    def _api_factory(hass_arg, token, auth_mode=None, device_id=None):  # noqa: ANN001
+    def _api_factory(hass_arg, token, auth_mode=None, device_id=None, region=None):  # noqa: ANN001
         seen.append(token)
         return _mock_api()
 
