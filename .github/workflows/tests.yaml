@@ -1,10 +1,13 @@
 name: Tests
 
+# dev is where work lands and betas are cut from, so it needs the same
+# gate as main -- a branch that is not tested is not a safe place to
+# develop, it is just a slower way to break main later.
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 jobs:
   test:
