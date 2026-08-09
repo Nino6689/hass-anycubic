@@ -4,16 +4,12 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any
 
+from anycubic_cloud_api.const.regions import AnycubicEndpoints
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .config_flow import region_from_entry_data
-
-try:
-    from anycubic_cloud_api.const.regions import AnycubicEndpoints
-except ImportError:  # pragma: no cover - only if the pinned api is older
-    AnycubicEndpoints = None  # type: ignore[assignment,misc]
 
 if TYPE_CHECKING:
     from .coordinator import AnycubicCloudDataUpdateCoordinator
@@ -202,10 +198,10 @@ def _build_endpoints(
     # getattr with something plausible, so `is None` would sail past and emit
     # values that are not strings -- which then fails at JSON encoding, taking
     # the whole diagnostics download with it rather than just this block.
-    if AnycubicEndpoints is None or not isinstance(endpoints, AnycubicEndpoints):
+    if not isinstance(endpoints, AnycubicEndpoints):
         return {
             "region": region.value,
-            "detail": "installed api package predates region support",
+            "detail": "api object carries no endpoints record",
         }
 
     return {

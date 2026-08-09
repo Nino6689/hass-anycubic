@@ -748,7 +748,16 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="cloud",
-            data_schema=DATA_SCHEMA_TOKEN,
+            # Seeded with the entry's own region on reauth and reconfigure.
+            # Without this the dropdown falls back to its international
+            # default, and a China user who does not notice sends their token
+            # to the wrong service -- where it fails, and gets reported as a
+            # wrong token type rather than a wrong region. Actively
+            # misdirecting, and not something the maintainer can reproduce.
+            data_schema=self.add_suggested_values_to_schema(
+                DATA_SCHEMA_TOKEN,
+                {CONF_REGION: self._user_region.value},
+            ),
             errors=errors,
             # hassfest forbids URLs inside translation files, so it is passed in.
             description_placeholders={"tools_url": TOOLS_URL},
