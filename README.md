@@ -1670,8 +1670,18 @@ To everyone who has put something in the tip jar — it isn't expected and it's 
 appreciated. This is a spare-time project maintained against an API that changes without notice,
 and knowing people find it useful is most of what keeps it going.
 
+<!-- SUPPORTERS-COUNT:START -->
+_Counting…_
+<!-- SUPPORTERS-COUNT:END -->
+
+Names below are here because the person said yes, not because a script found them. Buy Me a
+Coffee hands out supporters' details whether or not they asked to stay private, and its privacy
+flags aren't documented well enough to sort one from the other with confidence — so the count
+above updates itself and the names don't. If you'd like yours added, or taken away, say so and
+it's done; no reason needed.
+
 <!-- Add supporters here as they come in, newest last. Keep it to whatever name they used --
-     no amounts, and nothing they didn't choose to make public. -->
+     no amounts, no messages, and nobody who hasn't said yes. -->
 
 | | |
 | --- | --- |
