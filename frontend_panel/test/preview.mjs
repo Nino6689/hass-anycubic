@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const { selectPrinterArt, renderPrinter, spoolColors } = await import(join(here, '.build', 'printer_art.js'));
+const { selectPrinterArt, renderPrinter, spoolColors, artAspect } = await import(join(here, '.build', 'printer_art.js'));
 
 function flatten(node, out = '') {
   if (node == null) return out;
@@ -46,8 +46,10 @@ for (const [label, name, units, state, active = 0] of cases) {
   const art = selectPrinterArt(name, units, null, colours, active, remaining);
   const svg = flatten(renderPrinter(art, { ...state, tip: colours[active] }));
   html += `<figure><figcaption>${label}</figcaption>
-    <div class="stage" style="--cam:${art.chamber.map((v) => v + '%').join(' ')}">
-      <div class="cam"></div>${svg}
+    <div class="card">
+      <div class="stage" style="--cam:${art.chamber.map((v) => v + '%').join(' ')}; --aspect:${artAspect(art)}">
+        <div class="cam"></div>${svg}
+      </div>
     </div></figure>\n`;
 }
 
@@ -57,12 +59,16 @@ writeFileSync(join(here, 'preview.html'), `<!doctype html><meta charset="utf-8">
   .grid { display:flex; flex-wrap:wrap; gap:20px; }
   figure { margin:0; width:260px; background:#1b2229; border:1px solid #2b333c; border-radius:12px; padding:10px; }
   figcaption { font-size:12px; color:#93a1ad; margin-bottom:6px; }
-  .stage { position:relative;
+  /* A real card gives the printer a box with BOTH dimensions fixed. The
+     sizing bug only shows up here, never in a free-height container. */
+  .card { height:240px; display:flex; align-items:center; justify-content:center;
+          border:1px dashed #3a4650; border-radius:8px; overflow:hidden; }
+  .stage { position:relative; aspect-ratio:var(--aspect); max-width:100%; max-height:100%; margin:0 auto;
     --primary-text-color:#c9d3dc; --secondary-text-color:#8b98a4; --divider-color:#5d6a76;
     --primary-color:#4a9fd8; --ha-card-background:#1b2229; }
   .cam { position:absolute; inset:var(--cam); z-index:0;
     background:repeating-linear-gradient(135deg,#2c3d4a 0 10px,#223140 10px 20px); }
-  .ac-apr-svg { position:relative; z-index:1; width:100%; height:auto;
+  .ac-apr-svg { position:relative; z-index:1; display:block; width:100%; height:100%;
     color:var(--primary-text-color);
     --ac-printer-accent:var(--primary-color); --ac-printer-rail:var(--secondary-text-color);
     --ac-printer-plate:var(--divider-color); --ac-printer-card-bg:var(--ha-card-background);
