@@ -45,6 +45,11 @@ def fetch_total(token: str) -> int:
         headers={
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",
+            # Required. Buy Me a Coffee sits behind Cloudflare, which blocks
+            # urllib's default agent outright with a 1010 -- so without this
+            # the request fails identically whether the token is valid or not,
+            # and the failure reads exactly like a bad secret.
+            "User-Agent": "hass-anycubic-supporter-count/1.0 (+https://github.com/Nino6689/hass-anycubic)",
         },
     )
 
@@ -52,8 +57,27 @@ def fetch_total(token: str) -> int:
         with urllib.request.urlopen(request, timeout=30) as response:
             payload = json.load(response)
     except urllib.error.HTTPError as error:
-        # Deliberately not printing the body: an error response can echo the
-        # request back, and this runs in a public log.
+        # The body is read but never printed: an error response can echo the
+        # request back, and this runs in a public log. It is only inspected to
+        # tell "we were blocked" apart from "the token is wrong", because those
+        # two need completely different fixes.
+        try:
+            detail = error.read().decode("utf-8", "replace")
+        except Exception:
+            detail = ""
+
+        if error.code == 403 and "1010" in detail:
+            raise SystemExit(
+                "Blocked by Cloudflare (error 1010) -- this is the User-Agent, "
+                "not the token. Nothing about BMC_TOKEN will fix it."
+            ) from None
+
+        if error.code == 401:
+            raise SystemExit(
+                "Buy Me a Coffee rejected the token (HTTP 401). Check BMC_TOKEN "
+                "is current at developers.buymeacoffee.com."
+            ) from None
+
         raise SystemExit(f"Buy Me a Coffee returned HTTP {error.code}") from None
     except Exception as error:
         raise SystemExit(f"Could not reach Buy Me a Coffee: {type(error).__name__}") from None
