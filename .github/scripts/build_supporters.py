@@ -82,10 +82,29 @@ def main() -> int:
     token = os.environ.get("BMC_TOKEN", "").strip()
 
     if not token:
-        # No silent fallback: a missing secret must fail, not quietly produce
-        # a wrong file that gets committed.
-        print("BMC_TOKEN is not set", file=sys.stderr)
-        return 1
+        # Doing nothing is safe; guessing is not. The rule this must not break
+        # is "never write a number we are unsure of" -- writing no number at
+        # all does not break it, so a missing secret is not a failure.
+        #
+        # It is only a failure when someone asked for it by hand, because then
+        # silence would look like success. On a schedule it stays quiet, so an
+        # unconfigured repository does not mail out a failure every Monday.
+        by_hand = os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
+
+        if by_hand:
+            print(
+                "BMC_TOKEN is not set. Add it as a repository secret "
+                "(Settings -> Secrets and variables -> Actions).",
+                file=sys.stderr,
+            )
+            return 1
+
+        print("BMC_TOKEN is not set; leaving the count alone.")
+        output = os.environ.get("GITHUB_OUTPUT")
+        if output:
+            with open(output, "a") as handle:
+                handle.write("changed=false\n")
+        return 0
 
     total = fetch_total(token)
 

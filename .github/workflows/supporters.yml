@@ -10,6 +10,11 @@ name: Supporter count
 # The trigger is deliberately restricted to schedule and manual dispatch:
 # pull_request_target, issue_comment and workflow_run all run with secrets
 # available in contexts an outsider can influence.
+#
+# With no BMC_TOKEN set the scheduled run does nothing and succeeds, so a
+# fork -- or this repo before the secret is added -- does not mail out a
+# failure every Monday. Running it by hand still fails, because then silence
+# would look like it had worked.
 
 on:
   schedule:
