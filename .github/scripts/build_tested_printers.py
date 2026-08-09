@@ -85,6 +85,25 @@ def clean(value: str, limit: int = 60) -> str:
     return value[:limit]
 
 
+def join_ticked(items: list[str], limit: int = 3) -> str:
+    """The ticked boxes, shortened by dropping items rather than characters.
+
+    Cutting the joined string mid-word left things like "Controls (preheat,"
+    in the table -- a dangling bracket that reads as a broken row rather than
+    an abbreviated one.
+    """
+    if not items:
+        return "—"
+
+    shown = [clean(i, 40) for i in items[:limit]]
+    remaining = len(items) - len(shown)
+
+    if remaining > 0:
+        return ", ".join(shown) + f" +{remaining} more"
+
+    return ", ".join(shown)
+
+
 def main() -> int:
     reports: list[dict] = []
     after = None
@@ -121,9 +140,8 @@ def main() -> int:
         rows = ["| Printer | Unit | Connection | Confirmed working | Report |",
                 "| --- | --- | --- | --- | --- |"]
         for r in sorted(reports, key=lambda x: x["model"]):
-            works = ", ".join(r["works"]) if r["works"] else "—"
             rows.append(
-                f"| {r['model']} | {r['ace']} | {r['connection']} | {clean(works, 120)} "
+                f"| {r['model']} | {r['ace']} | {r['connection']} | {join_ticked(r['works'])} "
                 f"| [#{r['number']}]({r['url']}) |"
             )
         table = "\n".join(rows)
