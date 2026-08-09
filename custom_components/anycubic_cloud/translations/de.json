@@ -167,9 +167,6 @@
   },
   "entity": {
     "binary_sensor": {
-      "ai_detection_enabled": {
-        "name": "KI-Erkennung"
-      },
       "axis_move_failed": {
         "name": "Achsbewegung abgelehnt"
       },
@@ -644,6 +641,9 @@
     "camera": {
       "camera": {
         "name": "Kamera"
+      },
+      "cloud_camera": {
+        "name": "Cloud-Kamera"
       }
     },
     "select": {

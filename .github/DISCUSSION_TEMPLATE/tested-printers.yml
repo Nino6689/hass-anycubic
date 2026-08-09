@@ -1,0 +1,98 @@
+title: "[Model] — short summary"
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing. This is the only visibility I have into hardware I don't own —
+        a **Kobra S1 with an ACE Pro** is the only machine here, so every other model on the
+        supported list rests on reports like yours.
+
+        Reports of things **working** are as useful as reports of things breaking. Please fill
+        the fields in rather than free-typing: the verified-models table in the README is built
+        from these answers, so consistent ones can be read automatically.
+
+  - type: dropdown
+    id: model
+    attributes:
+      label: Printer model
+      description: Pick the closest. If it isn't listed, choose Other and say which below.
+      options:
+        - Kobra 3
+        - Kobra 3 Max
+        - Kobra 3 V2
+        - Kobra S1
+        - Kobra S1 Max
+        - Kobra 2 Pro
+        - Kobra 2 Plus
+        - Kobra 2 Max
+        - Photon Mono M5
+        - Photon Mono M5s
+        - Photon Mono M7
+        - Other (say which below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ace
+    attributes:
+      label: Multi-colour unit
+      options:
+        - None
+        - ACE Pro
+        - ACE 2
+        - Two units
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: connection
+    attributes:
+      label: How is it connected?
+      options:
+        - Cloud
+        - Local (LAN Mode)
+        - Local only, no Anycubic account
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Integration version, Home Assistant version, and the printer's firmware.
+      placeholder: "Integration 2.0.1, HA 2026.8, firmware 2.7.2.7"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works
+      description: Tick what you have actually seen working. Leave the rest unticked.
+      options:
+        - label: Temperatures and job progress
+        - label: Every ACE slot, with material and colour
+        - label: Filament remaining
+        - label: Camera
+        - label: Controls (preheat, jog, homing, fans)
+        - label: Drying
+        - label: Chamber light
+        - label: File library and printing a stored file
+
+  - type: textarea
+    id: broken
+    attributes:
+      label: Anything that didn't work
+      description: |
+        What you expected, what happened, and the entity or action involved. Logs help — turn
+        on debug logging under the integration's Configure page if you can.
+      placeholder: "The chamber light entity stays unavailable, though the printer has one."
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Optional. Quirks, differences from the documentation, things worth knowing.

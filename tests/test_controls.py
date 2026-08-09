@@ -17,6 +17,17 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 
+def _device_id(hass: HomeAssistant) -> str:
+    """The printer's device id, which the actions target."""
+    from homeassistant.helpers import device_registry as dr
+
+    registry = dr.async_get(hass)
+    for device in registry.devices.values():
+        if any(d == "anycubic_cloud" for d, _ in device.identifiers) and not device.via_device_id:
+            return device.id
+    raise AssertionError("no printer device registered")
+
+
 def _set_printing(entry, hass, printing: bool) -> None:
     """Mark a job as running in coordinator state.
 
@@ -729,3 +740,92 @@ class TestAiDetection:
 
         assert (AI_DETECTION_ON, AI_DETECTION_OFF) == (3, 0)
         assert MagicMock() is not None
+
+
+class TestTheActionsPreheatToo:
+    """The actions and the entities should agree about a cold printer.
+
+    They did not. The number entities go through the coordinator, which swaps
+    in the printer-scoped order that works with no job running. The actions
+    called the printer directly with a project-scoped order and refused with
+    "Printer is currently idle." -- accurate about their own code path, and
+    useless to anyone wanting to preheat from an automation.
+    """
+
+    async def test_the_nozzle_action_reaches_an_idle_printer(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with (
+            patch.object(
+                type(printer),
+                "latest_project_print_in_progress",
+                PropertyMock(return_value=False),
+            ),
+            patch.object(type(printer), "set_target_temperature", called),
+        ):
+            await hass.services.async_call(
+                "anycubic_cloud",
+                "change_print_target_nozzle_temperature",
+                {
+                    "config_entry": mock_entry.entry_id,
+                    "device_id": _device_id(hass),
+                    "temperature": 215,
+                },
+                blocking=True,
+            )
+
+        assert called.called, "the action should reach a cold printer, as the entity does"
+
+    async def test_the_fan_action_reaches_an_idle_printer(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        called = AsyncMock()
+
+        with (
+            patch.object(
+                type(printer),
+                "latest_project_print_in_progress",
+                PropertyMock(return_value=False),
+            ),
+            patch.object(type(printer), "set_fan_speed", called),
+        ):
+            await hass.services.async_call(
+                "anycubic_cloud",
+                "change_print_fan_speed",
+                {
+                    "config_entry": mock_entry.entry_id,
+                    "device_id": _device_id(hass),
+                    "speed": 60,
+                },
+                blocking=True,
+            )
+
+        assert called.called
+
+    async def test_speed_mode_still_needs_a_running_job(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Not everything gained an idle-capable order.
+
+        Speed mode has no printer-scoped equivalent, so it must keep refusing
+        rather than sending an order the printer quietly discards.
+        """
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+
+        with patch.object(
+            type(printer),
+            "latest_project_print_in_progress",
+            PropertyMock(return_value=False),
+        ):
+            with pytest.raises(HomeAssistantError):
+                await hass.services.async_call(
+                    "anycubic_cloud",
+                    "change_print_speed_mode",
+                    {
+                        "config_entry": mock_entry.entry_id,
+                        "device_id": _device_id(hass),
+                        "speed_mode": 1,
+                    },
+                    blocking=True,
+                )

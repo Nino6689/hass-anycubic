@@ -1,0 +1,49 @@
+name: Tested printers
+
+# Builds the verified-models table in the README from the "Tested printers"
+# discussions, and opens a pull request with the result.
+#
+# It opens a PR rather than pushing: these are other people's words, and a
+# report going straight into the README unread is how a project ends up
+# claiming support it cannot stand behind. Only the structured dropdown
+# answers are read -- never the free-text fields.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  discussions: read
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect the reports
+        id: collect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/build_tested_printers.py
+
+      - name: Open a pull request if anything changed
+        if: steps.collect.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Update the tested-printers table from discussions"
+          branch: tested-printers-update
+          delete-branch: true
+          title: "Tested printers: ${{ steps.collect.outputs.summary }}"
+          body: |
+            Rebuilt from the **Tested printers** discussions.
+
+            Only the structured answers (model, multi-colour unit, connection, and the
+            "what works" tick-boxes) are read. Free-text fields are never copied into the
+            README — read the discussions themselves for those.
+
+            Check the claims look reasonable before merging: this table is what tells
+            someone their printer is supported.

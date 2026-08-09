@@ -170,9 +170,19 @@ Otherwise the step-by-step below explains everything.
 | Kobra 3 Combo | Kobra 2 / 2 Max / 2 Pro |
 | Photon Mono M5s *(basic)* | M7 Pro *(basic)* |
 
-Tried a model that isn't listed, or one of the "reported" ones and it misbehaved?
-[Open an issue](https://github.com/Nino6689/hass-anycubic/issues) — including for the ones
-that *do* work, so this list can rest on something firmer than inference.
+**🧪 Confirmed by owners** — reports from people running the hardware, in their words:
+
+<!-- TESTED-PRINTERS:START -->
+_No reports yet. If you run one of these printers, [tell us how it went](https://github.com/Nino6689/hass-anycubic/discussions) — it is the only way this list rests on something firmer than inference._
+<!-- TESTED-PRINTERS:END -->
+
+**Ran it on your printer?** [Post a report](https://github.com/Nino6689/hass-anycubic/discussions)
+— there's a short form, and it takes a minute. Reports that things **work** matter as much as
+reports that they don't: a Kobra S1 with an ACE Pro is the only machine here, so everything else
+on this page rests on what people tell me. The table above is built from those reports.
+
+Something misbehaving rather than merely untested?
+[Open an issue](https://github.com/Nino6689/hass-anycubic/issues) instead.
 
 ---
 
@@ -731,6 +741,35 @@ local time and works directly in automations.
 Anything marked as reported only on request, along with filament-remaining and the external
 holder, is **disabled by default** — enable what you want in **Settings → Entities**.
 
+<details>
+<summary><b>The rest</b> — entities that only appear on some hardware, or ship switched off</summary>
+
+Not everything is in the tables above, because not every printer grows them.
+
+**Only with a second ACE**, created when the printer reports two units attached. They mirror the
+first unit with a `secondary` prefix: `sensor.*_secondary_ace_spools`,
+`sensor.*_secondary_ace_current_temperature`, the three secondary drying sensors,
+`button.*_secondary_drying_stop`, `switch.*_secondary_ace_run_out_refill` and
+`update.*_secondary_ace_firmware`.
+
+**Only on a resin printer** — exposure and lift settings in place of the FDM ones:
+`sensor.*_job_on_time`, `_job_off_time`, `_job_bottom_time`, `_job_bottom_layers`,
+`_job_model_height`, `_job_anti_alias`, `_job_z_up_height`, `_job_z_up_speed` and
+`_job_z_down_speed`. Untested here — the hardware I own is FDM.
+
+**Only with drying presets configured.** Set a preset's temperature *and* duration in the
+integration's options and you get `button.*_drying_preset_1` … `_4`, plus `secondary_` twins for a
+second unit. Leave either field blank and no button appears. These are the older way to start a
+cycle; `number.*_drying_temperature` + `number.*_drying_duration` + `button.*_start_drying` is the
+newer one and needs no setup.
+
+**Switched off until you want them**, beyond those named above: `sensor.*_last_job_filament` (grams
+the last job used), `sensor.*_nozzle_filament_total`, `sensor.*_spool_inventory_count`,
+`button.*_reset_nozzle_wear`, the four `button.*_ace_slot_N_feed`, the four
+`button.*_ace_slot_N_reset_spool` and the four `number.*_ace_slot_N_spool_weight`.
+
+</details>
+
 There are also [actions](custom_components/anycubic_cloud/services.yaml) for printing, drying and
 file management, including **`print_local_file`** to start a file the printer already holds
 without re-uploading it:
@@ -739,11 +778,84 @@ without re-uploading it:
 action: anycubic_cloud.print_local_file
 data:
   config_entry: <your entry>
-  printer_id: <your printer>
+  device_id: <your printer>
   filename: my_model_plate(01)_PLA_0.2_1h52m.gcode.3mf
 ```
 
+> **Target the printer with `device_id`.** The schema also lists `printer_id`, but the actions
+> are entity-service calls underneath and Home Assistant rejects the call outright if no device
+> is targeted — so `printer_id` on its own comes back as a bad request. The action picker fills
+> `device_id` in for you.
+
 It refuses if a job is already running, rather than interrupting or queueing behind it.
+
+<details>
+<summary><b>Every action, in full</b> — 27 of them</summary>
+
+All are prefixed `anycubic_cloud.`. Each needs `config_entry` and a `device_id` targeting one
+printer; the fields below are what you add on top.
+
+**Starting a print**
+
+| Action | What it does | Fields |
+| --- | --- | --- |
+| `print_local_file` | Starts a file the printer already holds | `filename` — exact name with extension, as listed by `sensor.*_file_list_local`. Refuses if a job is running |
+| `print_and_upload_save_in_cloud` | Uploads, prints, keeps a copy in your Anycubic store | `uploaded_gcode_file`; optional `slot_number` as a **list**, e.g. `[1, 2]` |
+| `print_and_upload_no_cloud_save` | The same, keeping nothing | as above |
+
+Both upload actions fire an `anycubic_cloud` event with `type: print_cloud_start` when the cloud
+accepts the job. A failed read is retried — three attempts, a second apart — because a large file
+is occasionally not on disk yet when the action runs.
+
+**Files**
+
+| Action | What it does | Fields |
+| --- | --- | --- |
+| `delete_file_local` | Deletes from the printer's storage | `filename` |
+| `delete_file_udisk` | Deletes from the USB disk | `filename` |
+| `delete_file_cloud` | Deletes from your Anycubic store | `file_id` — the numeric `id` from the `file_list_cloud` attributes, not a name |
+
+**Filament and the ACE**
+
+Nine actions set what a slot holds, differing only in material:
+`multi_color_box_set_slot_pla`, `_pla_se`, `_petg`, `_abs`, `_asa`, `_pc`, `_pa`, `_pacf`, `_hips`.
+
+Each takes `slot_number` (1–4) and `slot_color_red` / `_green` / `_blue` (0–255), plus optional
+`box_id` (defaults to 0, the first unit). They need an ACE, and the slot sensors refresh
+immediately rather than at the next poll.
+
+| Action | What it does | Fields |
+| --- | --- | --- |
+| `multi_color_box_filament_extrude` | Feeds a slot's filament towards the hotend | `slot_number`; send again with `finished: true` to stop |
+| `multi_color_box_filament_retract` | Retracts whatever is loaded | optional `box_id` — no slot, it retracts what's feeding |
+
+**Changing a job in flight**
+
+| Action | Fields | Range |
+| --- | --- | --- |
+| `change_print_target_nozzle_temperature` | `temperature` | 0–400 |
+| `change_print_target_hotbed_temperature` | `temperature` | 0–400 |
+| `change_print_fan_speed` | `speed` | 0–100 |
+| `change_print_aux_fan_speed` | `speed` | 0–100 |
+| `change_print_box_fan_speed` | `speed` | 0–100 |
+| `change_print_speed_mode` | `speed_mode` | 0–100 — **only while printing** |
+| `change_print_bottom_layers` | `layers` | resin only |
+| `change_print_bottom_time` | `time` | resin only |
+| `change_print_on_time` | `time` | resin only |
+| `change_print_off_time` | `time` | resin only |
+
+The five temperature and fan actions **work on an idle printer**, so an automation can preheat one
+— they use the same orders Anycubic's own One-Click Preheat does. Speed mode has no such order and
+still refuses unless a job is running, rather than sending something the printer would quietly
+discard. The four resin settings need a running job for the same reason.
+
+The equivalent entities — `number.*_set_nozzle_temperature`, `number.*_set_bed_temperature`, the
+three fan numbers and `select.*_print_speed_mode` — do the same jobs and are easier to reach.
+
+**There are no drying actions.** Drying is entities: `number.*_drying_temperature`,
+`number.*_drying_duration` and `button.*_start_drying`.
+
+</details>
 
 > 💡 File listings are large — around 17 KB of attributes each — and have no historical value.
 > Worth excluding from the recorder:

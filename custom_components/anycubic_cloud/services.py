@@ -752,10 +752,16 @@ class ChangePrintTargetNozzleTemperature(BaseChangePrintSetting):
     async def async_call_service(self, service: ServiceCall) -> None:
         """Execute service call."""
 
-        printer = self._get_printer_if_printing(service)
+        printer = self._get_printer(service)
 
+        # Through the coordinator rather than the printer directly: it swaps in
+        # the printer-scoped order for settings that have one, which is what
+        # lets this work on a cold printer. Calling the printer straight would
+        # send a project order with no project -- accepted, then ignored.
         try:
-            await printer.change_print_setting_target_nozzle_temp(
+            await self._get_coordinator(service).async_set_print_setting(
+                printer.id,
+                "change_print_setting_target_nozzle_temp",
                 service.data[CONF_TEMPERATURE],
             )
         except Exception as error:
@@ -772,10 +778,16 @@ class ChangePrintTargetHotbedTemperature(BaseChangePrintSetting):
     async def async_call_service(self, service: ServiceCall) -> None:
         """Execute service call."""
 
-        printer = self._get_printer_if_printing(service)
+        printer = self._get_printer(service)
 
+        # Through the coordinator rather than the printer directly: it swaps in
+        # the printer-scoped order for settings that have one, which is what
+        # lets this work on a cold printer. Calling the printer straight would
+        # send a project order with no project -- accepted, then ignored.
         try:
-            await printer.change_print_setting_target_hotbed_temp(
+            await self._get_coordinator(service).async_set_print_setting(
+                printer.id,
+                "change_print_setting_target_hotbed_temp",
                 service.data[CONF_TEMPERATURE],
             )
         except Exception as error:
@@ -792,10 +804,16 @@ class ChangePrintFanSpeed(BaseChangePrintSetting):
     async def async_call_service(self, service: ServiceCall) -> None:
         """Execute service call."""
 
-        printer = self._get_printer_if_printing(service)
+        printer = self._get_printer(service)
 
+        # Through the coordinator rather than the printer directly: it swaps in
+        # the printer-scoped order for settings that have one, which is what
+        # lets this work on a cold printer. Calling the printer straight would
+        # send a project order with no project -- accepted, then ignored.
         try:
-            await printer.change_print_setting_fan_speed_pct(
+            await self._get_coordinator(service).async_set_print_setting(
+                printer.id,
+                "change_print_setting_fan_speed_pct",
                 service.data[CONF_SPEED],
             )
         except Exception as error:
@@ -812,10 +830,16 @@ class ChangePrintAuxFanSpeed(BaseChangePrintSetting):
     async def async_call_service(self, service: ServiceCall) -> None:
         """Execute service call."""
 
-        printer = self._get_printer_if_printing(service)
+        printer = self._get_printer(service)
 
+        # Through the coordinator rather than the printer directly: it swaps in
+        # the printer-scoped order for settings that have one, which is what
+        # lets this work on a cold printer. Calling the printer straight would
+        # send a project order with no project -- accepted, then ignored.
         try:
-            await printer.change_print_setting_aux_fan_speed_pct(
+            await self._get_coordinator(service).async_set_print_setting(
+                printer.id,
+                "change_print_setting_aux_fan_speed_pct",
                 service.data[CONF_SPEED],
             )
         except Exception as error:
@@ -832,10 +856,16 @@ class ChangePrintBoxFanSpeed(BaseChangePrintSetting):
     async def async_call_service(self, service: ServiceCall) -> None:
         """Execute service call."""
 
-        printer = self._get_printer_if_printing(service)
+        printer = self._get_printer(service)
 
+        # Through the coordinator rather than the printer directly: it swaps in
+        # the printer-scoped order for settings that have one, which is what
+        # lets this work on a cold printer. Calling the printer straight would
+        # send a project order with no project -- accepted, then ignored.
         try:
-            await printer.change_print_setting_box_fan_level(
+            await self._get_coordinator(service).async_set_print_setting(
+                printer.id,
+                "change_print_setting_box_fan_level",
                 service.data[CONF_SPEED],
             )
         except Exception as error:
