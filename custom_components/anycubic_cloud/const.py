@@ -12,11 +12,6 @@ MODEL = "main"
 DOMAIN = "anycubic_cloud"
 COORDINATOR = "coordinator"
 
-CUSTOM_COMPONENTS = "custom_components"
-INTEGRATION_FOLDER = DOMAIN
-PANEL_FOLDER = "frontend_panel"
-PANEL_FILENAME = "dist/anycubic-cloud-panel.js"
-PANEL_NAME = "anycubic-cloud-panel"
 PANEL_TITLE = "Anycubic Cloud & LAN"
 PANEL_ICON = "mdi:printer-3d"
 

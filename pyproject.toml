@@ -41,8 +41,10 @@ disallow_incomplete_defs = true
 warn_return_any = true
 warn_unused_ignores = false
 
-# Standalone developer utilities, not loaded by Home Assistant.
-exclude = ["custom_components/anycubic_cloud/scripts/"]
+# Standalone developer utilities, not loaded by Home Assistant. They live
+# at the repository root now rather than inside the component, so they are
+# no longer shipped to everyone who installs it.
+exclude = ["scripts/"]
 
 # Home Assistant does not declare __all__ on every module, and strict mode
 # turns off implicit re-export. The imports are correct and used throughout
