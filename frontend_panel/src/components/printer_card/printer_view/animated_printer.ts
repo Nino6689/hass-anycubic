@@ -1,11 +1,7 @@
 import { CSSResult, LitElement, PropertyValues, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { query } from "lit/decorators/query.js";
-import { ResizeController } from "@lit-labs/observers/resize-controller.js";
-import { animate, Options as motionOptions } from "@lit-labs/motion";
 
-import { getDimensions } from "./utils";
 import { customElementIfUndef } from "../../../internal/register-custom-element";
 
 import "../media_view/camera_stream.ts";
@@ -13,67 +9,39 @@ import "../media_view/camera_stream.ts";
 import {
   getPrinterImageStateUrl,
   getPrinterSensorStateObj,
+  getStateObjByKey,
   isPrintStatePrinting,
-  updateElementStyleWithObject,
 } from "../../../helpers";
 
 import {
+  PrinterArt,
+  PrinterArtKind,
+  cameraInset,
+  filamentColor,
+  renderPrinter,
+  selectPrinterArt,
+} from "./printer_art";
+
+import {
   AnimatedPrinterConfig,
-  AnimatedPrinterDimensions,
   HassEntityInfos,
   HomeAssistant,
   LitTemplateResult,
 } from "../../../types";
 
-const animOptionsGantry: motionOptions = {
-  keyframeOptions: {
-    duration: 2000,
-    direction: "alternate",
-    composite: "add",
-  },
-  properties: ["left"],
-};
+/** A slot as the ace_spools sensor reports it: colour is [r, g, b]. */
+interface AceSpool {
+  color?: number[] | null;
+  spool_loaded?: boolean;
+}
 
-const animOptionsAxis: motionOptions = {
-  keyframeOptions: {
-    duration: 100,
-    composite: "add",
-  },
-  properties: ["top"],
-};
+const rgbToHex = (rgb?: number[] | null): string | undefined =>
+  Array.isArray(rgb) && rgb.length >= 3
+    ? "#" + rgb.slice(0, 3).map((c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, "0")).join("")
+    : undefined;
 
 @customElementIfUndef("anycubic-printercard-animated_printer")
 export class AnycubicPrintercardAnimatedPrinter extends LitElement {
-  @query(".ac-printercard-animatedprinter")
-  private _rootElement: HTMLElement | undefined;
-
-  @query(".ac-apr-scalable")
-  private _elAcAPr_scalable: HTMLElement | undefined;
-
-  @query(".ac-apr-frame")
-  private _elAcAPr_frame: HTMLElement | undefined;
-
-  @query(".ac-apr-hole")
-  private _elAcAPr_hole: HTMLElement | undefined;
-
-  @query(".ac-apr-buildarea")
-  private _elAcAPr_buildarea: HTMLElement | undefined;
-
-  @query(".ac-apr-animprint")
-  private _elAcAPr_animprint: HTMLElement | undefined;
-
-  @query(".ac-apr-buildplate")
-  private _elAcAPr_buildplate: HTMLElement | undefined;
-
-  @query(".ac-apr-xaxis")
-  private _elAcAPr_xaxis: HTMLElement | undefined;
-
-  @query(".ac-apr-gantry")
-  private _elAcAPr_gantry: HTMLElement | undefined;
-
-  @query(".ac-apr-nozzle")
-  private _elAcAPr_nozzle: HTMLElement | undefined;
-
   @property()
   public hass!: HomeAssistant;
 
@@ -94,20 +62,22 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   @property({ attribute: "camera-entity-id" })
   public cameraEntityId?: string;
 
-  @state()
-  private dimensions: AnimatedPrinterDimensions | undefined;
-
-  @state()
-  private resizeObserver: ResizeController | undefined;
+  /** Overrides model detection when the reported name matches nothing.
+   *  kobra_s1_combo is absent on purpose: a Combo is an S1 with ACE units
+   *  wrapped around it, derived from the attached hardware rather than
+   *  chosen, so offering it here would let the override disagree with the
+   *  printer about what is plugged in. */
+  @property({ attribute: "printer-art" })
+  public printerArt?: Exclude<PrinterArtKind, "kobra_s1_combo">;
 
   @state()
   private _progressNum: number = 0;
 
   @state()
-  private animKeyframeGantry: number = 0;
+  private _isPrinting: boolean = false;
 
   @state()
-  private _isPrinting: boolean = false;
+  private _lightOn: boolean = false;
 
   @state()
   private imagePreviewUrl: string | undefined;
@@ -115,209 +85,160 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   @state()
   private imagePreviewBgUrl: string | undefined;
 
-  public connectedCallback(): void {
-    super.connectedCallback();
-
-    this.resizeObserver = new ResizeController(this, {
-      callback: this._onResizeEvent,
-    });
-
-    if (this.dimensions && this._isPrinting) {
-      this._moveGantry();
-    }
-  }
-
-  public disconnectedCallback(): void {
-    super.disconnectedCallback();
-  }
-
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
 
-    if (changedProperties.has("scaleFactor")) {
-      this._onResizeEvent();
+    if (
+      !changedProperties.has("hass") &&
+      !changedProperties.has("printerEntities") &&
+      !changedProperties.has("printerEntityIdPart")
+    ) {
+      return;
     }
 
-    if (
-      changedProperties.has("hass") ||
-      changedProperties.has("printerEntities") ||
-      changedProperties.has("printerEntityIdPart")
-    ) {
-      const prevUrl = getPrinterImageStateUrl(
-        this.hass,
-        this.printerEntities,
-        this.printerEntityIdPart,
-        "job_preview",
-      );
-      if (this.imagePreviewUrl !== prevUrl) {
-        this.imagePreviewUrl = prevUrl;
-        this.imagePreviewBgUrl = this.imagePreviewUrl
-          ? `url('${prevUrl}')`
-          : undefined;
-      }
-      this._progressNum =
-        Number(
-          getPrinterSensorStateObj(
-            this.hass,
-            this.printerEntities,
-            this.printerEntityIdPart,
-            "job_progress",
-            0,
-          ).state,
-        ) / 100;
-      const printingState = getPrinterSensorStateObj(
+    const prevUrl = getPrinterImageStateUrl(
+      this.hass,
+      this.printerEntities,
+      this.printerEntityIdPart,
+      "job_preview",
+    );
+    if (this.imagePreviewUrl !== prevUrl) {
+      this.imagePreviewUrl = prevUrl;
+      this.imagePreviewBgUrl = prevUrl ? `url('${prevUrl}')` : undefined;
+    }
+
+    this._progressNum =
+      Number(
+        getPrinterSensorStateObj(
+          this.hass,
+          this.printerEntities,
+          this.printerEntityIdPart,
+          "job_progress",
+          0,
+        ).state,
+      ) / 100;
+
+    this._isPrinting = isPrintStatePrinting(
+      getPrinterSensorStateObj(
         this.hass,
         this.printerEntities,
         this.printerEntityIdPart,
         "job_state",
-      ).state.toLowerCase();
+      ).state.toLowerCase(),
+    );
 
-      const newIsPrinting = isPrintStatePrinting(printingState);
-
-      if (this.dimensions && !this._isPrinting && newIsPrinting) {
-        this._moveGantry();
-      }
-
-      this._isPrinting = newIsPrinting;
-    }
+    // The printer's own chamber light, so the artwork agrees with the machine
+    // rather than decorating it. Anything that is not a clear "on" reads as
+    // off: unknown and unavailable must not look illuminated.
+    this._lightOn =
+      getStateObjByKey(this.hass, this.printerEntities, "printer_light")
+        ?.state === "on";
   }
 
-  protected update(changedProperties: PropertyValues): void {
-    super.update(changedProperties);
-
-    if (
-      (changedProperties.has("dimensions") ||
-        changedProperties.has("animKeyframeGantry") ||
-        changedProperties.has("hass")) &&
-      this.dimensions
-    ) {
-      // Riding up with progress would drag the gantry across the picture and
-      // hide the very thing you opened the camera to see, so with the camera
-      // in the build volume it stays parked clear of it and only sweeps.
-      const progY = this.cameraEntityId
-        ? -this.dimensions.BuildArea.height
-        : this._progressNum * -1 * this.dimensions.BuildArea.height;
-      updateElementStyleWithObject(this._elAcAPr_xaxis, {
-        ...this.dimensions.XAxis,
-        top: this.dimensions.XAxis.top + progY,
-      });
-      updateElementStyleWithObject(this._elAcAPr_gantry, {
-        ...this.dimensions.Gantry,
-        left:
-          this.animKeyframeGantry !== 0
-            ? this.dimensions.Gantry.left + this.dimensions.BuildPlate.width
-            : this.dimensions.Gantry.left,
-        top: this.dimensions.Gantry.top + progY,
-      });
-      updateElementStyleWithObject(this._elAcAPr_animprint, {
-        height: `${this._progressNum * 100}%`,
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (changedProperties.has("dimensions") && this.dimensions) {
-        updateElementStyleWithObject(this._elAcAPr_scalable, {
-          ...this.dimensions.Scalable,
-        });
-        updateElementStyleWithObject(this._elAcAPr_frame, {
-          ...this.dimensions.Frame,
-        });
-        updateElementStyleWithObject(this._elAcAPr_hole, {
-          ...this.dimensions.Hole,
-        });
-        updateElementStyleWithObject(this._elAcAPr_buildarea, {
-          ...this.dimensions.BuildArea,
-        });
-        updateElementStyleWithObject(this._elAcAPr_buildplate, {
-          ...this.dimensions.BuildPlate,
-        });
-        updateElementStyleWithObject(this._elAcAPr_nozzle, {
-          ...this.dimensions.Nozzle,
-        });
+  /**
+   * The model, from the device registry rather than a sensor.
+   *
+   * machine_name is not exposed as an entity, but the integration writes it to
+   * the device's model field, and every printer entity carries device_id.
+   */
+  private _machineName(): string | undefined {
+    for (const key in this.printerEntities) {
+      const deviceId = this.printerEntities[key].device_id;
+      if (deviceId && this.hass.devices[deviceId]) {
+        return (
+          this.hass.devices[deviceId].model ?? this.hass.devices[deviceId].name
+        );
       }
     }
+    return undefined;
   }
 
-  render(): LitTemplateResult {
-    const stylesPreview = {
-      "background-image": this.imagePreviewBgUrl,
+  /** Slot colours from the ACE sensors, four per attached unit. */
+  private _spoolState(): { spools: string[]; active: number; units: 0 | 1 | 2 } {
+    const read = (key: string): AceSpool[] => {
+      const stateObj = getStateObjByKey(this.hass, this.printerEntities, key);
+      const spools = stateObj?.attributes?.spools;
+      return Array.isArray(spools) ? (spools as AceSpool[]) : [];
     };
 
-    return html`
-      <div class="ac-printercard-animatedprinter">
-        ${this.dimensions
-          ? html` <div class="ac-apr-scalable">
-              <div class="ac-apr-frame">
-                <div class="ac-apr-hole"></div>
-              </div>
-              <div class="ac-apr-buildarea">
-                ${this.cameraEntityId
-                  ? html`
-                      <anycubic-printercard-camera_stream
-                        class="ac-apr-camera"
-                        .hass=${this.hass}
-                        .cameraEntityId=${this.cameraEntityId}
-                      ></anycubic-printercard-camera_stream>
-                    `
-                  : html`
-                      <div class="ac-apr-animprint">
-                        ${this.imagePreviewBgUrl
-                          ? html`
-                              <div
-                                class="ac-apr-imgprev"
-                                style=${styleMap(stylesPreview)}
-                              ></div>
-                            `
-                          : nothing}
-                      </div>
-                    `}
-              </div>
-              <div class="ac-apr-buildplate"></div>
-              <div
-                class="ac-apr-xaxis"
-                ${animate({ ...animOptionsAxis })}
-              ></div>
-              <div
-                class="ac-apr-gantry"
-                ${animate({ ...animOptionsAxis })}
-                ${animate(this._gantryAnimOptions)}
-              >
-                <div class="ac-apr-nozzle"></div>
-              </div>
-            </div>`
-          : nothing}
-      </div>
-    `;
-  }
+    const primary = read("ace_spools");
+    const secondary = read("secondary_ace_spools");
+    const units = (secondary.length ? 2 : primary.length ? 1 : 0) as 0 | 1 | 2;
 
-  private _gantryAnimOptions = (): motionOptions => {
+    const colours = [...primary, ...secondary].map((s) =>
+      filamentColor(rgbToHex(s.color)),
+    );
+
+    // Which slot is feeding. Absent on machines with no multi-colour unit,
+    // where the highlight is meaningless anyway.
+    const active = Number(
+      getPrinterSensorStateObj(
+        this.hass,
+        this.printerEntities,
+        this.printerEntityIdPart,
+        "ace_active_slot",
+        0,
+      ).state,
+    );
+
     return {
-      ...animOptionsGantry,
-      onComplete: this._moveGantry,
-      disabled: !(this.dimensions && this._isPrinting),
+      spools: colours,
+      active: Number.isFinite(active) && active > 0 ? active - 1 : 0,
+      units,
     };
-  };
+  }
 
-  private _onResizeEvent = (): void => {
-    if (this._rootElement) {
-      const height: number = this._rootElement.clientHeight;
-      const width: number = this._rootElement.clientWidth;
-      this._setDimensions(width, height);
-    }
-  };
-
-  private _setDimensions(width: number, height: number): void {
-    this.dimensions = getDimensions(
-      this.printerConfig,
-      { width, height },
-      this.scaleFactor || 1.0,
+  private _art(): PrinterArt {
+    const { spools, active, units } = this._spoolState();
+    return selectPrinterArt(
+      this._machineName(),
+      units,
+      this.printerArt ?? null,
+      spools,
+      active,
     );
   }
 
-  private _moveGantry = (): void => {
-    this.animKeyframeGantry = this._isPrinting
-      ? Number(!this.animKeyframeGantry)
-      : 0;
-  };
+  render(): LitTemplateResult {
+    const art = this._art();
+    const { spools, active } = this._spoolState();
+    const tip = spools[active] ?? undefined;
+    const cameraLive = Boolean(this.cameraEntityId);
+
+    return html`
+      <div
+        class="ac-printercard-animatedprinter"
+        style=${styleMap({ "--ac-apr-chamber": cameraInset(art) })}
+      >
+        ${cameraLive
+          ? html`
+              <anycubic-printercard-camera_stream
+                class="ac-apr-camera"
+                .hass=${this.hass}
+                .cameraEntityId=${this.cameraEntityId}
+              ></anycubic-printercard-camera_stream>
+            `
+          : this.imagePreviewBgUrl
+            ? html`
+                <div
+                  class="ac-apr-imgprev"
+                  style=${styleMap({
+                    "background-image": this.imagePreviewBgUrl,
+                  })}
+                ></div>
+              `
+            : nothing}
+        ${renderPrinter(
+          art,
+          this._progressNum * 100,
+          cameraLive,
+          0,
+          tip,
+          this._lightOn,
+        )}
+      </div>
+    `;
+  }
 
   static get styles(): CSSResult {
     return css`
@@ -329,6 +250,7 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
       }
 
       .ac-printercard-animatedprinter {
+        position: relative;
         width: 100%;
         height: 100%;
         box-sizing: border-box;
@@ -337,92 +259,82 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
         align-items: center;
       }
 
-      .ac-apr-scalable {
-        position: relative;
-      }
-
-      .ac-apr-frame {
-        top: 0px;
-        left: 0px;
-        border-radius: 8px;
-        background-color: #bbbbbb;
+      /* Both of these fill exactly the chamber hole in the artwork, which is
+         negative space, so the SVG frames them rather than covering them.
+         The inset comes from the art itself because it moves with ACE count. */
+      .ac-apr-camera,
+      .ac-apr-imgprev {
         position: absolute;
+        inset: var(--ac-apr-chamber, 0);
+        z-index: 0;
       }
 
-      .ac-apr-hole {
-        position: absolute;
-        top: 0px;
-        left: 0px;
-        background-color: var(
-          --ha-card-background,
-          var(--card-background-color, white)
-        );
-        border-radius: 8px;
-      }
-
-      .ac-apr-buildarea {
-        background-color: rgba(0, 0, 0, 0.075);
-        box-sizing: border-box;
-        position: absolute;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        align-items: center;
-        border-radius: 8px;
-        overflow: hidden;
-      }
-
-      .ac-apr-buildplate {
-        box-sizing: border-box;
-        border-radius: 8px;
-        position: absolute;
-        background-color: #333333;
-        height: 8px;
-      }
-
-      .ac-apr-xaxis {
-        position: absolute;
-        border-radius: 8px;
-        background-color: #aaaaaa;
-      }
-
-      .ac-apr-animprint {
-        background-color: var(--primary-text-color);
-        width: 100%;
-      }
-
-      /* Fills the build volume so the frame, gantry and nozzle sit over the
-         picture -- it reads as looking into the machine. */
       .ac-apr-camera {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
         background-color: #000;
       }
 
       .ac-apr-imgprev {
-        height: 100%;
-        width: 100%;
-        background-size: 100%;
+        background-size: contain;
         background-repeat: no-repeat;
-        background-position-y: 100%;
+        background-position: center bottom;
       }
 
-      .ac-apr-gantry {
-        background-color: #333333;
-        border-radius: 4px;
-        box-sizing: border-box;
-        position: absolute;
+      /* Sits over the stream, and must never swallow clicks meant for the
+         card underneath. */
+      .ac-apr-svg {
+        position: relative;
+        z-index: 1;
+        pointer-events: none;
+        width: 100%;
+        height: auto;
+        max-height: 100%;
+        color: var(--primary-text-color);
+        --ac-printer-accent: var(
+          --state-icon-active-color,
+          var(--primary-color)
+        );
+        --ac-printer-rail: var(--secondary-text-color);
+        --ac-printer-plate: var(--divider-color);
+        --ac-printer-card-bg: var(
+          --ha-card-background,
+          var(--card-background-color, #fff)
+        );
+        --ac-printer-light: #ffd88a;
       }
 
-      .ac-apr-nozzle {
-        background-color: #aaaaaa;
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        clip-path: polygon(100% 0, 100% 50%, 50% 75%, 0 50%, 0 0);
+      /* The head sweeps only while a job is running. Driven from CSS rather
+         than axis data, which the printer does not report often enough to
+         animate from -- when it is wired, replace this with nozzleTransform. */
+      .ac-apr-svg #nozzle {
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      :host([printing]) .ac-apr-svg #nozzle {
+        animation: ac-apr-sweep 4.4s ease-in-out infinite;
+      }
+
+      @keyframes ac-apr-sweep {
+        0%,
+        100% {
+          transform: translateX(-46px);
+        }
+        50% {
+          transform: translateX(46px);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :host([printing]) .ac-apr-svg #nozzle {
+          animation: none;
+        }
       }
     `;
+  }
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    // Reflected so the sweep keyframe can be scoped to an actual print.
+    this.toggleAttribute("printing", this._isPrinting);
   }
 }
