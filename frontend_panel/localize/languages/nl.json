@@ -1,0 +1,159 @@
+{
+  "title": "Anycubic Cloud",
+  "common": {
+    "actions": {
+      "cancel": "Annuleren",
+      "pause": "Pauzeren",
+      "print": "Printen",
+      "resume": "Hervatten",
+      "yes": "Ja",
+      "no": "Nee",
+      "save": "Opslaan"
+    },
+    "messages": {
+      "mqtt_unsupported": "Deze functie heeft MQTT nodig om gegevens op te halen, maar MQTT wordt helaas niet ondersteund door de ingestelde authenticatiemethode."
+    }
+  },
+  "card": {
+    "buttons": {
+      "print_settings": "Printinstellingen",
+      "dry": "Drogen",
+      "runout_refill": "Bijvullen"
+    },
+    "configure": {
+      "tabs": {
+        "main": "Algemeen",
+        "stats": "Statistieken",
+        "colours": "ACE-kleurvoorinstellingen"
+      },
+      "labels": {
+        "printer_id": "Printer selecteren",
+        "vertical": "Verticale indeling?",
+        "round": "Waarden afronden?",
+        "use_24hr": "24-uursnotatie gebruiken?",
+        "show_settings_button": "Knop printinstellingen altijd tonen?",
+        "always_show": "Kaart altijd tonen?",
+        "temperature_unit": "Temperatuureenheid",
+        "light_entity_id": "Licht-entiteit",
+        "power_entity_id": "Stroom-entiteit",
+        "camera_entity_id": "Camera-entiteit",
+        "scale_factor": "Schaalfactor",
+        "slot_colors": "Kleurvoorinstellingen per slot",
+        "media_view": "Hoofdweergave",
+        "show_controls": "Bedieningsknoppen tonen",
+        "sections": "Uitklapbare secties"
+      }
+    },
+    "print_settings": {
+      "confirm_message": "{action}: weet u het zeker?",
+      "label_nozzle_temp": "Nozzletemperatuur",
+      "label_hotbed_temp": "Bedtemperatuur",
+      "label_fan_speed": "Ventilatorsnelheid",
+      "label_aux_fan_speed": "Hulpventilator",
+      "label_box_fan_speed": "ACE-boxventilator",
+      "print_pause": "Print pauzeren",
+      "print_resume": "Print hervatten",
+      "print_cancel": "Print annuleren",
+      "save_speed_mode": "Snelheidsmodus opslaan",
+      "save_target_nozzle": "Doeltemperatuur nozzle opslaan",
+      "save_target_hotbed": "Doeltemperatuur bed opslaan",
+      "save_fan_speed": "Ventilatorsnelheid opslaan",
+      "save_aux_fan_speed": "Hulpventilator opslaan",
+      "save_box_fan_speed": "ACE-boxventilator opslaan"
+    },
+    "drying_settings": {
+      "heading": "Droogopties",
+      "button_preset": "Voorinstelling",
+      "button_stop_drying": "Drogen stoppen",
+      "button_minutes": "min"
+    },
+    "spool_settings": {
+      "heading": "Slot bewerken",
+      "label_select_material": "Materiaal selecteren",
+      "label_select_colour": "Kleur handmatig selecteren"
+    },
+    "monitored_stats": {
+      "ETA": "Verwacht einde",
+      "Elapsed": "Verstreken",
+      "Remaining": "Resterend",
+      "Status": "Status",
+      "Online": "Online",
+      "Availability": "Beschikbaarheid",
+      "Project": "Printtaak",
+      "Layer": "Laag",
+      "Hotend": "Nozzle",
+      "Bed": "Bed",
+      "T Hotend": "Doel nozzle",
+      "T Bed": "Doel bed",
+      "Dry Status": "Droogstatus",
+      "Dry Time": "Droogtijd",
+      "Speed Mode": "Snelheidsmodus",
+      "Fan Speed": "Ventilatorsnelheid",
+      "On Time": "Belichtingstijd",
+      "Off Time": "Wachttijd",
+      "Bottom Time": "Belichting bodemlagen",
+      "Model Height": "Modelhoogte",
+      "Bottom Layers": "Bodemlagen",
+      "Z Up Height": "Z-hefhoogte",
+      "Z Up Speed": "Z-hefsnelheid",
+      "Z Down Speed": "Z-daalsnelheid"
+    }
+  },
+  "panels": {
+    "initial": {
+      "printer_select": "Selecteer een printer."
+    },
+    "main": {
+      "title": "Overzicht",
+      "cards": {
+        "main": {
+          "description": "Algemene informatie over de printer.",
+          "fields": {
+            "printer_name": "Naam",
+            "printer_id": "ID",
+            "printer_mac": "MAC",
+            "printer_model": "Model",
+            "printer_fw_version": "Firmwareversie",
+            "printer_fw_update_available": "Firmwarestatus",
+            "printer_online": "Online",
+            "printer_available": "Beschikbaar",
+            "curr_nozzle_temp": "Huidige nozzletemperatuur",
+            "curr_hotbed_temp": "Huidige bedtemperatuur",
+            "target_nozzle_temp": "Doeltemperatuur nozzle",
+            "target_hotbed_temp": "Doeltemperatuur bed",
+            "job_state": "Taakstatus",
+            "job_progress": "Taakvoortgang",
+            "ace_fw_version": "ACE-firmwareversie",
+            "ace_fw_update_available": "ACE-firmwarestatus",
+            "drying_active": "ACE-droogstatus",
+            "drying_progress": "ACE-droogvoortgang"
+          }
+        }
+      }
+    },
+    "files_cloud": {
+      "title": "Cloudbestanden",
+      "cards": {}
+    },
+    "files_local": {
+      "title": "Lokale bestanden",
+      "cards": {}
+    },
+    "files_udisk": {
+      "title": "USB-bestanden",
+      "cards": {}
+    },
+    "print_save_in_cloud": {
+      "title": "Printen (opslaan in uw cloud)",
+      "cards": {}
+    },
+    "print_no_cloud_save": {
+      "title": "Printen (niet in cloud opslaan)",
+      "cards": {}
+    },
+    "debug": {
+      "title": "Debug",
+      "cards": {}
+    }
+  }
+}

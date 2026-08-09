@@ -1,0 +1,1452 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Al geconfigureerd.",
+      "reauth_successful": "Opnieuw authenticeren geslaagd."
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken.",
+      "invalid_auth": "Ongeldige authenticatie.",
+      "invalid_printer": "Ongeldige printer.",
+      "invalid_token": "Ongeldig gebruikerstoken.",
+      "invalid_token_format": "Dit lijkt geen Anycubic-token te zijn. Het hoort een lange reeks letters en cijfers te zijn — slicer-tokens beginnen met \"eyJ\". Probeer een van de hulpjes met één klik in de map tools en plak het resultaat hier.",
+      "lan_host_required": "Voer het adres van de printer in uw netwerk in.",
+      "lan_printer_in_cloud_mode": "De printer antwoordde wel, maar staat nog in cloudmodus. Schakel LAN-modus in op de printer: Instellingen → Netwerk → LAN-modus.",
+      "lan_unreachable": "De printer is op dat adres niet bereikbaar. Controleer het adres en of LAN-modus op de printer is ingeschakeld.",
+      "lan_unsupported_printer": "Deze printer gebruikt niet het lokale protocol dat deze integratie spreekt (generatie Kobra 3 / S1). Open een issue met uw model en firmwareversie.",
+      "no_printers": "Geen printers gevonden.",
+      "token_corrupted": "Dit token is beschadigd — de handtekening past niet bij de inhoud, dus onderweg is er een teken verloren gegaan of veranderd. Kopieer het opnieuw, in één geheel. Komt het uit een geheugendump, meld u dan eerst opnieuw aan en haal het token uit een verse dump.",
+      "token_expired": "Dit token is verlopen. Meld u opnieuw aan bij de slicer of de website en haal een nieuw token op — Anycubic-tokens zijn ongeveer 90 dagen geldig.",
+      "wrong_token_type": "Dit lijkt het verkeerde soort token. Anycubic geeft er meerdere uit en de integratie heeft het token nodig waarvan het type \"access-token\" is — de andere worden geweigerd met \"User does not exist\". Hebt u het uit een geheugendump gehaald, dan staan daar meestal meerdere tokens in; probeer de volgende treffer."
+    },
+    "step": {
+      "auth_mode_android": {
+        "title": "Authenticatiemodus - Android-app",
+        "description": "Vereist zowel een token als een device_id.",
+        "data": {
+          "user_token": "Gebruikerstoken",
+          "user_device_id": "Apparaat-ID (vereist voor Android)"
+        }
+      },
+      "auth_mode_pick": {
+        "title": "Authenticatiemodus",
+        "description": "Welke authenticatiemodus wilt u gebruiken?",
+        "menu_options": {
+          "auth_mode_web": "Web (geen MQTT)",
+          "auth_mode_slicer": "Slicer Next (Win)",
+          "auth_mode_android": "Android"
+        }
+      },
+      "auth_mode_slicer": {
+        "title": "Authenticatiemodus - Slicer Next",
+        "description": "Haal de access_token uit de configuratie van uw Anycubic Slicer Next (zie de readme van de integratie — op Windows staat die in AppData/AnycubicSlicerNext/AnycubicSlicerNext.conf, op macOS onder Library/Application Support).",
+        "data": {
+          "user_token": "Accesstoken van de slicer"
+        }
+      },
+      "auth_mode_web": {
+        "title": "Authenticatiemodus - Web",
+        "description": "Haal uw token op van de website van Anycubic Cloud (zie de readme van de integratie voor de precieze stappen — open op de bestandspagina de ontwikkelaarsconsole van uw browser en lees window.localStorage XX-Token uit).",
+        "data": {
+          "user_token": "Gebruikerstoken"
+        }
+      },
+      "cloud": {
+        "title": "Verbind uw Anycubic-account",
+        "description": "Home Assistant kan niet namens u inloggen bij Anycubic — hun login gebruikt een captcha en een tweefactorcontrole. Plak in plaats daarvan een **token**: een pasje waarop staat \"u bent al ingelogd\".\n\n**De makkelijke manier — geen terminal nodig.** In de map tools van de integratie ({tools_url}) staan hulpjes die het met één klik doen:\n• **Bladwijzer in de browser** — klik erop op de site van Anycubic en het token is gekopieerd. Helemaal geen terminal.\n• **Mac** — dubbelklik op een bestand.  • **Windows** — rechtermuisknop → Uitvoeren.\n\nElk hulpje *leest* alleen een waarde die uw computer al had opgeslagen en kopieert die. Ze maken nooit verbinding met internet, vragen nooit om uw wachtwoord en veranderen niets.\n\nPlak het daarna gewoon hieronder — u hoeft het niet netjes te maken en u hoeft niet te weten om welk type het gaat. Extra aanhalingstekens, spaties of zelfs het hele configuratiebestand zijn geen probleem, en de juiste modus wordt voor u herkend.",
+        "data": {
+          "user_token": "Plak hier uw token",
+          "user_device_id": "Apparaat-ID (alleen voor de Android-methode — laat het anders leeg)",
+          "region": "Op welke Anycubic-dienst staat uw account?"
+        },
+        "data_description": {
+          "user_token": "Een slicer-token geeft live updates van seconde tot seconde en de bedieningsknoppen. Een webtoken geeft alleen de status. Wat u ook plakt, het wordt automatisch herkend.",
+          "user_device_id": "Laat dit leeg, tenzij u een token uit het netwerkverkeer van de Android-app hebt gehaald.",
+          "region": "Anycubic draait twee gescheiden diensten die geen accounts met elkaar delen. Vrijwel iedereen laat dit op International staan. Kies alleen China als u zich in de Chinese app of op een .cn-adres hebt aangemeld — een account van de ene dienst bestaat niet op de andere, dus een verkeerde keuze hier meldt uw login als ongeldig."
+        }
+      },
+      "confirm_discovery": {
+        "title": "Anycubic-printer gevonden",
+        "description": "Er is een printer gevonden op {host}. Nu instellen?"
+      },
+      "connection": {
+        "title": "Verbinding",
+        "description": "Kies hoe Home Assistant de printer bereikt.\n\n⚠ Het inschakelen van LAN-modus VERWIJDERT de printer uit uw Anycubic-account. Weer uitschakelen zet dat niet terug, en de printer uit en aan zetten evenmin — de printer moet opnieuw worden toegevoegd in de Anycubic-app. Dit is gedrag van de printer, niet van de integratie.\n\nStel het eerst op de printer in en kies hier daarna hetzelfde. Uw entiteit-ID's blijven in beide gevallen gelijk.",
+        "data": {
+          "lan_mode_enabled": "De lokale verbinding gebruiken (LAN-modus)",
+          "lan_host": "Adres van de printer in uw netwerk"
+        },
+        "data_description": {
+          "lan_host": "Bijvoorbeeld 10.0.0.42. Alleen nodig voor de lokale verbinding."
+        }
+      },
+      "local": {
+        "title": "Rechtstreeks verbinden met de printer",
+        "description": "Op uw printer moet **LAN-modus** ingeschakeld zijn — Instellingen → Netwerk → LAN-modus, op het scherm van de printer zelf.\n\nEr is geen Anycubic-account of token nodig. U krijgt temperaturen, voortgang van de printtaak, alle vier de ACE-slots, filamentregistratie en de camera. Bestandsbeheer in de cloud en de printwachtrij zijn op deze manier niet beschikbaar.\n\n⚠️ Het inschakelen van LAN-modus verwijdert de printer uit uw Anycubic-account. U kunt hem later in de app weer toevoegen, maar dat gaat niet vanzelf.",
+        "data": {
+          "lan_host": "IP-adres van de printer"
+        }
+      },
+      "printer": {
+        "title": "Kies uw printers.",
+        "data": {
+          "printer_ids": "Bewaakte printers"
+        }
+      },
+      "reauth_or_choose_printer": {
+        "title": "Opnieuw authenticeren of printer kiezen",
+        "description": "Wilt u opnieuw authenticeren of uw bewaakte printer(s) wijzigen?",
+        "menu_options": {
+          "reauth": "Opnieuw authenticeren",
+          "printer": "Printer(s) wijzigen",
+          "connection": "Verbinding (cloud of lokaal)"
+        }
+      },
+      "user": {
+        "title": "Hoe moet Home Assistant uw printer bereiken?",
+        "menu_options": {
+          "cloud": "Anycubic-account (cloud)",
+          "local": "Rechtstreeks op mijn netwerk (LAN-modus) — geen account nodig"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "options_menu": {
+        "title": "Anycubic-opties",
+        "menu_options": {
+          "mqtt": "MQTT-instellingen",
+          "drying": "Droogvoorinstellingen",
+          "card_config": "Configuratie paneelkaart",
+          "debug": "Foutopsporingsinstellingen",
+          "local": "Lokale verbinding (LAN-modus)"
+        }
+      },
+      "mqtt": {
+        "title": "MQTT-instellingen",
+        "data": {
+          "mqtt_connect_mode": "MQTT-verbindingsmodus"
+        }
+      },
+      "drying": {
+        "title": "Droogvoorinstellingen",
+        "data": {
+          "drying_preset_duration_1": "Duur droogvoorinstelling 1",
+          "drying_preset_temperature_1": "Temperatuur droogvoorinstelling 1",
+          "drying_preset_duration_2": "Duur droogvoorinstelling 2",
+          "drying_preset_temperature_2": "Temperatuur droogvoorinstelling 2",
+          "drying_preset_duration_3": "Duur droogvoorinstelling 3",
+          "drying_preset_temperature_3": "Temperatuur droogvoorinstelling 3",
+          "drying_preset_duration_4": "Duur droogvoorinstelling 4",
+          "drying_preset_temperature_4": "Temperatuur droogvoorinstelling 4"
+        }
+      },
+      "card_config": {
+        "title": "Configuratie paneelkaart",
+        "data": {
+          "card_config": "Configuratie paneelkaart (YAML-formaat)"
+        }
+      },
+      "debug": {
+        "title": "Foutopsporingsinstellingen",
+        "data": {
+          "debug_mqtt_msg": "Alle MQTT-berichten in het foutopsporingslogboek vastleggen",
+          "debug_api_calls": "Alle API-aanroepen in het foutopsporingslogboek vastleggen"
+        }
+      },
+      "local": {
+        "title": "Lokale verbinding (LAN-modus)",
+        "description": "Praat rechtstreeks met de printer op uw netwerk in plaats van via de cloud van Anycubic.\n\n⚠ Het inschakelen van LAN-modus VERWIJDERT de printer uit uw Anycubic-account. Weer uitschakelen zet dat niet terug, en de printer uit en aan zetten evenmin — de printer moet opnieuw worden toegevoegd in de Anycubic-app. Dit is gedrag van de printer, niet van de integratie.\n\nFuncties die alleen in de cloud bestaan (de bestandsbibliotheek, uploads, printgeschiedenis) werken dan niet meer. Alles wat de printer zelf weet, inclusief de filamentregistratie, blijft gewoon werken.\n\nSchakel LAN-modus eerst op de printer in en zet het hier daarna aan.",
+        "data": {
+          "lan_mode_enabled": "De lokale verbinding gebruiken",
+          "lan_host": "Adres van de printer in uw netwerk"
+        },
+        "data_description": {
+          "lan_host": "Bijvoorbeeld 10.0.0.42. Een vast adres wordt sterk aangeraden."
+        }
+      }
+    },
+    "error": {
+      "lan_host_required": "Voer het adres van de printer in uw netwerk in.",
+      "lan_unreachable": "De printer is op dat adres niet bereikbaar. Controleer het adres en of LAN-modus op de printer is ingeschakeld.",
+      "lan_printer_in_cloud_mode": "De printer antwoordde wel, maar staat nog in cloudmodus. Schakel LAN-modus in op de printer: Instellingen → Netwerk → LAN-modus.",
+      "lan_unsupported_printer": "Deze printer gebruikt niet het lokale protocol dat deze integratie spreekt (generatie Kobra 3 / S1). Open een issue met uw model en firmwareversie."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "axis_move_failed": {
+        "name": "Asbeweging geweigerd"
+      },
+      "axis_moving": {
+        "name": "As beweegt"
+      },
+      "dry_status_is_drying": {
+        "name": "Drogen actief"
+      },
+      "external_spool_loaded": {
+        "name": "Externe spoel geladen"
+      },
+      "is_available": {
+        "name": "Is beschikbaar"
+      },
+      "is_busy": {
+        "name": "Is bezig"
+      },
+      "job_complete": {
+        "name": "Printtaak voltooid"
+      },
+      "job_failed": {
+        "name": "Printtaak mislukt"
+      },
+      "job_filament_insufficient": {
+        "name": "Onvoldoende filament voor printtaak"
+      },
+      "job_in_progress": {
+        "name": "Printtaak bezig"
+      },
+      "job_is_paused": {
+        "name": "Printtaak gepauzeerd"
+      },
+      "mqtt_connection_active": {
+        "name": "MQTT-verbinding actief"
+      },
+      "printer_online": {
+        "name": "Printer online"
+      },
+      "secondary_dry_status_is_drying": {
+        "name": "Secundair drogen actief"
+      }
+    },
+    "button": {
+      "ace_refresh_spools": {
+        "name": "ACE-spoelen vernieuwen"
+      },
+      "ace_retract": {
+        "name": "ACE filament terugtrekken"
+      },
+      "ace_slot_1_feed": {
+        "name": "ACE slot 1 filament aanvoeren"
+      },
+      "ace_slot_1_reset_spool": {
+        "name": "ACE slot 1 spoel resetten"
+      },
+      "ace_slot_2_feed": {
+        "name": "ACE slot 2 filament aanvoeren"
+      },
+      "ace_slot_2_reset_spool": {
+        "name": "ACE slot 2 spoel resetten"
+      },
+      "ace_slot_3_feed": {
+        "name": "ACE slot 3 filament aanvoeren"
+      },
+      "ace_slot_3_reset_spool": {
+        "name": "ACE slot 3 spoel resetten"
+      },
+      "ace_slot_4_feed": {
+        "name": "ACE slot 4 filament aanvoeren"
+      },
+      "ace_slot_4_reset_spool": {
+        "name": "ACE slot 4 spoel resetten"
+      },
+      "axis_home_all": {
+        "name": "Alle assen homen"
+      },
+      "axis_home_xy": {
+        "name": "X en Y homen"
+      },
+      "axis_home_z": {
+        "name": "Z-as homen"
+      },
+      "axis_motors_off": {
+        "name": "Motoren vrijgeven"
+      },
+      "axis_move_x_minus": {
+        "name": "X verplaatsen (min)"
+      },
+      "axis_move_x_plus": {
+        "name": "X verplaatsen (plus)"
+      },
+      "axis_move_y_minus": {
+        "name": "Y verplaatsen (min)"
+      },
+      "axis_move_y_plus": {
+        "name": "Y verplaatsen (plus)"
+      },
+      "axis_move_z_minus": {
+        "name": "Z verplaatsen (min)"
+      },
+      "axis_move_z_plus": {
+        "name": "Z verplaatsen (plus)"
+      },
+      "cancel_print": {
+        "name": "Print annuleren"
+      },
+      "drying_start": {
+        "name": "Drogen starten"
+      },
+      "drying_start_preset_1": {
+        "name": "Droogvoorinstelling 1"
+      },
+      "drying_start_preset_2": {
+        "name": "Droogvoorinstelling 2"
+      },
+      "drying_start_preset_3": {
+        "name": "Droogvoorinstelling 3"
+      },
+      "drying_start_preset_4": {
+        "name": "Droogvoorinstelling 4"
+      },
+      "drying_stop": {
+        "name": "Drogen stoppen"
+      },
+      "pause_print": {
+        "name": "Print pauzeren"
+      },
+      "refresh_mqtt_connection": {
+        "name": "MQTT-verbinding vernieuwen"
+      },
+      "request_axis_position": {
+        "name": "Positie van de printkop opvragen"
+      },
+      "request_file_list_cloud": {
+        "name": "Bestandslijst opvragen (cloud)"
+      },
+      "request_file_list_local": {
+        "name": "Bestandslijst opvragen (lokaal)"
+      },
+      "request_file_list_udisk": {
+        "name": "Bestandslijst opvragen (USB-stick)"
+      },
+      "reset_nozzle_wear": {
+        "name": "Nozzleslijtage resetten"
+      },
+      "resume_print": {
+        "name": "Print hervatten"
+      },
+      "secondary_drying_start_preset_1": {
+        "name": "Secundaire droogvoorinstelling 1"
+      },
+      "secondary_drying_start_preset_2": {
+        "name": "Secundaire droogvoorinstelling 2"
+      },
+      "secondary_drying_start_preset_3": {
+        "name": "Secundaire droogvoorinstelling 3"
+      },
+      "secondary_drying_start_preset_4": {
+        "name": "Secundaire droogvoorinstelling 4"
+      },
+      "secondary_drying_stop": {
+        "name": "Secundair drogen stoppen"
+      }
+    },
+    "image": {
+      "job_image_url": {
+        "name": "Printtaakvoorbeeld"
+      }
+    },
+    "sensor": {
+      "ace_current_temperature": {
+        "name": "ACE huidige temperatuur"
+      },
+      "ace_loaded_slot": {
+        "name": "ACE geladen slot"
+      },
+      "ace_slot_1": {
+        "name": "ACE slot 1"
+      },
+      "ace_slot_1_filament_remaining": {
+        "name": "ACE slot 1 filament resterend"
+      },
+      "ace_slot_1_filament_remaining_percent": {
+        "name": "ACE slot 1 filament resterend percentage"
+      },
+      "ace_slot_2": {
+        "name": "ACE slot 2"
+      },
+      "ace_slot_2_filament_remaining": {
+        "name": "ACE slot 2 filament resterend"
+      },
+      "ace_slot_2_filament_remaining_percent": {
+        "name": "ACE slot 2 filament resterend percentage"
+      },
+      "ace_slot_3": {
+        "name": "ACE slot 3"
+      },
+      "ace_slot_3_filament_remaining": {
+        "name": "ACE slot 3 filament resterend"
+      },
+      "ace_slot_3_filament_remaining_percent": {
+        "name": "ACE slot 3 filament resterend percentage"
+      },
+      "ace_slot_4": {
+        "name": "ACE slot 4"
+      },
+      "ace_slot_4_filament_remaining": {
+        "name": "ACE slot 4 filament resterend"
+      },
+      "ace_slot_4_filament_remaining_percent": {
+        "name": "ACE slot 4 filament resterend percentage"
+      },
+      "ace_spools": {
+        "name": "ACE-spoelen"
+      },
+      "aux_fan_speed_pct": {
+        "name": "Snelheid hulpventilator"
+      },
+      "axis_position_x": {
+        "name": "Printkoppositie X"
+      },
+      "axis_position_y": {
+        "name": "Printkoppositie Y"
+      },
+      "axis_position_z": {
+        "name": "Printkoppositie Z"
+      },
+      "box_fan_level": {
+        "name": "ACE boxventilatorniveau"
+      },
+      "curr_hotbed_temp": {
+        "name": "Temperatuur verwarmd bed"
+      },
+      "curr_nozzle_temp": {
+        "name": "Nozzletemperatuur"
+      },
+      "current_status": {
+        "name": "Huidige status"
+      },
+      "dry_status_remaining_time": {
+        "name": "Resterende droogtijd"
+      },
+      "dry_status_target_temperature": {
+        "name": "Doeltemperatuur drogen"
+      },
+      "dry_status_total_duration": {
+        "name": "Totale droogduur"
+      },
+      "external_spool_material": {
+        "name": "Materiaal externe spoel"
+      },
+      "fan_speed_pct": {
+        "name": "Ventilatorsnelheid %"
+      },
+      "filament_cost_total": {
+        "name": "Totale filamentkosten"
+      },
+      "file_list_cloud": {
+        "name": "Bestandslijst (cloud)"
+      },
+      "file_list_local": {
+        "name": "Bestandslijst (lokaal)"
+      },
+      "file_list_udisk": {
+        "name": "Bestandslijst (USB-stick)"
+      },
+      "job_anti_alias_count": {
+        "name": "Printtaak anti-aliasing"
+      },
+      "job_bottom_layers": {
+        "name": "Printtaak onderlagen"
+      },
+      "job_bottom_time": {
+        "name": "Printtaak belichtingstijd onderlagen"
+      },
+      "job_cost": {
+        "name": "Printtaakkosten"
+      },
+      "job_current_layer": {
+        "name": "Printtaak huidige laag"
+      },
+      "job_eta": {
+        "name": "Printtaak verwachte eindtijd"
+      },
+      "job_filament_required": {
+        "name": "Printtaak benodigd filament"
+      },
+      "job_filament_runs_out_at": {
+        "name": "Printtaak filament raakt op om"
+      },
+      "job_filament_shortfall": {
+        "name": "Printtaak filamenttekort"
+      },
+      "job_filament_used": {
+        "name": "Printtaak gebruikt filament"
+      },
+      "job_model_height": {
+        "name": "Printtaak modelhoogte"
+      },
+      "job_name": {
+        "name": "Printtaaknaam"
+      },
+      "job_off_time": {
+        "name": "Printtaak uit-tijd"
+      },
+      "job_on_time": {
+        "name": "Printtaak aan-tijd"
+      },
+      "job_progress": {
+        "name": "Printtaakvoortgang %"
+      },
+      "job_speed_mode": {
+        "name": "Printtaak snelheidsmodus"
+      },
+      "job_state": {
+        "name": "Printtaakstatus"
+      },
+      "job_time_elapsed": {
+        "name": "Printtaak verstreken tijd"
+      },
+      "job_time_remaining": {
+        "name": "Printtaak resterende tijd"
+      },
+      "job_total_layers": {
+        "name": "Printtaak totaal aantal lagen"
+      },
+      "job_z_down_speed": {
+        "name": "Printtaak Z-snelheid omlaag"
+      },
+      "job_z_thick": {
+        "name": "Printtaak Z-dikte"
+      },
+      "job_z_up_height": {
+        "name": "Printtaak Z-hefhoogte"
+      },
+      "job_z_up_speed": {
+        "name": "Printtaak Z-snelheid omhoog"
+      },
+      "last_job_cost": {
+        "name": "Kosten laatste printtaak"
+      },
+      "last_job_filament": {
+        "name": "Filament laatste printtaak"
+      },
+      "material_used_total": {
+        "name": "Totaal gebruikt materiaal"
+      },
+      "nozzle_abrasive_filament": {
+        "name": "Schurend filament door nozzle"
+      },
+      "nozzle_filament_total": {
+        "name": "Totaal filament door nozzle"
+      },
+      "nozzle_wear_percent": {
+        "name": "Nozzleslijtage"
+      },
+      "print_count_total": {
+        "name": "Totaal aantal prints"
+      },
+      "print_speed_pct": {
+        "name": "Printsnelheid %"
+      },
+      "print_time_total_hrs": {
+        "name": "Totale printtijd"
+      },
+      "secondary_ace_current_temperature": {
+        "name": "Secundaire ACE huidige temperatuur"
+      },
+      "secondary_ace_spools": {
+        "name": "Secundaire ACE-spoelen"
+      },
+      "secondary_dry_status_remaining_time": {
+        "name": "Secundair drogen resterende tijd"
+      },
+      "secondary_dry_status_target_temperature": {
+        "name": "Secundair drogen doeltemperatuur"
+      },
+      "secondary_dry_status_total_duration": {
+        "name": "Secundair drogen totale duur"
+      },
+      "spool_inventory_count": {
+        "name": "Aantal spoelen in voorraad"
+      },
+      "spool_inventory_remaining": {
+        "name": "Resterende spoelvoorraad"
+      },
+      "target_hotbed_temp": {
+        "name": "Doeltemperatuur verwarmd bed"
+      },
+      "target_nozzle_temp": {
+        "name": "Doeltemperatuur nozzle"
+      }
+    },
+    "switch": {
+      "ai_detection_enabled": {
+        "name": "AI-detectie van mislukte prints"
+      },
+      "manual_mqtt_connection_enabled": {
+        "name": "Handmatige MQTT-verbinding ingeschakeld"
+      },
+      "multi_color_box_runout_refill": {
+        "name": "ACE automatisch bijvullen bij opraken"
+      },
+      "secondary_multi_color_box_runout_refill": {
+        "name": "Secundaire ACE automatisch bijvullen bij opraken"
+      }
+    },
+    "update": {
+      "fw_version": {
+        "name": "Printerfirmware"
+      },
+      "multi_color_box_fw_version": {
+        "name": "ACE-firmware"
+      },
+      "secondary_multi_color_box_fw_version": {
+        "name": "Secundaire ACE-firmware"
+      }
+    },
+    "light": {
+      "printer_light": {
+        "name": "Printerverlichting"
+      }
+    },
+    "number": {
+      "ace_slot_1_spool_price": {
+        "name": "ACE slot 1 spoelprijs per kg"
+      },
+      "ace_slot_1_spool_weight": {
+        "name": "ACE slot 1 spoelgewicht"
+      },
+      "ace_slot_2_spool_price": {
+        "name": "ACE slot 2 spoelprijs per kg"
+      },
+      "ace_slot_2_spool_weight": {
+        "name": "ACE slot 2 spoelgewicht"
+      },
+      "ace_slot_3_spool_price": {
+        "name": "ACE slot 3 spoelprijs per kg"
+      },
+      "ace_slot_3_spool_weight": {
+        "name": "ACE slot 3 spoelgewicht"
+      },
+      "ace_slot_4_spool_price": {
+        "name": "ACE slot 4 spoelprijs per kg"
+      },
+      "ace_slot_4_spool_weight": {
+        "name": "ACE slot 4 spoelgewicht"
+      },
+      "drying_set_duration": {
+        "name": "Droogduur"
+      },
+      "drying_set_temperature": {
+        "name": "Droogtemperatuur"
+      },
+      "set_aux_fan_speed_pct": {
+        "name": "Snelheid hulpventilator instellen"
+      },
+      "set_box_fan_level": {
+        "name": "Boxventilatorniveau instellen"
+      },
+      "set_fan_speed_pct": {
+        "name": "Ventilatorsnelheid instellen"
+      },
+      "set_target_hotbed_temp": {
+        "name": "Bedtemperatuur instellen"
+      },
+      "set_target_nozzle_temp": {
+        "name": "Nozzletemperatuur instellen"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Camera"
+      },
+      "cloud_camera": {
+        "name": "Cloudcamera"
+      }
+    },
+    "select": {
+      "axis_step": {
+        "name": "Stapgrootte as"
+      },
+      "set_speed_mode": {
+        "name": "Printsnelheidsmodus"
+      }
+    }
+  },
+  "services": {
+    "multi_color_box_set_slot_pla": {
+      "name": "ACE slot instellen - PLA",
+      "description": "Stelt de eigenschappen van een PLA-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_petg": {
+      "name": "ACE slot instellen - PETG",
+      "description": "Stelt de eigenschappen van een PETG-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_abs": {
+      "name": "ACE slot instellen - ABS",
+      "description": "Stelt de eigenschappen van een ABS-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pacf": {
+      "name": "ACE slot instellen - PACF",
+      "description": "Stelt de eigenschappen van een PACF-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pc": {
+      "name": "ACE slot instellen - PC",
+      "description": "Stelt de eigenschappen van een PC-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_asa": {
+      "name": "ACE slot instellen - ASA",
+      "description": "Stelt de eigenschappen van een ASA-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_hips": {
+      "name": "ACE slot instellen - HIPS",
+      "description": "Stelt de eigenschappen van een HIPS-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pa": {
+      "name": "ACE slot instellen - PA",
+      "description": "Stelt de eigenschappen van een PA-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pla_se": {
+      "name": "ACE slot instellen - PLA SE",
+      "description": "Stelt de eigenschappen van een PLA SE-slot in de ACE-unit in.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Slotkleur rood",
+          "description": "Slotkleur rood (0-255)."
+        },
+        "slot_color_green": {
+          "name": "Slotkleur groen",
+          "description": "Slotkleur groen (0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Slotkleur blauw",
+          "description": "Slotkleur blauw (0-255)."
+        }
+      }
+    },
+    "multi_color_box_filament_extrude": {
+      "name": "ACE filament extruderen",
+      "description": "Start het extruderen van filament op de ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        },
+        "slot_number": {
+          "name": "Slotnummer",
+          "description": "Slotnummer (1-4)."
+        },
+        "finished": {
+          "name": "Extruderen voltooid",
+          "description": "Commando om het extruderen van filament te beëindigen."
+        }
+      }
+    },
+    "multi_color_box_filament_retract": {
+      "name": "ACE filament terugtrekken",
+      "description": "Start het terugtrekken van filament op de ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "box_id": {
+          "name": "Box-ID",
+          "description": "Box-ID (0-1)."
+        }
+      }
+    },
+    "print_and_upload_save_in_cloud": {
+      "name": "Printen en uploaden (opslaan in de cloud van de gebruiker).",
+      "description": "Printen en uploaden, met opslag in de cloudopslag van de gebruiker.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "slot_number": {
+          "name": "Lijst met slotnummers",
+          "description": "Lijst met slotnummers (1-4) om aan de printkleuren te koppelen. Bijv. [1, 2]"
+        },
+        "uploaded_gcode_file": {
+          "name": "G-code-bestand",
+          "description": "Het .gcode-bestand dat uit de slicer komt."
+        }
+      }
+    },
+    "print_and_upload_no_cloud_save": {
+      "name": "Printen en uploaden (niet opslaan in de cloud).",
+      "description": "Printen en uploaden, maar niet opslaan in de cloudopslag van de gebruiker.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "slot_number": {
+          "name": "Lijst met slotnummers",
+          "description": "Lijst met slotnummers (1-4) om aan de printkleuren te koppelen. Bijv. [1, 2]"
+        },
+        "uploaded_gcode_file": {
+          "name": "G-code-bestand",
+          "description": "Het .gcode-bestand dat uit de slicer komt."
+        }
+      }
+    },
+    "delete_file_local": {
+      "name": "Bestand verwijderen (lokaal)",
+      "description": "Verwijder een bestand uit de lokale opslag van de printer.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "filename": {
+          "name": "Bestandsnaam",
+          "description": "Volledige bestandsnaam (met extensie)"
+        }
+      }
+    },
+    "delete_file_udisk": {
+      "name": "Bestand verwijderen (USB-stick)",
+      "description": "Verwijder een bestand van de USB-stick van de printer.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "filename": {
+          "name": "Bestandsnaam",
+          "description": "Volledige bestandsnaam (met extensie)"
+        }
+      }
+    },
+    "delete_file_cloud": {
+      "name": "Bestand verwijderen (cloud)",
+      "description": "Verwijder een bestand uit de cloudopslag van de gebruiker.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "file_id": {
+          "name": "Bestands-ID",
+          "description": "Bestands-ID in de cloud"
+        }
+      }
+    },
+    "change_print_speed_mode": {
+      "name": "Printsnelheidsmodus wijzigen",
+      "description": "Printsnelheidsmodus wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "speed_mode": {
+          "name": "Snelheidsmodus",
+          "description": "Snelheidsmodus"
+        }
+      }
+    },
+    "change_print_target_nozzle_temperature": {
+      "name": "Nozzletemperatuur van de print wijzigen",
+      "description": "Nozzletemperatuur van de print wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "temperature": {
+          "name": "Nozzletemperatuur",
+          "description": "Nozzletemperatuur"
+        }
+      }
+    },
+    "change_print_target_hotbed_temperature": {
+      "name": "Temperatuur van het verwarmde bed wijzigen",
+      "description": "Temperatuur van het verwarmde bed wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "temperature": {
+          "name": "Temperatuur verwarmd bed",
+          "description": "Temperatuur verwarmd bed"
+        }
+      }
+    },
+    "change_print_fan_speed": {
+      "name": "Ventilatorsnelheid van de print wijzigen",
+      "description": "Ventilatorsnelheid van de print wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "speed": {
+          "name": "Ventilatorsnelheid",
+          "description": "Ventilatorsnelheid"
+        }
+      }
+    },
+    "change_print_aux_fan_speed": {
+      "name": "Snelheid van de hulpventilator wijzigen",
+      "description": "Snelheid van de hulpventilator wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "speed": {
+          "name": "Snelheid hulpventilator",
+          "description": "Snelheid hulpventilator"
+        }
+      }
+    },
+    "change_print_box_fan_speed": {
+      "name": "Snelheid van de boxventilator wijzigen",
+      "description": "Snelheid van de boxventilator wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "speed": {
+          "name": "Boxventilatorsnelheid",
+          "description": "Boxventilatorsnelheid"
+        }
+      }
+    },
+    "change_print_bottom_layers": {
+      "name": "Onderlagen van de print wijzigen",
+      "description": "Onderlagen van de print wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "layers": {
+          "name": "Onderlagen",
+          "description": "Onderlagen"
+        }
+      }
+    },
+    "change_print_bottom_time": {
+      "name": "Belichtingstijd van de onderlagen wijzigen",
+      "description": "Belichtingstijd van de onderlagen wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "time": {
+          "name": "Belichtingstijd onderlagen",
+          "description": "Belichtingstijd onderlagen"
+        }
+      }
+    },
+    "change_print_off_time": {
+      "name": "Uit-tijd van de print wijzigen",
+      "description": "Uit-tijd van de print wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "time": {
+          "name": "Uit-tijd",
+          "description": "Uit-tijd"
+        }
+      }
+    },
+    "change_print_on_time": {
+      "name": "Aan-tijd van de print wijzigen",
+      "description": "Aan-tijd van de print wijzigen",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "De configuratie die voor deze actie wordt gebruikt."
+        },
+        "device_id": {
+          "name": "Printerapparaat",
+          "description": "Printerapparaat (als u geen ID gebruikt)."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Printer-ID (als u geen apparaat gebruikt)."
+        },
+        "time": {
+          "name": "Aan-tijd",
+          "description": "Aan-tijd"
+        }
+      }
+    },
+    "print_local_file": {
+      "name": "Een bestand op de printer printen",
+      "description": "Start een print met een bestand dat al op de printer staat. Gebruik de bestandslijstsensoren om de bestandsnaam op te zoeken.",
+      "fields": {
+        "config_entry": {
+          "name": "Configuratie",
+          "description": "Het Anycubic-account."
+        },
+        "printer_id": {
+          "name": "Printer-ID",
+          "description": "Welke printer."
+        },
+        "device_id": {
+          "name": "Apparaat",
+          "description": "Welke printer."
+        },
+        "filename": {
+          "name": "Bestandsnaam",
+          "description": "Exact de naam zoals de bestandslijstsensor die weergeeft."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "Die Anycubic-configuratie is niet gevonden."
+    },
+    "config_entry_not_loaded": {
+      "message": "De Anycubic-integratie is niet geladen. Controleer of deze is ingesteld en verbonden en probeer het opnieuw."
+    },
+    "one_printer_at_a_time": {
+      "message": "Deze actie kan maar op één printer tegelijk worden toegepast."
+    },
+    "printer_not_found": {
+      "message": "Die Anycubic-printer is niet gevonden. Mogelijk is deze uit uw account verwijderd."
+    },
+    "gcode_read_failed": {
+      "message": "Dat gcode-bestand kon niet worden gelezen. Controleer of het bestand goed is geüpload en probeer het opnieuw."
+    },
+    "mqtt_connect_timeout": {
+      "message": "Time-out bij het verbinden met de printer. Zet de schakelaar voor de handmatige MQTT-verbinding aan en probeer het opnieuw."
+    },
+    "printer_busy": {
+      "message": "De printer is bezig. Wacht tot de huidige printtaak klaar is voordat u een nieuwe start."
+    }
+  },
+  "issues": {
+    "token_expiring": {
+      "title": "Anycubic-token verloopt over {days} dagen",
+      "description": "Het token voor **{name}** verloopt over ongeveer **{days} dagen**. Anycubic-tokens zijn 90 dagen geldig en kunnen niet automatisch worden vernieuwd, dus Home Assistant verliest de toegang zodra het verloopt.\n\n**1. Haal een nieuw token op** met het hulpje met één klik voor uw computer. Elk hulpje leest alleen een waarde die uw computer al had opgeslagen — er wordt niets verstuurd.\n\n- [Mac — dubbelklik hierop]({tool_macos})\n- [Windows — PowerShell-oneliner]({tool_windows})\n- [Elke browser — bookmarklet]({tool_browser})\n\n**2. [Open de integratie]({reauth_url})** → ⋮ → **Herconfigureren** → **Opnieuw authenticeren**.\n\n**3. Plak het erin.** U hoeft het niet op te schonen of een type te kiezen — dat wordt voor u uitgezocht."
+    }
+  }
+}

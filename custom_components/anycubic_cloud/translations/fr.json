@@ -1,0 +1,1452 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Déjà configuré.",
+      "reauth_successful": "Ré-authentification réussie."
+    },
+    "error": {
+      "cannot_connect": "Connexion impossible.",
+      "invalid_auth": "Authentification non valide.",
+      "invalid_printer": "Imprimante non valide.",
+      "invalid_token": "Jeton utilisateur non valide.",
+      "invalid_token_format": "Cela ne ressemble pas à un jeton Anycubic. Il doit s'agir d'une longue suite de lettres et de chiffres — les jetons du slicer commencent par \"eyJ\". Essayez l'un des utilitaires en un clic du dossier tools, puis collez le résultat ici.",
+      "lan_host_required": "Saisissez l'adresse de l'imprimante sur votre réseau.",
+      "lan_printer_in_cloud_mode": "L'imprimante a répondu, mais elle est toujours en mode cloud. Activez le mode LAN sur l'imprimante : Paramètres → Réseau → Mode LAN.",
+      "lan_unreachable": "Impossible de joindre l'imprimante à cette adresse. Vérifiez l'adresse, ainsi que l'activation du mode LAN sur l'imprimante.",
+      "lan_unsupported_printer": "Cette imprimante n'utilise pas le protocole local pris en charge par cette intégration (génération Kobra 3 / S1). Veuillez ouvrir un ticket en indiquant votre modèle et votre version de micrologiciel.",
+      "no_printers": "Aucune imprimante trouvée.",
+      "token_corrupted": "Ce jeton est endommagé — sa signature ne correspond pas à son contenu, ce qui signifie qu'un caractère a été perdu ou modifié en chemin. Copiez-le de nouveau, d'un seul tenant. S'il provient d'un vidage mémoire, reconnectez-vous d'abord, puis reprenez le jeton dans un nouveau vidage.",
+      "token_expired": "Ce jeton a expiré. Reconnectez-vous au slicer ou au site web et récupérez-en un nouveau — les jetons Anycubic durent environ 90 jours.",
+      "wrong_token_type": "Il semble s'agir du mauvais type de jeton. Anycubic en délivre plusieurs, et l'intégration a besoin de celui dont le type est \"access-token\" — les autres sont refusés avec le message \"User does not exist\". Si vous l'avez récupéré dans un vidage mémoire, il y en a généralement plusieurs : essayez la correspondance suivante."
+    },
+    "step": {
+      "auth_mode_android": {
+        "title": "Mode d'authentification - application Android",
+        "description": "Nécessite à la fois le jeton et le device_id.",
+        "data": {
+          "user_token": "Jeton utilisateur",
+          "user_device_id": "ID d'appareil (requis pour Android)"
+        }
+      },
+      "auth_mode_pick": {
+        "title": "Mode d'authentification",
+        "description": "Quel mode d'authentification souhaitez-vous utiliser ?",
+        "menu_options": {
+          "auth_mode_web": "Web (sans MQTT)",
+          "auth_mode_slicer": "Slicer Next (Win)",
+          "auth_mode_android": "Android"
+        }
+      },
+      "auth_mode_slicer": {
+        "title": "Mode d'authentification - Slicer Next",
+        "description": "Récupérez le access_token dans la configuration d'Anycubic Slicer Next (voir le readme de l'intégration — sous Windows : AppData/AnycubicSlicerNext/AnycubicSlicerNext.conf ; sous macOS : dans Library/Application Support).",
+        "data": {
+          "user_token": "Jeton d'accès du slicer"
+        }
+      },
+      "auth_mode_web": {
+        "title": "Mode d'authentification - web",
+        "description": "Récupérez votre jeton sur le site web Anycubic Cloud (voir le readme de l'intégration pour la procédure exacte — ouvrez la console de développement de votre navigateur sur la page des fichiers et lisez window.localStorage XX-Token).",
+        "data": {
+          "user_token": "Jeton utilisateur"
+        }
+      },
+      "cloud": {
+        "title": "Connectez votre compte Anycubic",
+        "description": "Home Assistant ne peut pas se connecter à Anycubic à votre place — leur page de connexion utilise un captcha et une vérification en deux étapes. À la place, collez un **jeton** : un laissez-passer qui dit \"vous êtes déjà connecté\".\n\n**La méthode simple — aucun terminal nécessaire.** Le dossier tools de l'intégration ({tools_url}) contient des utilitaires en un clic :\n• **Marque-page de navigateur** — cliquez dessus sur le site Anycubic, le jeton est copié. Aucun terminal.\n• **Mac** — double-cliquez sur un fichier.  • **Windows** — clic droit → Exécuter.\n\nChacun se contente de *lire* une valeur que votre ordinateur a déjà enregistrée, puis de la copier. Ils ne se connectent jamais à Internet, ne demandent jamais votre mot de passe et ne modifient rien.\n\nIl ne vous reste qu'à le coller ci-dessous — inutile de le mettre au propre, et vous n'avez pas besoin de savoir de quel type il s'agit. Guillemets ou espaces en trop, voire le fichier de configuration entier : tout convient, et le bon mode est détecté pour vous.",
+        "data": {
+          "user_token": "Collez votre jeton ici",
+          "user_device_id": "ID d'appareil (uniquement pour la méthode Android — laissez vide sinon)",
+          "region": "Sur quel service Anycubic votre compte se trouve-t-il ?"
+        },
+        "data_description": {
+          "user_token": "Un jeton du slicer donne des mises à jour en direct, seconde par seconde, ainsi que les boutons de commande. Un jeton web ne donne que l'état. Quel que soit celui que vous collez, il est détecté automatiquement.",
+          "user_device_id": "Laissez ce champ vide, sauf si vous avez extrait un jeton du trafic réseau de l'application Android.",
+          "region": "Anycubic exploite deux services distincts, qui ne partagent pas les comptes. Dans la quasi-totalité des cas, laissez la valeur International. Ne choisissez China que si vous vous êtes inscrit depuis l'application chinoise ou sur une adresse en .cn — un compte créé sur l'un des services n'existe pas sur l'autre, si bien qu'un mauvais choix ici fait apparaître vos identifiants comme non valides."
+        }
+      },
+      "confirm_discovery": {
+        "title": "Imprimante Anycubic trouvée",
+        "description": "Une imprimante a été trouvée à l'adresse {host}. Voulez-vous la configurer maintenant ?"
+      },
+      "connection": {
+        "title": "Connexion",
+        "description": "Choisissez comment Home Assistant joint l'imprimante.\n\n⚠ Activer le mode LAN SUPPRIME l'imprimante de votre compte Anycubic. Le désactiver de nouveau ne la rétablit pas, et une coupure de courant non plus — l'imprimante doit être ajoutée à nouveau dans l'application Anycubic. C'est le comportement de l'imprimante, pas celui de l'intégration.\n\nChangez d'abord le réglage sur l'imprimante, puis faites-le correspondre ici. Vos identifiants d'entité restent les mêmes dans les deux cas.",
+        "data": {
+          "lan_mode_enabled": "Utiliser la connexion locale (mode LAN)",
+          "lan_host": "Adresse de l'imprimante sur votre réseau"
+        },
+        "data_description": {
+          "lan_host": "Par exemple 10.0.0.42. Nécessaire uniquement pour la connexion locale."
+        }
+      },
+      "local": {
+        "title": "Se connecter directement à l'imprimante",
+        "description": "Le **mode LAN** doit être activé sur votre imprimante — Paramètres → Réseau → Mode LAN, sur l'écran de l'imprimante elle-même.\n\nAucun compte ni jeton Anycubic n'est nécessaire. Vous obtiendrez les températures, la progression de la tâche, les quatre emplacements ACE, le suivi du filament et la caméra. La gestion des fichiers dans le cloud et la file d'attente d'impression ne sont pas disponibles de cette façon.\n\n⚠️ Activer le mode LAN supprime l'imprimante de votre compte Anycubic. Vous pourrez l'y rajouter plus tard depuis l'application, mais ce n'est pas automatique.",
+        "data": {
+          "lan_host": "Adresse IP de l'imprimante"
+        }
+      },
+      "printer": {
+        "title": "Choisissez vos imprimantes.",
+        "data": {
+          "printer_ids": "Imprimantes surveillées"
+        }
+      },
+      "reauth_or_choose_printer": {
+        "title": "Ré-authentification ou choix de l'imprimante",
+        "description": "Souhaitez-vous vous ré-authentifier ou changer les imprimantes surveillées ?",
+        "menu_options": {
+          "reauth": "Se ré-authentifier",
+          "printer": "Changer d'imprimante(s)",
+          "connection": "Connexion (cloud ou locale)"
+        }
+      },
+      "user": {
+        "title": "Comment Home Assistant doit-il joindre votre imprimante ?",
+        "menu_options": {
+          "cloud": "Compte Anycubic (cloud)",
+          "local": "Directement sur mon réseau (mode LAN) — aucun compte nécessaire"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "options_menu": {
+        "title": "Options Anycubic",
+        "menu_options": {
+          "mqtt": "Paramètres MQTT",
+          "drying": "Préréglages de séchage",
+          "card_config": "Configuration de la carte du panneau",
+          "debug": "Paramètres de débogage",
+          "local": "Connexion locale (mode LAN)"
+        }
+      },
+      "mqtt": {
+        "title": "Paramètres MQTT",
+        "data": {
+          "mqtt_connect_mode": "Mode de connexion MQTT"
+        }
+      },
+      "drying": {
+        "title": "Préréglages de séchage",
+        "data": {
+          "drying_preset_duration_1": "Durée du préréglage de séchage 1",
+          "drying_preset_temperature_1": "Température du préréglage de séchage 1",
+          "drying_preset_duration_2": "Durée du préréglage de séchage 2",
+          "drying_preset_temperature_2": "Température du préréglage de séchage 2",
+          "drying_preset_duration_3": "Durée du préréglage de séchage 3",
+          "drying_preset_temperature_3": "Température du préréglage de séchage 3",
+          "drying_preset_duration_4": "Durée du préréglage de séchage 4",
+          "drying_preset_temperature_4": "Température du préréglage de séchage 4"
+        }
+      },
+      "card_config": {
+        "title": "Configuration de la carte du panneau",
+        "data": {
+          "card_config": "Configuration de la carte du panneau (format YAML)"
+        }
+      },
+      "debug": {
+        "title": "Paramètres de débogage",
+        "data": {
+          "debug_mqtt_msg": "Journaliser tous les messages MQTT (débogage)",
+          "debug_api_calls": "Journaliser tous les appels API (débogage)"
+        }
+      },
+      "local": {
+        "title": "Connexion locale (mode LAN)",
+        "description": "Communiquez avec l'imprimante directement sur votre réseau, plutôt qu'en passant par le cloud d'Anycubic.\n\n⚠ Activer le mode LAN SUPPRIME l'imprimante de votre compte Anycubic. Le désactiver de nouveau ne la rétablit pas, et une coupure de courant non plus — l'imprimante doit être ajoutée à nouveau dans l'application Anycubic. C'est le comportement de l'imprimante, pas celui de l'intégration.\n\nLes fonctions propres au cloud (la bibliothèque de fichiers, les envois, l'historique d'impression) cessent de fonctionner. Tout ce que l'imprimante connaît elle-même, y compris le suivi du filament, continue de fonctionner.\n\nActivez d'abord le mode LAN sur l'imprimante, puis activez-le ici.",
+        "data": {
+          "lan_mode_enabled": "Utiliser la connexion locale",
+          "lan_host": "Adresse de l'imprimante sur votre réseau"
+        },
+        "data_description": {
+          "lan_host": "Par exemple 10.0.0.42. Une adresse fixe est fortement recommandée."
+        }
+      }
+    },
+    "error": {
+      "lan_host_required": "Saisissez l'adresse de l'imprimante sur votre réseau.",
+      "lan_unreachable": "Impossible de joindre l'imprimante à cette adresse. Vérifiez l'adresse, ainsi que l'activation du mode LAN sur l'imprimante.",
+      "lan_printer_in_cloud_mode": "L'imprimante a répondu, mais elle est toujours en mode cloud. Activez le mode LAN sur l'imprimante : Paramètres → Réseau → Mode LAN.",
+      "lan_unsupported_printer": "Cette imprimante n'utilise pas le protocole local pris en charge par cette intégration (génération Kobra 3 / S1). Veuillez ouvrir un ticket en indiquant votre modèle et votre version de micrologiciel."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "axis_move_failed": {
+        "name": "Déplacement d'axe refusé"
+      },
+      "axis_moving": {
+        "name": "Axe en mouvement"
+      },
+      "dry_status_is_drying": {
+        "name": "Séchage actif"
+      },
+      "external_spool_loaded": {
+        "name": "Bobine externe chargée"
+      },
+      "is_available": {
+        "name": "Disponible"
+      },
+      "is_busy": {
+        "name": "Occupée"
+      },
+      "job_complete": {
+        "name": "Tâche terminée"
+      },
+      "job_failed": {
+        "name": "Tâche échouée"
+      },
+      "job_filament_insufficient": {
+        "name": "Filament insuffisant pour la tâche"
+      },
+      "job_in_progress": {
+        "name": "Tâche en cours"
+      },
+      "job_is_paused": {
+        "name": "Tâche en pause"
+      },
+      "mqtt_connection_active": {
+        "name": "Connexion MQTT active"
+      },
+      "printer_online": {
+        "name": "Imprimante en ligne"
+      },
+      "secondary_dry_status_is_drying": {
+        "name": "Séchage secondaire actif"
+      }
+    },
+    "button": {
+      "ace_refresh_spools": {
+        "name": "Actualiser les bobines ACE"
+      },
+      "ace_retract": {
+        "name": "ACE rétracter le filament"
+      },
+      "ace_slot_1_feed": {
+        "name": "ACE alimenter l'emplacement 1"
+      },
+      "ace_slot_1_reset_spool": {
+        "name": "ACE réinitialiser la bobine de l'emplacement 1"
+      },
+      "ace_slot_2_feed": {
+        "name": "ACE alimenter l'emplacement 2"
+      },
+      "ace_slot_2_reset_spool": {
+        "name": "ACE réinitialiser la bobine de l'emplacement 2"
+      },
+      "ace_slot_3_feed": {
+        "name": "ACE alimenter l'emplacement 3"
+      },
+      "ace_slot_3_reset_spool": {
+        "name": "ACE réinitialiser la bobine de l'emplacement 3"
+      },
+      "ace_slot_4_feed": {
+        "name": "ACE alimenter l'emplacement 4"
+      },
+      "ace_slot_4_reset_spool": {
+        "name": "ACE réinitialiser la bobine de l'emplacement 4"
+      },
+      "axis_home_all": {
+        "name": "Origine de tous les axes"
+      },
+      "axis_home_xy": {
+        "name": "Origine X et Y"
+      },
+      "axis_home_z": {
+        "name": "Origine de l'axe Z"
+      },
+      "axis_motors_off": {
+        "name": "Relâcher les moteurs"
+      },
+      "axis_move_x_minus": {
+        "name": "Déplacer X en négatif"
+      },
+      "axis_move_x_plus": {
+        "name": "Déplacer X en positif"
+      },
+      "axis_move_y_minus": {
+        "name": "Déplacer Y en négatif"
+      },
+      "axis_move_y_plus": {
+        "name": "Déplacer Y en positif"
+      },
+      "axis_move_z_minus": {
+        "name": "Déplacer Z en négatif"
+      },
+      "axis_move_z_plus": {
+        "name": "Déplacer Z en positif"
+      },
+      "cancel_print": {
+        "name": "Annuler l'impression"
+      },
+      "drying_start": {
+        "name": "Démarrer le séchage"
+      },
+      "drying_start_preset_1": {
+        "name": "Préréglage de séchage 1"
+      },
+      "drying_start_preset_2": {
+        "name": "Préréglage de séchage 2"
+      },
+      "drying_start_preset_3": {
+        "name": "Préréglage de séchage 3"
+      },
+      "drying_start_preset_4": {
+        "name": "Préréglage de séchage 4"
+      },
+      "drying_stop": {
+        "name": "Arrêter le séchage"
+      },
+      "pause_print": {
+        "name": "Mettre l'impression en pause"
+      },
+      "refresh_mqtt_connection": {
+        "name": "Actualiser la connexion MQTT"
+      },
+      "request_axis_position": {
+        "name": "Demander la position de la tête"
+      },
+      "request_file_list_cloud": {
+        "name": "Demander la liste des fichiers (cloud)"
+      },
+      "request_file_list_local": {
+        "name": "Demander la liste des fichiers (local)"
+      },
+      "request_file_list_udisk": {
+        "name": "Demander la liste des fichiers (clé USB)"
+      },
+      "reset_nozzle_wear": {
+        "name": "Réinitialiser l'usure de la buse"
+      },
+      "resume_print": {
+        "name": "Reprendre l'impression"
+      },
+      "secondary_drying_start_preset_1": {
+        "name": "Préréglage de séchage secondaire 1"
+      },
+      "secondary_drying_start_preset_2": {
+        "name": "Préréglage de séchage secondaire 2"
+      },
+      "secondary_drying_start_preset_3": {
+        "name": "Préréglage de séchage secondaire 3"
+      },
+      "secondary_drying_start_preset_4": {
+        "name": "Préréglage de séchage secondaire 4"
+      },
+      "secondary_drying_stop": {
+        "name": "Arrêter le séchage secondaire"
+      }
+    },
+    "image": {
+      "job_image_url": {
+        "name": "Aperçu de la tâche"
+      }
+    },
+    "sensor": {
+      "ace_current_temperature": {
+        "name": "Température actuelle de l'ACE"
+      },
+      "ace_loaded_slot": {
+        "name": "Emplacement ACE chargé"
+      },
+      "ace_slot_1": {
+        "name": "Emplacement ACE 1"
+      },
+      "ace_slot_1_filament_remaining": {
+        "name": "Filament restant dans l'emplacement ACE 1"
+      },
+      "ace_slot_1_filament_remaining_percent": {
+        "name": "Pourcentage de filament restant dans l'emplacement ACE 1"
+      },
+      "ace_slot_2": {
+        "name": "Emplacement ACE 2"
+      },
+      "ace_slot_2_filament_remaining": {
+        "name": "Filament restant dans l'emplacement ACE 2"
+      },
+      "ace_slot_2_filament_remaining_percent": {
+        "name": "Pourcentage de filament restant dans l'emplacement ACE 2"
+      },
+      "ace_slot_3": {
+        "name": "Emplacement ACE 3"
+      },
+      "ace_slot_3_filament_remaining": {
+        "name": "Filament restant dans l'emplacement ACE 3"
+      },
+      "ace_slot_3_filament_remaining_percent": {
+        "name": "Pourcentage de filament restant dans l'emplacement ACE 3"
+      },
+      "ace_slot_4": {
+        "name": "Emplacement ACE 4"
+      },
+      "ace_slot_4_filament_remaining": {
+        "name": "Filament restant dans l'emplacement ACE 4"
+      },
+      "ace_slot_4_filament_remaining_percent": {
+        "name": "Pourcentage de filament restant dans l'emplacement ACE 4"
+      },
+      "ace_spools": {
+        "name": "Bobines ACE"
+      },
+      "aux_fan_speed_pct": {
+        "name": "Vitesse du ventilateur auxiliaire"
+      },
+      "axis_position_x": {
+        "name": "Position X de la tête"
+      },
+      "axis_position_y": {
+        "name": "Position Y de la tête"
+      },
+      "axis_position_z": {
+        "name": "Position Z de la tête"
+      },
+      "box_fan_level": {
+        "name": "Niveau du ventilateur du boîtier ACE"
+      },
+      "curr_hotbed_temp": {
+        "name": "Température du plateau chauffant"
+      },
+      "curr_nozzle_temp": {
+        "name": "Température de la buse"
+      },
+      "current_status": {
+        "name": "État actuel"
+      },
+      "dry_status_remaining_time": {
+        "name": "Temps de séchage restant"
+      },
+      "dry_status_target_temperature": {
+        "name": "Température cible de séchage"
+      },
+      "dry_status_total_duration": {
+        "name": "Durée totale de séchage"
+      },
+      "external_spool_material": {
+        "name": "Matériau de la bobine externe"
+      },
+      "fan_speed_pct": {
+        "name": "Vitesse du ventilateur %"
+      },
+      "filament_cost_total": {
+        "name": "Coût total du filament"
+      },
+      "file_list_cloud": {
+        "name": "Liste des fichiers (cloud)"
+      },
+      "file_list_local": {
+        "name": "Liste des fichiers (local)"
+      },
+      "file_list_udisk": {
+        "name": "Liste des fichiers (clé USB)"
+      },
+      "job_anti_alias_count": {
+        "name": "Anticrénelage de la tâche"
+      },
+      "job_bottom_layers": {
+        "name": "Couches inférieures de la tâche"
+      },
+      "job_bottom_time": {
+        "name": "Temps des couches inférieures"
+      },
+      "job_cost": {
+        "name": "Coût de la tâche"
+      },
+      "job_current_layer": {
+        "name": "Couche actuelle de la tâche"
+      },
+      "job_eta": {
+        "name": "Fin estimée de la tâche"
+      },
+      "job_filament_required": {
+        "name": "Filament nécessaire à la tâche"
+      },
+      "job_filament_runs_out_at": {
+        "name": "Fin du filament prévue à"
+      },
+      "job_filament_shortfall": {
+        "name": "Filament manquant pour la tâche"
+      },
+      "job_filament_used": {
+        "name": "Filament utilisé par la tâche"
+      },
+      "job_model_height": {
+        "name": "Hauteur du modèle de la tâche"
+      },
+      "job_name": {
+        "name": "Nom de la tâche"
+      },
+      "job_off_time": {
+        "name": "Temps d'extinction de la tâche"
+      },
+      "job_on_time": {
+        "name": "Temps d'allumage de la tâche"
+      },
+      "job_progress": {
+        "name": "Progression de la tâche %"
+      },
+      "job_speed_mode": {
+        "name": "Mode de vitesse de la tâche"
+      },
+      "job_state": {
+        "name": "État de la tâche"
+      },
+      "job_time_elapsed": {
+        "name": "Temps écoulé de la tâche"
+      },
+      "job_time_remaining": {
+        "name": "Temps restant de la tâche"
+      },
+      "job_total_layers": {
+        "name": "Nombre total de couches de la tâche"
+      },
+      "job_z_down_speed": {
+        "name": "Vitesse de descente Z de la tâche"
+      },
+      "job_z_thick": {
+        "name": "Épaisseur de couche Z de la tâche"
+      },
+      "job_z_up_height": {
+        "name": "Hauteur de remontée Z de la tâche"
+      },
+      "job_z_up_speed": {
+        "name": "Vitesse de remontée Z de la tâche"
+      },
+      "last_job_cost": {
+        "name": "Coût de la dernière tâche"
+      },
+      "last_job_filament": {
+        "name": "Filament de la dernière tâche"
+      },
+      "material_used_total": {
+        "name": "Matériau total utilisé"
+      },
+      "nozzle_abrasive_filament": {
+        "name": "Filament abrasif passé dans la buse"
+      },
+      "nozzle_filament_total": {
+        "name": "Filament total passé dans la buse"
+      },
+      "nozzle_wear_percent": {
+        "name": "Usure de la buse"
+      },
+      "print_count_total": {
+        "name": "Nombre total d'impressions"
+      },
+      "print_speed_pct": {
+        "name": "Vitesse d'impression %"
+      },
+      "print_time_total_hrs": {
+        "name": "Temps d'impression total"
+      },
+      "secondary_ace_current_temperature": {
+        "name": "Température actuelle de l'ACE secondaire"
+      },
+      "secondary_ace_spools": {
+        "name": "Bobines de l'ACE secondaire"
+      },
+      "secondary_dry_status_remaining_time": {
+        "name": "Temps de séchage secondaire restant"
+      },
+      "secondary_dry_status_target_temperature": {
+        "name": "Température cible du séchage secondaire"
+      },
+      "secondary_dry_status_total_duration": {
+        "name": "Durée totale du séchage secondaire"
+      },
+      "spool_inventory_count": {
+        "name": "Nombre de bobines en stock"
+      },
+      "spool_inventory_remaining": {
+        "name": "Filament restant en stock"
+      },
+      "target_hotbed_temp": {
+        "name": "Température cible du plateau chauffant"
+      },
+      "target_nozzle_temp": {
+        "name": "Température cible de la buse"
+      }
+    },
+    "switch": {
+      "ai_detection_enabled": {
+        "name": "Détection des défauts par IA"
+      },
+      "manual_mqtt_connection_enabled": {
+        "name": "Connexion MQTT manuelle activée"
+      },
+      "multi_color_box_runout_refill": {
+        "name": "Recharge automatique ACE en fin de bobine"
+      },
+      "secondary_multi_color_box_runout_refill": {
+        "name": "Recharge automatique de l'ACE secondaire en fin de bobine"
+      }
+    },
+    "update": {
+      "fw_version": {
+        "name": "Micrologiciel de l'imprimante"
+      },
+      "multi_color_box_fw_version": {
+        "name": "Micrologiciel de l'ACE"
+      },
+      "secondary_multi_color_box_fw_version": {
+        "name": "Micrologiciel de l'ACE secondaire"
+      }
+    },
+    "light": {
+      "printer_light": {
+        "name": "Éclairage de l'imprimante"
+      }
+    },
+    "number": {
+      "ace_slot_1_spool_price": {
+        "name": "Prix au kg de la bobine de l'emplacement ACE 1"
+      },
+      "ace_slot_1_spool_weight": {
+        "name": "Poids de la bobine de l'emplacement ACE 1"
+      },
+      "ace_slot_2_spool_price": {
+        "name": "Prix au kg de la bobine de l'emplacement ACE 2"
+      },
+      "ace_slot_2_spool_weight": {
+        "name": "Poids de la bobine de l'emplacement ACE 2"
+      },
+      "ace_slot_3_spool_price": {
+        "name": "Prix au kg de la bobine de l'emplacement ACE 3"
+      },
+      "ace_slot_3_spool_weight": {
+        "name": "Poids de la bobine de l'emplacement ACE 3"
+      },
+      "ace_slot_4_spool_price": {
+        "name": "Prix au kg de la bobine de l'emplacement ACE 4"
+      },
+      "ace_slot_4_spool_weight": {
+        "name": "Poids de la bobine de l'emplacement ACE 4"
+      },
+      "drying_set_duration": {
+        "name": "Durée de séchage"
+      },
+      "drying_set_temperature": {
+        "name": "Température de séchage"
+      },
+      "set_aux_fan_speed_pct": {
+        "name": "Régler la vitesse du ventilateur auxiliaire"
+      },
+      "set_box_fan_level": {
+        "name": "Régler le niveau du ventilateur du boîtier"
+      },
+      "set_fan_speed_pct": {
+        "name": "Régler la vitesse du ventilateur"
+      },
+      "set_target_hotbed_temp": {
+        "name": "Régler la température du plateau chauffant"
+      },
+      "set_target_nozzle_temp": {
+        "name": "Régler la température de la buse"
+      }
+    },
+    "camera": {
+      "camera": {
+        "name": "Caméra"
+      },
+      "cloud_camera": {
+        "name": "Caméra cloud"
+      }
+    },
+    "select": {
+      "axis_step": {
+        "name": "Pas de déplacement des axes"
+      },
+      "set_speed_mode": {
+        "name": "Mode de vitesse d'impression"
+      }
+    }
+  },
+  "services": {
+    "multi_color_box_set_slot_pla": {
+      "name": "ACE définir l'emplacement - PLA",
+      "description": "Définit les propriétés d'un emplacement PLA dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_petg": {
+      "name": "ACE définir l'emplacement - PETG",
+      "description": "Définit les propriétés d'un emplacement PETG dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_abs": {
+      "name": "ACE définir l'emplacement - ABS",
+      "description": "Définit les propriétés d'un emplacement ABS dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pacf": {
+      "name": "ACE définir l'emplacement - PACF",
+      "description": "Définit les propriétés d'un emplacement PACF dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pc": {
+      "name": "ACE définir l'emplacement - PC",
+      "description": "Définit les propriétés d'un emplacement PC dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_asa": {
+      "name": "ACE définir l'emplacement - ASA",
+      "description": "Définit les propriétés d'un emplacement ASA dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_hips": {
+      "name": "ACE définir l'emplacement - HIPS",
+      "description": "Définit les propriétés d'un emplacement HIPS dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pa": {
+      "name": "ACE définir l'emplacement - PA",
+      "description": "Définit les propriétés d'un emplacement PA dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pla_se": {
+      "name": "ACE définir l'emplacement - PLA SE",
+      "description": "Définit les propriétés d'un emplacement PLA SE dans l'unité ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "slot_color_red": {
+          "name": "Couleur de l'emplacement (rouge)",
+          "description": "Couleur de l'emplacement (rouge, 0-255)."
+        },
+        "slot_color_green": {
+          "name": "Couleur de l'emplacement (vert)",
+          "description": "Couleur de l'emplacement (vert, 0-255)."
+        },
+        "slot_color_blue": {
+          "name": "Couleur de l'emplacement (bleu)",
+          "description": "Couleur de l'emplacement (bleu, 0-255)."
+        }
+      }
+    },
+    "multi_color_box_filament_extrude": {
+      "name": "ACE extruder le filament",
+      "description": "Lance l'extrusion du filament sur l'ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        },
+        "slot_number": {
+          "name": "Numéro d'emplacement",
+          "description": "Numéro d'emplacement (1-4)."
+        },
+        "finished": {
+          "name": "Extrusion terminée",
+          "description": "Met fin à la commande d'extrusion du filament."
+        }
+      }
+    },
+    "multi_color_box_filament_retract": {
+      "name": "ACE rétracter le filament",
+      "description": "Lance la rétraction du filament sur l'ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "box_id": {
+          "name": "ID du boîtier",
+          "description": "ID du boîtier (0-1)."
+        }
+      }
+    },
+    "print_and_upload_save_in_cloud": {
+      "name": "Imprimer et téléverser (enregistrer dans le cloud utilisateur).",
+      "description": "Imprime et téléverse le fichier, en l'enregistrant dans l'espace cloud de l'utilisateur.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "slot_number": {
+          "name": "Liste des numéros d'emplacement",
+          "description": "Liste des numéros d'emplacement (1-4) à associer aux couleurs d'impression. Par ex. [1, 2]"
+        },
+        "uploaded_gcode_file": {
+          "name": "Fichier G-code",
+          "description": "Le fichier .gcode découpé."
+        }
+      }
+    },
+    "print_and_upload_no_cloud_save": {
+      "name": "Imprimer et téléverser (sans enregistrement dans le cloud).",
+      "description": "Imprime et téléverse le fichier, sans l'enregistrer dans l'espace cloud de l'utilisateur.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "slot_number": {
+          "name": "Liste des numéros d'emplacement",
+          "description": "Liste des numéros d'emplacement (1-4) à associer aux couleurs d'impression. Par ex. [1, 2]"
+        },
+        "uploaded_gcode_file": {
+          "name": "Fichier G-code",
+          "description": "Le fichier .gcode découpé."
+        }
+      }
+    },
+    "delete_file_local": {
+      "name": "Supprimer un fichier (local)",
+      "description": "Supprime un fichier du stockage local de l'imprimante.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "filename": {
+          "name": "Nom du fichier",
+          "description": "Nom complet du fichier (avec l'extension)"
+        }
+      }
+    },
+    "delete_file_udisk": {
+      "name": "Supprimer un fichier (clé USB)",
+      "description": "Supprime un fichier de la clé USB de l'imprimante.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "filename": {
+          "name": "Nom du fichier",
+          "description": "Nom complet du fichier (avec l'extension)"
+        }
+      }
+    },
+    "delete_file_cloud": {
+      "name": "Supprimer un fichier (cloud)",
+      "description": "Supprime un fichier de l'espace cloud de l'utilisateur.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "file_id": {
+          "name": "ID du fichier",
+          "description": "ID du fichier dans le cloud"
+        }
+      }
+    },
+    "change_print_speed_mode": {
+      "name": "Modifier le mode de vitesse d'impression",
+      "description": "Modifie le mode de vitesse d'impression",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "speed_mode": {
+          "name": "Mode de vitesse",
+          "description": "Mode de vitesse"
+        }
+      }
+    },
+    "change_print_target_nozzle_temperature": {
+      "name": "Modifier la température de la buse d'impression",
+      "description": "Modifie la température de la buse d'impression",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "temperature": {
+          "name": "Température de la buse",
+          "description": "Température de la buse"
+        }
+      }
+    },
+    "change_print_target_hotbed_temperature": {
+      "name": "Modifier la température du plateau chauffant",
+      "description": "Modifie la température du plateau chauffant",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "temperature": {
+          "name": "Température du plateau chauffant",
+          "description": "Température du plateau chauffant"
+        }
+      }
+    },
+    "change_print_fan_speed": {
+      "name": "Modifier la vitesse du ventilateur d'impression",
+      "description": "Modifie la vitesse du ventilateur d'impression",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "speed": {
+          "name": "Vitesse du ventilateur",
+          "description": "Vitesse du ventilateur"
+        }
+      }
+    },
+    "change_print_aux_fan_speed": {
+      "name": "Modifier la vitesse du ventilateur auxiliaire",
+      "description": "Modifie la vitesse du ventilateur auxiliaire",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "speed": {
+          "name": "Vitesse du ventilateur auxiliaire",
+          "description": "Vitesse du ventilateur auxiliaire"
+        }
+      }
+    },
+    "change_print_box_fan_speed": {
+      "name": "Modifier la vitesse du ventilateur du boîtier",
+      "description": "Modifie la vitesse du ventilateur du boîtier",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "speed": {
+          "name": "Vitesse du ventilateur du boîtier",
+          "description": "Vitesse du ventilateur du boîtier"
+        }
+      }
+    },
+    "change_print_bottom_layers": {
+      "name": "Modifier les couches inférieures de l'impression",
+      "description": "Modifie les couches inférieures de l'impression",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "layers": {
+          "name": "Couches inférieures",
+          "description": "Couches inférieures"
+        }
+      }
+    },
+    "change_print_bottom_time": {
+      "name": "Modifier le temps des couches inférieures",
+      "description": "Modifie le temps des couches inférieures",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "time": {
+          "name": "Temps des couches inférieures",
+          "description": "Temps des couches inférieures"
+        }
+      }
+    },
+    "change_print_off_time": {
+      "name": "Modifier le temps d'extinction",
+      "description": "Modifie le temps d'extinction",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "time": {
+          "name": "Temps d'extinction",
+          "description": "Temps d'extinction"
+        }
+      }
+    },
+    "change_print_on_time": {
+      "name": "Modifier le temps d'allumage",
+      "description": "Modifie le temps d'allumage",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "L'entrée de configuration à utiliser pour cette action."
+        },
+        "device_id": {
+          "name": "Appareil imprimante",
+          "description": "Appareil imprimante (si l'ID n'est pas utilisé)."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "ID de l'imprimante (si l'appareil n'est pas utilisé)."
+        },
+        "time": {
+          "name": "Temps d'allumage",
+          "description": "Temps d'allumage"
+        }
+      }
+    },
+    "print_local_file": {
+      "name": "Imprimer un fichier présent sur l'imprimante",
+      "description": "Démarre une impression à partir d'un fichier que l'imprimante contient déjà. Utilisez les capteurs de liste de fichiers pour retrouver le nom du fichier.",
+      "fields": {
+        "config_entry": {
+          "name": "Entrée de configuration",
+          "description": "Le compte Anycubic."
+        },
+        "printer_id": {
+          "name": "ID de l'imprimante",
+          "description": "Quelle imprimante."
+        },
+        "device_id": {
+          "name": "Appareil",
+          "description": "Quelle imprimante."
+        },
+        "filename": {
+          "name": "Nom du fichier",
+          "description": "Nom exact, tel qu'indiqué par le capteur de liste de fichiers."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "Impossible de trouver cette configuration Anycubic."
+    },
+    "config_entry_not_loaded": {
+      "message": "L'intégration Anycubic n'est pas chargée. Vérifiez qu'elle est configurée et connectée, puis réessayez."
+    },
+    "one_printer_at_a_time": {
+      "message": "Cette action ne peut cibler qu'une seule imprimante à la fois."
+    },
+    "printer_not_found": {
+      "message": "Impossible de trouver cette imprimante Anycubic. Elle a peut-être été supprimée de votre compte."
+    },
+    "gcode_read_failed": {
+      "message": "Impossible de lire ce fichier gcode. Vérifiez que le fichier a bien été téléversé, puis réessayez."
+    },
+    "mqtt_connect_timeout": {
+      "message": "Délai dépassé lors de la connexion à l'imprimante. Essayez d'activer l'interrupteur de connexion MQTT manuelle, puis réessayez."
+    },
+    "printer_busy": {
+      "message": "L'imprimante est occupée. Attendez la fin de la tâche en cours avant d'en démarrer une autre."
+    }
+  },
+  "issues": {
+    "token_expiring": {
+      "title": "Le jeton Anycubic expire dans {days} jours",
+      "description": "Le jeton de **{name}** expire dans environ **{days} jours**. Les jetons Anycubic durent 90 jours et ne peuvent pas être renouvelés automatiquement : Home Assistant perdra donc l'accès à son expiration.\n\n**1. Obtenez un nouveau jeton** à l'aide de l'utilitaire en un clic correspondant à votre ordinateur. Chacun se contente de lire une valeur que votre ordinateur a déjà enregistrée — rien n'est envoyé nulle part.\n\n- [Mac — double-cliquez sur ceci]({tool_macos})\n- [Windows — commande PowerShell d'une ligne]({tool_windows})\n- [N'importe quel navigateur — bookmarklet]({tool_browser})\n\n**2. [Ouvrez l'intégration]({reauth_url})** → ⋮ → **Reconfigurer** → **Se ré-authentifier**.\n\n**3. Collez-le.** Inutile de le mettre au propre ou d'en choisir le type — c'est déterminé pour vous."
+    }
+  }
+}

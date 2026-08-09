@@ -1,0 +1,159 @@
+{
+  "title": "Anycubic Cloud",
+  "common": {
+    "actions": {
+      "cancel": "Annuler",
+      "pause": "Pause",
+      "print": "Imprimer",
+      "resume": "Reprendre",
+      "yes": "Oui",
+      "no": "Non",
+      "save": "Enregistrer"
+    },
+    "messages": {
+      "mqtt_unsupported": "Cette fonctionnalité nécessite MQTT pour récupérer les données, mais MQTT n'est malheureusement pas pris en charge par le mode d'authentification configuré."
+    }
+  },
+  "card": {
+    "buttons": {
+      "print_settings": "Paramètres d'impression",
+      "dry": "Sécher",
+      "runout_refill": "Recharger"
+    },
+    "configure": {
+      "tabs": {
+        "main": "Général",
+        "stats": "Statistiques",
+        "colours": "Préréglages de couleurs ACE"
+      },
+      "labels": {
+        "printer_id": "Sélectionner l'imprimante",
+        "vertical": "Disposition verticale ?",
+        "round": "Arrondir les valeurs ?",
+        "use_24hr": "Format 24 h ?",
+        "show_settings_button": "Toujours afficher le bouton des paramètres d'impression ?",
+        "always_show": "Toujours afficher la carte ?",
+        "temperature_unit": "Unité de température",
+        "light_entity_id": "Entité lumière",
+        "power_entity_id": "Entité alimentation",
+        "camera_entity_id": "Entité caméra",
+        "scale_factor": "Facteur d'échelle",
+        "slot_colors": "Préréglages de couleurs des emplacements",
+        "media_view": "Vue principale",
+        "show_controls": "Afficher les boutons de contrôle",
+        "sections": "Sections dépliables"
+      }
+    },
+    "print_settings": {
+      "confirm_message": "{action} : êtes-vous sûr ?",
+      "label_nozzle_temp": "Température de la buse",
+      "label_hotbed_temp": "Température du plateau",
+      "label_fan_speed": "Vitesse du ventilateur",
+      "label_aux_fan_speed": "Ventilateur AUX",
+      "label_box_fan_speed": "Ventilateur boîtier ACE",
+      "print_pause": "Mettre l'impression en pause",
+      "print_resume": "Reprendre l'impression",
+      "print_cancel": "Annuler l'impression",
+      "save_speed_mode": "Enregistrer le mode de vitesse",
+      "save_target_nozzle": "Enregistrer la consigne buse",
+      "save_target_hotbed": "Enregistrer la consigne plateau",
+      "save_fan_speed": "Enregistrer le ventilateur",
+      "save_aux_fan_speed": "Enregistrer le ventilateur AUX",
+      "save_box_fan_speed": "Enregistrer le ventilateur boîtier"
+    },
+    "drying_settings": {
+      "heading": "Options de séchage",
+      "button_preset": "Préréglage",
+      "button_stop_drying": "Arrêter le séchage",
+      "button_minutes": "min"
+    },
+    "spool_settings": {
+      "heading": "Modifier l'emplacement",
+      "label_select_material": "Sélectionner le matériau",
+      "label_select_colour": "Choisir la couleur manuellement"
+    },
+    "monitored_stats": {
+      "ETA": "Fin prévue",
+      "Elapsed": "Écoulé",
+      "Remaining": "Restant",
+      "Status": "État",
+      "Online": "En ligne",
+      "Availability": "Disponibilité",
+      "Project": "Tâche",
+      "Layer": "Couche",
+      "Hotend": "Buse",
+      "Bed": "Plateau",
+      "T Hotend": "Buse cible",
+      "T Bed": "Plateau cible",
+      "Dry Status": "État du séchage",
+      "Dry Time": "Durée de séchage",
+      "Speed Mode": "Mode de vitesse",
+      "Fan Speed": "Vitesse ventilateur",
+      "On Time": "Temps d'exposition",
+      "Off Time": "Temps de pause",
+      "Bottom Time": "Exposition des couches de base",
+      "Model Height": "Hauteur du modèle",
+      "Bottom Layers": "Couches de base",
+      "Z Up Height": "Hauteur de levée Z",
+      "Z Up Speed": "Vitesse de montée Z",
+      "Z Down Speed": "Vitesse de descente Z"
+    }
+  },
+  "panels": {
+    "initial": {
+      "printer_select": "Sélectionnez une imprimante."
+    },
+    "main": {
+      "title": "Aperçu",
+      "cards": {
+        "main": {
+          "description": "Informations générales sur l'imprimante.",
+          "fields": {
+            "printer_name": "Nom",
+            "printer_id": "ID",
+            "printer_mac": "MAC",
+            "printer_model": "Modèle",
+            "printer_fw_version": "Version du firmware",
+            "printer_fw_update_available": "État du firmware",
+            "printer_online": "En ligne",
+            "printer_available": "Disponible",
+            "curr_nozzle_temp": "Température actuelle de la buse",
+            "curr_hotbed_temp": "Température actuelle du plateau",
+            "target_nozzle_temp": "Température cible de la buse",
+            "target_hotbed_temp": "Température cible du plateau",
+            "job_state": "État de la tâche",
+            "job_progress": "Progression de la tâche",
+            "ace_fw_version": "Version du firmware ACE",
+            "ace_fw_update_available": "État du firmware ACE",
+            "drying_active": "État du séchage ACE",
+            "drying_progress": "Progression du séchage ACE"
+          }
+        }
+      }
+    },
+    "files_cloud": {
+      "title": "Fichiers cloud",
+      "cards": {}
+    },
+    "files_local": {
+      "title": "Fichiers locaux",
+      "cards": {}
+    },
+    "files_udisk": {
+      "title": "Fichiers USB",
+      "cards": {}
+    },
+    "print_save_in_cloud": {
+      "title": "Imprimer (enregistrer dans votre cloud)",
+      "cards": {}
+    },
+    "print_no_cloud_save": {
+      "title": "Imprimer (sans enregistrement cloud)",
+      "cards": {}
+    },
+    "debug": {
+      "title": "Débogage",
+      "cards": {}
+    }
+  }
+}
