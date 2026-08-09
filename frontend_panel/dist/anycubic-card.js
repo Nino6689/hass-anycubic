@@ -4946,10 +4946,12 @@
         h = i + l,
         d = r - 2 * l;
       return K`
-    <path d="M${h} ${n} L${h + c} ${n - a} L${h + d - c} ${n - a} L${h + d} ${n} Z"
-          fill="${o}" opacity="0.85"></path>
-    <rect x="${h + c}" y="${n - a}" width="${d - 2 * c}" height="1.5"
-          fill="${o}" opacity="0.55"></rect>`;
+    <g class="ac-apr-print">
+      <path d="M${h} ${n} L${h + c} ${n - a} L${h + d - c} ${n - a} L${h + d} ${n} Z"
+            fill="${o}" opacity="0.85"></path>
+      <rect x="${h + c}" y="${n - a}" width="${d - 2 * c}" height="1.5"
+            fill="${o}" opacity="0.55"></rect>
+    </g>`;
     },
     Zn = (t, e, i, r, n) => t <= .02 ? J : K`<rect x="${e}" y="${i}" width="${r}" height="${n}" rx="3"
             fill="var(--ac-printer-heat, #ff7a3d)"
@@ -4988,7 +4990,34 @@
     </g>`;
       })(e, i, r);
     },
-    Xn = {
+    Xn = (t, e = 0, i = "M188 88 C 216 94 214 116 196 122", r = !0, n = 0, s = []) => {
+      var o;
+      return K`
+  <g id="ace-${n}">
+    <rect x="45" y="6" width="149" height="95" rx="11" fill="currentColor"></rect>
+    <rect x="45" y="6" width="149" height="16" rx="8" fill="currentColor"></rect>
+    <rect x="56" y="21" width="127" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.28"></rect>
+    <rect x="103" y="9" width="34" height="4" rx="2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.22"></rect>
+    ${Rn.map((e, i) => K`
+      <rect x="${e - 15}" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
+      ${((t, e, i) => {
+        const r = null != e ? e : "var(--ac-printer-rail, currentColor)",
+          n = 11 + 21 * (void 0 === i ? 1 : Math.max(0, Math.min(1, i)));
+        return K`
+    <rect x="${t - 9}" y="${42 + (32 - n) / 2}" width="18" height="${n.toFixed(1)}" rx="2" fill="${r}"></rect>
+    <rect x="${t - 9}" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>`;
+      })(e, t[i], s[i])}
+      <rect x="${e - 13.5}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
+      <rect x="${e + 9}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>`)}
+    ${void 0 === Rn[e] ? J : K`<rect x="${Rn[e] - 17}" y="36" width="34" height="44" rx="5" fill="none"
+                stroke="${null !== (o = t[e]) && void 0 !== o ? o : "currentColor"}" stroke-width="2"></rect>`}
+    <rect x="56" y="86" width="127" height="7" rx="3.5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.18"></rect>
+    <circle cx="186" cy="16" r="2.6" fill="var(--ac-printer-accent, currentColor)"></circle>
+  </g>
+  <path d="${i}" stroke="${r && t[e] || "var(--ac-printer-rail, currentColor)"}"
+        stroke-opacity="0.9" stroke-width="4.5" stroke-linecap="round" fill="none"></path>`;
+    },
+    qn = {
       kobra_s1: {
         kind: "kobra_s1",
         park: 36,
@@ -5201,7 +5230,10 @@
         travel: 76,
         body: ({
           gantry: t,
-          tip: e = "var(--ac-printer-accent, currentColor)"
+          tip: e = "var(--ac-printer-accent, currentColor)",
+          progress: i = 0,
+          cameraLive: r = !1,
+          status: n = "idle"
         }) => K`
       <path d="M74 34 h92 a8 8 0 0 1 8 8 v108 h-108 v-108 a8 8 0 0 1 8 -8 Z" stroke="currentColor" stroke-opacity="0.45" stroke-width="4" fill="none"></path>
       <g fill="currentColor">
@@ -5212,8 +5244,9 @@
       </g>
       <rect x="104" y="26" width="36" height="6" rx="3" fill="currentColor" opacity="0.5"></rect>
       <rect x="63" y="46" width="5" height="100" rx="2.5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.22"></rect>
-      <rect x="130" y="162" width="60" height="26" rx="5" fill="var(--ac-printer-accent, currentColor)" opacity="0.55"></rect>
-      <rect x="136" y="168" width="48" height="14" rx="3" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
+      <rect x="130" y="162" width="60" height="26" rx="5" fill="currentColor" opacity="0.9"></rect>
+      <rect x="136" y="168" width="48" height="14" rx="3" fill="#101216"></rect>
+      ${Wn(n, 160, 175, 5.5)}
       <g fill="currentColor" opacity="0.2">
         <rect x="50" y="176" width="46" height="2.5" rx="1"></rect>
         <rect x="50" y="182" width="46" height="2.5" rx="1"></rect>
@@ -5228,63 +5261,49 @@
           <rect x="84" y="48" width="66" height="6" rx="2" fill="currentColor"></rect>
           <rect x="96" y="54" width="42" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.8"></rect>
         </g>
+        ${((t, e, i) => {
+          if (!t || e <= .005) return J;
+          const r = 56 * Math.min(1, e),
+            n = 102;
+          return K`
+    <g class="ac-apr-print">
+      <path d="M${n} ${68} L${132} ${68} L${127} ${68 + r} L${107} ${68 + r} Z"
+            fill="${i}" opacity="0.8"></path>
+    </g>`;
+        })(!r, i, e)}
       </g>`
       }
     },
-    qn = [["kobra s1", "kobra_s1"], ["kobra 3", "kobra_3"], ["kobra 2", "kobra_3"], ["photon", "resin"], ["mono", "resin"]];
-  const Kn = (t, e, i) => i ? `translate(0 ${-t.park})` : `translate(0 ${(t.travel * (1 - e / 100)).toFixed(1)})`,
-    Qn = (t, e = 48) => `translate(${(t * e).toFixed(1)} 0)`;
-  function Jn(t, e, i = jn, r = 0) {
-    if (e < 1) return t;
-    const n = 101 * e + 14,
-      s = 221 + n + 8,
-      [o, a, l, c] = t.chamber,
-      h = o / 100 * 240,
-      d = 240 - l / 100 * 240;
-    return Object.assign(Object.assign({}, t), {
-      kind: "kobra_s1" === t.kind ? "kobra_s1_combo" : t.kind,
-      viewBox: `0 0 240 ${s}`,
-      chamber: [+((h + n) / s * 100).toFixed(2), a, +((s - (d + n)) / s * 100).toFixed(2), c],
-      body: s => K`
+    Kn = [["kobra s1", "kobra_s1"], ["kobra 3", "kobra_3"], ["kobra 2", "kobra_3"], ["photon", "resin"], ["mono", "resin"]];
+  const Qn = (t, e, i) => i ? `translate(0 ${-t.park})` : `translate(0 ${(t.travel * (1 - e / 100)).toFixed(1)})`,
+    Jn = (t, e = 48) => `translate(${(t * e).toFixed(1)} 0)`;
+  const ts = (t, e, i = jn, r = 0, n = []) => e > 0 ? function (t, e, i = jn, r = 0, n = []) {
+      if (e < 1) return t;
+      const s = 101 * e + 14,
+        o = 221 + s + 8,
+        [a, l, c, h] = t.chamber,
+        d = a / 100 * 240,
+        u = 240 - c / 100 * 240;
+      return Object.assign(Object.assign({}, t), {
+        kind: "kobra_s1" === t.kind ? "kobra_s1_combo" : t.kind,
+        viewBox: `0 0 240 ${o}`,
+        chamber: [+((d + s) / o * 100).toFixed(2), l, +((o - (u + s)) / o * 100).toFixed(2), h],
+        body: o => K`
       ${Array.from({
-        length: e
-      }, (t, s) => {
-        const o = n - 101 * s,
-          a = Math.floor(r / 4) === s,
-          l = 0 === s && 2 === e ? `M188 88 C 214 94 219 106 219 130 L 219 ${o + 8} C 219 ${o + 17} 210 ${o + 21} 200 ${o + 22}` : `M188 88 C 216 94 214 ${o + 12} 196 ${o + 22}`,
-          c = i.slice(4 * s, 4 * s + 4);
-        return K`<g transform="translate(0 ${101 * s})">
-          ${((t, e = 0, i = "M188 88 C 216 94 214 116 196 122", r = !0, n = 0) => {
-          var s;
-          return K`
-  <g id="ace-${n}">
-    <rect x="45" y="6" width="149" height="95" rx="11" fill="currentColor"></rect>
-    <rect x="45" y="6" width="149" height="16" rx="8" fill="currentColor"></rect>
-    <rect x="56" y="21" width="127" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.28"></rect>
-    <rect x="103" y="9" width="34" height="4" rx="2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.22"></rect>
-    ${Rn.map((e, i) => {
-            var r;
-            return K`
-      <rect x="${e - 15}" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
-      <rect x="${e - 9}" y="42" width="18" height="32" rx="2" fill="${null !== (r = t[i]) && void 0 !== r ? r : "var(--ac-printer-rail, currentColor)"}"></rect>
-      <rect x="${e - 9}" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
-      <rect x="${e - 13.5}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
-      <rect x="${e + 9}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>`;
-          })}
-    ${void 0 === Rn[e] ? J : K`<rect x="${Rn[e] - 17}" y="36" width="34" height="44" rx="5" fill="none"
-                stroke="${null !== (s = t[e]) && void 0 !== s ? s : "currentColor"}" stroke-width="2"></rect>`}
-    <rect x="56" y="86" width="127" height="7" rx="3.5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.18"></rect>
-    <circle cx="186" cy="16" r="2.6" fill="var(--ac-printer-accent, currentColor)"></circle>
-  </g>
-  <path d="${i}" stroke="${r && t[e] || "var(--ac-printer-rail, currentColor)"}"
-        stroke-opacity="0.9" stroke-width="4.5" stroke-linecap="round" fill="none"></path>`;
-        })(c, a ? r - 4 * s : -1, l, a, s)}
+          length: e
+        }, (t, o) => {
+          const a = s - 101 * o,
+            l = Math.floor(r / 4) === o,
+            c = 0 === o && 2 === e ? `M188 88 C 214 94 219 106 219 130 L 219 ${a + 8} C 219 ${a + 17} 210 ${a + 21} 200 ${a + 22}` : `M188 88 C 216 94 214 ${a + 12} 196 ${a + 22}`,
+            h = i.slice(4 * o, 4 * o + 4),
+            d = n.slice(4 * o, 4 * o + 4);
+          return K`<g transform="translate(0 ${101 * o})">
+          ${Xn(h, l ? r - 4 * o : -1, c, l, o, d)}
         </g>`;
-      })}
-      <g transform="translate(0 ${n})">${t.body(s)}</g>`
-    });
-  }
-  const ts = (t, e, i = jn, r = 0) => e > 0 ? Jn(t, e, i, r) : Object.assign(Object.assign({}, t), {
+        })}
+      <g transform="translate(0 ${s})">${t.body(o)}</g>`
+      });
+    }(t, e, i, r, n) : Object.assign(Object.assign({}, t), {
       body: e => K`
           ${((t = "var(--ac-printer-accent, currentColor)", e = 70, i = 219.5) => K`
   <g id="sidespool">
@@ -5346,7 +5365,8 @@
         r = i("ace_spools"),
         n = i("secondary_ace_spools"),
         s = n.length ? 2 : r.length ? 1 : 0,
-        o = [...r, ...n].map(t => {
+        o = [...r, ...n],
+        a = o.map(t => {
           var e, i;
           return function (t) {
             var e;
@@ -5355,12 +5375,14 @@
             return /^#[0-9a-f]{8}$/i.test(i) ? i.slice(0, 7) : /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(i) ? i : /^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(i) ? "#" + i.slice(0, 6) : /^(rgb|hsl)a?\(/i.test(i) ? i : null !== (e = es[i.toLowerCase()]) && void 0 !== e ? e : is;
           }(null !== (e = t.color_hex) && void 0 !== e ? e : (i = t.color, Array.isArray(i) && i.length >= 3 ? "#" + i.slice(0, 3).map(t => Math.max(0, Math.min(255, Math.round(t))).toString(16).padStart(2, "0")).join("") : void 0));
         }),
-        a = null === (e = null === (t = ei(this.hass, this.printerEntities, "ace_spools")) || void 0 === t ? void 0 : t.attributes) || void 0 === e ? void 0 : e.box_info,
-        l = null == a ? void 0 : a.loaded_slot;
+        l = o.map(t => "number" == typeof t.consumables_percent ? Math.max(0, Math.min(1, t.consumables_percent / 100)) : void 0),
+        c = null === (e = null === (t = ei(this.hass, this.printerEntities, "ace_spools")) || void 0 === t ? void 0 : t.attributes) || void 0 === e ? void 0 : e.box_info,
+        h = null == c ? void 0 : c.loaded_slot;
       return {
-        spools: o,
-        active: "number" == typeof l && l > 0 ? l - 1 : 0,
-        units: s
+        spools: a,
+        active: "number" == typeof h && h > 0 ? h - 1 : 0,
+        units: s,
+        remaining: l
       };
     }
     _heat(t, e) {
@@ -5381,18 +5403,19 @@
       const {
         spools: e,
         active: i,
-        units: r
+        units: r,
+        remaining: n
       } = this._spoolState();
-      return function (t, e = 0, i, r, n = 0) {
-        const s = (null != t ? t : "").toLowerCase();
-        let o = "fdm";
-        if (i && Xn[i]) o = i;else for (const [t, e] of qn) if (s.includes(t)) {
-          o = e;
+      return function (t, e = 0, i, r, n = 0, s = []) {
+        const o = (null != t ? t : "").toLowerCase();
+        let a = "fdm";
+        if (i && qn[i]) a = i;else for (const [t, e] of Kn) if (o.includes(t)) {
+          a = e;
           break;
         }
-        const a = Xn[o];
-        return "resin" === o ? a : ts(a, e, r, n);
-      }(this._machineName(), r, null !== (t = this.printerArt) && void 0 !== t ? t : null, e, i);
+        const l = qn[a];
+        return "resin" === a ? l : ts(l, e, r, n, s);
+      }(this._machineName(), r, null !== (t = this.printerArt) && void 0 !== t ? t : null, e, i, n);
     }
     render() {
       var t;
@@ -5430,8 +5453,8 @@
   <svg class="ac-apr-svg" viewBox="${t.viewBox}" fill="none"
        preserveAspectRatio="xMidYMid meet" aria-hidden="true">
     ${t.body(Object.assign(Object.assign({}, e), {
-          gantry: Kn(t, 100 * (null !== (i = e.progress) && void 0 !== i ? i : 0), !!e.cameraLive),
-          nozzle: Qn(null !== (r = e.nozzleX) && void 0 !== r ? r : 0)
+          gantry: Qn(t, 100 * (null !== (i = e.progress) && void 0 !== i ? i : 0), !!e.cameraLive),
+          nozzle: Jn(null !== (r = e.nozzleX) && void 0 !== r ? r : 0)
         }))}
   </svg>`;
       })(e, {

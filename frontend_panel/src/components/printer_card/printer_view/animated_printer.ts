@@ -16,6 +16,7 @@ import {
 import {
   PrinterArt,
   PrinterArtKind,
+  artAspect,
   cameraInset,
   filamentColor,
   renderPrinter,
@@ -163,8 +164,13 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
     return undefined;
   }
 
-  /** Slot colours from the ACE sensors, four per attached unit. */
-  private _spoolState(): { spools: string[]; active: number; units: 0 | 1 | 2 } {
+  /** Slot colours and remaining filament from the ACE sensors. */
+  private _spoolState(): {
+    spools: string[];
+    active: number;
+    units: 0 | 1 | 2;
+    remaining: Array<number | undefined>;
+  } {
     const read = (key: string): AceSpool[] => {
       const stateObj = getStateObjByKey(this.hass, this.printerEntities, key);
       const spools = stateObj?.attributes?.spool_info;
@@ -175,8 +181,15 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
     const secondary = read("secondary_ace_spools");
     const units = (secondary.length ? 2 : primary.length ? 1 : 0) as 0 | 1 | 2;
 
-    const colours = [...primary, ...secondary].map((s) =>
-      filamentColor(s.color_hex ?? rgbToHex(s.color)),
+    const all = [...primary, ...secondary];
+    const colours = all.map((s) => filamentColor(s.color_hex ?? rgbToHex(s.color)));
+    // consumables_percent is 0-100 when the printer reports it at all.
+    // Undefined stays undefined: the artwork draws an unknown reel full,
+    // because a reel we know nothing about must not look nearly empty.
+    const remaining = all.map((s) =>
+      typeof s.consumables_percent === "number"
+        ? Math.max(0, Math.min(1, s.consumables_percent / 100))
+        : undefined,
     );
 
     // The feeding slot lives on the box, not on a sensor of its own, and is
@@ -189,6 +202,7 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
       spools: colours,
       active: typeof loaded === "number" && loaded > 0 ? loaded - 1 : 0,
       units,
+      remaining,
     };
   }
 
@@ -230,13 +244,14 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   }
 
   private _art(): PrinterArt {
-    const { spools, active, units } = this._spoolState();
+    const { spools, active, units, remaining } = this._spoolState();
     return selectPrinterArt(
       this._machineName(),
       units,
       this.printerArt ?? null,
       spools,
       active,
+      remaining,
     );
   }
 
@@ -249,7 +264,10 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
     return html`
       <div
         class="ac-printercard-animatedprinter"
-        style=${styleMap({ "--ac-apr-chamber": cameraInset(art) })}
+        style=${styleMap({
+          "--ac-apr-chamber": cameraInset(art),
+          "--ac-apr-aspect": artAspect(art),
+        })}
       >
         ${cameraLive
           ? html`
@@ -295,20 +313,35 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   static get styles(): CSSResult {
     return css`
       :host {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 100%;
         height: 100%;
         box-sizing: border-box;
+        /* Without this the host has no definite height for max-height to
+           resolve against, and the cap silently does nothing. */
+        min-height: 0;
       }
 
+      /* The wrapper carries the drawing's own aspect ratio, and is capped by
+         BOTH dimensions of whatever box the card gives it.
+
+         This is what stops the printer rendering enormous. width:100% on the
+         SVG alone means its height just follows the aspect ratio with nothing
+         to cap it, and a Combo with two ACE units is nearly twice as tall as
+         it is wide. Constraining the wrapper rather than letting the SVG
+         letterbox inside it also keeps the camera aligned: the stream is
+         positioned by percentage inset OF THIS BOX, so if the drawing did not
+         fill it exactly, the chamber hole would stop lining up with the video
+         behind it. */
       .ac-printercard-animatedprinter {
         position: relative;
-        width: 100%;
-        height: 100%;
+        aspect-ratio: var(--ac-apr-aspect, 1 / 1);
+        max-width: 100%;
+        max-height: 100%;
+        margin: 0 auto;
         box-sizing: border-box;
-        display: flex;
-        justify-content: center;
-        align-items: center;
       }
 
       /* Both of these fill exactly the chamber hole in the artwork, which is
@@ -337,9 +370,9 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
         position: relative;
         z-index: 1;
         pointer-events: none;
+        display: block;
         width: 100%;
-        height: auto;
-        max-height: 100%;
+        height: 100%;
         color: var(--primary-text-color);
         --ac-printer-accent: var(
           --state-icon-active-color,
