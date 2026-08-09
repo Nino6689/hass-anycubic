@@ -24,9 +24,41 @@ export interface PrinterArt {
   chamber: [number, number, number, number];
   /** Gantry Y travel in user units; 0 = parked at top of chamber. */
   travel: number;
-  /** tip = active filament colour, used for the nozzle tip and the ACE tube.
-   *  lightOn reflects the printer's own chamber light entity. */
-  body: (gantry: string, nozzle: string, tip?: string, lightOn?: boolean) => SVGTemplateResult;
+  /**
+   * Extra lift applied ONLY while the camera is live, so the head clears
+   * the chamber entirely instead of hanging into the top of the picture.
+   * Authoring the gantry "parked at 0" still left the hotend ~36 units
+   * inside the stream, which is a quarter of the S1's chamber height.
+   */
+  park: number;
+  body: (s: PrinterBodyState) => SVGTemplateResult;
+}
+
+/**
+ * Everything the artwork can reflect about the machine.
+ *
+ * `cameraLive` is not decoration: anything drawn INSIDE the build chamber has
+ * to disappear when the stream is up, or the card covers the video it exists
+ * to show. Bodies must check it before drawing into the chamber.
+ */
+export interface PrinterBodyState {
+  gantry: string;
+  nozzle: string;
+  /** Active filament colour, for the nozzle tip and the feed tube. */
+  tip?: string;
+  /** The printer's own chamber light entity. */
+  lightOn?: boolean;
+  /** 0-1. Drives the printed mass rising off the plate. */
+  progress?: number;
+  /** Suppresses everything inside the chamber, so the stream stays clear. */
+  cameraLive?: boolean;
+  /** 0-1, how far each heater is toward its own target. */
+  nozzleHeat?: number;
+  bedHeat?: number;
+  /** Part-cooling fan running. */
+  fanOn?: boolean;
+  /** What the screen shows. */
+  status?: 'idle' | 'printing' | 'paused' | 'error';
 }
 
 /* ------------------------------------------------------------------ pieces */
@@ -83,12 +115,107 @@ const chamberLight = (on: boolean, x: number, y: number, w: number) => svg`
         fill="${on ? 'var(--ac-printer-light, #ffd88a)' : 'currentColor'}"
         opacity="${on ? 0.95 : 0.3}"></rect>`;
 
-const s1Body = (
-  gantry: string,
-  nozzle: string,
+/**
+ * The object being printed, rising off the plate with progress.
+ *
+ * Draws NOTHING while the camera is live. The stream shows the real print, and
+ * a modelled block over it would hide the one thing worth looking at -- the
+ * same reasoning that parks the gantry at the top.
+ *
+ * Inset and slightly tapered, because a print is a mass on the plate rather
+ * than a full-width slab: at low progress it should read as "something is
+ * starting", not as a bar chart.
+ */
+const printedMass = (
+  visible: boolean,
+  progress: number,
+  plateX: number,
+  plateW: number,
+  plateY: number,
+  maxH: number,
+  tip: string,
+) => {
+  if (!visible || progress <= 0.005) return nothing;
+  const h = Math.min(1, progress) * maxH;
+  const inset = plateW * 0.22;
+  const taper = Math.min(6, h * 0.25);
+  const x = plateX + inset;
+  const w = plateW - inset * 2;
+  return svg`
+    <path d="M${x} ${plateY} L${x + taper} ${plateY - h} L${x + w - taper} ${plateY - h} L${x + w} ${plateY} Z"
+          fill="${tip}" opacity="0.85"></path>
+    <rect x="${x + taper}" y="${plateY - h}" width="${w - taper * 2}" height="1.5"
+          fill="${tip}" opacity="0.55"></rect>`;
+};
+
+/**
+ * Heat as a wash over the part itself rather than a separate badge.
+ *
+ * The caller passes progress toward that part's OWN target, so a bed at 60C
+ * with a 60C target is fully warm while one at 60C with no target is not
+ * warming at all -- which is what the machine actually means.
+ */
+const heatGlow = (heat: number, x: number, y: number, w: number, h: number) =>
+  heat <= 0.02
+    ? nothing
+    : svg`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"
+            fill="var(--ac-printer-heat, #ff7a3d)"
+            opacity="${(0.12 + heat * 0.45).toFixed(2)}"></rect>`;
+
+/** Part-cooling fan, on the chassis and so never over the stream. */
+const fanMark = (on: boolean, cx: number, cy: number, r: number) => svg`
+  <g opacity="${on ? 0.9 : 0.3}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.3"></circle>
+    <g class="${on ? 'ac-apr-fan' : ''}">
+      <path d="M${cx} ${cy - r * 0.7} A${r * 0.7} ${r * 0.7} 0 0 1 ${cx + r * 0.61} ${cy + r * 0.35} L${cx} ${cy} Z" fill="currentColor"></path>
+      <path d="M${cx + r * 0.61} ${cy + r * 0.35} A${r * 0.7} ${r * 0.7} 0 0 1 ${cx - r * 0.61} ${cy + r * 0.35} L${cx} ${cy} Z" fill="currentColor" opacity="0.7"></path>
+      <path d="M${cx - r * 0.61} ${cy + r * 0.35} A${r * 0.7} ${r * 0.7} 0 0 1 ${cx} ${cy - r * 0.7} L${cx} ${cy} Z" fill="currentColor" opacity="0.45"></path>
+    </g>
+  </g>`;
+
+/**
+ * What the display shows.
+ *
+ * Idle and printing show the maker's cube; paused and error replace it,
+ * because a fault is the one thing worth interrupting branding for. The
+ * screen sits outside the build chamber, so it stays readable with the
+ * camera running.
+ */
+const screenFace = (
+  status: PrinterBodyState['status'],
+  cx: number,
+  cy: number,
+  r: number,
+) => {
+  if (status === 'paused') {
+    const b = r * 0.32;
+    return svg`<g>
+      <rect x="${cx - b * 1.9}" y="${cy - r * 0.75}" width="${b}" height="${r * 1.5}" rx="${b * 0.3}" fill="#e8b33a"></rect>
+      <rect x="${cx + b * 0.9}" y="${cy - r * 0.75}" width="${b}" height="${r * 1.5}" rx="${b * 0.3}" fill="#e8b33a"></rect>
+    </g>`;
+  }
+  if (status === 'error') {
+    return svg`<g>
+      <path d="M${cx} ${cy - r} L${cx + r} ${cy + r * 0.72} L${cx - r} ${cy + r * 0.72} Z"
+            fill="none" stroke="#e05252" stroke-width="${r * 0.24}" stroke-linejoin="round"></path>
+      <rect x="${cx - r * 0.1}" y="${cy - r * 0.3}" width="${r * 0.2}" height="${r * 0.62}" rx="${r * 0.1}" fill="#e05252"></rect>
+    </g>`;
+  }
+  return anycubicCube(cx, cy, r);
+};
+
+const s1Body = ({
+  gantry,
+  nozzle,
   tip = 'var(--ac-printer-accent, currentColor)',
   lightOn = false,
-) => svg`
+  progress = 0,
+  cameraLive = false,
+  nozzleHeat = 0,
+  bedHeat = 0,
+  fanOn = false,
+  status = 'idle',
+}: PrinterBodyState) => svg`
   <g fill="currentColor">
     <rect x="38" y="20" width="163" height="20" rx="5"></rect>
     <rect x="38" y="34" width="11" height="162"></rect>
@@ -101,7 +228,7 @@ const s1Body = (
   <g id="screen">
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
-    ${anycubicCube(172, 13, 7.5)}
+    ${screenFace(status, 172, 13, 7.5)}
   </g>
   <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
   ${chamberLight(lightOn, 56, 42, 127)}
@@ -109,8 +236,8 @@ const s1Body = (
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
     <rect x="46" y="155" width="5" height="15" rx="2"></rect>
-    <rect x="181" y="99" width="6" height="30" rx="3"></rect>
   </g>
+  ${fanMark(fanOn, 195.5, 114, 7.5)}
   <path d="M58 46 L82 46 L60 104 L58 104 Z" fill="currentColor" opacity="0.05"></path>
   <path d="M90 46 L100 46 L74 118 L68 118 Z" fill="currentColor" opacity="0.04"></path>
   <g fill="currentColor" opacity="0.22">
@@ -118,8 +245,10 @@ const s1Body = (
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
+  ${heatGlow(bedHeat, 54, 176, 132, 12)}
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  ${printedMass(!cameraLive, progress, 56, 128, 178, 118, tip)}
   <g id="gantry" transform="${gantry}">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
     <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
@@ -128,6 +257,7 @@ const s1Body = (
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
     <g id="nozzle" transform="${nozzle}">
+      ${heatGlow(nozzleHeat, 108, 60, 24, 18)}
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -188,6 +318,7 @@ const aceModule = (
 export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, PrinterArt> = {
   kobra_s1: {
     kind: 'kobra_s1',
+    park: 36,
     viewBox: '0 0 240 240',
     chamber: [16.7, 19.6, 20, 19.2],
     travel: 104,
@@ -197,10 +328,22 @@ export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, Prin
   // Kobra 3 / Kobra 2 — open-frame bedslinger.
   kobra_3: {
     kind: 'kobra_3',
+    park: 36,
     viewBox: '0 0 240 240',
     chamber: [19, 24, 30, 24],
     travel: 92,
-    body: (gantry, nozzle, tip = 'var(--ac-printer-accent, currentColor)', lightOn = false) => svg`
+    body: ({
+      gantry,
+      nozzle,
+      tip = 'var(--ac-printer-accent, currentColor)',
+      lightOn = false,
+      progress = 0,
+      cameraLive = false,
+      nozzleHeat = 0,
+      bedHeat = 0,
+      fanOn = false,
+      status = 'idle',
+    }: PrinterBodyState) => svg`
       <g fill="currentColor">
         <rect x="20" y="176" width="200" height="38" rx="7"></rect>
         <rect x="40" y="42" width="18" height="136" rx="3"></rect>
@@ -225,11 +368,14 @@ export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, Prin
       </g>
       <rect x="146" y="29" width="50" height="15" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="150" y="32" width="42" height="9" rx="2" fill="#101216"></rect>
-      ${anycubicCube(171, 36.5, 5)}
+      ${screenFace(status, 171, 36.5, 5)}
       ${chamberLight(lightOn, 52, 47, 136)}
       <rect x="54" y="177" width="132" height="3" rx="1.5" fill="var(--ac-printer-rail, currentColor)" opacity="0.5"></rect>
+      ${heatGlow(bedHeat, 60, 164, 120, 12)}
       <rect x="62" y="166" width="116" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="70" y="174" width="100" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      ${printedMass(!cameraLive, progress, 62, 116, 166, 100, tip)}
+      ${fanMark(fanOn, 30, 196, 7)}
       <g id="gantry" transform="${gantry}">
         <rect x="42" y="54" width="156" height="1.6" fill="currentColor" opacity="0.2"></rect>
         <rect id="xaxis" x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
@@ -238,6 +384,7 @@ export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, Prin
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
         <g id="nozzle" transform="${nozzle}">
+          ${heatGlow(nozzleHeat, 108, 66, 24, 18)}
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
             <rect x="107" y="51" width="20" height="2" rx="1"></rect>
@@ -254,11 +401,23 @@ export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, Prin
   // Mandatory fallback: deliberately schematic, dashed chamber outline.
   fdm: {
     kind: 'fdm',
+    park: 34,
     viewBox: '0 0 240 240',
     chamber: [20, 19.2, 29, 19.2],
     travel: 92,
     // Narrower flank than the S1, so its spool sits at cx 222.
-    body: (gantry, nozzle, tip = 'var(--ac-printer-accent, currentColor)', lightOn = false) => svg`
+    body: ({
+      gantry,
+      nozzle,
+      tip = 'var(--ac-printer-accent, currentColor)',
+      lightOn = false,
+      progress = 0,
+      cameraLive = false,
+      nozzleHeat = 0,
+      bedHeat = 0,
+      fanOn = false,
+      status = 'idle',
+    }: PrinterBodyState) => svg`
       <g fill="currentColor">
         <rect x="24" y="178" width="192" height="34" rx="6"></rect>
         <rect x="30" y="46" width="16" height="132" rx="3"></rect>
@@ -270,11 +429,14 @@ export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, Prin
         <rect x="35" y="52" width="6" height="120" rx="3"></rect>
         <rect x="199" y="52" width="6" height="120" rx="3"></rect>
       </g>
+      ${heatGlow(bedHeat, 58, 168, 124, 12)}
       <rect x="60" y="170" width="120" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="68" y="178" width="104" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      ${printedMass(!cameraLive, progress, 60, 120, 170, 104, tip)}
+      ${fanMark(fanOn, 34, 200, 6.5)}
       <rect x="154" y="33" width="50" height="16" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="36" width="42" height="10" rx="2" fill="#101216"></rect>
-      ${anycubicCube(179, 41, 5)}
+      ${screenFace(status, 179, 41, 5)}
       ${chamberLight(lightOn, 46, 52, 148)}
       <g fill="currentColor" opacity="0.2">
         <rect x="36" y="188" width="40" height="2.5" rx="1"></rect>
@@ -287,6 +449,7 @@ export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, Prin
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
         <g id="nozzle" transform="${nozzle}">
+          ${heatGlow(nozzleHeat, 109, 67, 22, 17)}
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
             <rect x="109" y="53" width="18" height="2" rx="1"></rect>
@@ -303,11 +466,12 @@ export const PRINTER_ART: Record<Exclude<PrinterArtKind, 'kobra_s1_combo'>, Prin
   // kept so the animation code stays model-agnostic.
   resin: {
     kind: 'resin',
+    park: 0,
     viewBox: '0 0 240 240',
     chamber: [16, 26, 38, 26],
     travel: 76,
     // Resin machines have no chamber light to show, so lightOn is ignored.
-    body: (gantry, _nozzle, tip = 'var(--ac-printer-accent, currentColor)') => svg`
+    body: ({ gantry, tip = 'var(--ac-printer-accent, currentColor)' }: PrinterBodyState) => svg`
       <path d="M74 34 h92 a8 8 0 0 1 8 8 v108 h-108 v-108 a8 8 0 0 1 8 -8 Z" stroke="currentColor" stroke-opacity="0.45" stroke-width="4" fill="none"></path>
       <g fill="currentColor">
         <rect x="36" y="150" width="168" height="62" rx="8"></rect>
@@ -383,7 +547,9 @@ export function selectPrinterArt(
  * the video instead of riding across it.
  */
 export const gantryTransform = (art: PrinterArt, progress: number, cameraLive: boolean): string =>
-  cameraLive ? 'translate(0 0)' : `translate(0 ${(art.travel * (1 - progress / 100)).toFixed(1)})`;
+  cameraLive
+    ? `translate(0 ${-art.park})`
+    : `translate(0 ${(art.travel * (1 - progress / 100)).toFixed(1)})`;
 
 /** Swap for real axis data when it is wired; x is -1..1 across the rail. */
 export const nozzleTransform = (x: number, span = 48): string =>
@@ -429,7 +595,7 @@ export function withAce(
       +(((height - (bottom0 + offset)) / height) * 100).toFixed(2),
       l,
     ],
-    body: (g, n, tip, lightOn) => svg`
+    body: (st: PrinterBodyState) => svg`
       ${Array.from({ length: count }, (_, k) => {
         const drop = offset - k * ACE_PITCH;
         // Upper unit (when there are two) runs its tube down the right flank.
@@ -448,7 +614,7 @@ export function withAce(
           ${aceModule(slot, localActive, feed, feedActive, k)}
         </g>`;
       })}
-      <g transform="translate(0 ${offset})">${art.body(g, n, tip, lightOn)}</g>`,
+      <g transform="translate(0 ${offset})">${art.body(st)}</g>`,
   };
 }
 
@@ -487,9 +653,9 @@ export const withFilamentSource = (
     ? withAce(art, aceCount, spools, active)
     : {
         ...art,
-        body: (g, n, tip, lightOn) => svg`
-          ${sideSpool(tip, art.kind === 'kobra_3' ? 80 : 70, art.kind === 'fdm' ? 222 : 219.5)}
-          ${art.body(g, n, tip, lightOn)}`,
+        body: (st: PrinterBodyState) => svg`
+          ${sideSpool(st.tip, art.kind === 'kobra_3' ? 80 : 70, art.kind === 'fdm' ? 222 : 219.5)}
+          ${art.body(st)}`,
       };
 
 /* -------------------------------------------------- filament colour lookup */
@@ -548,15 +714,18 @@ export const activeTipColor = (
  */
 export const renderPrinter = (
   art: PrinterArt,
-  progress: number,
-  cameraLive: boolean,
-  nozzleX = 0,
-  tip?: string,
-  lightOn = false,
+  state: Omit<PrinterBodyState, 'gantry' | 'nozzle'> & {
+    progress?: number;
+    nozzleX?: number;
+  } = {},
 ): TemplateResult => html`
   <svg class="ac-apr-svg" viewBox="${art.viewBox}" fill="none"
        preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-    ${art.body(gantryTransform(art, progress, cameraLive), nozzleTransform(nozzleX), tip, lightOn)}
+    ${art.body({
+      ...state,
+      gantry: gantryTransform(art, (state.progress ?? 0) * 100, !!state.cameraLive),
+      nozzle: nozzleTransform(state.nozzleX ?? 0),
+    })}
   </svg>`;
 
 /** Inset for `.ac-apr-camera` so the stream fills exactly the chamber hole. */

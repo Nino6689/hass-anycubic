@@ -29,10 +29,20 @@ import {
   LitTemplateResult,
 } from "../../../types";
 
-/** A slot as the ace_spools sensor reports it: colour is [r, g, b]. */
+/**
+ * A slot as the ace_spools sensor actually reports it.
+ *
+ * The attribute is `spool_info`, not `spools`, and each entry carries both an
+ * [r,g,b] `color` and a `color_hex`. Confirmed against a live Kobra S1 rather
+ * than assumed -- the first pass read the wrong attribute and silently found
+ * nothing, which looks identical to a printer with no ACE attached.
+ */
 interface AceSpool {
   color?: number[] | null;
+  color_hex?: string | null;
   spool_loaded?: boolean;
+  consumables_percent?: number | null;
+  slot?: number;
 }
 
 const rgbToHex = (rgb?: number[] | null): string | undefined =>
@@ -157,7 +167,7 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   private _spoolState(): { spools: string[]; active: number; units: 0 | 1 | 2 } {
     const read = (key: string): AceSpool[] => {
       const stateObj = getStateObjByKey(this.hass, this.printerEntities, key);
-      const spools = stateObj?.attributes?.spools;
+      const spools = stateObj?.attributes?.spool_info;
       return Array.isArray(spools) ? (spools as AceSpool[]) : [];
     };
 
@@ -166,26 +176,57 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
     const units = (secondary.length ? 2 : primary.length ? 1 : 0) as 0 | 1 | 2;
 
     const colours = [...primary, ...secondary].map((s) =>
-      filamentColor(rgbToHex(s.color)),
+      filamentColor(s.color_hex ?? rgbToHex(s.color)),
     );
 
-    // Which slot is feeding. Absent on machines with no multi-colour unit,
-    // where the highlight is meaningless anyway.
-    const active = Number(
-      getPrinterSensorStateObj(
-        this.hass,
-        this.printerEntities,
-        this.printerEntityIdPart,
-        "ace_active_slot",
-        0,
-      ).state,
-    );
+    // The feeding slot lives on the box, not on a sensor of its own, and is
+    // null whenever the printer is drawing from the external spool instead.
+    const boxInfo = getStateObjByKey(this.hass, this.printerEntities, "ace_spools")
+      ?.attributes?.box_info as { loaded_slot?: number | null } | undefined;
+    const loaded = boxInfo?.loaded_slot;
 
     return {
       spools: colours,
-      active: Number.isFinite(active) && active > 0 ? active - 1 : 0,
+      active: typeof loaded === "number" && loaded > 0 ? loaded - 1 : 0,
       units,
     };
+  }
+
+  /** How far a heater is toward its OWN target, 0-1. No target = not heating. */
+  private _heat(currentKey: string, targetKey: string): number {
+    const num = (key: string): number =>
+      Number(
+        getPrinterSensorStateObj(
+          this.hass,
+          this.printerEntities,
+          this.printerEntityIdPart,
+          key,
+          0,
+        ).state,
+      );
+    const target = num(targetKey);
+    if (!Number.isFinite(target) || target <= 0) return 0;
+    const current = num(currentKey);
+    if (!Number.isFinite(current)) return 0;
+    // Ambient is roughly 20C; below that there is nothing to show.
+    return Math.max(0, Math.min(1, (current - 20) / Math.max(1, target - 20)));
+  }
+
+  private _status(): "idle" | "printing" | "paused" | "error" {
+    const paused = getStateObjByKey(
+      this.hass,
+      this.printerEntities,
+      "job_paused",
+    )?.state;
+    if (paused === "on") return "paused";
+    const job = getPrinterSensorStateObj(
+      this.hass,
+      this.printerEntities,
+      this.printerEntityIdPart,
+      "job_state",
+    ).state.toLowerCase();
+    if (job.includes("fail") || job.includes("error")) return "error";
+    return this._isPrinting ? "printing" : "idle";
   }
 
   private _art(): PrinterArt {
@@ -228,14 +269,25 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
                 ></div>
               `
             : nothing}
-        ${renderPrinter(
-          art,
-          this._progressNum * 100,
+        ${renderPrinter(art, {
+          progress: this._progressNum,
           cameraLive,
-          0,
           tip,
-          this._lightOn,
-        )}
+          lightOn: this._lightOn,
+          nozzleHeat: this._heat("nozzle_temperature", "target_nozzle_temperature"),
+          bedHeat: this._heat("hotbed_temperature", "target_hotbed_temperature"),
+          fanOn:
+            Number(
+              getPrinterSensorStateObj(
+                this.hass,
+                this.printerEntities,
+                this.printerEntityIdPart,
+                "fan_speed",
+                0,
+              ).state,
+            ) > 0,
+          status: this._status(),
+        })}
       </div>
     `;
   }
@@ -324,8 +376,24 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
         }
       }
 
+      .ac-apr-svg .ac-apr-fan {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: ac-apr-spin 1.1s linear infinite;
+      }
+
+      @keyframes ac-apr-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Motion is the whole point of both of these, so under reduced-motion
+         they stop rather than slow: the fan still reads as running from its
+         opacity, and the head from its position. */
       @media (prefers-reduced-motion: reduce) {
-        :host([printing]) .ac-apr-svg #nozzle {
+        :host([printing]) .ac-apr-svg #nozzle,
+        .ac-apr-svg .ac-apr-fan {
           animation: none;
         }
       }
