@@ -399,6 +399,23 @@ class TestAccessTokenCorruption:
 
         assert not corrupt
 
+    async def test_an_empty_key_set_never_blocks_login(self):
+        """Anycubic's China auth server publishes a JWKS with no keys in it.
+
+        An empty list is not None, so the fail-open guard passed it straight
+        through to a verification loop that then could not run even once --
+        and a loop that never runs vindicates nothing, so every China token
+        fell out of the far end labelled corrupt (issue #13). Having no key
+        to check against is the same predicament as being unable to fetch
+        one, and must reach the same answer.
+        """
+        session = self._Session(jwks={"keys": []})
+
+        checked, corrupt = await async_repair_access_token(session, self.SIGNED)
+
+        assert not corrupt
+        assert checked == self.SIGNED
+
     @pytest.mark.parametrize("surplus", [1, 8, 40])
     async def test_trailing_bytes_are_trimmed_and_the_token_used(self, surplus):
         """The #8 resolution: a dump match that ran past the signature's end.

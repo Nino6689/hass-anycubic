@@ -791,7 +791,15 @@ async def async_repair_access_token(
         return token, True
 
     keys = await _async_fetch_signing_keys(session)
-    if keys is None:
+    if not keys:
+        # Empty is not the same as unfetchable, but it means the same thing
+        # here: nothing to check against. Testing `is None` let an empty key
+        # set through, and since the verification loop below then never runs
+        # even once, every token fell out of it labelled corrupt -- the
+        # opposite of this function's one rule, which is never to block a
+        # login on our own inability to check. Anycubic's China auth server
+        # publishes an empty JWKS, so China logins were rejected outright
+        # with "token_corrupted" while the token was perfectly good.
         return token, False
 
     head, payload, signature_text = parts
