@@ -4907,12 +4907,19 @@
         display: block;
         width: 100%;
         height: 100%;
+        /* ha-camera-stream has its own shadow root, so its internal <video>
+           cannot be styled from here and sizes itself to the stream's own
+           aspect ratio. Without this it escapes the box entirely -- in the
+           printer card that meant the video spilling out past the chassis
+           instead of sitting inside the build chamber. */
+        overflow: hidden;
       }
 
       ha-camera-stream {
         display: block;
         width: 100%;
         height: 100%;
+        object-fit: cover;
       }
 
       .ac-cam-message {
@@ -5510,16 +5517,22 @@
         max-height: 100%;
         margin: 0 auto;
         box-sizing: border-box;
+        overflow: hidden;
       }
 
       /* Both of these fill exactly the chamber hole in the artwork, which is
          negative space, so the SVG frames them rather than covering them.
          The inset comes from the art itself because it moves with ACE count. */
+      /* The chamber is a hole in the artwork, so whatever sits behind it must
+         be clipped to that hole. The stream is the reason: its <video> is in a
+         shadow root we cannot reach and sizes itself, so without clipping here
+         it renders at its own aspect ratio and spills out past the chassis. */
       .ac-apr-camera,
       .ac-apr-imgprev {
         position: absolute;
         inset: var(--ac-apr-chamber, 0);
         z-index: 0;
+        overflow: hidden;
       }
 
       .ac-apr-camera {
