@@ -1,9 +1,13 @@
+import * as de from './languages/de.json';
 import * as en from './languages/en.json';
+import * as zhHans from './languages/zh-Hans.json';
 
 import IntlMessageFormat from 'intl-messageformat';
 
 var languages: any = {
+  de: de,
   en: en,
+  'zh-Hans': zhHans,
 };
 
 export function localize(string: string, language: string, ...args: any[]): string {

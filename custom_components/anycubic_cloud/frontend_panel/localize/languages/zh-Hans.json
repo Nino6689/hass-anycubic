@@ -1,0 +1,159 @@
+{
+  "title": "Anycubic Cloud",
+  "common": {
+    "actions": {
+      "cancel": "取消",
+      "pause": "暂停",
+      "print": "打印",
+      "resume": "恢复",
+      "yes": "是",
+      "no": "否",
+      "save": "保存"
+    },
+    "messages": {
+      "mqtt_unsupported": "此功能需要通过 MQTT 获取数据，但当前配置的认证方式不支持 MQTT。"
+    }
+  },
+  "card": {
+    "buttons": {
+      "print_settings": "打印设置",
+      "dry": "烘干",
+      "runout_refill": "续料"
+    },
+    "configure": {
+      "tabs": {
+        "main": "常规",
+        "stats": "统计",
+        "colours": "ACE 颜色预设"
+      },
+      "labels": {
+        "printer_id": "选择打印机",
+        "vertical": "垂直布局？",
+        "round": "统计数据取整？",
+        "use_24hr": "使用 24 小时制？",
+        "show_settings_button": "始终显示打印设置按钮？",
+        "always_show": "始终显示卡片？",
+        "temperature_unit": "温度单位",
+        "light_entity_id": "灯光实体",
+        "power_entity_id": "电源实体",
+        "camera_entity_id": "摄像头实体",
+        "scale_factor": "缩放比例",
+        "slot_colors": "槽位颜色预设",
+        "media_view": "主视图",
+        "show_controls": "显示控制按钮",
+        "sections": "可展开区块"
+      }
+    },
+    "print_settings": {
+      "confirm_message": "确定要{action}当前打印吗？",
+      "label_nozzle_temp": "喷嘴温度",
+      "label_hotbed_temp": "热床温度",
+      "label_fan_speed": "风扇转速",
+      "label_aux_fan_speed": "辅助风扇转速",
+      "label_box_fan_speed": "料盒风扇转速",
+      "print_pause": "暂停打印",
+      "print_resume": "恢复打印",
+      "print_cancel": "取消打印",
+      "save_speed_mode": "保存速度模式",
+      "save_target_nozzle": "保存目标喷嘴",
+      "save_target_hotbed": "保存目标热床",
+      "save_fan_speed": "保存风扇转速",
+      "save_aux_fan_speed": "保存辅助风扇转速",
+      "save_box_fan_speed": "保存料盒风扇转速"
+    },
+    "drying_settings": {
+      "heading": "烘干选项",
+      "button_preset": "预设",
+      "button_stop_drying": "停止烘干",
+      "button_minutes": "分钟"
+    },
+    "spool_settings": {
+      "heading": "编辑槽位",
+      "label_select_material": "选择材料",
+      "label_select_colour": "手动选择颜色"
+    },
+    "monitored_stats": {
+      "ETA": "预计完成",
+      "Elapsed": "已用时间",
+      "Remaining": "剩余时间",
+      "Status": "状态",
+      "Online": "在线",
+      "Availability": "可用性",
+      "Project": "打印任务",
+      "Layer": "层数",
+      "Hotend": "喷嘴",
+      "Bed": "热床",
+      "T Hotend": "目标喷嘴",
+      "T Bed": "目标热床",
+      "Dry Status": "烘干状态",
+      "Dry Time": "烘干时间",
+      "Speed Mode": "速度模式",
+      "Fan Speed": "风扇转速",
+      "On Time": "曝光时间",
+      "Off Time": "关光时间",
+      "Bottom Time": "底层曝光",
+      "Model Height": "模型高度",
+      "Bottom Layers": "底层层数",
+      "Z Up Height": "Z 抬升高度",
+      "Z Up Speed": "Z 抬升速度",
+      "Z Down Speed": "Z 下降速度"
+    }
+  },
+  "panels": {
+    "initial": {
+      "printer_select": "请选择打印机。"
+    },
+    "main": {
+      "title": "概览",
+      "cards": {
+        "main": {
+          "description": "打印机的基本信息。",
+          "fields": {
+            "printer_name": "名称",
+            "printer_id": "ID",
+            "printer_mac": "MAC",
+            "printer_model": "型号",
+            "printer_fw_version": "固件版本",
+            "printer_fw_update_available": "固件状态",
+            "printer_online": "在线",
+            "printer_available": "可用",
+            "curr_nozzle_temp": "当前喷嘴温度",
+            "curr_hotbed_temp": "当前热床温度",
+            "target_nozzle_temp": "目标喷嘴温度",
+            "target_hotbed_temp": "目标热床温度",
+            "job_state": "任务状态",
+            "job_progress": "任务进度",
+            "ace_fw_version": "ACE 固件版本",
+            "ace_fw_update_available": "ACE 固件状态",
+            "drying_active": "ACE 烘干状态",
+            "drying_progress": "ACE 烘干进度"
+          }
+        }
+      }
+    },
+    "files_cloud": {
+      "title": "云端文件",
+      "cards": {}
+    },
+    "files_local": {
+      "title": "本地文件",
+      "cards": {}
+    },
+    "files_udisk": {
+      "title": "U 盘文件",
+      "cards": {}
+    },
+    "print_save_in_cloud": {
+      "title": "打印（保存到用户云端）",
+      "cards": {}
+    },
+    "print_no_cloud_save": {
+      "title": "打印（不保存到云端）",
+      "cards": {}
+    },
+    "debug": {
+      "title": "调试",
+      "cards": {}
+    }
+  }
+}
