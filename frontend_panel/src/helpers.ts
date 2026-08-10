@@ -773,14 +773,30 @@ export const formatDuration = (
     round ? Math.ceil(Number(time) / 60) * 60 : Number(time),
   );
 
-  const days: string = dur.days && dur.days > 0 ? `${dur.days}d` : "";
-  const hours: string = dur.hours && dur.hours > 0 ? `${dur.hours}h` : "";
-  const minutes: string =
-    dur.minutes && dur.minutes > 0 ? `${dur.minutes}m` : "";
-  const seconds: string =
-    dur.seconds && dur.seconds > 0 ? `${dur.seconds}s` : round ? "" : "0s";
+  // Show the two most significant units and stop. Concatenating every
+  // non-zero unit produced "1h0s" for exactly one hour -- the minutes dropped
+  // out because they were zero, leaving something that reads as 1 hour and 0
+  // seconds -- and "5h50m26s", which offers seconds of precision on a
+  // six-hour estimate. Dropping every zero unit also meant a duration of zero
+  // rendered as the empty string, so a finished print showed a blank stat.
+  const parts: string[] = [];
+  if (dur.days) {
+    parts.push(`${dur.days}d`);
+  }
+  if (dur.hours && parts.length < 2) {
+    parts.push(`${dur.hours}h`);
+  }
+  if (dur.minutes && parts.length < 2 && !dur.days) {
+    parts.push(`${dur.minutes}m`);
+  }
+  if (dur.seconds && parts.length < 2 && !dur.days && !dur.hours && !round) {
+    parts.push(`${dur.seconds}s`);
+  }
+  if (!parts.length) {
+    return round ? "0m" : "0s";
+  }
 
-  return `${days}${hours}${minutes}${seconds}`;
+  return parts.join(" ");
 };
 
 export const formatFutureTime = (
@@ -950,7 +966,11 @@ export function getPanelACEMonitoredStats(): PrinterCardStatType[] {
 export function getDefaultCardConfig(): AnycubicCardConfig {
   return {
     vertical: false,
-    round: false,
+    // Rounded by default. Unrounded renders a nozzle as "215.00°C" -- two
+    // decimals the printer never reported, it sends one -- and a six-hour
+    // estimate as "5h50m26s". Both are noise on the first screen a new user
+    // sees, and anyone who wants the raw precision can switch it back on.
+    round: true,
     use_24hr: true,
     temperatureUnit: TemperatureUnit.C,
     monitoredStats: getDefaultMonitoredStats(),

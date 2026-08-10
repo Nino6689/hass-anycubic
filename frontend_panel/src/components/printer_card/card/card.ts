@@ -231,12 +231,15 @@ export class AnycubicPrintercardCard extends LitElement {
           "ace_spools",
           "inactive",
         ).state === "active";
+      // The sensor is registered as `secondary_ace_spools`; this asked for
+      // the pre-rename `secondary_multi_color_box_spools`, so the suffix never
+      // matched and a second ACE unit was invisible in the Filament section.
       this.hasSecondaryColorbox =
         getPrinterSensorStateObj(
           this.hass,
           this.printerEntities,
           this.printerEntityIdPart,
-          "secondary_multi_color_box_spools",
+          "secondary_ace_spools",
           "inactive",
         ).state === "active";
 

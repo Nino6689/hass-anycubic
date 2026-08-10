@@ -252,10 +252,14 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   }
 
   private _status(): "idle" | "printing" | "paused" | "error" {
+    // getStateObjByKey matches on translation_key, which is "job_is_paused".
+    // The ENTITY ID ends in "job_paused", so the wrong key here looked right
+    // in every log and search while never matching, and the artwork could
+    // never enter its paused state.
     const paused = getStateObjByKey(
       this.hass,
       this.printerEntities,
-      "job_paused",
+      "job_is_paused",
     )?.state;
     if (paused === "on") {
       return "paused";
