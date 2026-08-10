@@ -5580,6 +5580,14 @@
         inset: var(--ac-apr-chamber, 0);
         z-index: 0;
         overflow: hidden;
+        /* The camera is a custom element whose own :host sets width and height
+           to 100%. An explicit size beats the four inset edges, so without
+           these the stream filled the whole wrapper instead of the chamber
+           hole -- measured on the live card as 115x165 against a chamber that
+           should be about 71x105. Styles from here outrank :host, so auto
+           hands sizing back to the insets. */
+        width: auto;
+        height: auto;
       }
 
       .ac-apr-camera {
