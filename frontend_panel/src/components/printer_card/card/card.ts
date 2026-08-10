@@ -129,6 +129,16 @@ export class AnycubicPrintercardCard extends LitElement {
   @property({ attribute: "printer-art" })
   public printerArt: PrinterArtType = PrinterArtType.Auto;
 
+  /** Never acquire the camera, whatever the media view asks for.
+   *
+   *  For galleries and previews. Starting a cloud stream is not a passive act:
+   *  the Anycubic account hands the camera to whichever session asked most
+   *  recently, so a page that renders several cards at once would quietly take
+   *  it from the phone app -- three times over, in the case that prompted
+   *  this. */
+  @property({ attribute: "no-camera", type: Boolean })
+  public noCamera: boolean = false;
+
   @property({ attribute: "show-controls", type: Boolean })
   public showControls?: boolean = true;
 
@@ -404,6 +414,7 @@ export class AnycubicPrintercardCard extends LitElement {
         .printerEntityIdPart=${this.printerEntityIdPart}
         .mediaView=${this.mediaView}
         .printerArt=${this.printerArt}
+        .noCamera=${this.noCamera}
         .camera=${this.camera}
         .isPrinting=${this.isPrinting}
       ></anycubic-printercard-media_view>

@@ -2594,12 +2594,13 @@
         },
         presets: {
           title: "Auf dem eigenen Dashboard nachbauen",
-          lede: "Die Karte oben ist dieselbe Karte, die Sie jedem Dashboard hinzufügen können – nur anders eingestellt. Kopieren und in eine manuelle Karte einfügen.",
+          lede: "Jede davon ist dieselbe Karte wie oben, nur anders eingestellt – in der Breite gezeigt, die eine Dashboard-Spalte ihr gibt. Vorschauen öffnen nie die Kamera; hier steht die Druckergrafik dafür. Kopieren und in eine manuelle Karte einfügen.",
           full: "Vollständig",
           compact: "Kompakte Kachel",
-          camera: "Kamera",
           copy: "Kopieren",
-          copied: "Kopiert"
+          copied: "Kopiert",
+          model: "Drucker + Modell",
+          vertical: "Vertikal"
         }
       },
       files_cloud: {
@@ -2791,12 +2792,13 @@
         },
         presets: {
           title: "Build this on your own dashboard",
-          lede: "The card above is the same card you can add to any dashboard — these are just different settings for it. Copy one and paste it into a Manual card.",
+          lede: "Each of these is the same card as above, set up differently — shown at the width a dashboard column gives it. Previews never open the camera, so the printer graphic stands in for it here. Copy one and paste it into a Manual card.",
           full: "Full",
           compact: "Compact tile",
-          camera: "Camera",
           copy: "Copy",
-          copied: "Copied"
+          copied: "Copied",
+          model: "Printer + model",
+          vertical: "Vertical"
         }
       },
       files_cloud: {
@@ -2988,12 +2990,13 @@
         },
         presets: {
           title: "Reproduire ceci sur votre tableau de bord",
-          lede: "La carte ci-dessus est la même carte que vous pouvez ajouter à n'importe quel tableau de bord, avec d'autres réglages. Copiez-en une et collez-la dans une carte manuelle.",
+          lede: "Chacune est la même carte que ci-dessus, réglée autrement, à la largeur qu'une colonne de tableau de bord lui donne. Les aperçus n'ouvrent jamais la caméra : l'illustration de l'imprimante la remplace ici. Copiez-en une et collez-la dans une carte manuelle.",
           full: "Complète",
           compact: "Tuile compacte",
-          camera: "Caméra",
           copy: "Copier",
-          copied: "Copié"
+          copied: "Copié",
+          model: "Imprimante + modèle",
+          vertical: "Verticale"
         }
       },
       files_cloud: {
@@ -3185,12 +3188,13 @@
         },
         presets: {
           title: "Bouw dit op je eigen dashboard",
-          lede: "De kaart hierboven is dezelfde kaart die je aan elk dashboard kunt toevoegen, alleen anders ingesteld. Kopieer er een en plak die in een handmatige kaart.",
+          lede: "Elk hiervan is dezelfde kaart als hierboven, anders ingesteld, op de breedte die een dashboardkolom geeft. Voorbeelden openen nooit de camera; de printerafbeelding staat hier in de plaats. Kopieer er een en plak die in een handmatige kaart.",
           full: "Volledig",
           compact: "Compacte tegel",
-          camera: "Camera",
           copy: "Kopiëren",
-          copied: "Gekopieerd"
+          copied: "Gekopieerd",
+          model: "Printer + model",
+          vertical: "Verticaal"
         }
       },
       files_cloud: {
@@ -3382,12 +3386,13 @@
         },
         presets: {
           title: "在你自己的仪表板上搭建",
-          lede: "上面的卡片就是你可以添加到任何仪表板的那张卡片，只是设置不同。复制一段并粘贴到手动卡片中。",
+          lede: "下面每一张都是上方的同一张卡片，只是设置不同，并按仪表板栏位的宽度显示。预览不会打开摄像头，此处以打印机图形代替。复制一段并粘贴到手动卡片中。",
           full: "完整",
           compact: "紧凑磁贴",
-          camera: "摄像头",
           copy: "复制",
-          copied: "已复制"
+          copied: "已复制",
+          model: "打印机 + 模型",
+          vertical: "竖向"
         }
       },
       files_cloud: {
@@ -5921,7 +5926,7 @@
   })], ls.prototype, "printerArt", void 0), ls = n([Nn("anycubic-printercard-printer_view")], ls);
   let cs = class extends mt {
     constructor() {
-      super(...arguments), this.mediaView = Mt.Auto, this.isPrinting = !1, this._previewFailed = !1, this._previewLoadFailed = () => {
+      super(...arguments), this.mediaView = Mt.Auto, this.noCamera = !1, this.isPrinting = !1, this._previewFailed = !1, this._previewLoadFailed = () => {
         this._previewFailed = !0, this._selected === Mt.Preview && (this._selected = void 0);
       }, this._selectTab = t => {
         this._selected = t.currentTarget.tabKey;
@@ -5941,7 +5946,7 @@
     }
     _availableTabs() {
       const t = [];
-      return this.camera && t.push({
+      return this.camera && !this.noCamera && t.push({
         key: Mt.Camera,
         icon: "M6.03 12.03L8.03 15.5L5.5 18.68L2 12.62L6.03 12.03M17 18V15.29C17.88 14.9 18.5 14.03 18.5 13C18.5 12.43 18.3 11.9 17.97 11.5L19.94 10.35C20.95 9.76 21.3 8.47 20.71 7.46L19.33 5.06C18.74 4.05 17.45 3.7 16.44 4.28L8.31 9C7.36 9.53 7.03 10.75 7.58 11.71L9.08 14.31C9.63 15.26 10.86 15.59 11.81 15.04L13.69 13.96C13.94 14.55 14.41 15.03 15 15.29V18C15 19.1 15.9 20 17 20H22V18H17Z",
         label: "Camera"
@@ -6001,7 +6006,7 @@
     `;
     }
     _renderSurface(t) {
-      return t === Mt.Camera && this.camera ? X`
+      return t === Mt.Camera && this.camera && !this.noCamera ? X`
         <anycubic-printercard-camera_stream
           .hass=${this.hass}
           .cameraEntityId=${this.camera.entity_id}
@@ -6025,7 +6030,7 @@
     `;
     }
     _insetCameraEntityId() {
-      if (!this.camera || !this.camera.available) return;
+      if (this.noCamera || !this.camera || !this.camera.available) return;
       if (this._activeTab() === Mt.PrinterModel) return;
       return this._selected === Mt.Printer || this.mediaView === Mt.Printer ? this.camera.entity_id : void 0;
     }
@@ -6153,6 +6158,9 @@
   })], cs.prototype, "mediaView", void 0), n([vt({
     attribute: "printer-art"
   })], cs.prototype, "printerArt", void 0), n([vt({
+    attribute: "no-camera",
+    type: Boolean
+  })], cs.prototype, "noCamera", void 0), n([vt({
     attribute: !1
   })], cs.prototype, "camera", void 0), n([vt({
     attribute: "is-printing",
@@ -10327,7 +10335,7 @@
   const Uo = _i();
   let Ro = class extends mt {
     constructor() {
-      super(...arguments), this.monitoredStats = Uo, this.round = !0, this.temperatureUnit = St.C, this.mediaView = Mt.Auto, this.printerArt = Ht.Auto, this.showControls = !0, this.showMoveButtons = !1, this.isHidden = !1, this.isPrinting = !1, this.isPaused = !1, this.hiddenOverride = !1, this.hasColorbox = !1, this.hasSecondaryColorbox = !1, this.lightIsOn = !1, this.statusColor = "#ffc107", this.printStateString = "unknown", this.progressPercent = 0, this._togglingLight = !1, this._togglingPower = !1, this._pressButtonEvent = t => {
+      super(...arguments), this.monitoredStats = Uo, this.round = !0, this.temperatureUnit = St.C, this.mediaView = Mt.Auto, this.printerArt = Ht.Auto, this.noCamera = !1, this.showControls = !0, this.showMoveButtons = !1, this.isHidden = !1, this.isPrinting = !1, this.isPaused = !1, this.hiddenOverride = !1, this.hasColorbox = !1, this.hasSecondaryColorbox = !1, this.lightIsOn = !1, this.statusColor = "#ffc107", this.printStateString = "unknown", this.progressPercent = 0, this._togglingLight = !1, this._togglingPower = !1, this._pressButtonEvent = t => {
         const e = t.currentTarget.entityId;
         e && this.hass.callService("button", "press", {
           entity_id: e
@@ -10508,6 +10516,7 @@
         .printerEntityIdPart=${this.printerEntityIdPart}
         .mediaView=${this.mediaView}
         .printerArt=${this.printerArt}
+        .noCamera=${this.noCamera}
         .camera=${this.camera}
         .isPrinting=${this.isPrinting}
       ></anycubic-printercard-media_view>
@@ -11430,6 +11439,9 @@
   })], Ro.prototype, "mediaView", void 0), n([vt({
     attribute: "printer-art"
   })], Ro.prototype, "printerArt", void 0), n([vt({
+    attribute: "no-camera",
+    type: Boolean
+  })], Ro.prototype, "noCamera", void 0), n([vt({
     attribute: "show-controls",
     type: Boolean
   })], Ro.prototype, "showControls", void 0), n([vt({

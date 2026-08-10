@@ -149,12 +149,13 @@
       },
       "presets": {
         "title": "Auf dem eigenen Dashboard nachbauen",
-        "lede": "Die Karte oben ist dieselbe Karte, die Sie jedem Dashboard hinzufügen können – nur anders eingestellt. Kopieren und in eine manuelle Karte einfügen.",
+        "lede": "Jede davon ist dieselbe Karte wie oben, nur anders eingestellt – in der Breite gezeigt, die eine Dashboard-Spalte ihr gibt. Vorschauen öffnen nie die Kamera; hier steht die Druckergrafik dafür. Kopieren und in eine manuelle Karte einfügen.",
         "full": "Vollständig",
         "compact": "Kompakte Kachel",
-        "camera": "Kamera",
         "copy": "Kopieren",
-        "copied": "Kopiert"
+        "copied": "Kopiert",
+        "model": "Drucker + Modell",
+        "vertical": "Vertikal"
       }
     },
     "files_cloud": {

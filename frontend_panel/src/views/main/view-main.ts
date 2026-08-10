@@ -18,6 +18,7 @@ import {
   isFDMPrinter,
 } from "../../helpers";
 import {
+  AnycubicCardConfig,
   CardSectionType,
   HassDevice,
   HassEntityInfos,
@@ -360,26 +361,59 @@ export class AnycubicViewMain extends LitElement {
   }
 
   /** The point of the page: the hero above IS the shipped card, so these are
-   *  the same object configured differently. Copy one and you have what you
-   *  are looking at. */
+   *  the same object configured differently. Each one is rendered live from
+   *  the SAME object the YAML is generated from, so the picture and the code
+   *  cannot drift apart.
+   *
+   *  No camera preset here on purpose. The card discovers a camera on its own,
+   *  so a `mediaView: camera` tile would open a stream just by being on this
+   *  page -- and an Anycubic account hands the camera to whichever session
+   *  asked most recently, which would quietly take it from the phone app. */
   private _renderPresets(): LitTemplateResult {
     const id = this.selectedPrinterDevice?.id ?? "YOUR_PRINTER_DEVICE_ID";
-    const presets: [string, string][] = [
+    const presets: [string, AnycubicCardConfig][] = [
       [
         "full",
-        `type: custom:anycubic-card\nprinter_id: ${id}\nmediaView: auto\nshowControls: true\nshowMoveButtons: true\nsections:\n  - filament`,
+        {
+          printer_id: id,
+          mediaView: MediaViewType.Printer,
+          showControls: true,
+          showMoveButtons: true,
+          sections: [CardSectionType.Filament],
+        },
+      ],
+      [
+        "model",
+        {
+          printer_id: id,
+          mediaView: MediaViewType.PrinterModel,
+          showControls: true,
+          showMoveButtons: false,
+        },
       ],
       [
         "compact",
-        `type: custom:anycubic-card\nprinter_id: ${id}\nmediaView: printer\nshowControls: false\nshowMoveButtons: false\nmonitoredStats:\n  - Status\n  - ETA`,
+        {
+          printer_id: id,
+          mediaView: MediaViewType.Printer,
+          showControls: false,
+          showMoveButtons: false,
+          monitoredStats: [PrinterCardStatType.Status, PrinterCardStatType.ETA],
+        },
       ],
       [
-        "camera",
-        `type: custom:anycubic-card\nprinter_id: ${id}\nmediaView: camera\nshowControls: true\nshowMoveButtons: false`,
+        "vertical",
+        {
+          printer_id: id,
+          vertical: true,
+          mediaView: MediaViewType.Printer,
+          showControls: true,
+          showMoveButtons: false,
+        },
       ],
     ];
-    const renderedPresets = presets.map(([key, yaml]) =>
-      this._presetCard(key, yaml),
+    const rendered = presets.map(([key, config]) =>
+      this._presetCard(key, config),
     );
     return html`
       <div class="ac-presets">
@@ -389,12 +423,33 @@ export class AnycubicViewMain extends LitElement {
         <p class="ac-presets-lede">
           ${localize("panels.main.presets.lede", this.language)}
         </p>
-        <div class="ac-preset-grid">${renderedPresets}</div>
+        <div class="ac-preset-grid">${rendered}</div>
       </div>
     `;
   }
 
-  private _presetCard(key: string, yaml: string): LitTemplateResult {
+  /** YAML from the very object being rendered beside it. Hand-writing the
+   *  snippet separately is how a gallery starts lying about itself. */
+  private _presetYaml(config: AnycubicCardConfig): string {
+    const lines = ["type: custom:anycubic-card"];
+    for (const [key, value] of Object.entries(config)) {
+      if (Array.isArray(value)) {
+        lines.push(`${key}:`);
+        for (const item of value) {
+          lines.push(`  - ${String(item)}`);
+        }
+      } else {
+        lines.push(`${key}: ${String(value)}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  private _presetCard(
+    key: string,
+    config: AnycubicCardConfig,
+  ): LitTemplateResult {
+    const yaml = this._presetYaml(config);
     return html`
       <div class="ac-preset">
         <div class="ac-preset-head">
@@ -402,6 +457,26 @@ export class AnycubicViewMain extends LitElement {
           <button class="ac-copy" .yaml=${yaml} @click=${this._copyPreset}>
             ${localize("panels.main.presets.copy", this.language)}
           </button>
+        </div>
+        <div class="ac-preset-frame">
+          <anycubic-printercard-card
+            .hass=${this.hass}
+            .language=${this.language}
+            .selectedPrinterID=${this.selectedPrinterID}
+            .selectedPrinterDevice=${this.selectedPrinterDevice}
+            .vertical=${config.vertical ?? false}
+            .round=${true}
+            .use_24hr=${this.panel.config.use_24hr ?? true}
+            .temperatureUnit=${this.panel.config.temperatureUnit}
+            .monitoredStats=${config.monitoredStats ?? this.monitoredStats}
+            .mediaView=${config.mediaView ?? MediaViewType.Printer}
+            .showControls=${config.showControls ?? false}
+            .showMoveButtons=${config.showMoveButtons ?? false}
+            .sections=${config.sections ?? []}
+            .showSettingsButton=${false}
+            .alwaysShow=${true}
+            .noCamera=${true}
+          ></anycubic-printercard-card>
         </div>
         <pre>${yaml}</pre>
       </div>
@@ -565,7 +640,7 @@ export class AnycubicViewMain extends LitElement {
 
       .ac-preset-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(300px, 380px));
         gap: 12px;
       }
 
@@ -600,6 +675,23 @@ export class AnycubicViewMain extends LitElement {
 
       .ac-copy:hover {
         background: var(--divider-color, rgba(127, 127, 127, 0.2));
+      }
+
+      /* Deliberately narrower than the card's own 480px container breakpoint,
+         so each tile shows the STACKED form a dashboard column actually gives
+         it -- not the wide panel form, which would flatter the preset and then
+         look different once pasted. */
+      .ac-preset-frame {
+        padding: 8px;
+        background: var(--primary-background-color);
+        border-bottom: 1px solid var(--divider-color, rgba(127, 127, 127, 0.2));
+        container-type: inline-size;
+      }
+
+      /* Previews are a shop window: looking is fine, operating a printer by
+         accident from a gallery is not. */
+      .ac-preset-frame anycubic-printercard-card {
+        pointer-events: none;
       }
 
       /* YAML must never widen the page; it scrolls inside its own box. */

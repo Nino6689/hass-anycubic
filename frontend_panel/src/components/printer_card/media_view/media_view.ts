@@ -50,6 +50,9 @@ export class AnycubicPrintercardMediaView extends LitElement {
   @property({ attribute: "printer-art" })
   public printerArt?: PrinterArtType;
 
+  @property({ attribute: "no-camera", type: Boolean })
+  public noCamera: boolean = false;
+
   @property({ attribute: false })
   public camera: AnycubicCameraChoice | undefined;
 
@@ -109,7 +112,7 @@ export class AnycubicPrintercardMediaView extends LitElement {
 
   private _availableTabs(): MediaTab[] {
     const tabs: MediaTab[] = [];
-    if (this.camera) {
+    if (this.camera && !this.noCamera) {
       tabs.push({
         key: MediaViewType.Camera,
         icon: mdiCctv,
@@ -214,7 +217,7 @@ export class AnycubicPrintercardMediaView extends LitElement {
   }
 
   private _renderSurface(active: MediaViewType): LitTemplateResult {
-    if (active === MediaViewType.Camera && this.camera) {
+    if (active === MediaViewType.Camera && this.camera && !this.noCamera) {
       return html`
         <anycubic-printercard-camera_stream
           .hass=${this.hass}
@@ -258,7 +261,7 @@ export class AnycubicPrintercardMediaView extends LitElement {
     // to cameras[0] when nothing is available, so an offline LAN camera still
     // arrives here -- and claiming the chamber with it left a dead black
     // rectangle where the sliced model should have been.
-    if (!this.camera || !this.camera.available) {
+    if (this.noCamera || !this.camera || !this.camera.available) {
       return undefined;
     }
     // PrinterModel deliberately withholds the chamber from the camera so the

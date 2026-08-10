@@ -149,12 +149,13 @@
       },
       "presets": {
         "title": "Bouw dit op je eigen dashboard",
-        "lede": "De kaart hierboven is dezelfde kaart die je aan elk dashboard kunt toevoegen, alleen anders ingesteld. Kopieer er een en plak die in een handmatige kaart.",
+        "lede": "Elk hiervan is dezelfde kaart als hierboven, anders ingesteld, op de breedte die een dashboardkolom geeft. Voorbeelden openen nooit de camera; de printerafbeelding staat hier in de plaats. Kopieer er een en plak die in een handmatige kaart.",
         "full": "Volledig",
         "compact": "Compacte tegel",
-        "camera": "Camera",
         "copy": "Kopiëren",
-        "copied": "Gekopieerd"
+        "copied": "Gekopieerd",
+        "model": "Printer + model",
+        "vertical": "Verticaal"
       }
     },
     "files_cloud": {

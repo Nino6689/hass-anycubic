@@ -149,12 +149,13 @@
       },
       "presets": {
         "title": "Reproduire ceci sur votre tableau de bord",
-        "lede": "La carte ci-dessus est la même carte que vous pouvez ajouter à n'importe quel tableau de bord, avec d'autres réglages. Copiez-en une et collez-la dans une carte manuelle.",
+        "lede": "Chacune est la même carte que ci-dessus, réglée autrement, à la largeur qu'une colonne de tableau de bord lui donne. Les aperçus n'ouvrent jamais la caméra : l'illustration de l'imprimante la remplace ici. Copiez-en une et collez-la dans une carte manuelle.",
         "full": "Complète",
         "compact": "Tuile compacte",
-        "camera": "Caméra",
         "copy": "Copier",
-        "copied": "Copié"
+        "copied": "Copié",
+        "model": "Imprimante + modèle",
+        "vertical": "Verticale"
       }
     },
     "files_cloud": {
