@@ -29,12 +29,27 @@ var printedMass = (visible, progress, plateX, plateW, plateY, maxH, tip) => {
   const taper = Math.min(6, h * 0.25);
   const x = plateX + inset;
   const w = plateW - inset * 2;
+  const step = 4;
+  const lines = [];
+  for (let y = plateY - step; y > plateY - h + 1; y -= step) {
+    const t = (plateY - y) / Math.max(1, h);
+    const halfTaper = taper * t;
+    lines.push(
+      svg`<line x1="${(x + halfTaper).toFixed(1)}" y1="${y.toFixed(1)}"
+                x2="${(x + w - halfTaper).toFixed(1)}" y2="${y.toFixed(1)}"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>`
+    );
+  }
   return svg`
     <g class="ac-apr-print">
       <path d="M${x} ${plateY} L${x + taper} ${plateY - h} L${x + w - taper} ${plateY - h} L${x + w} ${plateY} Z"
-            fill="${tip}" opacity="0.85"></path>
-      <rect x="${x + taper}" y="${plateY - h}" width="${w - taper * 2}" height="1.5"
-            fill="${tip}" opacity="0.55"></rect>
+            fill="${tip}" opacity="0.9"></path>
+      ${lines}
+      <path d="M${x} ${plateY} L${x + taper} ${plateY - h} L${x + taper + w * 0.32} ${plateY - h} L${x + w * 0.32} ${plateY} Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="${x + taper}" y="${(plateY - h).toFixed(1)}" width="${(w - taper * 2).toFixed(1)}" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>`;
 };
 var heatGlow = (heat, x, y, w, h) => heat <= 0.02 ? nothing : svg`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"
@@ -437,8 +452,17 @@ var sideSpool = (color = "var(--ac-printer-accent, currentColor)", cy = 70, cx =
     <path d="M${cx - 7.5} ${cy - 12} C ${cx - 7.5} ${cy - 26} ${cx - 13.5} ${cy - 34} ${cx - 31.5} ${cy - 32}" stroke="${color}"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="${cx - 23.5}" y="${cy - 3}" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="${cx - 8.5}" y="${cy - 18}" width="17" height="36" rx="2" fill="${color}"></rect>
-    <rect x="${cx - 8.5}" y="${cy - 3}" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="${cx - 8.5}" y="${cy - 18}" width="17" height="36" rx="2" fill="${color}"
+          stroke="${edgeFor(color)}" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="${cx - 8.5}" y="${cy - 13}" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="${cx - 8.5}" y="${cy + 10}" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="${cx - 8.5}" y="${cy - 4.5}" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="${cx - 2.2}" y="${cy - 3}" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="${cx - 12.5}" y="${cy - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="${cx + 7.5}" y="${cy - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>`;

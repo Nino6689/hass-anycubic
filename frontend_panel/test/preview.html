@@ -2,13 +2,21 @@
 <style>
   body { background:#12161a; color:#dfe6ec; font:14px/1.4 system-ui; margin:0; padding:24px; }
   .grid { display:flex; flex-wrap:wrap; gap:20px; }
-  figure { margin:0; width:260px; background:#1b2229; border:1px solid #2b333c; border-radius:12px; padding:10px; }
+  figure { margin:0; width:250px; background:#1b2229; border:1px solid #2b333c; border-radius:12px; padding:10px; }
   figcaption { font-size:12px; color:#93a1ad; margin-bottom:6px; }
   /* A real card gives the printer a box with BOTH dimensions fixed. The
      sizing bug only shows up here, never in a free-height container. */
-  .card { height:240px; display:flex; align-items:center; justify-content:center;
+  /* Grid, not flex: an aspect-ratio child inside a fixed-height FLEX box was
+     overflowing rather than clamping, which made the tall Combo bodies look
+     broken here while they composed correctly at natural size. The harness
+     misreporting the artwork is worse than no harness. */
+  .card { height:430px; display:grid; place-items:center; min-height:0;
           border:1px dashed #3a4650; border-radius:8px; overflow:hidden; }
-  .stage { position:relative; aspect-ratio:var(--aspect); max-width:100%; max-height:100%; margin:0 auto;
+  /* Height-driven, not width-driven. aspect-ratio + max-height did not clamp
+     the tall Combo bodies in either flex or grid, so they overflowed and read
+     as broken artwork. Every body is square or portrait, so deriving the width
+     from a full-height box always fits. */
+  .stage { position:relative; aspect-ratio:var(--aspect); height:100%; width:auto; max-width:100%; margin:0 auto;
     --primary-text-color:#c9d3dc; --secondary-text-color:#8b98a4; --divider-color:#5d6a76;
     --primary-color:#4a9fd8; --ha-card-background:#1b2229; }
   .cam { position:absolute; inset:var(--cam); z-index:0;
@@ -21,17 +29,30 @@
 </style><div class="grid"><figure><figcaption>Kobra S1 · idle · light off</figcaption>
     <div class="card">
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
           
   <g id="sidespool">
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"></rect>
-    <rect x="211" y="67" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="211" y="57" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="211" y="80" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="211" y="65.5" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="217.3" y="67" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="207" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="227" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>
@@ -116,17 +137,30 @@
 <figure><figcaption>Kobra S1 · printing 45% · light on</figcaption>
     <div class="card">
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
           
   <g id="sidespool">
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"></rect>
-    <rect x="211" y="67" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="211" y="57" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="211" y="80" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="211" y="65.5" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="217.3" y="67" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="207" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="227" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>
@@ -189,9 +223,33 @@
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L90.16 148.3 L149.84 148.3 L155.84 178 Z"
-            fill="#d94a3d" opacity="0.85"></path>
-      <rect x="90.16" y="148.3" width="59.68000000000001" height="1.5"
-            fill="#d94a3d" opacity="0.55"></rect>
+            fill="#d94a3d" opacity="0.9"></path>
+      <line x1="85.0" y1="174.0"
+                x2="155.0" y2="174.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="85.8" y1="170.0"
+                x2="154.2" y2="170.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="86.6" y1="166.0"
+                x2="153.4" y2="166.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="87.4" y1="162.0"
+                x2="152.6" y2="162.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="88.2" y1="158.0"
+                x2="151.8" y2="158.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.0" y1="154.0"
+                x2="151.0" y2="154.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.8" y1="150.0"
+                x2="150.2" y2="150.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>
+      <path d="M84.16 178 L90.16 148.3 L113.0976 148.3 L107.0976 178 Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="90.16" y="148.3" width="59.7" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
   <g id="gantry" transform="translate(0 57.2)"
      style="">
@@ -222,17 +280,30 @@
 <figure><figcaption>Kobra S1 · camera live</figcaption>
     <div class="card">
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
           
   <g id="sidespool">
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"></rect>
-    <rect x="211" y="67" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="211" y="57" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="211" y="80" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="211" y="65.5" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="217.3" y="67" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="207" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="227" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>
@@ -320,17 +391,30 @@
 <figure><figcaption>Kobra S1 · paused</figcaption>
     <div class="card">
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
           
   <g id="sidespool">
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"></rect>
-    <rect x="211" y="67" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="211" y="57" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="211" y="80" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="211" y="65.5" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="217.3" y="67" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="207" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="227" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>
@@ -385,9 +469,39 @@
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L90.16 138.4 L149.84 138.4 L155.84 178 Z"
-            fill="#d94a3d" opacity="0.85"></path>
-      <rect x="90.16" y="138.4" width="59.68000000000001" height="1.5"
-            fill="#d94a3d" opacity="0.55"></rect>
+            fill="#d94a3d" opacity="0.9"></path>
+      <line x1="84.8" y1="174.0"
+                x2="155.2" y2="174.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="85.4" y1="170.0"
+                x2="154.6" y2="170.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="86.0" y1="166.0"
+                x2="154.0" y2="166.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="86.6" y1="162.0"
+                x2="153.4" y2="162.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="87.2" y1="158.0"
+                x2="152.8" y2="158.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="87.8" y1="154.0"
+                x2="152.2" y2="154.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="88.4" y1="150.0"
+                x2="151.6" y2="150.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.0" y1="146.0"
+                x2="151.0" y2="146.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.6" y1="142.0"
+                x2="150.4" y2="142.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>
+      <path d="M84.16 178 L90.16 138.4 L113.0976 138.4 L107.0976 178 Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="90.16" y="138.4" width="59.7" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
   <g id="gantry" transform="translate(0 41.6)"
      style="">
@@ -418,17 +532,30 @@
 <figure><figcaption>Kobra S1 · error</figcaption>
     <div class="card">
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
           
   <g id="sidespool">
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"></rect>
-    <rect x="211" y="67" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="211" y="52" width="17" height="36" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="211" y="57" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="211" y="80" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="211" y="65.5" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="217.3" y="67" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="207" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="227" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>
@@ -484,9 +611,24 @@
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L89.11 158.2 L150.89000000000001 158.2 L155.84 178 Z"
-            fill="#d94a3d" opacity="0.85"></path>
-      <rect x="89.11" y="158.2" width="61.78000000000001" height="1.5"
-            fill="#d94a3d" opacity="0.55"></rect>
+            fill="#d94a3d" opacity="0.9"></path>
+      <line x1="85.2" y1="174.0"
+                x2="154.8" y2="174.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="86.2" y1="170.0"
+                x2="153.8" y2="170.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="87.2" y1="166.0"
+                x2="152.8" y2="166.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="88.2" y1="162.0"
+                x2="151.8" y2="162.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>
+      <path d="M84.16 178 L89.11 158.2 L112.0476 158.2 L107.0976 178 Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="89.11" y="158.2" width="61.8" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
   <g id="gantry" transform="translate(0 72.8)"
      style="">
@@ -515,9 +657,13 @@
 <figure><figcaption>S1 Combo · 1 ACE · slot 2 feeding</figcaption>
     <div class="card">
       <div class="stage" style="--cam:45.08% 19.6% 10.76% 19.2%; --aspect:240 / 344">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 344" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 344
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
       <g transform="translate(0 0)">
           
@@ -529,25 +675,29 @@
     
       <rect x="51.5" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="57.5" y="50.9" width="18" height="14.2" rx="2" fill="#d94a3d"></rect>
+    <rect x="57.5" y="50.9" width="18" height="14.2" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="57.5" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="53" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="75.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="87" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="93" y="43.0" width="18" height="29.9" rx="2" fill="#2f7fd1"></rect>
+    <rect x="93" y="43.0" width="18" height="29.9" rx="2" fill="#2f7fd1"
+          stroke="rgba(255,255,255,0.55)" stroke-width="0.75"></rect>
     <rect x="93" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="88.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="111" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="122.5" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="128.5" y="42.0" width="18" height="32.0" rx="2" fill="#e8b33a"></rect>
+    <rect x="128.5" y="42.0" width="18" height="32.0" rx="2" fill="#e8b33a"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="128.5" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="124" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="146.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="164" y="47.8" width="18" height="20.5" rx="2" fill="#3aa87a"></rect>
+    <rect x="164" y="47.8" width="18" height="20.5" rx="2" fill="#3aa87a"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="164" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="159.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="182" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
@@ -616,9 +766,45 @@
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L90.16 131.8 L149.84 131.8 L155.84 178 Z"
-            fill="#2f7fd1" opacity="0.85"></path>
-      <rect x="90.16" y="131.8" width="59.68000000000001" height="1.5"
-            fill="#2f7fd1" opacity="0.55"></rect>
+            fill="#2f7fd1" opacity="0.9"></path>
+      <line x1="84.7" y1="174.0"
+                x2="155.3" y2="174.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="85.2" y1="170.0"
+                x2="154.8" y2="170.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="85.7" y1="166.0"
+                x2="154.3" y2="166.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="86.2" y1="162.0"
+                x2="153.8" y2="162.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="86.8" y1="158.0"
+                x2="153.2" y2="158.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="87.3" y1="154.0"
+                x2="152.7" y2="154.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="87.8" y1="150.0"
+                x2="152.2" y2="150.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="88.3" y1="146.0"
+                x2="151.7" y2="146.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="88.8" y1="142.0"
+                x2="151.2" y2="142.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.4" y1="138.0"
+                x2="150.6" y2="138.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.9" y1="134.0"
+                x2="150.1" y2="134.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>
+      <path d="M84.16 178 L90.16 131.8 L113.0976 131.8 L107.0976 178 Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="90.16" y="131.8" width="59.7" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
   <g id="gantry" transform="translate(0 31.2)"
      style="">
@@ -647,9 +833,13 @@
 <figure><figcaption>S1 Combo · 2 ACE · slot 6 feeding</figcaption>
     <div class="card">
       <div class="stage" style="--cam:57.55% 19.6% 8.31% 19.2%; --aspect:240 / 445">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 445" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 445
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
       <g transform="translate(0 0)">
           
@@ -661,25 +851,29 @@
     
       <rect x="51.5" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="57.5" y="50.9" width="18" height="14.2" rx="2" fill="#d94a3d"></rect>
+    <rect x="57.5" y="50.9" width="18" height="14.2" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="57.5" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="53" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="75.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="87" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="93" y="43.0" width="18" height="29.9" rx="2" fill="#2f7fd1"></rect>
+    <rect x="93" y="43.0" width="18" height="29.9" rx="2" fill="#2f7fd1"
+          stroke="rgba(255,255,255,0.55)" stroke-width="0.75"></rect>
     <rect x="93" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="88.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="111" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="122.5" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="128.5" y="42.0" width="18" height="32.0" rx="2" fill="#e8b33a"></rect>
+    <rect x="128.5" y="42.0" width="18" height="32.0" rx="2" fill="#e8b33a"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="128.5" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="124" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="146.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="164" y="47.8" width="18" height="20.5" rx="2" fill="#3aa87a"></rect>
+    <rect x="164" y="47.8" width="18" height="20.5" rx="2" fill="#3aa87a"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="164" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="159.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="182" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
@@ -699,25 +893,29 @@
     
       <rect x="51.5" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="57.5" y="45.1" width="18" height="25.7" rx="2" fill="#8e5bd1"></rect>
+    <rect x="57.5" y="45.1" width="18" height="25.7" rx="2" fill="#8e5bd1"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="57.5" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="53" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="75.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="87" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="93" y="52.0" width="18" height="12.1" rx="2" fill="#e0752f"></rect>
+    <rect x="93" y="52.0" width="18" height="12.1" rx="2" fill="#e0752f"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="93" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="88.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="111" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="122.5" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="128.5" y="46.2" width="18" height="23.6" rx="2" fill="#2fb8a8"></rect>
+    <rect x="128.5" y="46.2" width="18" height="23.6" rx="2" fill="#2fb8a8"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="128.5" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="124" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="146.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
       
-    <rect x="164" y="42.0" width="18" height="32.0" rx="2" fill="#c9c9c9"></rect>
+    <rect x="164" y="42.0" width="18" height="32.0" rx="2" fill="#c9c9c9"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
     <rect x="164" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
       <rect x="159.5" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
       <rect x="182" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
@@ -785,9 +983,24 @@
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L89.11 158.2 L150.89000000000001 158.2 L155.84 178 Z"
-            fill="#e0752f" opacity="0.85"></path>
-      <rect x="89.11" y="158.2" width="61.78000000000001" height="1.5"
-            fill="#e0752f" opacity="0.55"></rect>
+            fill="#e0752f" opacity="0.9"></path>
+      <line x1="85.2" y1="174.0"
+                x2="154.8" y2="174.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="86.2" y1="170.0"
+                x2="153.8" y2="170.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="87.2" y1="166.0"
+                x2="152.8" y2="166.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="88.2" y1="162.0"
+                x2="151.8" y2="162.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>
+      <path d="M84.16 178 L89.11 158.2 L112.0476 158.2 L107.0976 178 Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="89.11" y="158.2" width="61.8" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
   <g id="gantry" transform="translate(0 72.8)"
      style="">
@@ -816,17 +1029,30 @@
 <figure><figcaption>Kobra 3 · printing</figcaption>
     <div class="card">
       <div class="stage" style="--cam:19% 24% 30% 24%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
           
   <g id="sidespool">
     <path d="M212 68 C 212 54 206 46 188 48" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="77" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="211" y="62" width="17" height="36" rx="2" fill="#d94a3d"></rect>
-    <rect x="211" y="77" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="211" y="62" width="17" height="36" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="211" y="67" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="211" y="90" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="211" y="75.5" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="217.3" y="77" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="207" y="57" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="227" y="57" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>
@@ -878,9 +1104,33 @@
       
     <g class="ac-apr-print">
       <path d="M87.52 166 L93.52 134.1 L146.48000000000002 134.1 L152.48000000000002 166 Z"
-            fill="#d94a3d" opacity="0.85"></path>
-      <rect x="93.52" y="134.1" width="52.96000000000001" height="1.5"
-            fill="#d94a3d" opacity="0.55"></rect>
+            fill="#d94a3d" opacity="0.9"></path>
+      <line x1="88.3" y1="162.0"
+                x2="151.7" y2="162.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.0" y1="158.0"
+                x2="151.0" y2="158.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.8" y1="154.0"
+                x2="150.2" y2="154.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="90.5" y1="150.0"
+                x2="149.5" y2="150.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="91.3" y1="146.0"
+                x2="148.7" y2="146.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="92.0" y1="142.0"
+                x2="148.0" y2="142.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="92.8" y1="138.0"
+                x2="147.2" y2="138.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>
+      <path d="M87.52 166 L93.52 134.1 L114.3072 134.1 L108.3072 166 Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="93.52" y="134.1" width="53.0" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
       
   <g opacity="0.9">
@@ -918,17 +1168,30 @@
 <figure><figcaption>Generic FDM · fallback</figcaption>
     <div class="card">
       <div class="stage" style="--cam:20% 19.2% 29% 19.2%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
           
   <g id="sidespool">
     <path d="M214.5 58 C 214.5 44 208.5 36 190.5 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="198.5" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="213.5" y="52" width="17" height="36" rx="2" fill="#d94a3d"></rect>
-    <rect x="213.5" y="67" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="213.5" y="52" width="17" height="36" rx="2" fill="#d94a3d"
+          stroke="rgba(0,0,0,0.45)" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="213.5" y="57" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="213.5" y="80" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="213.5" y="65.5" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="219.8" y="67" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="209.5" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="229.5" y="47" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>
@@ -950,9 +1213,21 @@
       
     <g class="ac-apr-print">
       <path d="M86.4 170 L90.15 155 L149.85000000000002 155 L153.60000000000002 170 Z"
-            fill="#d94a3d" opacity="0.85"></path>
-      <rect x="90.15" y="155" width="59.7" height="1.5"
-            fill="#d94a3d" opacity="0.55"></rect>
+            fill="#d94a3d" opacity="0.9"></path>
+      <line x1="87.4" y1="166.0"
+                x2="152.6" y2="166.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="88.4" y1="162.0"
+                x2="151.6" y2="162.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line><line x1="89.4" y1="158.0"
+                x2="150.6" y2="158.0"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>
+      <path d="M86.4 170 L90.15 155 L111.65400000000001 155 L107.90400000000001 170 Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="90.15" y="155.0" width="59.7" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
       
   <g opacity="0.3">
@@ -1008,9 +1283,13 @@
 <figure><figcaption>Photon Mono · resin printing</figcaption>
     <div class="card">
       <div class="stage" style="--cam:16% 26% 38% 26%; --aspect:240 / 240">
-        <div class="cam"></div>
-  <svg class="ac-apr-svg" viewBox="0 0 240 240" fill="none"
-       preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <div class="cam"></div> <svg
+    class="ac-apr-svg"
+    viewBox=0 0 240 240
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
     
       <path d="M74 34 h92 a8 8 0 0 1 8 8 v108 h-108 v-108 a8 8 0 0 1 8 -8 Z" stroke="currentColor" stroke-opacity="0.45" stroke-width="4" fill="none"></path>
       <g fill="currentColor">

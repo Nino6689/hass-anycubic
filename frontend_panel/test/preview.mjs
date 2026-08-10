@@ -57,15 +57,27 @@ writeFileSync(join(here, 'preview.html'), `<!doctype html><meta charset="utf-8">
 <style>
   body { background:#12161a; color:#dfe6ec; font:14px/1.4 system-ui; margin:0; padding:24px; }
   .grid { display:flex; flex-wrap:wrap; gap:20px; }
-  figure { margin:0; width:260px; background:#1b2229; border:1px solid #2b333c; border-radius:12px; padding:10px; }
+  figure { margin:0; width:250px; background:#1b2229; border:1px solid #2b333c; border-radius:12px; padding:10px; }
   figcaption { font-size:12px; color:#93a1ad; margin-bottom:6px; }
   /* A real card gives the printer a box with BOTH dimensions fixed. The
      sizing bug only shows up here, never in a free-height container. */
-  .card { height:240px; display:flex; align-items:center; justify-content:center;
+  /* Grid, not flex: an aspect-ratio child inside a fixed-height FLEX box was
+     overflowing rather than clamping, which made the tall Combo bodies look
+     broken here while they composed correctly at natural size. The harness
+     misreporting the artwork is worse than no harness. */
+  .card { height:430px; display:grid; place-items:center; min-height:0;
           border:1px dashed #3a4650; border-radius:8px; overflow:hidden; }
-  .stage { position:relative; aspect-ratio:var(--aspect); max-width:100%; max-height:100%; margin:0 auto;
+  /* Height-driven, not width-driven. aspect-ratio + max-height did not clamp
+     the tall Combo bodies in either flex or grid, so they overflowed and read
+     as broken artwork. Every body is square or portrait, so deriving the width
+     from a full-height box always fits. */
+  .stage { position:relative; aspect-ratio:var(--aspect); height:100%; width:auto; max-width:100%; margin:0 auto;
     --primary-text-color:#c9d3dc; --secondary-text-color:#8b98a4; --divider-color:#5d6a76;
     --primary-color:#4a9fd8; --ha-card-background:#1b2229; }
+  /* Standing in for the camera. It is inset from the STAGE, and the stage is
+     not always exactly the SVG's rendered box here, so treat its alignment as
+     indicative only -- the real card's camera fit is verified by measurement
+     against the live DOM, not by this. */
   .cam { position:absolute; inset:var(--cam); z-index:0;
     background:repeating-linear-gradient(135deg,#2c3d4a 0 10px,#223140 10px 20px); }
   .ac-apr-svg { position:relative; z-index:1; display:block; width:100%; height:100%;

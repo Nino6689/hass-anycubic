@@ -84,8 +84,8 @@
       defineProperty: m,
       getOwnPropertyDescriptor: b,
       getOwnPropertyNames: y,
-      getOwnPropertySymbols: _,
-      getPrototypeOf: f
+      getOwnPropertySymbols: f,
+      getPrototypeOf: _
     } = Object,
     v = globalThis,
     w = v.trustedTypes,
@@ -176,14 +176,14 @@
     }
     static _$Ei() {
       if (this.hasOwnProperty(E("elementProperties"))) return;
-      const t = f(this);
+      const t = _(this);
       t.finalize(), void 0 !== t.l && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
     }
     static finalize() {
       if (this.hasOwnProperty(E("finalized"))) return;
       if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(E("properties"))) {
         const t = this.properties,
-          e = [...y(t), ..._(t)];
+          e = [...y(t), ...f(t)];
         for (const i of e) this.createProperty(i, t[i]);
       }
       const t = this[Symbol.metadata];
@@ -709,14 +709,14 @@
          * Copyright 2017 Google LLC
          * SPDX-License-Identifier: BSD-3-Clause
          */,
-    _t = {
+    ft = {
       attribute: !0,
       type: String,
       converter: S,
       reflect: !1,
       hasChanged: C
     },
-    ft = (t = _t, e, i) => {
+    _t = (t = ft, e, i) => {
       const {
         kind: r,
         metadata: n
@@ -748,7 +748,7 @@
       throw Error("Unsupported decorator location: " + r);
     };
   function vt(t) {
-    return (e, i) => "object" == typeof i ? ft(t, e, i) : ((t, e, i) => {
+    return (e, i) => "object" == typeof i ? _t(t, e, i) : ((t, e, i) => {
       const r = e.hasOwnProperty(i);
       return e.constructor.createProperty(i, r ? {
         ...t,
@@ -1378,7 +1378,7 @@
     const c = Zt(l, e);
     return +i >= +a ? r + 1 : +i >= +c ? r : r - 1;
   }
-  function _e(t, e) {
+  function fe(t, e) {
     const i = Rt(t, e?.in),
       r = +Zt(i, e) - +function (t, e) {
         const i = Gt(),
@@ -1389,20 +1389,20 @@
       }(i, e);
     return Math.round(r / It) + 1;
   }
-  function fe(t, e) {
+  function _e(t, e) {
     return (t < 0 ? "-" : "") + Math.abs(t).toString().padStart(e, "0");
   }
   const ve = {
       y(t, e) {
         const i = t.getFullYear(),
           r = i > 0 ? i : 1 - i;
-        return fe("yy" === e ? r % 100 : r, e.length);
+        return _e("yy" === e ? r % 100 : r, e.length);
       },
       M(t, e) {
         const i = t.getMonth();
-        return "M" === e ? String(i + 1) : fe(i + 1, 2);
+        return "M" === e ? String(i + 1) : _e(i + 1, 2);
       },
-      d: (t, e) => fe(t.getDate(), e.length),
+      d: (t, e) => _e(t.getDate(), e.length),
       a(t, e) {
         const i = t.getHours() / 12 >= 1 ? "pm" : "am";
         switch (e) {
@@ -1417,14 +1417,14 @@
             return "am" === i ? "a.m." : "p.m.";
         }
       },
-      h: (t, e) => fe(t.getHours() % 12 || 12, e.length),
-      H: (t, e) => fe(t.getHours(), e.length),
-      m: (t, e) => fe(t.getMinutes(), e.length),
-      s: (t, e) => fe(t.getSeconds(), e.length),
+      h: (t, e) => _e(t.getHours() % 12 || 12, e.length),
+      H: (t, e) => _e(t.getHours(), e.length),
+      m: (t, e) => _e(t.getMinutes(), e.length),
+      s: (t, e) => _e(t.getSeconds(), e.length),
       S(t, e) {
         const i = e.length,
           r = t.getMilliseconds();
-        return fe(Math.trunc(r * Math.pow(10, i - 3)), e.length);
+        return _e(Math.trunc(r * Math.pow(10, i - 3)), e.length);
       }
     },
     we = "midnight",
@@ -1467,17 +1467,17 @@
         const n = ye(t, r),
           s = n > 0 ? n : 1 - n;
         if ("YY" === e) {
-          return fe(s % 100, 2);
+          return _e(s % 100, 2);
         }
         return "Yo" === e ? i.ordinalNumber(s, {
           unit: "year"
-        }) : fe(s, e.length);
+        }) : _e(s, e.length);
       },
       R: function (t, e) {
-        return fe(Yt(t), e.length);
+        return _e(Yt(t), e.length);
       },
       u: function (t, e) {
-        return fe(t.getFullYear(), e.length);
+        return _e(t.getFullYear(), e.length);
       },
       Q: function (t, e, i) {
         const r = Math.ceil((t.getMonth() + 1) / 3);
@@ -1485,7 +1485,7 @@
           case "Q":
             return String(r);
           case "QQ":
-            return fe(r, 2);
+            return _e(r, 2);
           case "Qo":
             return i.ordinalNumber(r, {
               unit: "quarter"
@@ -1513,7 +1513,7 @@
           case "q":
             return String(r);
           case "qq":
-            return fe(r, 2);
+            return _e(r, 2);
           case "qo":
             return i.ordinalNumber(r, {
               unit: "quarter"
@@ -1568,7 +1568,7 @@
           case "L":
             return String(r + 1);
           case "LL":
-            return fe(r + 1, 2);
+            return _e(r + 1, 2);
           case "Lo":
             return i.ordinalNumber(r + 1, {
               unit: "month"
@@ -1591,16 +1591,16 @@
         }
       },
       w: function (t, e, i, r) {
-        const n = _e(t, r);
+        const n = fe(t, r);
         return "wo" === e ? i.ordinalNumber(n, {
           unit: "week"
-        }) : fe(n, e.length);
+        }) : _e(n, e.length);
       },
       I: function (t, e, i) {
         const r = be(t);
         return "Io" === e ? i.ordinalNumber(r, {
           unit: "week"
-        }) : fe(r, e.length);
+        }) : _e(r, e.length);
       },
       d: function (t, e, i) {
         return "do" === e ? i.ordinalNumber(t.getDate(), {
@@ -1611,7 +1611,7 @@
         const r = me(t);
         return "Do" === e ? i.ordinalNumber(r, {
           unit: "dayOfYear"
-        }) : fe(r, e.length);
+        }) : _e(r, e.length);
       },
       E: function (t, e, i) {
         const r = t.getDay();
@@ -1647,7 +1647,7 @@
           case "e":
             return String(s);
           case "ee":
-            return fe(s, 2);
+            return _e(s, 2);
           case "eo":
             return i.ordinalNumber(s, {
               unit: "day"
@@ -1681,7 +1681,7 @@
           case "c":
             return String(s);
           case "cc":
-            return fe(s, e.length);
+            return _e(s, e.length);
           case "co":
             return i.ordinalNumber(s, {
               unit: "day"
@@ -1715,7 +1715,7 @@
           case "i":
             return String(n);
           case "ii":
-            return fe(n, e.length);
+            return _e(n, e.length);
           case "io":
             return i.ordinalNumber(n, {
               unit: "day"
@@ -1836,13 +1836,13 @@
         const r = t.getHours() % 12;
         return "Ko" === e ? i.ordinalNumber(r, {
           unit: "hour"
-        }) : fe(r, e.length);
+        }) : _e(r, e.length);
       },
       k: function (t, e, i) {
         let r = t.getHours();
         return 0 === r && (r = 24), "ko" === e ? i.ordinalNumber(r, {
           unit: "hour"
-        }) : fe(r, e.length);
+        }) : _e(r, e.length);
       },
       m: function (t, e, i) {
         return "mo" === e ? i.ordinalNumber(t.getMinutes(), {
@@ -1905,10 +1905,10 @@
         }
       },
       t: function (t, e, i) {
-        return fe(Math.trunc(+t / 1e3), e.length);
+        return _e(Math.trunc(+t / 1e3), e.length);
       },
       T: function (t, e, i) {
-        return fe(+t, e.length);
+        return _e(+t, e.length);
       }
     };
   function Pe(t, e = "") {
@@ -1916,18 +1916,18 @@
       r = Math.abs(t),
       n = Math.trunc(r / 60),
       s = r % 60;
-    return 0 === s ? i + String(n) : i + String(n) + e + fe(s, 2);
+    return 0 === s ? i + String(n) : i + String(n) + e + _e(s, 2);
   }
   function Te(t, e) {
     if (t % 60 == 0) {
-      return (t > 0 ? "-" : "+") + fe(Math.abs(t) / 60, 2);
+      return (t > 0 ? "-" : "+") + _e(Math.abs(t) / 60, 2);
     }
     return ke(t, e);
   }
   function ke(t, e = "") {
     const i = t > 0 ? "-" : "+",
       r = Math.abs(t);
-    return i + fe(Math.trunc(r / 60), 2) + e + fe(r % 60, 2);
+    return i + _e(Math.trunc(r / 60), 2) + e + _e(r % 60, 2);
   }
   const Me = (t, e) => {
       switch (t) {
@@ -2302,7 +2302,7 @@
         [St.F]: t => t
       }
     },
-    _i = (t, e, i = !1) => {
+    fi = (t, e, i = !1) => {
       const r = parseFloat(t.state),
         n = (t => {
           switch (t.attributes.unit_of_measurement) {
@@ -2317,7 +2317,7 @@
       var o, a, l;
       return `${i ? Math.round(s) : s.toFixed(2)}°${e || n}`;
     };
-  function fi() {
+  function _i() {
     return [kt.Status, kt.ETA, kt.Elapsed, kt.Remaining];
   }
   function vi() {
@@ -2326,7 +2326,7 @@
       round: !0,
       use_24hr: !0,
       temperatureUnit: St.C,
-      monitoredStats: fi(),
+      monitoredStats: _i(),
       scaleFactor: 1,
       slotColors: [],
       showSettingsButton: !1,
@@ -3438,10 +3438,10 @@
   function yr(t) {
     return t.type === Di.number;
   }
-  function _r(t) {
+  function fr(t) {
     return t.type === Di.date;
   }
-  function fr(t) {
+  function _r(t) {
     return t.type === Di.time;
   }
   function vr(t) {
@@ -4308,23 +4308,23 @@
           if (this.bumpIf(",")) {
             this.bumpSpace();
             var h = this.clonePosition();
-            if ((_ = this.parseSimpleArgStyleIfPossible()).err) return _;
-            if (0 === (g = on(_.val)).length) return this.error(Ii.EXPECT_ARGUMENT_STYLE, Vr(this.clonePosition(), this.clonePosition()));
+            if ((f = this.parseSimpleArgStyleIfPossible()).err) return f;
+            if (0 === (g = on(f.val)).length) return this.error(Ii.EXPECT_ARGUMENT_STYLE, Vr(this.clonePosition(), this.clonePosition()));
             c = {
               style: g,
               styleLocation: Vr(h, this.clonePosition())
             };
           }
-          if ((f = this.tryParseArgumentClose(n)).err) return f;
+          if ((_ = this.tryParseArgumentClose(n)).err) return _;
           var d = Vr(n, this.clonePosition());
           if (c && tn(null == c ? void 0 : c.style, "::", 0)) {
             var u = sn(c.style.slice(2));
-            if ("number" === a) return (_ = this.parseNumberSkeletonFromString(u, c.styleLocation)).err ? _ : {
+            if ("number" === a) return (f = this.parseNumberSkeletonFromString(u, c.styleLocation)).err ? f : {
               val: {
                 type: Di.number,
                 value: i,
                 location: d,
-                style: _.val
+                style: f.val
               },
               err: null
             };
@@ -4379,14 +4379,14 @@
             y = 0;
           if ("select" !== a && "offset" === b.value) {
             if (!this.bumpIf(":")) return this.error(Ii.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Vr(this.clonePosition(), this.clonePosition()));
-            var _;
-            if (this.bumpSpace(), (_ = this.tryParseDecimalInteger(Ii.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Ii.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE)).err) return _;
-            this.bumpSpace(), b = this.parseIdentifierIfPossible(), y = _.val;
+            var f;
+            if (this.bumpSpace(), (f = this.tryParseDecimalInteger(Ii.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Ii.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE)).err) return f;
+            this.bumpSpace(), b = this.parseIdentifierIfPossible(), y = f.val;
           }
-          var f,
+          var _,
             v = this.tryParsePluralOrSelectOptions(t, a, e, b);
           if (v.err) return v;
-          if ((f = this.tryParseArgumentClose(n)).err) return f;
+          if ((_ = this.tryParseArgumentClose(n)).err) return _;
           var w = Vr(n, this.clonePosition());
           return "select" === a ? {
             val: {
@@ -4584,7 +4584,7 @@
   }
   function gn(t) {
     t.forEach(function (t) {
-      if (delete t.location, vr(t) || wr(t)) for (var e in t.options) delete t.options[e].location, gn(t.options[e].value);else yr(t) && Er(t.style) || (_r(t) || fr(t)) && Sr(t.style) ? delete t.style.location : $r(t) && gn(t.children);
+      if (delete t.location, vr(t) || wr(t)) for (var e in t.options) delete t.options[e].location, gn(t.options[e].value);else yr(t) && Er(t.style) || (fr(t) || _r(t)) && Sr(t.style) ? delete t.style.location : $r(t) && gn(t.children);
     });
   }
   function mn(t, e) {
@@ -4613,17 +4613,17 @@
       o = e.get(s);
     return void 0 === o && (o = t.call(this, r), e.set(s, o)), o;
   }
-  function _n(t, e, i) {
+  function fn(t, e, i) {
     var r = Array.prototype.slice.call(arguments, 3),
       n = i(r),
       s = e.get(n);
     return void 0 === s && (s = t.apply(this, r), e.set(n, s)), s;
   }
-  function fn(t, e, i, r, n) {
+  function _n(t, e, i, r, n) {
     return i.bind(e, t, r, n);
   }
   function vn(t, e) {
-    return fn(t, this, 1 === t.length ? yn : _n, e.cache.create(), e.serializer);
+    return _n(t, this, 1 === t.length ? yn : fn, e.cache.create(), e.serializer);
   }
   var wn = function () {
     return JSON.stringify(arguments);
@@ -4644,10 +4644,10 @@
     },
     Sn = {
       variadic: function (t, e) {
-        return fn(t, this, _n, e.cache.create(), e.serializer);
+        return _n(t, this, fn, e.cache.create(), e.serializer);
       },
       monadic: function (t, e) {
-        return fn(t, this, yn, e.cache.create(), e.serializer);
+        return _n(t, this, yn, e.cache.create(), e.serializer);
       }
     };
   !function (t) {
@@ -4704,13 +4704,13 @@
         if (br(h)) u && "string" != typeof u && "number" != typeof u || (u = "string" == typeof u || "number" == typeof u ? String(u) : ""), a.push({
           type: "string" == typeof u ? Cn.literal : Cn.object,
           value: u
-        });else if (_r(h)) {
+        });else if (fr(h)) {
           var p = "string" == typeof h.style ? r.date[h.style] : Sr(h.style) ? h.style.parsedOptions : void 0;
           a.push({
             type: Cn.literal,
             value: i.getDateTimeFormat(e, p).format(u)
           });
-        } else if (fr(h)) {
+        } else if (_r(h)) {
           p = "string" == typeof h.style ? r.time[h.style] : Sr(h.style) ? h.style.parsedOptions : r.time.medium;
           a.push({
             type: Cn.literal,
@@ -4738,19 +4738,19 @@
             }));
           }
           if (vr(h)) {
-            if (!(_ = h.options[u] || h.options.other)) throw new Pn(h.value, u, Object.keys(h.options), o);
-            a.push.apply(a, Hn(_.value, e, i, r, n));
+            if (!(f = h.options[u] || h.options.other)) throw new Pn(h.value, u, Object.keys(h.options), o);
+            a.push.apply(a, Hn(f.value, e, i, r, n));
           } else if (wr(h)) {
-            var _;
-            if (!(_ = h.options["=".concat(u)])) {
+            var f;
+            if (!(f = h.options["=".concat(u)])) {
               if (!Intl.PluralRules) throw new An('Intl.PluralRules is not available in this environment.\nTry polyfilling it using "@formatjs/intl-pluralrules"\n', $n.MISSING_INTL_API, o);
-              var f = i.getPluralRules(e, {
+              var _ = i.getPluralRules(e, {
                 type: h.pluralType
               }).select(u - (h.offset || 0));
-              _ = h.options[f] || h.options.other;
+              f = h.options[_] || h.options.other;
             }
-            if (!_) throw new Pn(h.value, u, Object.keys(h.options), o);
-            a.push.apply(a, Hn(_.value, e, i, r, n, u - (h.offset || 0)));
+            if (!f) throw new Pn(h.value, u, Object.keys(h.options), o);
+            a.push.apply(a, Hn(f.value, e, i, r, n, u - (h.offset || 0)));
           } else ;
         }
       }
@@ -5086,29 +5086,33 @@
         l = .22 * r,
         c = Math.min(6, .25 * a),
         h = i + l,
-        d = r - 2 * l;
+        d = r - 2 * l,
+        u = [];
+      for (let t = n - 4; t > n - a + 1; t -= 4) {
+        const e = c * ((n - t) / Math.max(1, a));
+        u.push(q`<line x1="${(h + e).toFixed(1)}" y1="${t.toFixed(1)}"
+                x2="${(h + d - e).toFixed(1)}" y2="${t.toFixed(1)}"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>`);
+      }
       return q`
     <g class="ac-apr-print">
       <path d="M${h} ${n} L${h + c} ${n - a} L${h + d - c} ${n - a} L${h + d} ${n} Z"
-            fill="${o}" opacity="0.85"></path>
-      <rect x="${h + c}" y="${n - a}" width="${d - 2 * c}" height="1.5"
-            fill="${o}" opacity="0.55"></rect>
+            fill="${o}" opacity="0.9"></path>
+      ${u}
+      <path d="M${h} ${n} L${h + c} ${n - a} L${h + c + .32 * d} ${n - a} L${h + .32 * d} ${n} Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="${h + c}" y="${(n - a).toFixed(1)}" width="${(d - 2 * c).toFixed(1)}" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>`;
     },
     Kn = (t, e, i, r, n) => t <= .02 ? J : q`<rect x="${e}" y="${i}" width="${r}" height="${n}" rx="3"
             fill="var(--ac-printer-heat, #ff7a3d)"
             opacity="${(.12 + .45 * t).toFixed(2)}"></rect>`,
-    Yn = (t, e, i) => {
-      const r = null != e ? e : "var(--ac-printer-rail, currentColor)",
-        n = 11 + 21 * (void 0 === i ? 1 : Math.max(0, Math.min(1, i)));
-      return q`
-    <rect x="${t - 9}" y="${(42 + (32 - n) / 2).toFixed(1)}" width="18" height="${n.toFixed(1)}" rx="2" fill="${r}"
-          stroke="${(t => {
-        if (!t || !/^#[0-9a-f]{6}$/i.test(t)) return "rgba(255,255,255,0.35)";
-        const e = parseInt(t.slice(1), 16);
-        return (.299 * (e >> 16 & 255) + .587 * (e >> 8 & 255) + .114 * (255 & e)) / 255 < .45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
-      })(e)}" stroke-width="0.75"></rect>
-    <rect x="${t - 9}" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>`;
+    Yn = t => {
+      if (!t || !/^#[0-9a-f]{6}$/i.test(t)) return "rgba(255,255,255,0.35)";
+      const e = parseInt(t.slice(1), 16);
+      return (.299 * (e >> 16 & 255) + .587 * (e >> 8 & 255) + .114 * (255 & e)) / 255 < .45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
     },
     Wn = (t, e, i, r) => q`
   <g opacity="${t ? .9 : .3}">
@@ -5144,7 +5148,35 @@
     </g>`;
       })(e, i, r);
     },
-    qn = {
+    qn = (t, e = 0, i = "M188 88 C 216 94 214 116 196 122", r = !0, n = 0, s = []) => {
+      var o;
+      return q`
+  <g id="ace-${n}">
+    <rect x="45" y="6" width="149" height="95" rx="11" fill="currentColor"></rect>
+    <rect x="45" y="6" width="149" height="16" rx="8" fill="currentColor"></rect>
+    <rect x="56" y="21" width="127" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.28"></rect>
+    <rect x="103" y="9" width="34" height="4" rx="2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.22"></rect>
+    ${jn.map((e, i) => q`
+      <rect x="${e - 15}" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
+      ${((t, e, i) => {
+        const r = null != e ? e : "var(--ac-printer-rail, currentColor)",
+          n = 11 + 21 * (void 0 === i ? 1 : Math.max(0, Math.min(1, i)));
+        return q`
+    <rect x="${t - 9}" y="${(42 + (32 - n) / 2).toFixed(1)}" width="18" height="${n.toFixed(1)}" rx="2" fill="${r}"
+          stroke="${Yn(e)}" stroke-width="0.75"></rect>
+    <rect x="${t - 9}" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>`;
+      })(e, t[i], s[i])}
+      <rect x="${e - 13.5}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
+      <rect x="${e + 9}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>`)}
+    ${void 0 === jn[e] ? J : q`<rect x="${jn[e] - 17}" y="36" width="34" height="44" rx="5" fill="none"
+                stroke="${null !== (o = t[e]) && void 0 !== o ? o : "currentColor"}" stroke-width="2"></rect>`}
+    <rect x="56" y="86" width="127" height="7" rx="3.5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.18"></rect>
+    <circle cx="186" cy="16" r="2.6" fill="var(--ac-printer-accent, currentColor)"></circle>
+  </g>
+  <path d="${i}" stroke="${r && t[e] || "var(--ac-printer-rail, currentColor)"}"
+        stroke-opacity="0.9" stroke-width="4.5" stroke-linecap="round" fill="none"></path>`;
+    },
+    Qn = {
       kobra_s1: {
         kind: "kobra_s1",
         park: 36,
@@ -5404,56 +5436,9 @@
       </g>`
       }
     },
-    Qn = [["kobra s1", "kobra_s1"], ["kobra 3", "kobra_3"], ["kobra 2", "kobra_3"], ["photon", "resin"], ["mono", "resin"], ["m5s", "resin"], ["m7", "resin"], ["kobra", "kobra_3"]],
-    Jn = (t, e, i) => i ? `translate(0 ${-t.park})` : `translate(0 ${(t.travel * (1 - e / 100)).toFixed(1)})`,
-    ts = (t, e = 48) => `translate(${(t * e).toFixed(1)} 0)`;
-  function es(t, e, i = Vn, r = 0, n = []) {
-    if (e < 1) return t;
-    const s = 101 * e + 14,
-      o = 221 + s + 8,
-      [a, l, c, h] = t.chamber,
-      d = a / 100 * 240,
-      u = 240 - c / 100 * 240;
-    return Object.assign(Object.assign({}, t), {
-      kind: "kobra_s1" === t.kind ? "kobra_s1_combo" : t.kind,
-      viewBox: `0 0 240 ${o}`,
-      chamber: [+((d + s) / o * 100).toFixed(2), l, +((o - (u + s)) / o * 100).toFixed(2), h],
-      body: o => q`
-      ${Array.from({
-        length: e
-      }, (t, o) => {
-        const a = s - 101 * o,
-          l = Math.floor(r / 4) === o,
-          c = 0 === o && 2 === e ? `M188 88 C 214 94 219 106 219 130 L 219 ${a + 8} C 219 ${a + 17} 210 ${a + 21} 200 ${a + 22}` : `M188 88 C 216 94 214 ${a + 12} 196 ${a + 22}`,
-          h = i.slice(4 * o, 4 * o + 4),
-          d = n.slice(4 * o, 4 * o + 4);
-        return q`<g transform="translate(0 ${101 * o})">
-          ${((t, e = 0, i = "M188 88 C 216 94 214 116 196 122", r = !0, n = 0, s = []) => {
-          var o;
-          return q`
-  <g id="ace-${n}">
-    <rect x="45" y="6" width="149" height="95" rx="11" fill="currentColor"></rect>
-    <rect x="45" y="6" width="149" height="16" rx="8" fill="currentColor"></rect>
-    <rect x="56" y="21" width="127" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.28"></rect>
-    <rect x="103" y="9" width="34" height="4" rx="2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.22"></rect>
-    ${jn.map((e, i) => q`
-      <rect x="${e - 15}" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
-      ${Yn(e, t[i], s[i])}
-      <rect x="${e - 13.5}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
-      <rect x="${e + 9}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>`)}
-    ${void 0 === jn[e] ? J : q`<rect x="${jn[e] - 17}" y="36" width="34" height="44" rx="5" fill="none"
-                stroke="${null !== (o = t[e]) && void 0 !== o ? o : "currentColor"}" stroke-width="2"></rect>`}
-    <rect x="56" y="86" width="127" height="7" rx="3.5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.18"></rect>
-    <circle cx="186" cy="16" r="2.6" fill="var(--ac-printer-accent, currentColor)"></circle>
-  </g>
-  <path d="${i}" stroke="${r && t[e] || "var(--ac-printer-rail, currentColor)"}"
-        stroke-opacity="0.9" stroke-width="4.5" stroke-linecap="round" fill="none"></path>`;
-        })(h, l ? r - 4 * o : -1, c, l, o, d)}
-        </g>`;
-      })}
-      <g transform="translate(0 ${s})">${t.body(o)}</g>`
-    });
-  }
+    Jn = [["kobra s1", "kobra_s1"], ["kobra 3", "kobra_3"], ["kobra 2", "kobra_3"], ["photon", "resin"], ["mono", "resin"], ["m5s", "resin"], ["m7", "resin"], ["kobra", "kobra_3"]],
+    ts = (t, e, i) => i ? `translate(0 ${-t.park})` : `translate(0 ${(t.travel * (1 - e / 100)).toFixed(1)})`,
+    es = (t, e = 48) => `translate(${(t * e).toFixed(1)} 0)`;
   const is = {
       black: "#1c1c1e",
       white: "#f2f2f0",
@@ -5478,15 +5463,50 @@
       return `${e} / ${i}`;
     },
     ss = t => t.chamber.map(t => `${t}%`).join(" "),
-    os = (t, e, i = Vn, r = 0, n = []) => e > 0 ? es(t, e, i, r, n) : Object.assign(Object.assign({}, t), {
+    os = (t, e, i = Vn, r = 0, n = []) => e > 0 ? function (t, e, i = Vn, r = 0, n = []) {
+      if (e < 1) return t;
+      const s = 101 * e + 14,
+        o = 221 + s + 8,
+        [a, l, c, h] = t.chamber,
+        d = a / 100 * 240,
+        u = 240 - c / 100 * 240;
+      return Object.assign(Object.assign({}, t), {
+        kind: "kobra_s1" === t.kind ? "kobra_s1_combo" : t.kind,
+        viewBox: `0 0 240 ${o}`,
+        chamber: [+((d + s) / o * 100).toFixed(2), l, +((o - (u + s)) / o * 100).toFixed(2), h],
+        body: o => q`
+      ${Array.from({
+          length: e
+        }, (t, o) => {
+          const a = s - 101 * o,
+            l = Math.floor(r / 4) === o,
+            c = 0 === o && 2 === e ? `M188 88 C 214 94 219 106 219 130 L 219 ${a + 8} C 219 ${a + 17} 210 ${a + 21} 200 ${a + 22}` : `M188 88 C 216 94 214 ${a + 12} 196 ${a + 22}`,
+            h = i.slice(4 * o, 4 * o + 4),
+            d = n.slice(4 * o, 4 * o + 4);
+          return q`<g transform="translate(0 ${101 * o})">
+          ${qn(h, l ? r - 4 * o : -1, c, l, o, d)}
+        </g>`;
+        })}
+      <g transform="translate(0 ${s})">${t.body(o)}</g>`
+      });
+    }(t, e, i, r, n) : Object.assign(Object.assign({}, t), {
       body: e => q`
           ${((t = "var(--ac-printer-accent, currentColor)", e = 70, i = 219.5) => q`
   <g id="sidespool">
     <path d="M${i - 7.5} ${e - 12} C ${i - 7.5} ${e - 26} ${i - 13.5} ${e - 34} ${i - 31.5} ${e - 32}" stroke="${t}"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="${i - 23.5}" y="${e - 3}" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
-    <rect x="${i - 8.5}" y="${e - 18}" width="17" height="36" rx="2" fill="${t}"></rect>
-    <rect x="${i - 8.5}" y="${e - 3}" width="17" height="6" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>
+    <rect x="${i - 8.5}" y="${e - 18}" width="17" height="36" rx="2" fill="${t}"
+          stroke="${Yn(t)}" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="${i - 8.5}" y="${e - 13}" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="${i - 8.5}" y="${e + 10}" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="${i - 8.5}" y="${e - 4.5}" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="${i - 2.2}" y="${e - 3}" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
     <rect x="${i - 12.5}" y="${e - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="${i + 7.5}" y="${e - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>`)(e.tip, "kobra_3" === t.kind ? 80 : 70, "fdm" === t.kind ? 222 : 219.5)}
@@ -5565,11 +5585,11 @@
         const o = (null != t ? t : "").toLowerCase();
         let a = "fdm",
           l = e;
-        if ("kobra_s1_combo" === i) a = "kobra_s1", l = l > 0 ? l : 1;else if (i && Object.prototype.hasOwnProperty.call(qn, i)) a = i;else for (const [t, e] of Qn) if (o.includes(t)) {
+        if ("kobra_s1_combo" === i) a = "kobra_s1", l = l > 0 ? l : 1;else if (i && Object.prototype.hasOwnProperty.call(Qn, i)) a = i;else for (const [t, e] of Jn) if (o.includes(t)) {
           a = e;
           break;
         }
-        const c = qn[a];
+        const c = Qn[a];
         return "resin" === a ? c : os(c, l, r, n, s);
       }(this._machineName(), r, null !== (t = this.printerArt) && void 0 !== t ? t : null, e, i, n);
     }
@@ -5614,9 +5634,9 @@
     aria-hidden="true"
   >
     ${t.body(Object.assign(Object.assign({}, e), {
-          gantry: Jn(t, 100 * (null !== (i = e.progress) && void 0 !== i ? i : 0), !!e.cameraLive),
+          gantry: ts(t, 100 * (null !== (i = e.progress) && void 0 !== i ? i : 0), !!e.cameraLive),
           chamberBusy: !!e.cameraLive || !!e.previewLive,
-          nozzle: ts(null !== (r = e.nozzleX) && void 0 !== r ? r : 0)
+          nozzle: es(null !== (r = e.nozzleX) && void 0 !== r ? r : 0)
         }))}
   </svg>`;
       })(e, {
@@ -6317,13 +6337,13 @@
   const {
       I: ys
     } = pt,
-    _s = () => document.createComment(""),
-    fs = (t, e, i) => {
+    fs = () => document.createComment(""),
+    _s = (t, e, i) => {
       const r = t._$AA.parentNode,
         n = void 0 === e ? t._$AB : e._$AA;
       if (void 0 === i) {
-        const e = r.insertBefore(_s(), n),
-          s = r.insertBefore(_s(), n);
+        const e = r.insertBefore(fs(), n),
+          s = r.insertBefore(fs(), n);
         i = new ys(e, s, t, t.options);
       } else {
         const e = i._$AB.nextSibling,
@@ -6393,19 +6413,19 @@
           u = n.length - 1,
           p = 0,
           g = s.length - 1;
-        for (; d <= u && p <= g;) if (null === n[d]) d++;else if (null === n[u]) u--;else if (a[d] === o[p]) l[p] = vs(n[d], s[p]), d++, p++;else if (a[u] === o[g]) l[g] = vs(n[u], s[g]), u--, g--;else if (a[d] === o[g]) l[g] = vs(n[d], s[g]), fs(t, l[g + 1], n[d]), d++, g--;else if (a[u] === o[p]) l[p] = vs(n[u], s[p]), fs(t, n[d], n[u]), u--, p++;else if (void 0 === c && (c = $s(o, p, g), h = $s(a, d, u)), c.has(a[d])) {
+        for (; d <= u && p <= g;) if (null === n[d]) d++;else if (null === n[u]) u--;else if (a[d] === o[p]) l[p] = vs(n[d], s[p]), d++, p++;else if (a[u] === o[g]) l[g] = vs(n[u], s[g]), u--, g--;else if (a[d] === o[g]) l[g] = vs(n[d], s[g]), _s(t, l[g + 1], n[d]), d++, g--;else if (a[u] === o[p]) l[p] = vs(n[u], s[p]), _s(t, n[d], n[u]), u--, p++;else if (void 0 === c && (c = $s(o, p, g), h = $s(a, d, u)), c.has(a[d])) {
           if (c.has(a[u])) {
             const e = h.get(o[p]),
               i = void 0 !== e ? n[e] : null;
             if (null === i) {
-              const e = fs(t, n[d]);
+              const e = _s(t, n[d]);
               vs(e, s[p]), l[p] = e;
-            } else l[p] = vs(i, s[p]), fs(t, n[d], i), n[e] = null;
+            } else l[p] = vs(i, s[p]), _s(t, n[d], i), n[e] = null;
             p++;
           } else xs(n[u]), u--;
         } else xs(n[d]), d++;
         for (; p <= g;) {
-          const e = fs(t, l[g + 1]);
+          const e = _s(t, l[g + 1]);
           vs(e, s[p]), l[p++] = e;
         }
         for (; d <= u;) {
@@ -6570,7 +6590,7 @@
     render() {
       return X`<anycubic-printercard-stat-line
       .name=${this.name}
-      .value=${_i(this.temperatureEntity, this.temperatureUnit, this.round)}
+      .value=${fi(this.temperatureEntity, this.temperatureUnit, this.round)}
     ></anycubic-printercard-stat-line>`;
     }
     static get styles() {
@@ -7844,30 +7864,30 @@
       yellow: "#FFFF00",
       yellowgreen: "#9ACD32"
     };
-  class _o {
+  class fo {
     constructor(t, e, i, r) {
-      return _o.isBaseConstructor(t) ? (this.r = uo(t.r), this.g = uo(t.g), this.b = uo(t.b), void 0 !== t.a && (this.a = bo(t.a)), this) : _o.parse(t, e, i, r);
+      return fo.isBaseConstructor(t) ? (this.r = uo(t.r), this.g = uo(t.g), this.b = uo(t.b), void 0 !== t.a && (this.a = bo(t.a)), this) : fo.parse(t, e, i, r);
     }
     static parse(t, e, i, r) {
-      if (_o.isBaseConstructor(t)) return new _o(t);
+      if (fo.isBaseConstructor(t)) return new fo(t);
       if (void 0 !== e && void 0 !== i) {
         let n = uo(t);
-        return e = uo(e), i = uo(i), void 0 !== r && (r = bo(r)), new _o({
+        return e = uo(e), i = uo(i), void 0 !== r && (r = bo(r)), new fo({
           r: n,
           g: e,
           b: i,
           a: r
         });
       }
-      if (Array.isArray(t)) return _o.fromArray(t);
+      if (Array.isArray(t)) return fo.fromArray(t);
       if ("string" == typeof t) {
         let i;
-        if (void 0 !== e && Number(e) <= 1 && Number(e) >= 0 && (i = Number(e)), t.startsWith("#")) return _o.fromHex(t, i);
-        if (yo[t.toLowerCase()]) return _o.fromNamed(t, i);
-        if (t.startsWith("rgb")) return _o.fromRgbString(t);
+        if (void 0 !== e && Number(e) <= 1 && Number(e) >= 0 && (i = Number(e)), t.startsWith("#")) return fo.fromHex(t, i);
+        if (yo[t.toLowerCase()]) return fo.fromNamed(t, i);
+        if (t.startsWith("rgb")) return fo.fromRgbString(t);
         if ("transparent" === t) {
           let t, e, i, r;
-          return t = e = i = r = 0, new _o({
+          return t = e = i = r = 0, new fo({
             r: t,
             g: e,
             b: i,
@@ -7879,21 +7899,21 @@
       if ("object" == typeof t) {
         if (void 0 !== t.a && (this.a = bo(t.a)), void 0 !== t.h) {
           let e = {};
-          if (void 0 !== t.v) e = _o.fromHsv(t);else {
-            if (void 0 === t.l) return _o.fromArray([0, 0, 0]);
-            e = _o.fromHsl(t);
+          if (void 0 !== t.v) e = fo.fromHsv(t);else {
+            if (void 0 === t.l) return fo.fromArray([0, 0, 0]);
+            e = fo.fromHsl(t);
           }
-          return e.a = void 0 !== t.a ? bo(t.a) : void 0, new _o(e);
+          return e.a = void 0 !== t.a ? bo(t.a) : void 0, new fo(e);
         }
-        return void 0 !== t.c ? _o.fromCMYK(t) : this;
+        return void 0 !== t.c ? fo.fromCMYK(t) : this;
       }
-      return _o.fromArray([0, 0, 0]);
+      return fo.fromArray([0, 0, 0]);
     }
     static isBaseConstructor(t) {
       return "object" == typeof t && void 0 !== t.r && void 0 !== t.g && void 0 !== t.b;
     }
     static fromNamed(t, e) {
-      return _o.fromHex(yo[t.toLowerCase()], e);
+      return fo.fromHex(yo[t.toLowerCase()], e);
     }
     static fromArray(t) {
       t = t.filter(t => "" !== t && isFinite(t));
@@ -7902,17 +7922,17 @@
         g: uo(t[1]),
         b: uo(t[2])
       };
-      return void 0 !== t[3] && (e.a = bo(t[3])), new _o(e);
+      return void 0 !== t[3] && (e.a = bo(t[3])), new fo(e);
     }
     static fromHex(t, e) {
       3 !== (t = t.replace("#", "")).length && 4 !== t.length || (t = t.split("").map(t => t + t).join(""));
       let i = t.match(/[A-Za-z0-9]{2}/g).map(t => parseInt(t, 16));
-      return 4 === i.length ? i[3] /= 255 : void 0 !== e && (i[3] = e), _o.fromArray(i);
+      return 4 === i.length ? i[3] /= 255 : void 0 !== e && (i[3] = e), fo.fromArray(i);
     }
     static fromRgbString(t) {
-      if (t.includes(",")) return _o.fromArray(t.split("(")[1].split(")")[0].split(","));
+      if (t.includes(",")) return fo.fromArray(t.split("(")[1].split(")")[0].split(","));
       const e = t.replace("/", " ").split("(")[1].replace(")", "").split(" ").filter(t => "" !== t && isFinite(Number(t)));
-      return _o.fromArray(e);
+      return fo.fromArray(e);
     }
     static fromHsv({
       h: t,
@@ -7926,7 +7946,7 @@
         o = i * (1 - n * e),
         a = i * (1 - (1 - n) * e),
         l = [[i, a, s], [o, i, s], [s, i, a], [s, o, i], [a, s, i], [i, s, o]][r].map(t => Math.round(256 * t));
-      return new _o({
+      return new fo({
         r: uo(l[0]),
         g: uo(l[1]),
         b: uo(l[2])
@@ -7944,7 +7964,7 @@
       let o = 0,
         a = 0,
         l = 0;
-      return 0 <= t && t < 60 ? (o = r, a = n, l = 0) : 60 <= t && t < 120 ? (o = n, a = r, l = 0) : 120 <= t && t < 180 ? (o = 0, a = r, l = n) : 180 <= t && t < 240 ? (o = 0, a = n, l = r) : 240 <= t && t < 300 ? (o = n, a = 0, l = r) : 300 <= t && t < 360 && (o = r, a = 0, l = n), new _o({
+      return 0 <= t && t < 60 ? (o = r, a = n, l = 0) : 60 <= t && t < 120 ? (o = n, a = r, l = 0) : 120 <= t && t < 180 ? (o = 0, a = r, l = n) : 180 <= t && t < 240 ? (o = 0, a = n, l = r) : 240 <= t && t < 300 ? (o = n, a = 0, l = r) : 300 <= t && t < 360 && (o = r, a = 0, l = n), new fo({
         r: po(s + o),
         g: po(s + a),
         b: po(s + l)
@@ -7958,7 +7978,7 @@
       a: n
     }) {
       const s = t => po(1 - Math.min(1, t / 100 * (1 - r) + r));
-      return new _o({
+      return new fo({
         r: s(t),
         b: s(e),
         g: s(i),
@@ -8117,7 +8137,7 @@
     mix(t, e = .5) {
       const i = this.rgba;
       i[3] = po(i[3]);
-      const r = new _o(t).rgba;
+      const r = new fo(t).rgba;
       r[3] = po(r[3]), e = bo(e);
       const n = i.map((t, i) => {
         const n = r[i],
@@ -8126,13 +8146,13 @@
           a = Math.round(o * e);
         return s ? t - a : a + t;
       });
-      return n[3] = go(n[3]), _o.fromArray(n);
+      return n[3] = go(n[3]), fo.fromArray(n);
     }
     adjustSatLum(t, e, i) {
       const r = this.hsl;
       let n = r[t],
         s = (i ? n : 100 - n) * e;
-      return r[t] = mo(100, i ? n - s : n + s), r.a = this.a, new _o(r);
+      return r[t] = mo(100, i ? n - s : n + s), r.a = this.a, new fo(r);
     }
     lighten(t, e = !1) {
       return this.adjustSatLum("l", t, e);
@@ -8154,7 +8174,7 @@
     }
     hue(t) {
       const e = this.hsl;
-      return e.h = Math.round(e.h + t) % 360, e.a = this.a, new _o(e);
+      return e.h = Math.round(e.h + t) % 360, e.a = this.a, new fo(e);
     }
     fadeIn(t, e) {
       let i = this.alpha;
@@ -8164,7 +8184,7 @@
         b: s
       } = this;
       let o = (1 - i) * t;
-      return i = e ? i - o : i + o, _o({
+      return i = e ? i - o : i + o, fo({
         r,
         g: n,
         b: s,
@@ -8176,10 +8196,10 @@
     }
     negate() {
       let t = this.rgb.map(t => 255 - t);
-      return void 0 !== this.a && t.push(this.alpha), _o.fromArray(t);
+      return void 0 !== this.a && t.push(this.alpha), fo.fromArray(t);
     }
   }
-  const fo = (t, e, i = "color-update") => {
+  const _o = (t, e, i = "color-update") => {
       const r = i.includes("color") ? {
           color: e
         } : e,
@@ -8200,7 +8220,7 @@
       const a = [];
       let l, c;
       const h = (t, e) => `${t.css} ${(100 * e).toFixed(1)}%`;
-      for (; i < 360;) l = _o.parse(o ? {
+      for (; i < 360;) l = fo.parse(o ? {
         h: i,
         s: r,
         v: s
@@ -8209,7 +8229,7 @@
         s: r,
         l: n
       }), c = i / 360, a.push(h(l, c)), i += t;
-      return i = 359, l = _o.parse(o ? {
+      return i = 359, l = fo.parse(o ? {
         h: i,
         s: r,
         v: s
@@ -8289,11 +8309,11 @@
     firstUpdated() {
       const t = this.renderRoot.querySelector("lit-movable");
       t.onmovestart = () => {
-        fo(this.renderRoot, {
+        _o(this.renderRoot, {
           sliding: !0
         }, "sliding-hue");
       }, t.onmoveend = () => {
-        fo(this.renderRoot, {
+        _o(this.renderRoot, {
           sliding: !1
         }, "sliding-hue");
       }, t.onmove = ({
@@ -8315,7 +8335,7 @@
       return t => {
         this.color.hsx && (t = this.color.hsx.h), void 0 === t && (t = this.color.hsl.h);
         return {
-          backgroundColor: _o.parse({
+          backgroundColor: fo.parse({
             h: t,
             s: 100,
             l: 50
@@ -8778,8 +8798,8 @@
     }
     valueChange = (t, e = null) => {
       e = e ?? Number(this.renderRoot.querySelector("input").value), "a" === this.channel && (e /= 100), this.c[this.channel] = e;
-      const i = _o.parse(this.c);
-      "rgb" !== this.group && (i.hsx = this.c), this.c = "rgb" === this.group ? this.color.rgbObj : this.isHsl ? this.color.hsl : this.color.hsv, fo(this.renderRoot, i);
+      const i = fo.parse(this.c);
+      "rgb" !== this.group && (i.hsx = this.c), this.c = "rgb" === this.group ? this.color.rgbObj : this.isHsl ? this.color.hsl : this.color.hsv, _o(this.renderRoot, i);
     };
     setActive(t) {
       this.active = t, t && this.renderRoot.querySelector("input").select();
@@ -8806,12 +8826,12 @@
       }
       if (this.max = o, n = {
         ...t
-      }, s = n, n[this.channel] = 0, n = _o.parse(n), s[this.channel] = o, s = _o.parse(s), "l" === this.channel) {
+      }, s = n, n[this.channel] = 0, n = fo.parse(n), s[this.channel] = o, s = fo.parse(s), "l" === this.channel) {
         const e = {
           ...t
         };
         e.l = 50, this.previewGradient = {
-          "--preview": `linear-gradient(90deg, ${n.hex}, ${_o.parse(e).hex}, ${s.hex})`,
+          "--preview": `linear-gradient(90deg, ${n.hex}, ${fo.parse(e).hex}, ${s.hex})`,
           "--pct": t[this.channel] / o * 100 + "%"
         };
       } else this.previewGradient = {
@@ -8920,7 +8940,7 @@
       }, this.size = 160;
     }
     setColor(t) {
-      fo(this.renderRoot, t);
+      _o(this.renderRoot, t);
     }
     setCircleCss(t, e) {
       const i = `${t}`,
@@ -8955,7 +8975,7 @@
           s: c,
           [o ? "l" : "v"]: l
         },
-        d = o ? _o.fromHsl(h) : _o.fromHsv(h);
+        d = o ? fo.fromHsl(h) : fo.fromHsv(h);
       this.setCircleCss(i, r), d.a = a.alpha, d.hsx = h, d.fromHSLCanvas = !0, this.setColor(d);
     }
     debouncePaintDetail(t) {
@@ -8983,7 +9003,7 @@
           w: c
         },
         d = s / 100,
-        u = n ? (t, e, i) => `hsl(${t}, ${e}%, ${100 - i}%)` : (t, e, i) => _o.fromHsv({
+        u = n ? (t, e, i) => `hsl(${t}, ${e}%, ${100 - i}%)` : (t, e, i) => fo.fromHsv({
           h: t,
           s: e,
           v: 100 - i
@@ -9369,16 +9389,16 @@
     static styles = Co;
     _color;
     constructor() {
-      super(), this._color = _o.parse(yo.slateblue), this.isHsl = !0, this.buttonDisabled = !1;
+      super(), this._color = fo.parse(yo.slateblue), this.isHsl = !0, this.buttonDisabled = !1;
     }
     firstUpdated(t) {
-      this.debounceMode = !1, t.has("value") && (this.color = _o.parse(this.value));
+      this.debounceMode = !1, t.has("value") && (this.color = fo.parse(this.value));
     }
     get color() {
       return this._color;
     }
     set color(t) {
-      (t = t.hsx ? t : t.rgba ? _o.parse(...t.rgba) : _o.parse(t)) && (this.hex = t.hex, this._color = t, fo(this.renderRoot, t, "colorchanged"));
+      (t = t.hsx ? t : t.rgba ? fo.parse(...t.rgba) : fo.parse(t)) && (this.hex = t.hex, this._color = t, _o(this.renderRoot, t, "colorchanged"));
     }
     updateColor({
       detail: {
@@ -9389,7 +9409,7 @@
     }
     setColor(t) {
       const e = this.renderRoot.querySelector("input#hex").value,
-        i = _o.parse(e);
+        i = fo.parse(e);
       i ? this.color = i : console.log(`ignored unparsable input: ${e}`);
     }
     setHue({
@@ -9413,7 +9433,7 @@
       this.isHsl = t;
     }
     okColor() {
-      fo(this.renderRoot, this.color, "colorpicked");
+      _o(this.renderRoot, this.color, "colorpicked");
     }
     showCopyDialog() {
       if (this.copied = null, this.dlg = this.dlg ?? this.renderRoot.querySelector("dialog"), this.dlg.open) return this.dlg.classList.remove("open"), this.dlg.close();
@@ -10251,7 +10271,7 @@
   })], zo.prototype, "printerEntities", void 0), n([vt({
     attribute: "printer-entity-id-part"
   })], zo.prototype, "printerEntityIdPart", void 0), n([wt()], zo.prototype, "availableSpeedModes", void 0), n([wt()], zo.prototype, "isFDM", void 0), n([wt()], zo.prototype, "currentSpeedModeKey", void 0), n([wt()], zo.prototype, "currentSpeedModeDescr", void 0), n([wt()], zo.prototype, "_userEditSpeedMode", void 0), n([wt()], zo.prototype, "currentFanSpeed", void 0), n([wt()], zo.prototype, "_userEditFanSpeed", void 0), n([wt()], zo.prototype, "currentAuxFanSpeed", void 0), n([wt()], zo.prototype, "_userEditAuxFanSpeed", void 0), n([wt()], zo.prototype, "currentBoxFanSpeed", void 0), n([wt()], zo.prototype, "_userEditBoxFanSpeed", void 0), n([wt()], zo.prototype, "currentTargetTempNozzle", void 0), n([wt()], zo.prototype, "minTargetTempNozzle", void 0), n([wt()], zo.prototype, "maxTargetTempNozzle", void 0), n([wt()], zo.prototype, "_userEditTargetTempNozzle", void 0), n([wt()], zo.prototype, "currentTargetTempHotbed", void 0), n([wt()], zo.prototype, "minTargetTempHotbed", void 0), n([wt()], zo.prototype, "maxTargetTempHotbed", void 0), n([wt()], zo.prototype, "_userEditTargetTempHotbed", void 0), n([wt()], zo.prototype, "_confirmationType", void 0), n([wt()], zo.prototype, "_isOpen", void 0), n([wt()], zo.prototype, "_confirmMessage", void 0), n([wt()], zo.prototype, "_labelNozzleTemperature", void 0), n([wt()], zo.prototype, "_labelHotbedTemperature", void 0), n([wt()], zo.prototype, "_labelFanSpeed", void 0), n([wt()], zo.prototype, "_labelAuxFanSpeed", void 0), n([wt()], zo.prototype, "_labelBoxFanSpeed", void 0), n([wt()], zo.prototype, "_buttonYes", void 0), n([wt()], zo.prototype, "_buttonNo", void 0), n([wt()], zo.prototype, "_buttonPrintPause", void 0), n([wt()], zo.prototype, "_buttonPrintResume", void 0), n([wt()], zo.prototype, "_buttonPrintCancel", void 0), n([wt()], zo.prototype, "_buttonSaveSpeedMode", void 0), n([wt()], zo.prototype, "_buttonSaveTargetNozzle", void 0), n([wt()], zo.prototype, "_buttonSaveTargetHotbed", void 0), n([wt()], zo.prototype, "_buttonSaveFanSpeed", void 0), n([wt()], zo.prototype, "_buttonSaveAuxFanSpeed", void 0), n([wt()], zo.prototype, "_buttonSaveBoxFanSpeed", void 0), n([wt()], zo.prototype, "_changingSettings", void 0), zo = n([Nn("anycubic-printercard-printsettings_modal")], zo);
-  const Uo = fi();
+  const Uo = _i();
   let Ro = class extends mt {
     constructor() {
       super(...arguments), this.monitoredStats = Uo, this.round = !0, this.temperatureUnit = St.C, this.mediaView = Mt.Auto, this.printerArt = Ht.Auto, this.showControls = !0, this.showMoveButtons = !1, this.isHidden = !1, this.isPrinting = !1, this.isPaused = !1, this.hiddenOverride = !1, this.hasColorbox = !1, this.hasSecondaryColorbox = !1, this.lightIsOn = !1, this.statusColor = "#ffc107", this.printStateString = "unknown", this.progressPercent = 0, this._togglingLight = !1, this._togglingPower = !1, this._pressButtonEvent = t => {
