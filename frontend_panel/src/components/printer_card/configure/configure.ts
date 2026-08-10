@@ -525,6 +525,10 @@ export class AnycubicPrintercardConfigure extends LitElement {
               { value: MediaViewType.Camera, label: "Camera" },
               { value: MediaViewType.Preview, label: "Job preview" },
               { value: MediaViewType.Printer, label: "Printer graphic" },
+              {
+                value: MediaViewType.PrinterModel,
+                label: "Printer graphic + model",
+              },
               { value: MediaViewType.None, label: "Hidden" },
             ],
             mode: "dropdown",

@@ -323,6 +323,7 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
         ${renderPrinter(art, {
           progress: this._progressNum,
           cameraLive,
+          previewLive: !cameraLive && Boolean(this.imagePreviewBgUrl),
           tip,
           lightOn: this._lightOn,
           nozzleHeat: this._heat(
@@ -407,8 +408,19 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
         height: auto;
       }
 
+      /* The stream is 16:9 and the chamber hole is nearly square, so filling
+         the hole meant object-fit: cover cropping away about 46% of the
+         width -- you saw a narrow centre slice of the bed, heavily zoomed in.
+         The <video> lives in ha-camera-stream's shadow root and cannot be
+         restyled from here, so the BOX is matched to the stream instead: at
+         16:9 inside the hole, cover and contain agree and nothing is cropped.
+         Centred with margin:auto against the four inset edges. */
       .ac-apr-camera {
         background-color: #000;
+        aspect-ratio: 16 / 9;
+        max-width: 100%;
+        max-height: 100%;
+        margin: auto;
       }
 
       .ac-apr-imgprev {

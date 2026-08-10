@@ -322,6 +322,11 @@ export enum MediaViewType {
   Camera = "camera",
   Preview = "preview",
   Printer = "printer",
+  /** The chassis with the sliced model sitting in the build chamber and the
+   *  head travelling over it. Distinct from `Printer`, which gives the chamber
+   *  to the camera when one is available -- this one always shows the model,
+   *  which is the view that reads well when the camera is off or unwatched. */
+  PrinterModel = "printer_model",
   None = "none",
 }
 

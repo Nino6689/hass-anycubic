@@ -1,4 +1,4 @@
-import { mdiCctv, mdiImageOutline, mdiPrinter3d } from "@mdi/js";
+import { mdiCctv, mdiCube, mdiImageOutline, mdiPrinter3d } from "@mdi/js";
 import { CSSResult, LitElement, PropertyValues, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
@@ -128,6 +128,16 @@ export class AnycubicPrintercardMediaView extends LitElement {
       icon: mdiPrinter3d,
       label: "Printer",
     });
+    // Only worth offering when there is actually a model to put in the
+    // chamber, and only as a separate choice when a camera could otherwise
+    // claim it -- with no camera, `Printer` already shows the model.
+    if (this._usablePreview() && this.camera) {
+      tabs.push({
+        key: MediaViewType.PrinterModel,
+        icon: mdiCube,
+        label: "Printer + model",
+      });
+    }
     return tabs;
   }
 
@@ -185,7 +195,9 @@ export class AnycubicPrintercardMediaView extends LitElement {
     return html`
       <div
         class="ac-media ${classMap({
-          "ac-media-tall": active === MediaViewType.Printer,
+          "ac-media-tall":
+            active === MediaViewType.Printer ||
+            active === MediaViewType.PrinterModel,
         })}"
       >
         <div class="ac-media-surface">${this._renderSurface(active)}</div>
@@ -242,7 +254,16 @@ export class AnycubicPrintercardMediaView extends LitElement {
    * away from whatever else is watching, so it must follow from a choice.
    */
   private _insetCameraEntityId(): string | undefined {
-    if (!this.camera) {
+    // `available` matters as much as `chosen`. selectPrinterCamera falls back
+    // to cameras[0] when nothing is available, so an offline LAN camera still
+    // arrives here -- and claiming the chamber with it left a dead black
+    // rectangle where the sliced model should have been.
+    if (!this.camera || !this.camera.available) {
+      return undefined;
+    }
+    // PrinterModel deliberately withholds the chamber from the camera so the
+    // sliced model can have it; that is the whole difference between the two.
+    if (this._activeTab() === MediaViewType.PrinterModel) {
       return undefined;
     }
     const chosen =

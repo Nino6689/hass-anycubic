@@ -226,11 +226,53 @@ for (const [name, expectedKind] of MODELS) {
             if (!cameraLive && progress > 0.01 && !/ac-apr-print\b/.test(markup)) {
               problems.push(`${label}: printing but no printed mass drawn`);
             }
+
+            // The sliced model owns the chamber too: the image IS the object,
+            // so the modelled mass must stand down over it -- but the head
+            // must still travel, which is the whole point of the mode.
+            const withPreview = flatten(
+              renderPrinter(art, {
+                progress,
+                previewLive: true,
+                tip: colours[active] ?? undefined,
+                status,
+              }),
+            ).markup;
+            if (progress > 0.01 && /ac-apr-print\b/.test(withPreview)) {
+              problems.push(`${label}: printed mass drawn over the model preview`);
+            }
+            const parked = `translate(0 -${art.park})`;
+            if (withPreview.includes(parked)) {
+              problems.push(`${label}: head parked over the model preview`);
+            }
           }
         }
       }
     }
   }
+}
+
+/* --------------------------------------------- contrast of the reel edges */
+
+// A reel has to read against the chassis whatever colour the filament is.
+// Real spools that motivated this: PLA+ #1A1A1A on a #101216 chassis, and two
+// PETGs at #EFF0F1 that merged into one block.
+for (const colour of ['#1A1A1A', '#EFF0F1', '#F0F0ED', '#75787B', '#000000', '#ffffff']) {
+  cases++;
+  const art = selectPrinterArt('Anycubic Kobra S1', 1, null, [colour, colour, colour, colour], 0, []);
+  const markup = flatten(renderPrinter(art, { progress: 0.5, status: 'printing' })).markup;
+  const reel = markup.match(new RegExp(`fill="${colour}"[^>]*stroke="([^"]+)"`, 'i'));
+  if (!reel) {
+    problems.push(`edge: reel ${colour} has no outline`);
+    continue;
+  }
+  const dark = /rgba\(0,0,0/.test(reel[1]);
+  const n = parseInt(colour.slice(1), 16);
+  const luma = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  // A dark reel needs a light edge and vice versa; the wrong way round is
+  // worse than none, because it reinforces the colour it should separate.
+  if (luma < 0.45 && dark) problems.push(`edge: dark reel ${colour} got a dark outline`);
+  if (luma >= 0.45 && !dark) problems.push(`edge: light reel ${colour} got a light outline`);
 }
 
 /* --------------------------------------------------------- pure functions */
