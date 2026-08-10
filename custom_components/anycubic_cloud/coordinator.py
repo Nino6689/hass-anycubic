@@ -206,6 +206,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._capability_polls: dict[int, int] = {}
         self._mqtt_task: asyncio.Future[None] | None = None
         self._mqtt_manually_connected = False
+        self._mqtt_last_error: str | None = None
         self._mqtt_idle_since: int | None = None
         self._mqtt_last_action: int | None = None
         self._lan_client: AnycubicLANClient | None = None
@@ -424,6 +425,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "job_z_down_speed": printer.latest_project_print_z_down_speed,
             "manual_mqtt_connection_enabled": self._mqtt_manually_connected,
             "mqtt_connection_active": self.anycubic_api.mqtt_is_started,
+            "mqtt_last_error": self._mqtt_last_error,
             # None, not False, while the printer has a light we know about but
             # has not said what it is doing -- "off" and "not reported since the
             # entry was rebuilt" are different answers, and only one of them is
@@ -598,6 +600,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             },
             "mqtt_connection_active": {
                 "supports_mqtt_login": self._supports_mqtt_login(),
+                # On the sensor itself, so "off" carries its own reason. This
+                # is the difference between a user reporting "MQTT does not
+                # connect" and reporting the handshake error and the address
+                # it was talking to.
+                "last_error": self._mqtt_last_error,
             },
         }
 
@@ -1148,12 +1155,45 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 if self._mqtt_task is None:
                     LOGGER.debug("Starting Anycubic MQTT Task.")
-                    self._mqtt_task = self.hass.async_add_executor_job(
+                    task = self.hass.async_add_executor_job(
                         self.anycubic_api.connect_mqtt
                     )
+                    self._mqtt_task = task
+                    # connect_mqtt runs in an executor and its future was
+                    # stored and never inspected, so anything it raised -- a
+                    # TLS handshake failure, a refused port, a cert the local
+                    # OpenSSL will not load -- was swallowed whole. Worse, the
+                    # failed future stayed non-None, and the guard above only
+                    # starts a task when it IS None, so one failure disabled
+                    # MQTT permanently: the manual switch and the refresh
+                    # button both became no-ops with nothing in the log to say
+                    # why. Retrieve the outcome, say so, and let it retry.
+                    task.add_done_callback(self._mqtt_task_finished)
 
             elif self._anycubic_mqtt_connection_should_stop():
                 await self._stop_anycubic_mqtt_connection()
+
+    def _mqtt_task_finished(self, task: asyncio.Future[None]) -> None:
+        """Report why the MQTT task ended, and allow another attempt."""
+        if task is not self._mqtt_task:
+            return
+        self._mqtt_task = None
+        if task.cancelled():
+            return
+        err = task.exception()
+        if err is None:
+            LOGGER.debug("Anycubic MQTT task ended cleanly.")
+            self._mqtt_last_error = None
+            return
+        # The address is in the message on purpose: a wrong host or port is
+        # indistinguishable from the service being down once the exception is
+        # gone, and that ambiguity has cost a lot of back-and-forth.
+        self._mqtt_last_error = (
+            f"{type(err).__name__}: {err} "
+            f"(host={self.anycubic_api.endpoints.mqtt_host}:"
+            f"{self.anycubic_api.endpoints.mqtt_port})"
+        )
+        LOGGER.error("Anycubic MQTT connection failed. %s", self._mqtt_last_error)
 
     async def _stop_anycubic_mqtt_connection(self) -> None:
         for printer in self._anycubic_printers.values():
@@ -1183,12 +1223,21 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._mqtt_connect_check_lock.locked():
             return
 
-        if self._anycubic_api and self._anycubic_api.mqtt_is_started:
-            async with self._mqtt_refresh_lock:
-                self._mqtt_last_refresh = int(time.time())
+        if not self._anycubic_api:
+            return
+
+        async with self._mqtt_refresh_lock:
+            self._mqtt_last_refresh = int(time.time())
+            if self._anycubic_api.mqtt_is_started:
                 await self._stop_anycubic_mqtt_connection()
                 await asyncio.sleep(2)
-                await self._check_anycubic_mqtt_connection(True)
+            else:
+                # Refresh used to require MQTT to be running already, which
+                # made the button a no-op in exactly the situation someone
+                # presses it: never connected in the first place. Clearing a
+                # dead task is what lets the check below try again.
+                self._mqtt_task = None
+            await self._check_anycubic_mqtt_connection(True)
 
     async def _async_check_local_file_list_changed(
         self,
