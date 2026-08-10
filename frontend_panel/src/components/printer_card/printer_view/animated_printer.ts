@@ -310,20 +310,15 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
                 .cameraEntityId=${this.cameraEntityId}
               ></anycubic-printercard-camera_stream>
             `
-          : this.imagePreviewBgUrl
-            ? html`
-                <div
-                  class="ac-apr-imgprev"
-                  style=${styleMap({
-                    "background-image": this.imagePreviewBgUrl,
-                  })}
-                ></div>
-              `
-            : nothing}
+          : nothing}
         ${renderPrinter(art, {
           progress: this._progressNum,
           cameraLive,
-          previewLive: !cameraLive && Boolean(this.imagePreviewBgUrl),
+          // The part on the plate takes the model's own SHAPE whenever a
+          // stream is not using the chamber. Filling the chamber with the
+          // render instead only duplicates the Preview tab, where the same
+          // image is already shown larger and unclipped.
+          previewUrl: cameraLive ? undefined : this.imagePreviewUrl,
           tip,
           lightOn: this._lightOn,
           nozzleHeat: this._heat(

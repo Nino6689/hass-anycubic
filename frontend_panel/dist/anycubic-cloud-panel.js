@@ -348,8 +348,8 @@
     }) : void 0,
     H = "$lit$",
     D = `lit$${Math.random().toFixed(9).slice(2)}$`,
-    B = "?" + D,
-    F = `<${B}>`,
+    F = "?" + D,
+    B = `<${F}>`,
     L = document,
     I = () => L.createComment(""),
     N = t => null === t || "object" != typeof t && "function" != typeof t,
@@ -392,7 +392,7 @@
         h = 0;
       for (; h < i.length && (o.lastIndex = h, l = o.exec(i), null !== l);) h = o.lastIndex, o === R ? "!--" === l[1] ? o = j : void 0 !== l[1] ? o = V : void 0 !== l[2] ? (K.test(l[2]) && (n = RegExp("</" + l[2], "g")), o = G) : void 0 !== l[3] && (o = G) : o === G ? ">" === l[0] ? (o = n ?? R, c = -1) : void 0 === l[1] ? c = -2 : (c = o.lastIndex - l[2].length, a = l[1], o = void 0 === l[3] ? G : '"' === l[3] ? Y : Z) : o === Y || o === Z ? o = G : o === j || o === V ? o = R : (o = G, n = void 0);
       const d = o === G && t[e + 1].startsWith("/>") ? " " : "";
-      s += o === R ? i + F : c >= 0 ? (r.push(a), i.slice(0, c) + H + i.slice(c) + D + d) : i + D + (-2 === c ? e : d);
+      s += o === R ? i + B : c >= 0 ? (r.push(a), i.slice(0, c) + H + i.slice(c) + D + d) : i + D + (-2 === c ? e : d);
     }
     return [it(t, s + (t[i] || "<?>") + (2 === e ? "</svg>" : "")), r];
   };
@@ -441,7 +441,7 @@
               r.append(t[e], I());
             }
           }
-        } else if (8 === r.nodeType) if (r.data === B) a.push({
+        } else if (8 === r.nodeType) if (r.data === F) a.push({
           type: 2,
           index: n
         });else {
@@ -635,7 +635,7 @@
   const ut = {
       P: H,
       A: D,
-      C: B,
+      C: F,
       M: 1,
       L: rt,
       R: ot,
@@ -852,7 +852,7 @@
   function Dt() {
     return Ht;
   }
-  function Bt(t, e) {
+  function Ft(t, e) {
     const i = Dt(),
       r = e?.weekStartsOn ?? e?.locale?.options?.weekStartsOn ?? i.weekStartsOn ?? i.locale?.options?.weekStartsOn ?? 0,
       n = kt(t, e?.in),
@@ -860,8 +860,8 @@
       o = (s < r ? 7 : 0) + s - r;
     return n.setDate(n.getDate() - o), n.setHours(0, 0, 0, 0), n;
   }
-  function Ft(t, e) {
-    return Bt(t, {
+  function Bt(t, e) {
+    return Ft(t, {
       ...e,
       weekStartsOn: 1
     });
@@ -871,10 +871,10 @@
       r = i.getFullYear(),
       n = Tt(i, 0);
     n.setFullYear(r + 1, 0, 4), n.setHours(0, 0, 0, 0);
-    const s = Ft(n),
+    const s = Bt(n),
       o = Tt(i, 0);
     o.setFullYear(r, 0, 4), o.setHours(0, 0, 0, 0);
-    const a = Ft(o);
+    const a = Bt(o);
     return i.getTime() >= s.getTime() ? r + 1 : i.getTime() >= a.getTime() ? r : r - 1;
   }
   function It(t) {
@@ -1331,10 +1331,10 @@
   }
   function ne(t, e) {
     const i = kt(t, e?.in),
-      r = +Ft(i) - +function (t, e) {
+      r = +Bt(i) - +function (t, e) {
         const i = Lt(t, e),
           r = Tt(e?.in || t, 0);
-        return r.setFullYear(i, 0, 4), r.setHours(0, 0, 0, 0), Ft(r);
+        return r.setFullYear(i, 0, 4), r.setHours(0, 0, 0, 0), Bt(r);
       }(i);
     return Math.round(r / Et) + 1;
   }
@@ -1345,20 +1345,20 @@
       s = e?.firstWeekContainsDate ?? e?.locale?.options?.firstWeekContainsDate ?? n.firstWeekContainsDate ?? n.locale?.options?.firstWeekContainsDate ?? 1,
       o = Tt(e?.in || t, 0);
     o.setFullYear(r + 1, 0, s), o.setHours(0, 0, 0, 0);
-    const a = Bt(o, e),
+    const a = Ft(o, e),
       l = Tt(e?.in || t, 0);
     l.setFullYear(r, 0, s), l.setHours(0, 0, 0, 0);
-    const c = Bt(l, e);
+    const c = Ft(l, e);
     return +i >= +a ? r + 1 : +i >= +c ? r : r - 1;
   }
   function oe(t, e) {
     const i = kt(t, e?.in),
-      r = +Bt(i, e) - +function (t, e) {
+      r = +Ft(i, e) - +function (t, e) {
         const i = Dt(),
           r = e?.firstWeekContainsDate ?? e?.locale?.options?.firstWeekContainsDate ?? i.firstWeekContainsDate ?? i.locale?.options?.firstWeekContainsDate ?? 1,
           n = se(t, e),
           s = Tt(e?.in || t, 0);
-        return s.setFullYear(n, 0, r), s.setHours(0, 0, 0, 0), Bt(s, e);
+        return s.setFullYear(n, 0, r), s.setHours(0, 0, 0, 0), Ft(s, e);
       }(i, e);
     return Math.round(r / Et) + 1;
   }
@@ -2099,7 +2099,7 @@
     return g && (n.seconds = g), n;
   }
   const De = "anycubic_cloud",
-    Be = (t, e, i, r) => {
+    Fe = (t, e, i, r) => {
       const n = r || {},
         s = i ?? {},
         o = new Event(e, {
@@ -2109,10 +2109,10 @@
         });
       return o.detail = s, t.dispatchEvent(o), o;
     };
-  var Fe, Le, Ie, Ne, Oe, ze;
+  var Be, Le, Ie, Ne, Oe, ze;
   !function (t) {
     t.ETA = "ETA", t.Elapsed = "Elapsed", t.Remaining = "Remaining";
-  }(Fe || (Fe = {})), function (t) {
+  }(Be || (Be = {})), function (t) {
     t.F = "F", t.C = "C";
   }(Le || (Le = {})), function (t) {
     t.Status = "Status", t.PrinterOnline = "Online", t.Availability = "Availability", t.ProjectName = "Project", t.CurrentLayer = "Layer";
@@ -2123,7 +2123,7 @@
   }(Oe || (Oe = {})), function (t) {
     t.OnTime = "On Time", t.OffTime = "Off Time", t.BottomTime = "Bottom Time", t.ModelHeight = "Model Height", t.BottomLayers = "Bottom Layers", t.ZUpHeight = "Z Up Height", t.ZUpSpeed = "Z Up Speed", t.ZDownSpeed = "Z Down Speed";
   }(ze || (ze = {}));
-  const Ue = Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, Fe), Ie), Ne), Oe), ze);
+  const Ue = Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, Be), Ie), Ne), Oe), ze);
   var Re, je, Ve, Ge, Ze;
   !function (t) {
     t.Auto = "auto", t.Camera = "camera", t.Preview = "preview", t.Printer = "printer", t.PrinterModel = "printer_model", t.None = "none";
@@ -2292,9 +2292,9 @@
     },
     _i = (t, e, i = !1, r = !1) => {
       switch (e) {
-        case Fe.Remaining:
+        case Be.Remaining:
           return yi(t, i);
-        case Fe.ETA:
+        case Be.ETA:
           return ((t, e, i) => {
             if (0 !== t && (!t || isNaN(t))) return "—";
             const r = e ? "" : ":ss",
@@ -2302,7 +2302,7 @@
               s = new Date();
             return s.setSeconds(s.getSeconds() + Number(t)), ke(s, n);
           })(t, i, r);
-        case Fe.Elapsed:
+        case Be.Elapsed:
           return yi(t, i);
         default:
           return "—";
@@ -2580,19 +2580,19 @@
         cards: {}
       }
     },
-    Bi = {
+    Fi = {
       title: ki,
       common: Mi,
       card: Hi,
       panels: Di
     },
-    Fi = Object.freeze({
+    Bi = Object.freeze({
       __proto__: null,
       title: ki,
       common: Mi,
       card: Hi,
       panels: Di,
-      default: Bi
+      default: Fi
     }),
     Li = "Anycubic Cloud",
     Ii = {
@@ -3992,8 +3992,8 @@
     return "root" !== r && (i = t.maximize().region), (Mr[i || ""] || Mr[r || ""] || Mr["".concat(r, "-001")] || Mr["001"])[0];
   }
   var Dr = new RegExp("^".concat(vr.source, "*")),
-    Br = new RegExp("".concat(vr.source, "*$"));
-  function Fr(t, e) {
+    Fr = new RegExp("".concat(vr.source, "*$"));
+  function Br(t, e) {
     return {
       start: t,
       end: e
@@ -4055,7 +4055,7 @@
     Wr = Ur ? function (t) {
       return t.trimEnd();
     } : function (t) {
-      return t.replace(Br, "");
+      return t.replace(Fr, "");
     };
   function Xr(t, e) {
     return new RegExp(t, e);
@@ -4096,7 +4096,7 @@
           if (35 !== n || "plural" !== e && "selectordinal" !== e) {
             if (60 === n && !this.ignoreTag && 47 === this.peek()) {
               if (i) break;
-              return this.error(Ci.UNMATCHED_CLOSING_TAG, Fr(this.clonePosition(), this.clonePosition()));
+              return this.error(Ci.UNMATCHED_CLOSING_TAG, Br(this.clonePosition(), this.clonePosition()));
             }
             if (60 === n && !this.ignoreTag && tn(this.peek() || 0)) {
               if ((s = this.parseTag(t, e)).err) return s;
@@ -4110,7 +4110,7 @@
             var o = this.clonePosition();
             this.bump(), r.push({
               type: Ai.pound,
-              location: Fr(o, this.clonePosition())
+              location: Br(o, this.clonePosition())
             });
           }
         }
@@ -4127,7 +4127,7 @@
         val: {
           type: Ai.literal,
           value: "<".concat(r, "/>"),
-          location: Fr(i, this.clonePosition())
+          location: Br(i, this.clonePosition())
         },
         err: null
       };
@@ -4137,21 +4137,21 @@
         var s = n.val,
           o = this.clonePosition();
         if (this.bumpIf("</")) {
-          if (this.isEOF() || !tn(this.char())) return this.error(Ci.INVALID_TAG, Fr(o, this.clonePosition()));
+          if (this.isEOF() || !tn(this.char())) return this.error(Ci.INVALID_TAG, Br(o, this.clonePosition()));
           var a = this.clonePosition();
-          return r !== this.parseTagName() ? this.error(Ci.UNMATCHED_CLOSING_TAG, Fr(a, this.clonePosition())) : (this.bumpSpace(), this.bumpIf(">") ? {
+          return r !== this.parseTagName() ? this.error(Ci.UNMATCHED_CLOSING_TAG, Br(a, this.clonePosition())) : (this.bumpSpace(), this.bumpIf(">") ? {
             val: {
               type: Ai.tag,
               value: r,
               children: s,
-              location: Fr(i, this.clonePosition())
+              location: Br(i, this.clonePosition())
             },
             err: null
-          } : this.error(Ci.INVALID_TAG, Fr(o, this.clonePosition())));
+          } : this.error(Ci.INVALID_TAG, Br(o, this.clonePosition())));
         }
-        return this.error(Ci.UNCLOSED_TAG, Fr(i, this.clonePosition()));
+        return this.error(Ci.UNCLOSED_TAG, Br(i, this.clonePosition()));
       }
-      return this.error(Ci.INVALID_TAG, Fr(i, this.clonePosition()));
+      return this.error(Ci.INVALID_TAG, Br(i, this.clonePosition()));
     }, t.prototype.parseTagName = function () {
       var t = this.offset();
       for (this.bump(); !this.isEOF() && en(this.char());) this.bump();
@@ -4168,7 +4168,7 @@
           }
         }
       }
-      var a = Fr(i, this.clonePosition());
+      var a = Br(i, this.clonePosition());
       return {
         val: {
           type: Ai.literal,
@@ -4216,25 +4216,25 @@
       return 60 === i || 123 === i || 35 === i && ("plural" === e || "selectordinal" === e) || 125 === i && t > 0 ? null : (this.bump(), Zr(i));
     }, t.prototype.parseArgument = function (t, e) {
       var i = this.clonePosition();
-      if (this.bump(), this.bumpSpace(), this.isEOF()) return this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Fr(i, this.clonePosition()));
-      if (125 === this.char()) return this.bump(), this.error(Ci.EMPTY_ARGUMENT, Fr(i, this.clonePosition()));
+      if (this.bump(), this.bumpSpace(), this.isEOF()) return this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Br(i, this.clonePosition()));
+      if (125 === this.char()) return this.bump(), this.error(Ci.EMPTY_ARGUMENT, Br(i, this.clonePosition()));
       var r = this.parseIdentifierIfPossible().value;
-      if (!r) return this.error(Ci.MALFORMED_ARGUMENT, Fr(i, this.clonePosition()));
-      if (this.bumpSpace(), this.isEOF()) return this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Fr(i, this.clonePosition()));
+      if (!r) return this.error(Ci.MALFORMED_ARGUMENT, Br(i, this.clonePosition()));
+      if (this.bumpSpace(), this.isEOF()) return this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Br(i, this.clonePosition()));
       switch (this.char()) {
         case 125:
           return this.bump(), {
             val: {
               type: Ai.argument,
               value: r,
-              location: Fr(i, this.clonePosition())
+              location: Br(i, this.clonePosition())
             },
             err: null
           };
         case 44:
-          return this.bump(), this.bumpSpace(), this.isEOF() ? this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Fr(i, this.clonePosition())) : this.parseArgumentOptions(t, e, r, i);
+          return this.bump(), this.bumpSpace(), this.isEOF() ? this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Br(i, this.clonePosition())) : this.parseArgumentOptions(t, e, r, i);
         default:
-          return this.error(Ci.MALFORMED_ARGUMENT, Fr(i, this.clonePosition()));
+          return this.error(Ci.MALFORMED_ARGUMENT, Br(i, this.clonePosition()));
       }
     }, t.prototype.parseIdentifierIfPossible = function () {
       var t = this.clonePosition(),
@@ -4243,7 +4243,7 @@
         r = e + i.length;
       return this.bumpTo(r), {
         value: i,
-        location: Fr(t, this.clonePosition())
+        location: Br(t, this.clonePosition())
       };
     }, t.prototype.parseArgumentOptions = function (t, e, i, n) {
       var s,
@@ -4252,7 +4252,7 @@
         l = this.clonePosition();
       switch (a) {
         case "":
-          return this.error(Ci.EXPECT_ARGUMENT_TYPE, Fr(o, l));
+          return this.error(Ci.EXPECT_ARGUMENT_TYPE, Br(o, l));
         case "number":
         case "date":
         case "time":
@@ -4262,14 +4262,14 @@
             this.bumpSpace();
             var h = this.clonePosition();
             if ((y = this.parseSimpleArgStyleIfPossible()).err) return y;
-            if (0 === (g = Wr(y.val)).length) return this.error(Ci.EXPECT_ARGUMENT_STYLE, Fr(this.clonePosition(), this.clonePosition()));
+            if (0 === (g = Wr(y.val)).length) return this.error(Ci.EXPECT_ARGUMENT_STYLE, Br(this.clonePosition(), this.clonePosition()));
             c = {
               style: g,
-              styleLocation: Fr(h, this.clonePosition())
+              styleLocation: Br(h, this.clonePosition())
             };
           }
           if ((_ = this.tryParseArgumentClose(n)).err) return _;
-          var d = Fr(n, this.clonePosition());
+          var d = Br(n, this.clonePosition());
           if (c && Gr(null == c ? void 0 : c.style, "::", 0)) {
             var p = qr(c.style.slice(2));
             if ("number" === a) return (y = this.parseNumberSkeletonFromString(p, c.styleLocation)).err ? y : {
@@ -4326,12 +4326,12 @@
         case "selectordinal":
         case "select":
           var m = this.clonePosition();
-          if (this.bumpSpace(), !this.bumpIf(",")) return this.error(Ci.EXPECT_SELECT_ARGUMENT_OPTIONS, Fr(m, r({}, m)));
+          if (this.bumpSpace(), !this.bumpIf(",")) return this.error(Ci.EXPECT_SELECT_ARGUMENT_OPTIONS, Br(m, r({}, m)));
           this.bumpSpace();
           var b = this.parseIdentifierIfPossible(),
             v = 0;
           if ("select" !== a && "offset" === b.value) {
-            if (!this.bumpIf(":")) return this.error(Ci.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Fr(this.clonePosition(), this.clonePosition()));
+            if (!this.bumpIf(":")) return this.error(Ci.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Br(this.clonePosition(), this.clonePosition()));
             var y;
             if (this.bumpSpace(), (y = this.tryParseDecimalInteger(Ci.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Ci.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE)).err) return y;
             this.bumpSpace(), b = this.parseIdentifierIfPossible(), v = y.val;
@@ -4340,7 +4340,7 @@
             f = this.tryParsePluralOrSelectOptions(t, a, e, b);
           if (f.err) return f;
           if ((_ = this.tryParseArgumentClose(n)).err) return _;
-          var x = Fr(n, this.clonePosition());
+          var x = Br(n, this.clonePosition());
           return "select" === a ? {
             val: {
               type: Ai.select,
@@ -4361,10 +4361,10 @@
             err: null
           };
         default:
-          return this.error(Ci.INVALID_ARGUMENT_TYPE, Fr(o, l));
+          return this.error(Ci.INVALID_ARGUMENT_TYPE, Br(o, l));
       }
     }, t.prototype.tryParseArgumentClose = function (t) {
-      return this.isEOF() || 125 !== this.char() ? this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Fr(t, this.clonePosition())) : (this.bump(), {
+      return this.isEOF() || 125 !== this.char() ? this.error(Ci.EXPECT_ARGUMENT_CLOSING_BRACE, Br(t, this.clonePosition())) : (this.bump(), {
         val: !0,
         err: null
       });
@@ -4374,7 +4374,7 @@
           case 39:
             this.bump();
             var i = this.clonePosition();
-            if (!this.bumpUntil("'")) return this.error(Ci.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE, Fr(i, this.clonePosition()));
+            if (!this.bumpUntil("'")) return this.error(Ci.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE, Br(i, this.clonePosition()));
             this.bump();
             break;
           case 123:
@@ -4432,22 +4432,22 @@
           if ("select" === e || !this.bumpIf("=")) break;
           var d = this.tryParseDecimalInteger(Ci.EXPECT_PLURAL_ARGUMENT_SELECTOR, Ci.INVALID_PLURAL_ARGUMENT_SELECTOR);
           if (d.err) return d;
-          c = Fr(h, this.clonePosition()), l = this.message.slice(h.offset, this.offset());
+          c = Br(h, this.clonePosition()), l = this.message.slice(h.offset, this.offset());
         }
         if (a.has(l)) return this.error("select" === e ? Ci.DUPLICATE_SELECT_ARGUMENT_SELECTOR : Ci.DUPLICATE_PLURAL_ARGUMENT_SELECTOR, c);
         "other" === l && (s = !0), this.bumpSpace();
         var p = this.clonePosition();
-        if (!this.bumpIf("{")) return this.error("select" === e ? Ci.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT : Ci.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT, Fr(this.clonePosition(), this.clonePosition()));
+        if (!this.bumpIf("{")) return this.error("select" === e ? Ci.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT : Ci.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT, Br(this.clonePosition(), this.clonePosition()));
         var u = this.parseMessage(t + 1, e, i);
         if (u.err) return u;
         var g = this.tryParseArgumentClose(p);
         if (g.err) return g;
         o.push([l, {
           value: u.val,
-          location: Fr(p, this.clonePosition())
+          location: Br(p, this.clonePosition())
         }]), a.add(l), this.bumpSpace(), l = (n = this.parseIdentifierIfPossible()).value, c = n.location;
       }
-      return 0 === o.length ? this.error("select" === e ? Ci.EXPECT_SELECT_ARGUMENT_SELECTOR : Ci.EXPECT_PLURAL_ARGUMENT_SELECTOR, Fr(this.clonePosition(), this.clonePosition())) : this.requiresOtherClause && !s ? this.error(Ci.MISSING_OTHER_CLAUSE, Fr(this.clonePosition(), this.clonePosition())) : {
+      return 0 === o.length ? this.error("select" === e ? Ci.EXPECT_SELECT_ARGUMENT_SELECTOR : Ci.EXPECT_PLURAL_ARGUMENT_SELECTOR, Br(this.clonePosition(), this.clonePosition())) : this.requiresOtherClause && !s ? this.error(Ci.MISSING_OTHER_CLAUSE, Br(this.clonePosition(), this.clonePosition())) : {
         val: o,
         err: null
       };
@@ -4460,7 +4460,7 @@
         if (!(o >= 48 && o <= 57)) break;
         n = !0, s = 10 * s + (o - 48), this.bump();
       }
-      var a = Fr(r, this.clonePosition());
+      var a = Br(r, this.clonePosition());
       return n ? Rr(s *= i) ? {
         val: s,
         err: null
@@ -4883,7 +4883,7 @@
     }(),
     Cn = Pn,
     An = {
-      de: Fi,
+      de: Bi,
       en: Ui,
       fr: Yi,
       nl: Ji,
@@ -4913,13 +4913,13 @@
     Mn = "M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z",
     Hn = "M7,10L12,15L17,10H7Z",
     Dn = "M7,15L12,10L17,15H7Z",
-    Bn = "M8,5.14V19.14L19,12.14L8,5.14Z";
+    Fn = "M8,5.14V19.14L19,12.14L8,5.14Z";
   /**
        * @license
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const Fn = 1,
+  const Bn = 1,
     Ln = 2,
     In = t => (...e) => ({
       _$litDirective$: t,
@@ -4947,7 +4947,7 @@
        */
   const On = In(class extends Nn {
       constructor(t) {
-        if (super(t), t.type !== Fn || "class" !== t.name || t.strings?.length > 2) throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.");
+        if (super(t), t.type !== Bn || "class" !== t.name || t.strings?.length > 2) throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.");
       }
       render(t) {
         return " " + Object.keys(t).filter(e => t[e]).join(" ") + " ";
@@ -4971,7 +4971,7 @@
     Un = " !" + zn,
     Rn = In(class extends Nn {
       constructor(t) {
-        if (super(t), t.type !== Fn || "style" !== t.name || t.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
+        if (super(t), t.type !== Bn || "style" !== t.name || t.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
       }
       render(t) {
         return Object.keys(t).reduce((e, i) => {
@@ -5125,40 +5125,92 @@
   <rect x="${e}" y="${i}" width="${r}" height="3" rx="1.5"
         fill="${t ? "var(--ac-printer-light, #ffd88a)" : "currentColor"}"
         opacity="${t ? .95 : .3}"></rect>`,
-    Wn = (t, e, i, r, n, s, o) => {
+    Wn = t => {
+      if (!t || !/^#[0-9a-f]{6}$/i.test(t)) return "rgba(255,255,255,0.35)";
+      const e = parseInt(t.slice(1), 16);
+      return (.299 * (e >> 16 & 255) + .587 * (e >> 8 & 255) + .114 * (255 & e)) / 255 < .45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
+    },
+    Xn = (t, e, i, r, n, s, o, a) => {
       if (!t || e <= .005) return J;
-      const a = Math.min(1, e) * s,
-        l = .22 * r,
-        c = Math.min(6, .25 * a),
-        h = i + l,
-        d = r - 2 * l,
-        p = [];
-      for (let t = n - 4; t > n - a + 1; t -= 4) {
-        const e = c * ((n - t) / Math.max(1, a));
-        p.push(X`<line x1="${(h + e).toFixed(1)}" y1="${t.toFixed(1)}"
-                x2="${(h + d - e).toFixed(1)}" y2="${t.toFixed(1)}"
+      if (a) {
+        const t = Math.min(1, e),
+          l = s,
+          c = Math.min(r, l),
+          h = i + (r - c) / 2,
+          d = n - l,
+          p = l * t,
+          u = ((t, ...e) => {
+            const i = `${t}|${e.map(t => t.toFixed(2)).join(",")}`;
+            let r = 0;
+            for (let t = 0; t < i.length; t++) r = 31 * r + i.charCodeAt(t) | 0;
+            return `acm${(r >>> 0).toString(36)}`;
+          })(a, h, d, c, l, p);
+        return X`
+      <g class="ac-apr-print">
+        <defs>
+          <!-- mask-type:alpha, not a filter and not a luminance mask. The
+               render is a transparent PNG of a near-black object, so its
+               ALPHA is the silhouette and its luminance is nothing: a default
+               luminance mask renders it almost invisible. Masking a plain
+               rect of the filament colour gives the part's real outline in
+               the colour it is actually being printed in. -->
+          <mask id="${u}m" style="mask-type:alpha">
+            <image href="${a}" x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                   width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                   preserveAspectRatio="xMidYMax meet"></image>
+          </mask>
+          <clipPath id="${u}c">
+            <rect x="${h.toFixed(1)}" y="${(n - p).toFixed(1)}"
+                  width="${c.toFixed(1)}" height="${p.toFixed(1)}"></rect>
+          </clipPath>
+        </defs>
+        <g clip-path="url(#${u}c)">
+          <!-- A halo of the same silhouette, very slightly larger, in the
+               contrasting edge colour. The live printer is loaded with PLA+
+               at #1A1A1A and the chamber is darker still, so without this the
+               part is a black shape on a black background. Scaling about the
+               shape's own centre keeps it registered. -->
+          <g transform="translate(${(h + c / 2).toFixed(1)} ${(d + l / 2).toFixed(1)}) scale(1.035) translate(${(-h - c / 2).toFixed(1)} ${(-d - l / 2).toFixed(1)})">
+            <rect x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                  width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                  fill="${Wn(o)}" mask="url(#${u}m)"></rect>
+          </g>
+          <rect x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                fill="${o}" mask="url(#${u}m)"></rect>
+        </g>
+        <rect x="${h.toFixed(1)}" y="${(n - p).toFixed(1)}"
+              width="${c.toFixed(1)}" height="1.4"
+              fill="var(--ac-printer-card-bg, #fff)" opacity="0.55"></rect>
+      </g>`;
+      }
+      const l = Math.min(1, e) * s,
+        c = .22 * r,
+        h = Math.min(6, .25 * l),
+        d = i + c,
+        p = r - 2 * c,
+        u = [];
+      for (let t = n - 4; t > n - l + 1; t -= 4) {
+        const e = h * ((n - t) / Math.max(1, l));
+        u.push(X`<line x1="${(d + e).toFixed(1)}" y1="${t.toFixed(1)}"
+                x2="${(d + p - e).toFixed(1)}" y2="${t.toFixed(1)}"
                 stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
                 stroke-width="0.8"></line>`);
       }
       return X`
     <g class="ac-apr-print">
-      <path d="M${h} ${n} L${h + c} ${n - a} L${h + d - c} ${n - a} L${h + d} ${n} Z"
+      <path d="M${d} ${n} L${d + h} ${n - l} L${d + p - h} ${n - l} L${d + p} ${n} Z"
             fill="${o}" opacity="0.9"></path>
-      ${p}
-      <path d="M${h} ${n} L${h + c} ${n - a} L${h + c + .32 * d} ${n - a} L${h + .32 * d} ${n} Z"
+      ${u}
+      <path d="M${d} ${n} L${d + h} ${n - l} L${d + h + .32 * p} ${n - l} L${d + .32 * p} ${n} Z"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
-      <rect x="${h + c}" y="${(n - a).toFixed(1)}" width="${(d - 2 * c).toFixed(1)}" height="1.6"
+      <rect x="${d + h}" y="${(n - l).toFixed(1)}" width="${(p - 2 * h).toFixed(1)}" height="1.6"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>`;
     },
-    Xn = (t, e, i, r, n) => t <= .02 ? J : X`<rect x="${e}" y="${i}" width="${r}" height="${n}" rx="3"
+    Qn = (t, e, i, r, n) => t <= .02 ? J : X`<rect x="${e}" y="${i}" width="${r}" height="${n}" rx="3"
             fill="var(--ac-printer-heat, #ff7a3d)"
             opacity="${(.12 + .45 * t).toFixed(2)}"></rect>`,
-    Qn = t => {
-      if (!t || !/^#[0-9a-f]{6}$/i.test(t)) return "rgba(255,255,255,0.35)";
-      const e = parseInt(t.slice(1), 16);
-      return (.299 * (e >> 16 & 255) + .587 * (e >> 8 & 255) + .114 * (255 & e)) / 255 < .45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
-    },
     Jn = (t, e, i, r) => X`
   <g opacity="${t ? .9 : .3}">
     <circle cx="${e}" cy="${i}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.3"></circle>
@@ -5208,7 +5260,7 @@
           n = 11 + 21 * (void 0 === i ? 1 : Math.max(0, Math.min(1, i)));
         return X`
     <rect x="${t - 9}" y="${(42 + (32 - n) / 2).toFixed(1)}" width="18" height="${n.toFixed(1)}" rx="2" fill="${r}"
-          stroke="${Qn(e)}" stroke-width="0.75"></rect>
+          stroke="${Wn(e)}" stroke-width="0.75"></rect>
     <rect x="${t - 9}" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>`;
       })(e, t[i], s[i])}
       <rect x="${e - 13.5}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
@@ -5235,10 +5287,11 @@
           lightOn: r = !1,
           progress: n = 0,
           chamberBusy: s = !1,
-          nozzleHeat: o = 0,
-          bedHeat: a = 0,
-          fanOn: l = !1,
-          status: c = "idle"
+          previewUrl: o,
+          nozzleHeat: a = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
         }) => X`
   <g fill="currentColor">
     <rect x="38" y="20" width="163" height="20" rx="5"></rect>
@@ -5249,10 +5302,10 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
-    ${ts(c, 172, 13, 7.5)}
+    ${ts(h, 172, 13, 7.5)}
   </g>
   <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
   ${qn(r, 56, 42, 127)}
@@ -5261,7 +5314,7 @@
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
     <rect x="46" y="155" width="5" height="15" rx="2"></rect>
   </g>
-  ${Jn(l, 195.5, 114, 7.5)}
+  ${Jn(c, 195.5, 114, 7.5)}
   <path d="M58 46 L82 46 L60 104 L58 104 Z" fill="currentColor" opacity="0.05"></path>
   <path d="M90 46 L100 46 L74 118 L68 118 Z" fill="currentColor" opacity="0.04"></path>
   <g fill="currentColor" opacity="0.22">
@@ -5269,20 +5322,20 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  ${Xn(a, 54, 176, 132, 12)}
+  ${Qn(l, 54, 176, 132, 12)}
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
-  ${Wn(!s, n, 56, 128, 178, 66, i)}
-  <g id="gantry" transform="${t}"
+  ${Xn(!s, n, 56, 128, 178, 66, i, o)}
+  <g transform="${t}"
      style="${s ? "display:none" : ""}">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="${e}">
-      ${Xn(o, 108, 60, 24, 18)}
+    <g transform="${e}">
+      ${Qn(a, 108, 60, 24, 18)}
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -5308,10 +5361,11 @@
           lightOn: r = !1,
           progress: n = 0,
           chamberBusy: s = !1,
-          nozzleHeat: o = 0,
-          bedHeat: a = 0,
-          fanOn: l = !1,
-          status: c = "idle"
+          previewUrl: o,
+          nozzleHeat: a = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
         }) => X`
       <g fill="currentColor">
         <rect x="20" y="176" width="200" height="38" rx="7"></rect>
@@ -5337,24 +5391,24 @@
       </g>
       <rect x="146" y="29" width="50" height="15" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="150" y="32" width="42" height="9" rx="2" fill="#101216"></rect>
-      ${ts(c, 171, 36.5, 5)}
+      ${ts(h, 171, 36.5, 5)}
       ${qn(r, 52, 47, 136)}
       <rect x="54" y="177" width="132" height="3" rx="1.5" fill="var(--ac-printer-rail, currentColor)" opacity="0.5"></rect>
-      ${Xn(a, 60, 164, 120, 12)}
+      ${Qn(l, 60, 164, 120, 12)}
       <rect x="62" y="166" width="116" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="70" y="174" width="100" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
-      ${Wn(!s, n, 62, 116, 166, 58, i)}
-      ${Jn(l, 30, 196, 7)}
-      <g id="gantry" transform="${t}"
+      ${Xn(!s, n, 62, 116, 166, 58, i, o)}
+      ${Jn(c, 30, 196, 7)}
+      <g transform="${t}"
      style="${s ? "display:none" : ""}">
         <rect x="42" y="54" width="156" height="1.6" fill="currentColor" opacity="0.2"></rect>
-        <rect id="xaxis" x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="42" y="50" width="12" height="20" rx="2"></rect>
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="${e}">
-          ${Xn(o, 108, 66, 24, 18)}
+        <g transform="${e}">
+          ${Qn(a, 108, 66, 24, 18)}
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
             <rect x="107" y="51" width="20" height="2" rx="1"></rect>
@@ -5380,10 +5434,11 @@
           lightOn: r = !1,
           progress: n = 0,
           chamberBusy: s = !1,
-          nozzleHeat: o = 0,
-          bedHeat: a = 0,
-          fanOn: l = !1,
-          status: c = "idle"
+          previewUrl: o,
+          nozzleHeat: a = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
         }) => X`
       <g fill="currentColor">
         <rect x="24" y="178" width="192" height="34" rx="6"></rect>
@@ -5396,28 +5451,28 @@
         <rect x="35" y="52" width="6" height="120" rx="3"></rect>
         <rect x="199" y="52" width="6" height="120" rx="3"></rect>
       </g>
-      ${Xn(a, 58, 168, 124, 12)}
+      ${Qn(l, 58, 168, 124, 12)}
       <rect x="60" y="170" width="120" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="68" y="178" width="104" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
-      ${Wn(!s, n, 60, 120, 170, 60, i)}
-      ${Jn(l, 34, 200, 6.5)}
+      ${Xn(!s, n, 60, 120, 170, 60, i, o)}
+      ${Jn(c, 34, 200, 6.5)}
       <rect x="154" y="33" width="50" height="16" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="36" width="42" height="10" rx="2" fill="#101216"></rect>
-      ${ts(c, 179, 41, 5)}
+      ${ts(h, 179, 41, 5)}
       ${qn(r, 46, 52, 148)}
       <g fill="currentColor" opacity="0.2">
         <rect x="36" y="188" width="40" height="2.5" rx="1"></rect>
         <rect x="36" y="194" width="40" height="2.5" rx="1"></rect>
       </g>
-      <g id="gantry" transform="${t}"
+      <g transform="${t}"
      style="${s ? "display:none" : ""}">
-        <rect id="xaxis" x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="32" y="52" width="12" height="20" rx="2"></rect>
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="${e}">
-          ${Xn(o, 109, 67, 22, 17)}
+        <g transform="${e}">
+          ${Qn(a, 109, 67, 22, 17)}
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
             <rect x="109" y="53" width="18" height="2" rx="1"></rect>
@@ -5462,9 +5517,9 @@
       <path d="M80 126 h84 l-6 24 h-72 Z" fill="currentColor" opacity="0.28"></path>
       <path d="M85 137 h74" stroke="${e}" stroke-opacity="0.75" stroke-width="3"></path>
       <rect x="78" y="118" width="96" height="8" rx="2" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
-      <g id="gantry" transform="${t}">
-        <rect id="xaxis" x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
-        <g id="nozzle">
+      <g transform="${t}">
+        <rect x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
+        <g>
           <rect x="84" y="48" width="66" height="6" rx="2" fill="currentColor"></rect>
           <rect x="96" y="54" width="42" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.8"></rect>
         </g>
@@ -5537,12 +5592,12 @@
     }(t, e, i, r, n) : Object.assign(Object.assign({}, t), {
       body: e => X`
           ${((t = "var(--ac-printer-accent, currentColor)", e = 70, i = 219.5) => X`
-  <g id="sidespool">
+  <g>
     <path d="M${i - 7.5} ${e - 12} C ${i - 7.5} ${e - 26} ${i - 13.5} ${e - 34} ${i - 31.5} ${e - 32}" stroke="${t}"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="${i - 23.5}" y="${e - 3}" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
     <rect x="${i - 8.5}" y="${e - 18}" width="17" height="36" rx="2" fill="${t}"
-          stroke="${Qn(t)}" stroke-width="0.75"></rect>
+          stroke="${Wn(t)}" stroke-width="0.75"></rect>
     <!-- Wound filament: a couple of banded highlights so the reel reads as
          coiled material rather than a solid block of colour. -->
     <rect x="${i - 8.5}" y="${e - 13}" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
@@ -5661,14 +5716,7 @@
                 .hass=${this.hass}
                 .cameraEntityId=${this.cameraEntityId}
               ></anycubic-printercard-camera_stream>
-            ` : this.imagePreviewBgUrl ? W`
-                <div
-                  class="ac-apr-imgprev"
-                  style=${Rn({
-        "background-image": this.imagePreviewBgUrl
-      })}
-                ></div>
-              ` : J}
+            ` : J}
         ${((t, e = {}) => {
         var i, r;
         return W` <svg
@@ -5680,14 +5728,14 @@
   >
     ${t.body(Object.assign(Object.assign({}, e), {
           gantry: ns(t, 100 * (null !== (i = e.progress) && void 0 !== i ? i : 0), !!e.cameraLive),
-          chamberBusy: !!e.cameraLive || !!e.previewLive,
+          chamberBusy: !!e.cameraLive,
           nozzle: ss(null !== (r = e.nozzleX) && void 0 !== r ? r : 0)
         }))}
   </svg>`;
       })(e, {
         progress: this._progressNum,
         cameraLive: s,
-        previewLive: !s && Boolean(this.imagePreviewBgUrl),
+        previewUrl: s ? void 0 : this.imagePreviewUrl,
         tip: n,
         lightOn: this._lightOn,
         nozzleHeat: this._heat("nozzle_temperature", "target_nozzle_temperature"),
@@ -6158,7 +6206,7 @@
   let fs = class extends mt {
     constructor() {
       super(...arguments), this.box_id = 0, this._runoutRefillId = bs, this._spoolsEntityId = ys, this.spoolList = [], this.selectedIndex = -1, this.selectedMaterialType = "", this.selectedColor = [0, 0, 0], this._changingRunout = !1, this._openDryingModal = () => {
-        Be(this, "ac-mcbdry-modal", {
+        Fe(this, "ac-mcbdry-modal", {
           modalOpen: !0,
           box_id: this.box_id
         });
@@ -6174,7 +6222,7 @@
         const e = t.currentTarget.index,
           i = t.currentTarget.material_type,
           r = t.currentTarget.color;
-        Be(this, "ac-mcb-modal", {
+        Fe(this, "ac-mcb-modal", {
           modalOpen: !0,
           box_id: this.box_id,
           spool_index: e,
@@ -7033,13 +7081,13 @@
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const Bs = (t, e) => {
+  const Fs = (t, e) => {
       const i = t._$AN;
       if (void 0 === i) return !1;
-      for (const t of i) t._$AO?.(e, !1), Bs(t, e);
+      for (const t of i) t._$AO?.(e, !1), Fs(t, e);
       return !0;
     },
-    Fs = t => {
+    Bs = t => {
       let e, i;
       do {
         if (void 0 === (e = t._$AM)) break;
@@ -7054,14 +7102,14 @@
       }
     };
   function Is(t) {
-    void 0 !== this._$AN ? (Fs(this), this._$AM = t, Ls(this)) : this._$AM = t;
+    void 0 !== this._$AN ? (Bs(this), this._$AM = t, Ls(this)) : this._$AM = t;
   }
   function Ns(t, e = !1, i = 0) {
     const r = this._$AH,
       n = this._$AN;
     if (void 0 !== n && 0 !== n.size) if (e) {
-      if (Array.isArray(r)) for (let t = i; t < r.length; t++) Bs(r[t], !1), Fs(r[t]);else null != r && (Bs(r, !1), Fs(r));
-    } else Bs(this, t);
+      if (Array.isArray(r)) for (let t = i; t < r.length; t++) Fs(r[t], !1), Bs(r[t]);else null != r && (Fs(r, !1), Bs(r));
+    } else Fs(this, t);
   }
   const Os = t => {
     t.type == Ln && (t._$AP ??= Ns, t._$AQ ??= Is);
@@ -7074,7 +7122,7 @@
       super._$AT(t, e, i), Ls(this), this.isConnected = t._$AU;
     }
     _$AO(t, e = !0) {
-      t !== this.isConnected && (this.isConnected = t, t ? this.reconnected?.() : this.disconnected?.()), e && (Bs(this, t), Fs(this));
+      t !== this.isConnected && (this.isConnected = t, t ? this.reconnected?.() : this.disconnected?.()), e && (Fs(this, t), Bs(this));
     }
     setValue(t) {
       if ((t => void 0 === t.strings)(this._$Ct)) this._$Ct._$AI(t, this);else {
@@ -7459,7 +7507,7 @@
       }, this._selectItem = t => {
         if (!this.availableOptions) return;
         const e = t.currentTarget.item_key;
-        this._selectedItem = this.availableOptions[e], Be(this, "ac-select-dropdown", {
+        this._selectedItem = this.availableOptions[e], Fe(this, "ac-select-dropdown", {
           key: e,
           value: this.availableOptions[e]
         }), this._hidden = !0;
@@ -8918,7 +8966,7 @@
     }
   }
   customElements.get("color-input-channel") || customElements.define("color-input-channel", Do);
-  class Bo extends mt {
+  class Fo extends mt {
     static properties = {
       color: {
         type: Object
@@ -9104,8 +9152,8 @@
     </div>`;
     }
   }
-  customElements.get("hsl-canvas") || customElements.define("hsl-canvas", Bo);
-  const Fo = t => isFinite(t) ? Number(t) : Number(t.replace(/[^0-9.\-]/g, "")),
+  customElements.get("hsl-canvas") || customElements.define("hsl-canvas", Fo);
+  const Bo = t => isFinite(t) ? Number(t) : Number(t.replace(/[^0-9.\-]/g, "")),
     Lo = t => (t = Number(t), (isNaN(t) || [void 0, null].includes(t)) && (t = 0), t);
   class Io {
     constructor(t, e) {
@@ -9119,8 +9167,8 @@
       return new Io(e, i);
     }
     static fromElementStyle(t) {
-      const e = Fo(t.style.left ?? 0),
-        i = Fo(t.style.top ?? 0);
+      const e = Bo(t.style.left ?? 0),
+        i = Bo(t.style.top ?? 0);
       return new Io(e, i);
     }
     static fromObject({
@@ -9228,13 +9276,13 @@
       return this._boundsX;
     }
     set boundsX(t) {
-      this._boundsX = No.fromString(t, Fo(this.target?.style.left ?? 0)), this.bounds.left = this._boundsX;
+      this._boundsX = No.fromString(t, Bo(this.target?.style.left ?? 0)), this.bounds.left = this._boundsX;
     }
     get boundsY() {
       return this._boundsY;
     }
     set boundsY(t) {
-      this._boundsY = No.fromString(t, Fo(this.target?.style.top ?? 0)), this.bounds.top = this._boundsY;
+      this._boundsY = No.fromString(t, Bo(this.target?.style.top ?? 0)), this.bounds.top = this._boundsY;
     }
     static properties = {
       posLeft: {
@@ -10333,7 +10381,7 @@
         const e = t.currentTarget.sectionKey;
         this._openSection = this._openSection === e ? void 0 : e;
       }, this._openPrintSettingsModal = () => {
-        Be(this._printerCardContainer, "ac-printset-modal", {
+        Fe(this._printerCardContainer, "ac-printset-modal", {
           modalOpen: !0
         });
       }, this._toggleLightEntity = () => {
@@ -10550,7 +10598,7 @@
     _renderControls() {
       if (!this.showControls) return J;
       const t = [];
-      return this.isPrinting && (t.push(this.isPaused ? this._renderActionButton("Resume", Bn, "resume_print") : this._renderActionButton("Pause", "M14,19H18V5H14M6,19H10V5H6V19Z", "pause_print")), t.push(this._renderActionButton("Cancel", "M18,18H6V6H18V18Z", "cancel_print", !0))), (this.showSettingsButton || this.isPrinting) && t.push(W`
+      return this.isPrinting && (t.push(this.isPaused ? this._renderActionButton("Resume", Fn, "resume_print") : this._renderActionButton("Pause", "M14,19H18V5H14M6,19H10V5H6V19Z", "pause_print")), t.push(this._renderActionButton("Cancel", "M18,18H6V6H18V18Z", "cancel_print", !0))), (this.showSettingsButton || this.isPrinting) && t.push(W`
         <button class="ac-button" @click=${this._openPrintSettingsModal}>
           <ha-svg-icon .path=${"M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"}></ha-svg-icon>
           <span>${this._buttonPrintSettings}</span>
@@ -12060,7 +12108,7 @@
           @click=${this._runScript}
           .progress=${this._buttonProgress}
         >
-          <ha-svg-icon .path=${Bn}></ha-svg-icon>
+          <ha-svg-icon .path=${Fn}></ha-svg-icon>
           ${this._buttonPrint}
         </ha-progress-button>
       </ac-print-view>
@@ -12102,7 +12150,7 @@
       }, this._handlePrinterClick = t => {
         ((t, e, i = !1) => {
           const r = `${t.route.prefix}/${e ? `${e}/main` : ""}`;
-          i ? history.replaceState(null, "", r) : history.pushState(null, "", r), Be(window, "location-changed", {
+          i ? history.replaceState(null, "", r) : history.pushState(null, "", r), Fe(window, "location-changed", {
             replace: i
           });
         })(this, t.currentTarget.printer_id), this.requestUpdate();
@@ -12112,7 +12160,7 @@
           const r = t.route.prefix,
             n = gi(t.route),
             s = `${r}/${n ? `${n}/${e}` : ""}`;
-          i ? history.replaceState(null, "", s) : history.pushState(null, "", s), Be(window, "location-changed", {
+          i ? history.replaceState(null, "", s) : history.pushState(null, "", s), Fe(window, "location-changed", {
             replace: i
           });
         })(this, e), this.requestUpdate()) : scrollTo(0, 0);

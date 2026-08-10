@@ -83,8 +83,8 @@
       is: g,
       defineProperty: m,
       getOwnPropertyDescriptor: b,
-      getOwnPropertyNames: y,
-      getOwnPropertySymbols: f,
+      getOwnPropertyNames: f,
+      getOwnPropertySymbols: y,
       getPrototypeOf: _
     } = Object,
     v = globalThis,
@@ -183,7 +183,7 @@
       if (this.hasOwnProperty(E("finalized"))) return;
       if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(E("properties"))) {
         const t = this.properties,
-          e = [...y(t), ...f(t)];
+          e = [...f(t), ...y(t)];
         for (const i of e) this.createProperty(i, t[i]);
       }
       const t = this[Symbol.metadata];
@@ -699,7 +699,7 @@
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const yt = t => (e, i) => {
+  const ft = t => (e, i) => {
       void 0 !== i ? i.addInitializer(() => {
         customElements.define(t, e);
       }) : customElements.define(t, e);
@@ -709,14 +709,14 @@
          * Copyright 2017 Google LLC
          * SPDX-License-Identifier: BSD-3-Clause
          */,
-    ft = {
+    yt = {
       attribute: !0,
       type: String,
       converter: S,
       reflect: !1,
       hasChanged: C
     },
-    _t = (t = ft, e, i) => {
+    _t = (t = yt, e, i) => {
       const {
         kind: r,
         metadata: n
@@ -1365,7 +1365,7 @@
       }(i);
     return Math.round(r / It) + 1;
   }
-  function ye(t, e) {
+  function fe(t, e) {
     const i = Rt(t, e?.in),
       r = i.getFullYear(),
       n = Gt(),
@@ -1378,12 +1378,12 @@
     const c = Zt(l, e);
     return +i >= +a ? r + 1 : +i >= +c ? r : r - 1;
   }
-  function fe(t, e) {
+  function ye(t, e) {
     const i = Rt(t, e?.in),
       r = +Zt(i, e) - +function (t, e) {
         const i = Gt(),
           r = e?.firstWeekContainsDate ?? e?.locale?.options?.firstWeekContainsDate ?? i.firstWeekContainsDate ?? i.locale?.options?.firstWeekContainsDate ?? 1,
-          n = ye(t, e),
+          n = fe(t, e),
           s = Ut(e?.in || t, 0);
         return s.setFullYear(n, 0, r), s.setHours(0, 0, 0, 0), Zt(s, e);
       }(i, e);
@@ -1464,7 +1464,7 @@
         return ve.y(t, e);
       },
       Y: function (t, e, i, r) {
-        const n = ye(t, r),
+        const n = fe(t, r),
           s = n > 0 ? n : 1 - n;
         if ("YY" === e) {
           return _e(s % 100, 2);
@@ -1591,7 +1591,7 @@
         }
       },
       w: function (t, e, i, r) {
-        const n = fe(t, r);
+        const n = ye(t, r);
         return "wo" === e ? i.ordinalNumber(n, {
           unit: "week"
         }) : _e(n, e.length);
@@ -2292,7 +2292,7 @@
           return "—";
       }
     };
-  const yi = {
+  const fi = {
       [St.C]: {
         [St.C]: t => t,
         [St.F]: t => 9 * t / 5 + 32
@@ -2302,7 +2302,7 @@
         [St.F]: t => t
       }
     },
-    fi = (t, e, i = !1) => {
+    yi = (t, e, i = !1) => {
       const r = parseFloat(t.state),
         n = (t => {
           switch (t.attributes.unit_of_measurement) {
@@ -2313,7 +2313,7 @@
               return St.F;
           }
         })(t),
-        s = (o = r, l = e || n, yi[a = n] && yi[a][l] ? yi[a][l](o) : -1);
+        s = (o = r, l = e || n, fi[a = n] && fi[a][l] ? fi[a][l](o) : -1);
       var o, a, l;
       return `${i ? Math.round(s) : s.toFixed(2)}°${e || n}`;
     };
@@ -3435,10 +3435,10 @@
   function br(t) {
     return t.type === Di.argument;
   }
-  function yr(t) {
+  function fr(t) {
     return t.type === Di.number;
   }
-  function fr(t) {
+  function yr(t) {
     return t.type === Di.date;
   }
   function _r(t) {
@@ -4308,8 +4308,8 @@
           if (this.bumpIf(",")) {
             this.bumpSpace();
             var h = this.clonePosition();
-            if ((f = this.parseSimpleArgStyleIfPossible()).err) return f;
-            if (0 === (g = on(f.val)).length) return this.error(Ii.EXPECT_ARGUMENT_STYLE, Vr(this.clonePosition(), this.clonePosition()));
+            if ((y = this.parseSimpleArgStyleIfPossible()).err) return y;
+            if (0 === (g = on(y.val)).length) return this.error(Ii.EXPECT_ARGUMENT_STYLE, Vr(this.clonePosition(), this.clonePosition()));
             c = {
               style: g,
               styleLocation: Vr(h, this.clonePosition())
@@ -4319,12 +4319,12 @@
           var d = Vr(n, this.clonePosition());
           if (c && tn(null == c ? void 0 : c.style, "::", 0)) {
             var u = sn(c.style.slice(2));
-            if ("number" === a) return (f = this.parseNumberSkeletonFromString(u, c.styleLocation)).err ? f : {
+            if ("number" === a) return (y = this.parseNumberSkeletonFromString(u, c.styleLocation)).err ? y : {
               val: {
                 type: Di.number,
                 value: i,
                 location: d,
-                style: f.val
+                style: y.val
               },
               err: null
             };
@@ -4376,12 +4376,12 @@
           if (this.bumpSpace(), !this.bumpIf(",")) return this.error(Ii.EXPECT_SELECT_ARGUMENT_OPTIONS, Vr(m, r({}, m)));
           this.bumpSpace();
           var b = this.parseIdentifierIfPossible(),
-            y = 0;
+            f = 0;
           if ("select" !== a && "offset" === b.value) {
             if (!this.bumpIf(":")) return this.error(Ii.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Vr(this.clonePosition(), this.clonePosition()));
-            var f;
-            if (this.bumpSpace(), (f = this.tryParseDecimalInteger(Ii.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Ii.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE)).err) return f;
-            this.bumpSpace(), b = this.parseIdentifierIfPossible(), y = f.val;
+            var y;
+            if (this.bumpSpace(), (y = this.tryParseDecimalInteger(Ii.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Ii.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE)).err) return y;
+            this.bumpSpace(), b = this.parseIdentifierIfPossible(), f = y.val;
           }
           var _,
             v = this.tryParsePluralOrSelectOptions(t, a, e, b);
@@ -4401,7 +4401,7 @@
               type: Di.plural,
               value: i,
               options: rn(v.val),
-              offset: y,
+              offset: f,
               pluralType: "plural" === a ? "cardinal" : "ordinal",
               location: w
             },
@@ -4584,7 +4584,7 @@
   }
   function gn(t) {
     t.forEach(function (t) {
-      if (delete t.location, vr(t) || wr(t)) for (var e in t.options) delete t.options[e].location, gn(t.options[e].value);else yr(t) && Er(t.style) || (fr(t) || _r(t)) && Sr(t.style) ? delete t.style.location : $r(t) && gn(t.children);
+      if (delete t.location, vr(t) || wr(t)) for (var e in t.options) delete t.options[e].location, gn(t.options[e].value);else fr(t) && Er(t.style) || (yr(t) || _r(t)) && Sr(t.style) ? delete t.style.location : $r(t) && gn(t.children);
     });
   }
   function mn(t, e) {
@@ -4607,13 +4607,13 @@
       serializer: r
     });
   }
-  function yn(t, e, i, r) {
+  function fn(t, e, i, r) {
     var n,
       s = null == (n = r) || "number" == typeof n || "boolean" == typeof n ? r : i(r),
       o = e.get(s);
     return void 0 === o && (o = t.call(this, r), e.set(s, o)), o;
   }
-  function fn(t, e, i) {
+  function yn(t, e, i) {
     var r = Array.prototype.slice.call(arguments, 3),
       n = i(r),
       s = e.get(n);
@@ -4623,7 +4623,7 @@
     return i.bind(e, t, r, n);
   }
   function vn(t, e) {
-    return _n(t, this, 1 === t.length ? yn : fn, e.cache.create(), e.serializer);
+    return _n(t, this, 1 === t.length ? fn : yn, e.cache.create(), e.serializer);
   }
   var wn = function () {
     return JSON.stringify(arguments);
@@ -4644,10 +4644,10 @@
     },
     Sn = {
       variadic: function (t, e) {
-        return _n(t, this, fn, e.cache.create(), e.serializer);
+        return _n(t, this, yn, e.cache.create(), e.serializer);
       },
       monadic: function (t, e) {
-        return _n(t, this, yn, e.cache.create(), e.serializer);
+        return _n(t, this, fn, e.cache.create(), e.serializer);
       }
     };
   !function (t) {
@@ -4704,7 +4704,7 @@
         if (br(h)) u && "string" != typeof u && "number" != typeof u || (u = "string" == typeof u || "number" == typeof u ? String(u) : ""), a.push({
           type: "string" == typeof u ? Cn.literal : Cn.object,
           value: u
-        });else if (fr(h)) {
+        });else if (yr(h)) {
           var p = "string" == typeof h.style ? r.date[h.style] : Sr(h.style) ? h.style.parsedOptions : void 0;
           a.push({
             type: Cn.literal,
@@ -4716,7 +4716,7 @@
             type: Cn.literal,
             value: i.getDateTimeFormat(e, p).format(u)
           });
-        } else if (yr(h)) {
+        } else if (fr(h)) {
           (p = "string" == typeof h.style ? r.number[h.style] : Er(h.style) ? h.style.parsedOptions : void 0) && p.scale && (u *= p.scale || 1), a.push({
             type: Cn.literal,
             value: i.getNumberFormat(e, p).format(u)
@@ -4727,10 +4727,10 @@
               m = h.value,
               b = n[m];
             if (!Mn(b)) throw new Tn(m, "function", o);
-            var y = b(Hn(g, e, i, r, n, s).map(function (t) {
+            var f = b(Hn(g, e, i, r, n, s).map(function (t) {
               return t.value;
             }));
-            Array.isArray(y) || (y = [y]), a.push.apply(a, y.map(function (t) {
+            Array.isArray(f) || (f = [f]), a.push.apply(a, f.map(function (t) {
               return {
                 type: "string" == typeof t ? Cn.literal : Cn.object,
                 value: t
@@ -4738,19 +4738,19 @@
             }));
           }
           if (vr(h)) {
-            if (!(f = h.options[u] || h.options.other)) throw new Pn(h.value, u, Object.keys(h.options), o);
-            a.push.apply(a, Hn(f.value, e, i, r, n));
+            if (!(y = h.options[u] || h.options.other)) throw new Pn(h.value, u, Object.keys(h.options), o);
+            a.push.apply(a, Hn(y.value, e, i, r, n));
           } else if (wr(h)) {
-            var f;
-            if (!(f = h.options["=".concat(u)])) {
+            var y;
+            if (!(y = h.options["=".concat(u)])) {
               if (!Intl.PluralRules) throw new An('Intl.PluralRules is not available in this environment.\nTry polyfilling it using "@formatjs/intl-pluralrules"\n', $n.MISSING_INTL_API, o);
               var _ = i.getPluralRules(e, {
                 type: h.pluralType
               }).select(u - (h.offset || 0));
-              f = h.options[_] || h.options.other;
+              y = h.options[_] || h.options.other;
             }
-            if (!f) throw new Pn(h.value, u, Object.keys(h.options), o);
-            a.push.apply(a, Hn(f.value, e, i, r, n, u - (h.offset || 0)));
+            if (!y) throw new Pn(h.value, u, Object.keys(h.options), o);
+            a.push.apply(a, Hn(y.value, e, i, r, n, u - (h.offset || 0)));
           } else ;
         }
       }
@@ -5080,40 +5080,92 @@
   <rect x="${e}" y="${i}" width="${r}" height="3" rx="1.5"
         fill="${t ? "var(--ac-printer-light, #ffd88a)" : "currentColor"}"
         opacity="${t ? .95 : .3}"></rect>`,
-    Zn = (t, e, i, r, n, s, o) => {
+    Zn = t => {
+      if (!t || !/^#[0-9a-f]{6}$/i.test(t)) return "rgba(255,255,255,0.35)";
+      const e = parseInt(t.slice(1), 16);
+      return (.299 * (e >> 16 & 255) + .587 * (e >> 8 & 255) + .114 * (255 & e)) / 255 < .45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
+    },
+    Kn = (t, e, i, r, n, s, o, a) => {
       if (!t || e <= .005) return J;
-      const a = Math.min(1, e) * s,
-        l = .22 * r,
-        c = Math.min(6, .25 * a),
-        h = i + l,
-        d = r - 2 * l,
-        u = [];
-      for (let t = n - 4; t > n - a + 1; t -= 4) {
-        const e = c * ((n - t) / Math.max(1, a));
-        u.push(q`<line x1="${(h + e).toFixed(1)}" y1="${t.toFixed(1)}"
-                x2="${(h + d - e).toFixed(1)}" y2="${t.toFixed(1)}"
+      if (a) {
+        const t = Math.min(1, e),
+          l = s,
+          c = Math.min(r, l),
+          h = i + (r - c) / 2,
+          d = n - l,
+          u = l * t,
+          p = ((t, ...e) => {
+            const i = `${t}|${e.map(t => t.toFixed(2)).join(",")}`;
+            let r = 0;
+            for (let t = 0; t < i.length; t++) r = 31 * r + i.charCodeAt(t) | 0;
+            return `acm${(r >>> 0).toString(36)}`;
+          })(a, h, d, c, l, u);
+        return q`
+      <g class="ac-apr-print">
+        <defs>
+          <!-- mask-type:alpha, not a filter and not a luminance mask. The
+               render is a transparent PNG of a near-black object, so its
+               ALPHA is the silhouette and its luminance is nothing: a default
+               luminance mask renders it almost invisible. Masking a plain
+               rect of the filament colour gives the part's real outline in
+               the colour it is actually being printed in. -->
+          <mask id="${p}m" style="mask-type:alpha">
+            <image href="${a}" x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                   width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                   preserveAspectRatio="xMidYMax meet"></image>
+          </mask>
+          <clipPath id="${p}c">
+            <rect x="${h.toFixed(1)}" y="${(n - u).toFixed(1)}"
+                  width="${c.toFixed(1)}" height="${u.toFixed(1)}"></rect>
+          </clipPath>
+        </defs>
+        <g clip-path="url(#${p}c)">
+          <!-- A halo of the same silhouette, very slightly larger, in the
+               contrasting edge colour. The live printer is loaded with PLA+
+               at #1A1A1A and the chamber is darker still, so without this the
+               part is a black shape on a black background. Scaling about the
+               shape's own centre keeps it registered. -->
+          <g transform="translate(${(h + c / 2).toFixed(1)} ${(d + l / 2).toFixed(1)}) scale(1.035) translate(${(-h - c / 2).toFixed(1)} ${(-d - l / 2).toFixed(1)})">
+            <rect x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                  width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                  fill="${Zn(o)}" mask="url(#${p}m)"></rect>
+          </g>
+          <rect x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                fill="${o}" mask="url(#${p}m)"></rect>
+        </g>
+        <rect x="${h.toFixed(1)}" y="${(n - u).toFixed(1)}"
+              width="${c.toFixed(1)}" height="1.4"
+              fill="var(--ac-printer-card-bg, #fff)" opacity="0.55"></rect>
+      </g>`;
+      }
+      const l = Math.min(1, e) * s,
+        c = .22 * r,
+        h = Math.min(6, .25 * l),
+        d = i + c,
+        u = r - 2 * c,
+        p = [];
+      for (let t = n - 4; t > n - l + 1; t -= 4) {
+        const e = h * ((n - t) / Math.max(1, l));
+        p.push(q`<line x1="${(d + e).toFixed(1)}" y1="${t.toFixed(1)}"
+                x2="${(d + u - e).toFixed(1)}" y2="${t.toFixed(1)}"
                 stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
                 stroke-width="0.8"></line>`);
       }
       return q`
     <g class="ac-apr-print">
-      <path d="M${h} ${n} L${h + c} ${n - a} L${h + d - c} ${n - a} L${h + d} ${n} Z"
+      <path d="M${d} ${n} L${d + h} ${n - l} L${d + u - h} ${n - l} L${d + u} ${n} Z"
             fill="${o}" opacity="0.9"></path>
-      ${u}
-      <path d="M${h} ${n} L${h + c} ${n - a} L${h + c + .32 * d} ${n - a} L${h + .32 * d} ${n} Z"
+      ${p}
+      <path d="M${d} ${n} L${d + h} ${n - l} L${d + h + .32 * u} ${n - l} L${d + .32 * u} ${n} Z"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
-      <rect x="${h + c}" y="${(n - a).toFixed(1)}" width="${(d - 2 * c).toFixed(1)}" height="1.6"
+      <rect x="${d + h}" y="${(n - l).toFixed(1)}" width="${(u - 2 * h).toFixed(1)}" height="1.6"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>`;
     },
-    Kn = (t, e, i, r, n) => t <= .02 ? J : q`<rect x="${e}" y="${i}" width="${r}" height="${n}" rx="3"
+    Yn = (t, e, i, r, n) => t <= .02 ? J : q`<rect x="${e}" y="${i}" width="${r}" height="${n}" rx="3"
             fill="var(--ac-printer-heat, #ff7a3d)"
             opacity="${(.12 + .45 * t).toFixed(2)}"></rect>`,
-    Yn = t => {
-      if (!t || !/^#[0-9a-f]{6}$/i.test(t)) return "rgba(255,255,255,0.35)";
-      const e = parseInt(t.slice(1), 16);
-      return (.299 * (e >> 16 & 255) + .587 * (e >> 8 & 255) + .114 * (255 & e)) / 255 < .45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
-    },
     Wn = (t, e, i, r) => q`
   <g opacity="${t ? .9 : .3}">
     <circle cx="${e}" cy="${i}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.3"></circle>
@@ -5163,7 +5215,7 @@
           n = 11 + 21 * (void 0 === i ? 1 : Math.max(0, Math.min(1, i)));
         return q`
     <rect x="${t - 9}" y="${(42 + (32 - n) / 2).toFixed(1)}" width="18" height="${n.toFixed(1)}" rx="2" fill="${r}"
-          stroke="${Yn(e)}" stroke-width="0.75"></rect>
+          stroke="${Zn(e)}" stroke-width="0.75"></rect>
     <rect x="${t - 9}" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>`;
       })(e, t[i], s[i])}
       <rect x="${e - 13.5}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
@@ -5190,10 +5242,11 @@
           lightOn: r = !1,
           progress: n = 0,
           chamberBusy: s = !1,
-          nozzleHeat: o = 0,
-          bedHeat: a = 0,
-          fanOn: l = !1,
-          status: c = "idle"
+          previewUrl: o,
+          nozzleHeat: a = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
         }) => q`
   <g fill="currentColor">
     <rect x="38" y="20" width="163" height="20" rx="5"></rect>
@@ -5204,10 +5257,10 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
-    ${Xn(c, 172, 13, 7.5)}
+    ${Xn(h, 172, 13, 7.5)}
   </g>
   <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
   ${Gn(r, 56, 42, 127)}
@@ -5216,7 +5269,7 @@
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
     <rect x="46" y="155" width="5" height="15" rx="2"></rect>
   </g>
-  ${Wn(l, 195.5, 114, 7.5)}
+  ${Wn(c, 195.5, 114, 7.5)}
   <path d="M58 46 L82 46 L60 104 L58 104 Z" fill="currentColor" opacity="0.05"></path>
   <path d="M90 46 L100 46 L74 118 L68 118 Z" fill="currentColor" opacity="0.04"></path>
   <g fill="currentColor" opacity="0.22">
@@ -5224,20 +5277,20 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  ${Kn(a, 54, 176, 132, 12)}
+  ${Yn(l, 54, 176, 132, 12)}
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
-  ${Zn(!s, n, 56, 128, 178, 66, i)}
-  <g id="gantry" transform="${t}"
+  ${Kn(!s, n, 56, 128, 178, 66, i, o)}
+  <g transform="${t}"
      style="${s ? "display:none" : ""}">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="${e}">
-      ${Kn(o, 108, 60, 24, 18)}
+    <g transform="${e}">
+      ${Yn(a, 108, 60, 24, 18)}
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -5263,10 +5316,11 @@
           lightOn: r = !1,
           progress: n = 0,
           chamberBusy: s = !1,
-          nozzleHeat: o = 0,
-          bedHeat: a = 0,
-          fanOn: l = !1,
-          status: c = "idle"
+          previewUrl: o,
+          nozzleHeat: a = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
         }) => q`
       <g fill="currentColor">
         <rect x="20" y="176" width="200" height="38" rx="7"></rect>
@@ -5292,24 +5346,24 @@
       </g>
       <rect x="146" y="29" width="50" height="15" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="150" y="32" width="42" height="9" rx="2" fill="#101216"></rect>
-      ${Xn(c, 171, 36.5, 5)}
+      ${Xn(h, 171, 36.5, 5)}
       ${Gn(r, 52, 47, 136)}
       <rect x="54" y="177" width="132" height="3" rx="1.5" fill="var(--ac-printer-rail, currentColor)" opacity="0.5"></rect>
-      ${Kn(a, 60, 164, 120, 12)}
+      ${Yn(l, 60, 164, 120, 12)}
       <rect x="62" y="166" width="116" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="70" y="174" width="100" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
-      ${Zn(!s, n, 62, 116, 166, 58, i)}
-      ${Wn(l, 30, 196, 7)}
-      <g id="gantry" transform="${t}"
+      ${Kn(!s, n, 62, 116, 166, 58, i, o)}
+      ${Wn(c, 30, 196, 7)}
+      <g transform="${t}"
      style="${s ? "display:none" : ""}">
         <rect x="42" y="54" width="156" height="1.6" fill="currentColor" opacity="0.2"></rect>
-        <rect id="xaxis" x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="42" y="50" width="12" height="20" rx="2"></rect>
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="${e}">
-          ${Kn(o, 108, 66, 24, 18)}
+        <g transform="${e}">
+          ${Yn(a, 108, 66, 24, 18)}
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
             <rect x="107" y="51" width="20" height="2" rx="1"></rect>
@@ -5335,10 +5389,11 @@
           lightOn: r = !1,
           progress: n = 0,
           chamberBusy: s = !1,
-          nozzleHeat: o = 0,
-          bedHeat: a = 0,
-          fanOn: l = !1,
-          status: c = "idle"
+          previewUrl: o,
+          nozzleHeat: a = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
         }) => q`
       <g fill="currentColor">
         <rect x="24" y="178" width="192" height="34" rx="6"></rect>
@@ -5351,28 +5406,28 @@
         <rect x="35" y="52" width="6" height="120" rx="3"></rect>
         <rect x="199" y="52" width="6" height="120" rx="3"></rect>
       </g>
-      ${Kn(a, 58, 168, 124, 12)}
+      ${Yn(l, 58, 168, 124, 12)}
       <rect x="60" y="170" width="120" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="68" y="178" width="104" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
-      ${Zn(!s, n, 60, 120, 170, 60, i)}
-      ${Wn(l, 34, 200, 6.5)}
+      ${Kn(!s, n, 60, 120, 170, 60, i, o)}
+      ${Wn(c, 34, 200, 6.5)}
       <rect x="154" y="33" width="50" height="16" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="36" width="42" height="10" rx="2" fill="#101216"></rect>
-      ${Xn(c, 179, 41, 5)}
+      ${Xn(h, 179, 41, 5)}
       ${Gn(r, 46, 52, 148)}
       <g fill="currentColor" opacity="0.2">
         <rect x="36" y="188" width="40" height="2.5" rx="1"></rect>
         <rect x="36" y="194" width="40" height="2.5" rx="1"></rect>
       </g>
-      <g id="gantry" transform="${t}"
+      <g transform="${t}"
      style="${s ? "display:none" : ""}">
-        <rect id="xaxis" x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="32" y="52" width="12" height="20" rx="2"></rect>
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="${e}">
-          ${Kn(o, 109, 67, 22, 17)}
+        <g transform="${e}">
+          ${Yn(a, 109, 67, 22, 17)}
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
             <rect x="109" y="53" width="18" height="2" rx="1"></rect>
@@ -5417,9 +5472,9 @@
       <path d="M80 126 h84 l-6 24 h-72 Z" fill="currentColor" opacity="0.28"></path>
       <path d="M85 137 h74" stroke="${e}" stroke-opacity="0.75" stroke-width="3"></path>
       <rect x="78" y="118" width="96" height="8" rx="2" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
-      <g id="gantry" transform="${t}">
-        <rect id="xaxis" x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
-        <g id="nozzle">
+      <g transform="${t}">
+        <rect x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
+        <g>
           <rect x="84" y="48" width="66" height="6" rx="2" fill="currentColor"></rect>
           <rect x="96" y="54" width="42" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.8"></rect>
         </g>
@@ -5492,12 +5547,12 @@
     }(t, e, i, r, n) : Object.assign(Object.assign({}, t), {
       body: e => q`
           ${((t = "var(--ac-printer-accent, currentColor)", e = 70, i = 219.5) => q`
-  <g id="sidespool">
+  <g>
     <path d="M${i - 7.5} ${e - 12} C ${i - 7.5} ${e - 26} ${i - 13.5} ${e - 34} ${i - 31.5} ${e - 32}" stroke="${t}"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="${i - 23.5}" y="${e - 3}" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
     <rect x="${i - 8.5}" y="${e - 18}" width="17" height="36" rx="2" fill="${t}"
-          stroke="${Yn(t)}" stroke-width="0.75"></rect>
+          stroke="${Zn(t)}" stroke-width="0.75"></rect>
     <!-- Wound filament: a couple of banded highlights so the reel reads as
          coiled material rather than a solid block of colour. -->
     <rect x="${i - 8.5}" y="${e - 13}" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
@@ -5616,14 +5671,7 @@
                 .hass=${this.hass}
                 .cameraEntityId=${this.cameraEntityId}
               ></anycubic-printercard-camera_stream>
-            ` : this.imagePreviewBgUrl ? X`
-                <div
-                  class="ac-apr-imgprev"
-                  style=${Li({
-        "background-image": this.imagePreviewBgUrl
-      })}
-                ></div>
-              ` : J}
+            ` : J}
         ${((t, e = {}) => {
         var i, r;
         return X` <svg
@@ -5635,14 +5683,14 @@
   >
     ${t.body(Object.assign(Object.assign({}, e), {
           gantry: ts(t, 100 * (null !== (i = e.progress) && void 0 !== i ? i : 0), !!e.cameraLive),
-          chamberBusy: !!e.cameraLive || !!e.previewLive,
+          chamberBusy: !!e.cameraLive,
           nozzle: es(null !== (r = e.nozzleX) && void 0 !== r ? r : 0)
         }))}
   </svg>`;
       })(e, {
         progress: this._progressNum,
         cameraLive: s,
-        previewLive: !s && Boolean(this.imagePreviewBgUrl),
+        previewUrl: s ? void 0 : this.imagePreviewUrl,
         tip: n,
         lightOn: this._lightOn,
         nozzleHeat: this._heat("nozzle_temperature", "target_nozzle_temperature"),
@@ -6335,16 +6383,16 @@
        * SPDX-License-Identifier: BSD-3-Clause
        */
   const {
-      I: ys
+      I: fs
     } = pt,
-    fs = () => document.createComment(""),
+    ys = () => document.createComment(""),
     _s = (t, e, i) => {
       const r = t._$AA.parentNode,
         n = void 0 === e ? t._$AB : e._$AA;
       if (void 0 === i) {
-        const e = r.insertBefore(fs(), n),
-          s = r.insertBefore(fs(), n);
-        i = new ys(e, s, t, t.options);
+        const e = r.insertBefore(ys(), n),
+          s = r.insertBefore(ys(), n);
+        i = new fs(e, s, t, t.options);
       } else {
         const e = i._$AB.nextSibling,
           s = i._$AM,
@@ -6590,7 +6638,7 @@
     render() {
       return X`<anycubic-printercard-stat-line
       .name=${this.name}
-      .value=${fi(this.temperatureEntity, this.temperatureUnit, this.round)}
+      .value=${yi(this.temperatureEntity, this.temperatureUnit, this.round)}
     ></anycubic-printercard-stat-line>`;
     }
     static get styles() {
@@ -7714,7 +7762,7 @@
     go = t => mo(1, t / 255),
     mo = (t, e) => Math.max(0, Math.min(t, e)),
     bo = t => void 0 === t ? 1 : ("string" == typeof t && t.indexOf("%") > 0 && (t = Number(t.split("%")[0]) / 100), t = Number(Number(t).toFixed(3)), isNaN(t) ? 1 : mo(1, t)),
-    yo = {
+    fo = {
       aliceblue: "#F0F8FF",
       antiquewhite: "#FAEBD7",
       aqua: "#00FFFF",
@@ -7864,30 +7912,30 @@
       yellow: "#FFFF00",
       yellowgreen: "#9ACD32"
     };
-  class fo {
+  class yo {
     constructor(t, e, i, r) {
-      return fo.isBaseConstructor(t) ? (this.r = uo(t.r), this.g = uo(t.g), this.b = uo(t.b), void 0 !== t.a && (this.a = bo(t.a)), this) : fo.parse(t, e, i, r);
+      return yo.isBaseConstructor(t) ? (this.r = uo(t.r), this.g = uo(t.g), this.b = uo(t.b), void 0 !== t.a && (this.a = bo(t.a)), this) : yo.parse(t, e, i, r);
     }
     static parse(t, e, i, r) {
-      if (fo.isBaseConstructor(t)) return new fo(t);
+      if (yo.isBaseConstructor(t)) return new yo(t);
       if (void 0 !== e && void 0 !== i) {
         let n = uo(t);
-        return e = uo(e), i = uo(i), void 0 !== r && (r = bo(r)), new fo({
+        return e = uo(e), i = uo(i), void 0 !== r && (r = bo(r)), new yo({
           r: n,
           g: e,
           b: i,
           a: r
         });
       }
-      if (Array.isArray(t)) return fo.fromArray(t);
+      if (Array.isArray(t)) return yo.fromArray(t);
       if ("string" == typeof t) {
         let i;
-        if (void 0 !== e && Number(e) <= 1 && Number(e) >= 0 && (i = Number(e)), t.startsWith("#")) return fo.fromHex(t, i);
-        if (yo[t.toLowerCase()]) return fo.fromNamed(t, i);
-        if (t.startsWith("rgb")) return fo.fromRgbString(t);
+        if (void 0 !== e && Number(e) <= 1 && Number(e) >= 0 && (i = Number(e)), t.startsWith("#")) return yo.fromHex(t, i);
+        if (fo[t.toLowerCase()]) return yo.fromNamed(t, i);
+        if (t.startsWith("rgb")) return yo.fromRgbString(t);
         if ("transparent" === t) {
           let t, e, i, r;
-          return t = e = i = r = 0, new fo({
+          return t = e = i = r = 0, new yo({
             r: t,
             g: e,
             b: i,
@@ -7899,21 +7947,21 @@
       if ("object" == typeof t) {
         if (void 0 !== t.a && (this.a = bo(t.a)), void 0 !== t.h) {
           let e = {};
-          if (void 0 !== t.v) e = fo.fromHsv(t);else {
-            if (void 0 === t.l) return fo.fromArray([0, 0, 0]);
-            e = fo.fromHsl(t);
+          if (void 0 !== t.v) e = yo.fromHsv(t);else {
+            if (void 0 === t.l) return yo.fromArray([0, 0, 0]);
+            e = yo.fromHsl(t);
           }
-          return e.a = void 0 !== t.a ? bo(t.a) : void 0, new fo(e);
+          return e.a = void 0 !== t.a ? bo(t.a) : void 0, new yo(e);
         }
-        return void 0 !== t.c ? fo.fromCMYK(t) : this;
+        return void 0 !== t.c ? yo.fromCMYK(t) : this;
       }
-      return fo.fromArray([0, 0, 0]);
+      return yo.fromArray([0, 0, 0]);
     }
     static isBaseConstructor(t) {
       return "object" == typeof t && void 0 !== t.r && void 0 !== t.g && void 0 !== t.b;
     }
     static fromNamed(t, e) {
-      return fo.fromHex(yo[t.toLowerCase()], e);
+      return yo.fromHex(fo[t.toLowerCase()], e);
     }
     static fromArray(t) {
       t = t.filter(t => "" !== t && isFinite(t));
@@ -7922,17 +7970,17 @@
         g: uo(t[1]),
         b: uo(t[2])
       };
-      return void 0 !== t[3] && (e.a = bo(t[3])), new fo(e);
+      return void 0 !== t[3] && (e.a = bo(t[3])), new yo(e);
     }
     static fromHex(t, e) {
       3 !== (t = t.replace("#", "")).length && 4 !== t.length || (t = t.split("").map(t => t + t).join(""));
       let i = t.match(/[A-Za-z0-9]{2}/g).map(t => parseInt(t, 16));
-      return 4 === i.length ? i[3] /= 255 : void 0 !== e && (i[3] = e), fo.fromArray(i);
+      return 4 === i.length ? i[3] /= 255 : void 0 !== e && (i[3] = e), yo.fromArray(i);
     }
     static fromRgbString(t) {
-      if (t.includes(",")) return fo.fromArray(t.split("(")[1].split(")")[0].split(","));
+      if (t.includes(",")) return yo.fromArray(t.split("(")[1].split(")")[0].split(","));
       const e = t.replace("/", " ").split("(")[1].replace(")", "").split(" ").filter(t => "" !== t && isFinite(Number(t)));
-      return fo.fromArray(e);
+      return yo.fromArray(e);
     }
     static fromHsv({
       h: t,
@@ -7946,7 +7994,7 @@
         o = i * (1 - n * e),
         a = i * (1 - (1 - n) * e),
         l = [[i, a, s], [o, i, s], [s, i, a], [s, o, i], [a, s, i], [i, s, o]][r].map(t => Math.round(256 * t));
-      return new fo({
+      return new yo({
         r: uo(l[0]),
         g: uo(l[1]),
         b: uo(l[2])
@@ -7964,7 +8012,7 @@
       let o = 0,
         a = 0,
         l = 0;
-      return 0 <= t && t < 60 ? (o = r, a = n, l = 0) : 60 <= t && t < 120 ? (o = n, a = r, l = 0) : 120 <= t && t < 180 ? (o = 0, a = r, l = n) : 180 <= t && t < 240 ? (o = 0, a = n, l = r) : 240 <= t && t < 300 ? (o = n, a = 0, l = r) : 300 <= t && t < 360 && (o = r, a = 0, l = n), new fo({
+      return 0 <= t && t < 60 ? (o = r, a = n, l = 0) : 60 <= t && t < 120 ? (o = n, a = r, l = 0) : 120 <= t && t < 180 ? (o = 0, a = r, l = n) : 180 <= t && t < 240 ? (o = 0, a = n, l = r) : 240 <= t && t < 300 ? (o = n, a = 0, l = r) : 300 <= t && t < 360 && (o = r, a = 0, l = n), new yo({
         r: po(s + o),
         g: po(s + a),
         b: po(s + l)
@@ -7978,7 +8026,7 @@
       a: n
     }) {
       const s = t => po(1 - Math.min(1, t / 100 * (1 - r) + r));
-      return new fo({
+      return new yo({
         r: s(t),
         b: s(e),
         g: s(i),
@@ -8137,7 +8185,7 @@
     mix(t, e = .5) {
       const i = this.rgba;
       i[3] = po(i[3]);
-      const r = new fo(t).rgba;
+      const r = new yo(t).rgba;
       r[3] = po(r[3]), e = bo(e);
       const n = i.map((t, i) => {
         const n = r[i],
@@ -8146,13 +8194,13 @@
           a = Math.round(o * e);
         return s ? t - a : a + t;
       });
-      return n[3] = go(n[3]), fo.fromArray(n);
+      return n[3] = go(n[3]), yo.fromArray(n);
     }
     adjustSatLum(t, e, i) {
       const r = this.hsl;
       let n = r[t],
         s = (i ? n : 100 - n) * e;
-      return r[t] = mo(100, i ? n - s : n + s), r.a = this.a, new fo(r);
+      return r[t] = mo(100, i ? n - s : n + s), r.a = this.a, new yo(r);
     }
     lighten(t, e = !1) {
       return this.adjustSatLum("l", t, e);
@@ -8174,7 +8222,7 @@
     }
     hue(t) {
       const e = this.hsl;
-      return e.h = Math.round(e.h + t) % 360, e.a = this.a, new fo(e);
+      return e.h = Math.round(e.h + t) % 360, e.a = this.a, new yo(e);
     }
     fadeIn(t, e) {
       let i = this.alpha;
@@ -8184,7 +8232,7 @@
         b: s
       } = this;
       let o = (1 - i) * t;
-      return i = e ? i - o : i + o, fo({
+      return i = e ? i - o : i + o, yo({
         r,
         g: n,
         b: s,
@@ -8196,7 +8244,7 @@
     }
     negate() {
       let t = this.rgb.map(t => 255 - t);
-      return void 0 !== this.a && t.push(this.alpha), fo.fromArray(t);
+      return void 0 !== this.a && t.push(this.alpha), yo.fromArray(t);
     }
   }
   const _o = (t, e, i = "color-update") => {
@@ -8220,7 +8268,7 @@
       const a = [];
       let l, c;
       const h = (t, e) => `${t.css} ${(100 * e).toFixed(1)}%`;
-      for (; i < 360;) l = fo.parse(o ? {
+      for (; i < 360;) l = yo.parse(o ? {
         h: i,
         s: r,
         v: s
@@ -8229,7 +8277,7 @@
         s: r,
         l: n
       }), c = i / 360, a.push(h(l, c)), i += t;
-      return i = 359, l = fo.parse(o ? {
+      return i = 359, l = yo.parse(o ? {
         h: i,
         s: r,
         v: s
@@ -8335,7 +8383,7 @@
       return t => {
         this.color.hsx && (t = this.color.hsx.h), void 0 === t && (t = this.color.hsl.h);
         return {
-          backgroundColor: fo.parse({
+          backgroundColor: yo.parse({
             h: t,
             s: 100,
             l: 50
@@ -8798,7 +8846,7 @@
     }
     valueChange = (t, e = null) => {
       e = e ?? Number(this.renderRoot.querySelector("input").value), "a" === this.channel && (e /= 100), this.c[this.channel] = e;
-      const i = fo.parse(this.c);
+      const i = yo.parse(this.c);
       "rgb" !== this.group && (i.hsx = this.c), this.c = "rgb" === this.group ? this.color.rgbObj : this.isHsl ? this.color.hsl : this.color.hsv, _o(this.renderRoot, i);
     };
     setActive(t) {
@@ -8826,12 +8874,12 @@
       }
       if (this.max = o, n = {
         ...t
-      }, s = n, n[this.channel] = 0, n = fo.parse(n), s[this.channel] = o, s = fo.parse(s), "l" === this.channel) {
+      }, s = n, n[this.channel] = 0, n = yo.parse(n), s[this.channel] = o, s = yo.parse(s), "l" === this.channel) {
         const e = {
           ...t
         };
         e.l = 50, this.previewGradient = {
-          "--preview": `linear-gradient(90deg, ${n.hex}, ${fo.parse(e).hex}, ${s.hex})`,
+          "--preview": `linear-gradient(90deg, ${n.hex}, ${yo.parse(e).hex}, ${s.hex})`,
           "--pct": t[this.channel] / o * 100 + "%"
         };
       } else this.previewGradient = {
@@ -8975,7 +9023,7 @@
           s: c,
           [o ? "l" : "v"]: l
         },
-        d = o ? fo.fromHsl(h) : fo.fromHsv(h);
+        d = o ? yo.fromHsl(h) : yo.fromHsv(h);
       this.setCircleCss(i, r), d.a = a.alpha, d.hsx = h, d.fromHSLCanvas = !0, this.setColor(d);
     }
     debouncePaintDetail(t) {
@@ -9003,7 +9051,7 @@
           w: c
         },
         d = s / 100,
-        u = n ? (t, e, i) => `hsl(${t}, ${e}%, ${100 - i}%)` : (t, e, i) => fo.fromHsv({
+        u = n ? (t, e, i) => `hsl(${t}, ${e}%, ${100 - i}%)` : (t, e, i) => yo.fromHsv({
           h: t,
           s: e,
           v: 100 - i
@@ -9389,16 +9437,16 @@
     static styles = Co;
     _color;
     constructor() {
-      super(), this._color = fo.parse(yo.slateblue), this.isHsl = !0, this.buttonDisabled = !1;
+      super(), this._color = yo.parse(fo.slateblue), this.isHsl = !0, this.buttonDisabled = !1;
     }
     firstUpdated(t) {
-      this.debounceMode = !1, t.has("value") && (this.color = fo.parse(this.value));
+      this.debounceMode = !1, t.has("value") && (this.color = yo.parse(this.value));
     }
     get color() {
       return this._color;
     }
     set color(t) {
-      (t = t.hsx ? t : t.rgba ? fo.parse(...t.rgba) : fo.parse(t)) && (this.hex = t.hex, this._color = t, _o(this.renderRoot, t, "colorchanged"));
+      (t = t.hsx ? t : t.rgba ? yo.parse(...t.rgba) : yo.parse(t)) && (this.hex = t.hex, this._color = t, _o(this.renderRoot, t, "colorchanged"));
     }
     updateColor({
       detail: {
@@ -9409,7 +9457,7 @@
     }
     setColor(t) {
       const e = this.renderRoot.querySelector("input#hex").value,
-        i = fo.parse(e);
+        i = yo.parse(e);
       i ? this.color = i : console.log(`ignored unparsable input: ${e}`);
     }
     setHue({
@@ -11889,7 +11937,7 @@
   };
   n([vt()], Zo.prototype, "hass", void 0), n([vt()], Zo.prototype, "language", void 0), n([vt({
     attribute: "card-config"
-  })], Zo.prototype, "cardConfig", void 0), n([vt()], Zo.prototype, "printers", void 0), n([wt()], Zo.prototype, "configPage", void 0), n([wt()], Zo.prototype, "availableStats", void 0), n([wt()], Zo.prototype, "formSchemaMain", void 0), n([wt()], Zo.prototype, "formSchemaColours", void 0), n([wt()], Zo.prototype, "printerEntities", void 0), n([wt()], Zo.prototype, "printerEntityIdPart", void 0), n([wt()], Zo.prototype, "hasColorbox", void 0), n([wt()], Zo.prototype, "isLCD", void 0), n([wt()], Zo.prototype, "_tabMain", void 0), n([wt()], Zo.prototype, "_tabStats", void 0), n([wt()], Zo.prototype, "_tabColours", void 0), n([wt()], Zo.prototype, "_labelPrinter_id", void 0), n([wt()], Zo.prototype, "_labelVertical", void 0), n([wt()], Zo.prototype, "_labelRound", void 0), n([wt()], Zo.prototype, "_labelUse_24hr", void 0), n([wt()], Zo.prototype, "_labelShowSettingsButton", void 0), n([wt()], Zo.prototype, "_labelAlwaysShow", void 0), n([wt()], Zo.prototype, "_labelTemperatureUnit", void 0), n([wt()], Zo.prototype, "_labelLightEntityId", void 0), n([wt()], Zo.prototype, "_labelPowerEntityId", void 0), n([wt()], Zo.prototype, "_labelCameraEntityId", void 0), n([wt()], Zo.prototype, "_labelScaleFactor", void 0), n([wt()], Zo.prototype, "_labelSlotColors", void 0), n([wt()], Zo.prototype, "_labelMediaView", void 0), n([wt()], Zo.prototype, "_labelShowControls", void 0), n([wt()], Zo.prototype, "_labelShowMoveButtons", void 0), n([wt()], Zo.prototype, "_labelSections", void 0), n([wt()], Zo.prototype, "_labelPrinterArt", void 0), Zo = n([yt("anycubic-printercard-configure")], Zo), window.console.info("%c ANYCUBIC-CARD %c v0.2.2 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
+  })], Zo.prototype, "cardConfig", void 0), n([vt()], Zo.prototype, "printers", void 0), n([wt()], Zo.prototype, "configPage", void 0), n([wt()], Zo.prototype, "availableStats", void 0), n([wt()], Zo.prototype, "formSchemaMain", void 0), n([wt()], Zo.prototype, "formSchemaColours", void 0), n([wt()], Zo.prototype, "printerEntities", void 0), n([wt()], Zo.prototype, "printerEntityIdPart", void 0), n([wt()], Zo.prototype, "hasColorbox", void 0), n([wt()], Zo.prototype, "isLCD", void 0), n([wt()], Zo.prototype, "_tabMain", void 0), n([wt()], Zo.prototype, "_tabStats", void 0), n([wt()], Zo.prototype, "_tabColours", void 0), n([wt()], Zo.prototype, "_labelPrinter_id", void 0), n([wt()], Zo.prototype, "_labelVertical", void 0), n([wt()], Zo.prototype, "_labelRound", void 0), n([wt()], Zo.prototype, "_labelUse_24hr", void 0), n([wt()], Zo.prototype, "_labelShowSettingsButton", void 0), n([wt()], Zo.prototype, "_labelAlwaysShow", void 0), n([wt()], Zo.prototype, "_labelTemperatureUnit", void 0), n([wt()], Zo.prototype, "_labelLightEntityId", void 0), n([wt()], Zo.prototype, "_labelPowerEntityId", void 0), n([wt()], Zo.prototype, "_labelCameraEntityId", void 0), n([wt()], Zo.prototype, "_labelScaleFactor", void 0), n([wt()], Zo.prototype, "_labelSlotColors", void 0), n([wt()], Zo.prototype, "_labelMediaView", void 0), n([wt()], Zo.prototype, "_labelShowControls", void 0), n([wt()], Zo.prototype, "_labelShowMoveButtons", void 0), n([wt()], Zo.prototype, "_labelSections", void 0), n([wt()], Zo.prototype, "_labelPrinterArt", void 0), Zo = n([ft("anycubic-printercard-configure")], Zo), window.console.info("%c ANYCUBIC-CARD %c v0.2.2 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
   const Ko = vi();
   function Yo(t) {
     var e, i;
@@ -11918,7 +11966,7 @@
       ></anycubic-printercard-configure>
     `;
     }
-  }, n([vt()], t.AnycubicPrintercardEditor.prototype, "hass", void 0), n([vt()], t.AnycubicPrintercardEditor.prototype, "config", void 0), n([wt()], t.AnycubicPrintercardEditor.prototype, "printers", void 0), n([wt()], t.AnycubicPrintercardEditor.prototype, "language", void 0), t.AnycubicPrintercardEditor = n([yt("anycubic-card-editor")], t.AnycubicPrintercardEditor), t.AnycubicCard = class extends mt {
+  }, n([vt()], t.AnycubicPrintercardEditor.prototype, "hass", void 0), n([vt()], t.AnycubicPrintercardEditor.prototype, "config", void 0), n([wt()], t.AnycubicPrintercardEditor.prototype, "printers", void 0), n([wt()], t.AnycubicPrintercardEditor.prototype, "language", void 0), t.AnycubicPrintercardEditor = n([ft("anycubic-card-editor")], t.AnycubicPrintercardEditor), t.AnycubicCard = class extends mt {
     constructor() {
       super(...arguments), this.config = {};
     }
@@ -11977,7 +12025,7 @@
         printer_id: Object.keys(ti(t))[0]
       };
     }
-  }, n([vt()], t.AnycubicCard.prototype, "hass", void 0), n([vt()], t.AnycubicCard.prototype, "config", void 0), n([wt()], t.AnycubicCard.prototype, "printers", void 0), n([wt()], t.AnycubicCard.prototype, "language", void 0), n([wt()], t.AnycubicCard.prototype, "selectedPrinterID", void 0), n([wt()], t.AnycubicCard.prototype, "selectedPrinterDevice", void 0), n([wt()], t.AnycubicCard.prototype, "vertical", void 0), n([wt()], t.AnycubicCard.prototype, "round", void 0), n([wt()], t.AnycubicCard.prototype, "use_24hr", void 0), n([wt()], t.AnycubicCard.prototype, "showSettingsButton", void 0), n([wt()], t.AnycubicCard.prototype, "alwaysShow", void 0), n([wt()], t.AnycubicCard.prototype, "temperatureUnit", void 0), n([wt()], t.AnycubicCard.prototype, "lightEntityId", void 0), n([wt()], t.AnycubicCard.prototype, "powerEntityId", void 0), n([wt()], t.AnycubicCard.prototype, "cameraEntityId", void 0), n([wt()], t.AnycubicCard.prototype, "scaleFactor", void 0), n([wt()], t.AnycubicCard.prototype, "slotColors", void 0), n([wt()], t.AnycubicCard.prototype, "monitoredStats", void 0), n([wt()], t.AnycubicCard.prototype, "mediaView", void 0), n([wt()], t.AnycubicCard.prototype, "printerArt", void 0), n([wt()], t.AnycubicCard.prototype, "showControls", void 0), n([wt()], t.AnycubicCard.prototype, "showMoveButtons", void 0), n([wt()], t.AnycubicCard.prototype, "sections", void 0), t.AnycubicCard = n([yt("anycubic-card")], t.AnycubicCard);
+  }, n([vt()], t.AnycubicCard.prototype, "hass", void 0), n([vt()], t.AnycubicCard.prototype, "config", void 0), n([wt()], t.AnycubicCard.prototype, "printers", void 0), n([wt()], t.AnycubicCard.prototype, "language", void 0), n([wt()], t.AnycubicCard.prototype, "selectedPrinterID", void 0), n([wt()], t.AnycubicCard.prototype, "selectedPrinterDevice", void 0), n([wt()], t.AnycubicCard.prototype, "vertical", void 0), n([wt()], t.AnycubicCard.prototype, "round", void 0), n([wt()], t.AnycubicCard.prototype, "use_24hr", void 0), n([wt()], t.AnycubicCard.prototype, "showSettingsButton", void 0), n([wt()], t.AnycubicCard.prototype, "alwaysShow", void 0), n([wt()], t.AnycubicCard.prototype, "temperatureUnit", void 0), n([wt()], t.AnycubicCard.prototype, "lightEntityId", void 0), n([wt()], t.AnycubicCard.prototype, "powerEntityId", void 0), n([wt()], t.AnycubicCard.prototype, "cameraEntityId", void 0), n([wt()], t.AnycubicCard.prototype, "scaleFactor", void 0), n([wt()], t.AnycubicCard.prototype, "slotColors", void 0), n([wt()], t.AnycubicCard.prototype, "monitoredStats", void 0), n([wt()], t.AnycubicCard.prototype, "mediaView", void 0), n([wt()], t.AnycubicCard.prototype, "printerArt", void 0), n([wt()], t.AnycubicCard.prototype, "showControls", void 0), n([wt()], t.AnycubicCard.prototype, "showMoveButtons", void 0), n([wt()], t.AnycubicCard.prototype, "sections", void 0), t.AnycubicCard = n([ft("anycubic-card")], t.AnycubicCard);
   const Wo = window;
   Wo.customCards = Wo.customCards || [], Wo.customCards.push({
     type: "anycubic-card",

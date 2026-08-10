@@ -20,9 +20,72 @@ var chamberLight = (on, x, y, w) => svg`
   <rect x="${x}" y="${y}" width="${w}" height="3" rx="1.5"
         fill="${on ? "var(--ac-printer-light, #ffd88a)" : "currentColor"}"
         opacity="${on ? 0.95 : 0.3}"></rect>`;
-var printedMass = (visible, progress, plateX, plateW, plateY, maxH, tip) => {
+var edgeFor = (colour) => {
+  if (!colour || !/^#[0-9a-f]{6}$/i.test(colour)) {
+    return "rgba(255,255,255,0.35)";
+  }
+  const n = parseInt(colour.slice(1), 16);
+  const luma = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+  return luma < 0.45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
+};
+var modelKey = (url, ...geometry) => {
+  const seed = `${url}|${geometry.map((n) => n.toFixed(2)).join(",")}`;
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = h * 31 + seed.charCodeAt(i) | 0;
+  }
+  return `acm${(h >>> 0).toString(36)}`;
+};
+var printedMass = (visible, progress, plateX, plateW, plateY, maxH, tip, previewUrl) => {
   if (!visible || progress <= 5e-3) {
     return nothing;
+  }
+  if (previewUrl) {
+    const frac = Math.min(1, progress);
+    const boxH = maxH;
+    const boxW = Math.min(plateW, boxH);
+    const bx = plateX + (plateW - boxW) / 2;
+    const by = plateY - boxH;
+    const revealH = boxH * frac;
+    const id = modelKey(previewUrl, bx, by, boxW, boxH, revealH);
+    return svg`
+      <g class="ac-apr-print">
+        <defs>
+          <!-- mask-type:alpha, not a filter and not a luminance mask. The
+               render is a transparent PNG of a near-black object, so its
+               ALPHA is the silhouette and its luminance is nothing: a default
+               luminance mask renders it almost invisible. Masking a plain
+               rect of the filament colour gives the part's real outline in
+               the colour it is actually being printed in. -->
+          <mask id="${id}m" style="mask-type:alpha">
+            <image href="${previewUrl}" x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
+                   width="${boxW.toFixed(1)}" height="${boxH.toFixed(1)}"
+                   preserveAspectRatio="xMidYMax meet"></image>
+          </mask>
+          <clipPath id="${id}c">
+            <rect x="${bx.toFixed(1)}" y="${(plateY - revealH).toFixed(1)}"
+                  width="${boxW.toFixed(1)}" height="${revealH.toFixed(1)}"></rect>
+          </clipPath>
+        </defs>
+        <g clip-path="url(#${id}c)">
+          <!-- A halo of the same silhouette, very slightly larger, in the
+               contrasting edge colour. The live printer is loaded with PLA+
+               at #1A1A1A and the chamber is darker still, so without this the
+               part is a black shape on a black background. Scaling about the
+               shape's own centre keeps it registered. -->
+          <g transform="translate(${(bx + boxW / 2).toFixed(1)} ${(by + boxH / 2).toFixed(1)}) scale(1.035) translate(${(-bx - boxW / 2).toFixed(1)} ${(-by - boxH / 2).toFixed(1)})">
+            <rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
+                  width="${boxW.toFixed(1)}" height="${boxH.toFixed(1)}"
+                  fill="${edgeFor(tip)}" mask="url(#${id}m)"></rect>
+          </g>
+          <rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}"
+                width="${boxW.toFixed(1)}" height="${boxH.toFixed(1)}"
+                fill="${tip}" mask="url(#${id}m)"></rect>
+        </g>
+        <rect x="${bx.toFixed(1)}" y="${(plateY - revealH).toFixed(1)}"
+              width="${boxW.toFixed(1)}" height="1.4"
+              fill="var(--ac-printer-card-bg, #fff)" opacity="0.55"></rect>
+      </g>`;
   }
   const h = Math.min(1, progress) * maxH;
   const inset = plateW * 0.22;
@@ -55,14 +118,6 @@ var printedMass = (visible, progress, plateX, plateW, plateY, maxH, tip) => {
 var heatGlow = (heat, x, y, w, h) => heat <= 0.02 ? nothing : svg`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"
             fill="var(--ac-printer-heat, #ff7a3d)"
             opacity="${(0.12 + heat * 0.45).toFixed(2)}"></rect>`;
-var edgeFor = (colour) => {
-  if (!colour || !/^#[0-9a-f]{6}$/i.test(colour)) {
-    return "rgba(255,255,255,0.35)";
-  }
-  const n = parseInt(colour.slice(1), 16);
-  const luma = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
-  return luma < 0.45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
-};
 var coil = (cx, colour, remaining) => {
   const fill = colour ?? "var(--ac-printer-rail, currentColor)";
   const frac = remaining === void 0 ? 1 : Math.max(0, Math.min(1, remaining));
@@ -122,6 +177,7 @@ var s1Body = ({
   lightOn = false,
   progress = 0,
   chamberBusy = false,
+  previewUrl,
   nozzleHeat = 0,
   bedHeat = 0,
   fanOn = false,
@@ -136,7 +192,7 @@ var s1Body = ({
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     ${screenFace(status, 172, 13, 7.5)}
@@ -159,16 +215,16 @@ var s1Body = ({
   ${heatGlow(bedHeat, 54, 176, 132, 12)}
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
-  ${printedMass(!chamberBusy, progress, 56, 128, 178, 66, tip)}
-  <g id="gantry" transform="${gantry}"
+  ${printedMass(!chamberBusy, progress, 56, 128, 178, 66, tip, previewUrl)}
+  <g transform="${gantry}"
      style="${chamberBusy ? "display:none" : ""}">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="${nozzle}">
+    <g transform="${nozzle}">
       ${heatGlow(nozzleHeat, 108, 60, 24, 18)}
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
@@ -228,6 +284,7 @@ var PRINTER_ART = {
       lightOn = false,
       progress = 0,
       chamberBusy = false,
+      previewUrl,
       nozzleHeat = 0,
       bedHeat = 0,
       fanOn = false,
@@ -263,17 +320,17 @@ var PRINTER_ART = {
       ${heatGlow(bedHeat, 60, 164, 120, 12)}
       <rect x="62" y="166" width="116" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="70" y="174" width="100" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
-      ${printedMass(!chamberBusy, progress, 62, 116, 166, 58, tip)}
+      ${printedMass(!chamberBusy, progress, 62, 116, 166, 58, tip, previewUrl)}
       ${fanMark(fanOn, 30, 196, 7)}
-      <g id="gantry" transform="${gantry}"
+      <g transform="${gantry}"
      style="${chamberBusy ? "display:none" : ""}">
         <rect x="42" y="54" width="156" height="1.6" fill="currentColor" opacity="0.2"></rect>
-        <rect id="xaxis" x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="42" y="50" width="12" height="20" rx="2"></rect>
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="${nozzle}">
+        <g transform="${nozzle}">
           ${heatGlow(nozzleHeat, 108, 66, 24, 18)}
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
@@ -302,6 +359,7 @@ var PRINTER_ART = {
       lightOn = false,
       progress = 0,
       chamberBusy = false,
+      previewUrl,
       nozzleHeat = 0,
       bedHeat = 0,
       fanOn = false,
@@ -321,7 +379,7 @@ var PRINTER_ART = {
       ${heatGlow(bedHeat, 58, 168, 124, 12)}
       <rect x="60" y="170" width="120" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="68" y="178" width="104" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
-      ${printedMass(!chamberBusy, progress, 60, 120, 170, 60, tip)}
+      ${printedMass(!chamberBusy, progress, 60, 120, 170, 60, tip, previewUrl)}
       ${fanMark(fanOn, 34, 200, 6.5)}
       <rect x="154" y="33" width="50" height="16" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="36" width="42" height="10" rx="2" fill="#101216"></rect>
@@ -331,14 +389,14 @@ var PRINTER_ART = {
         <rect x="36" y="188" width="40" height="2.5" rx="1"></rect>
         <rect x="36" y="194" width="40" height="2.5" rx="1"></rect>
       </g>
-      <g id="gantry" transform="${gantry}"
+      <g transform="${gantry}"
      style="${chamberBusy ? "display:none" : ""}">
-        <rect id="xaxis" x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="32" y="52" width="12" height="20" rx="2"></rect>
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="${nozzle}">
+        <g transform="${nozzle}">
           ${heatGlow(nozzleHeat, 109, 67, 22, 17)}
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
@@ -387,9 +445,9 @@ var PRINTER_ART = {
       <path d="M80 126 h84 l-6 24 h-72 Z" fill="currentColor" opacity="0.28"></path>
       <path d="M85 137 h74" stroke="${tip}" stroke-opacity="0.75" stroke-width="3"></path>
       <rect x="78" y="118" width="96" height="8" rx="2" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
-      <g id="gantry" transform="${gantry}">
-        <rect id="xaxis" x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
-        <g id="nozzle">
+      <g transform="${gantry}">
+        <rect x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
+        <g>
           <rect x="84" y="48" width="66" height="6" rx="2" fill="currentColor"></rect>
           <rect x="96" y="54" width="42" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.8"></rect>
         </g>
@@ -448,7 +506,7 @@ function withAce(art, count, spools = DEFAULT_SPOOLS, active = 0, remaining = []
   };
 }
 var sideSpool = (color = "var(--ac-printer-accent, currentColor)", cy = 70, cx = 219.5) => svg`
-  <g id="sidespool">
+  <g>
     <path d="M${cx - 7.5} ${cy - 12} C ${cx - 7.5} ${cy - 26} ${cx - 13.5} ${cy - 34} ${cx - 31.5} ${cy - 32}" stroke="${color}"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="${cx - 23.5}" y="${cy - 3}" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -535,8 +593,10 @@ var renderPrinter = (art, state = {}) => html` <svg
     (state.progress ?? 0) * 100,
     !!state.cameraLive
   ),
-  // Either occupant owns the chamber, so the modelled mass stands down.
-  chamberBusy: !!state.cameraLive || !!state.previewLive,
+  // The camera owns the chamber when it is playing, so nothing modelled
+  // is drawn into it. The part on the plate is suppressed entirely; it
+  // would be drawn over the video.
+  chamberBusy: !!state.cameraLive,
   nozzle: nozzleTransform(state.nozzleX ?? 0)
 })}
   </svg>`;

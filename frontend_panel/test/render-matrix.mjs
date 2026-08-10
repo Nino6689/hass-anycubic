@@ -227,28 +227,73 @@ for (const [name, expectedKind] of MODELS) {
               problems.push(`${label}: printing but no printed mass drawn`);
             }
 
-            // The sliced model owns the chamber too: the image IS the object,
-            // so the modelled mass must stand down over it -- but the head
-            // must still travel, which is the whole point of the mode.
-            const withPreview = flatten(
-              renderPrinter(art, {
-                progress,
-                previewLive: true,
-                tip: colours[active] ?? undefined,
-                status,
-              }),
-            ).markup;
-            if (progress > 0.01 && /ac-apr-print\b/.test(withPreview)) {
-              problems.push(`${label}: printed mass drawn over the model preview`);
-            }
-            const parked = `translate(0 -${art.park})`;
-            if (withPreview.includes(parked)) {
-              problems.push(`${label}: head parked over the model preview`);
-            }
           }
         }
       }
     }
+  }
+}
+
+/* ------------------------------------------- the print takes the model shape */
+
+// With a model render available the mass on the plate becomes that model's
+// own silhouette, revealed from the plate upward. The render is transparent
+// PNG, so clipping it gives the real outline rather than a rectangle.
+const MODEL = 'http://x/api/image_proxy/image.job_preview?token=abc';
+for (const progress of [0.01, 0.25, 0.6, 1]) {
+  cases++;
+  const art = selectPrinterArt('Anycubic Kobra S1', 0, null, ['#d94a3d'], 0, []);
+  const m = flatten(renderPrinter(art, { progress, previewUrl: MODEL, tip: '#d94a3d', status: 'printing' })).markup;
+  if (!m.includes('<image')) problems.push(`model: p${progress} drew no model image`);
+  if (!m.includes('clip-path')) problems.push(`model: p${progress} not clipped to progress`);
+  // Tinted to the filament colour: the render is a near-black PNG and would
+  // otherwise vanish into the chamber. Asserted on the RESULT (a shape in the
+  // filament colour, masked by the render) rather than on the mechanism.
+  if (!/fill="#d94a3d"[^>]*mask="url\(#/.test(m)) {
+    problems.push(`model: p${progress} not tinted to the filament`);
+  }
+  // Alpha, not luminance: a near-black render under a luminance mask is
+  // almost entirely invisible, which is the trap this replaced.
+  if (!/mask-type:\s*alpha/.test(m)) {
+    problems.push(`model: p${progress} mask is not alpha-typed`);
+  }
+  // A near-black part on a darker chamber needs an edge, exactly as the reels
+  // did. Two masked shapes: the halo behind, the filament colour in front.
+  const masked = [...m.matchAll(/fill="([^"]+)"[^>]*mask="url\(#/g)].map((x) => x[1]);
+  if (masked.length < 2) problems.push(`model: p${progress} part has no contrast halo`);
+  if (masked.length && masked[masked.length - 1] !== '#d94a3d') {
+    problems.push(`model: p${progress} filament colour is not the front-most layer`);
+  }
+  // The generic wedge must stand down when the real shape is available.
+  if (/<path d="M[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ L[\d.]+ [\d.]+ Z"\s+fill="#d94a3d"/.test(m)) {
+    problems.push(`model: p${progress} drew the generic wedge as well`);
+  }
+  // Without a render, the wedge is still the fallback.
+  const noModel = flatten(renderPrinter(art, { progress, tip: '#d94a3d', status: 'printing' })).markup;
+  if (noModel.includes('<image')) problems.push(`model: p${progress} drew an image with no render available`);
+  if (!/ac-apr-print/.test(noModel)) problems.push(`model: p${progress} lost the fallback wedge`);
+}
+
+// SVG ids are document-global, so two cards on one dashboard must not clash.
+{
+  cases++;
+  const art = selectPrinterArt('Anycubic Kobra S1', 0, null, ['#d94a3d'], 0, []);
+  const a = flatten(renderPrinter(art, { progress: 0.5, previewUrl: MODEL + '1', tip: '#fff' })).markup;
+  const b = flatten(renderPrinter(art, { progress: 0.5, previewUrl: MODEL + '2', tip: '#fff' })).markup;
+  const ids = (t) => [...t.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
+  const shared = ids(a).filter((i) => ids(b).includes(i));
+  if (shared.length) problems.push(`model: different models share ids ${shared.join(',')}`);
+  const same = flatten(renderPrinter(art, { progress: 0.5, previewUrl: MODEL + '1', tip: '#fff' })).markup;
+  if (ids(a).join() !== ids(same).join()) problems.push('model: same model produced unstable ids');
+
+  // The case that actually bit: the SAME model at DIFFERENT progress on one
+  // page. url(#id) takes the first match in the document, so sharing an id
+  // here means every card silently uses the first card's clip rectangle.
+  const p30 = flatten(renderPrinter(art, { progress: 0.3, previewUrl: MODEL, tip: '#fff' })).markup;
+  const p70 = flatten(renderPrinter(art, { progress: 0.7, previewUrl: MODEL, tip: '#fff' })).markup;
+  const clash = ids(p30).filter((i) => ids(p70).includes(i));
+  if (clash.length) {
+    problems.push(`model: same model at different progress shares ids ${clash.join(',')}`);
   }
 }
 
