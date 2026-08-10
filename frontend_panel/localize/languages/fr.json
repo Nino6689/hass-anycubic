@@ -141,6 +141,20 @@
             "drying_progress": "Progression du séchage ACE"
           }
         }
+      },
+      "groups": {
+        "machine": "Machine",
+        "ace": "ACE",
+        "diagnostics": "Identifiants"
+      },
+      "presets": {
+        "title": "Reproduire ceci sur votre tableau de bord",
+        "lede": "La carte ci-dessus est la même carte que vous pouvez ajouter à n'importe quel tableau de bord, avec d'autres réglages. Copiez-en une et collez-la dans une carte manuelle.",
+        "full": "Complète",
+        "compact": "Tuile compacte",
+        "camera": "Caméra",
+        "copy": "Copier",
+        "copied": "Copié"
       }
     },
     "files_cloud": {

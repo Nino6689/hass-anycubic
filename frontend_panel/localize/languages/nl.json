@@ -141,6 +141,20 @@
             "drying_progress": "ACE-droogvoortgang"
           }
         }
+      },
+      "groups": {
+        "machine": "Machine",
+        "ace": "ACE",
+        "diagnostics": "Identificatie"
+      },
+      "presets": {
+        "title": "Bouw dit op je eigen dashboard",
+        "lede": "De kaart hierboven is dezelfde kaart die je aan elk dashboard kunt toevoegen, alleen anders ingesteld. Kopieer er een en plak die in een handmatige kaart.",
+        "full": "Volledig",
+        "compact": "Compacte tegel",
+        "camera": "Camera",
+        "copy": "Kopiëren",
+        "copied": "Gekopieerd"
       }
     },
     "files_cloud": {

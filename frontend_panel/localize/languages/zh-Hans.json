@@ -141,6 +141,20 @@
             "drying_progress": "ACE 烘干进度"
           }
         }
+      },
+      "groups": {
+        "machine": "设备",
+        "ace": "ACE",
+        "diagnostics": "标识信息"
+      },
+      "presets": {
+        "title": "在你自己的仪表板上搭建",
+        "lede": "上面的卡片就是你可以添加到任何仪表板的那张卡片，只是设置不同。复制一段并粘贴到手动卡片中。",
+        "full": "完整",
+        "compact": "紧凑磁贴",
+        "camera": "摄像头",
+        "copy": "复制",
+        "copied": "已复制"
       }
     },
     "files_cloud": {

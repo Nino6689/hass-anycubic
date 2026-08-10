@@ -141,6 +141,20 @@
             "drying_progress": "ACE Drying Progress"
           }
         }
+      },
+      "groups": {
+        "machine": "Machine",
+        "ace": "ACE",
+        "diagnostics": "Identifiers"
+      },
+      "presets": {
+        "title": "Build this on your own dashboard",
+        "lede": "The card above is the same card you can add to any dashboard — these are just different settings for it. Copy one and paste it into a Manual card.",
+        "full": "Full",
+        "compact": "Compact tile",
+        "camera": "Camera",
+        "copy": "Copy",
+        "copied": "Copied"
       }
     },
     "files_cloud": {

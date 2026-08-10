@@ -141,6 +141,20 @@
             "drying_progress": "ACE-Trocknungsfortschritt"
           }
         }
+      },
+      "groups": {
+        "machine": "Gerät",
+        "ace": "ACE",
+        "diagnostics": "Kennungen"
+      },
+      "presets": {
+        "title": "Auf dem eigenen Dashboard nachbauen",
+        "lede": "Die Karte oben ist dieselbe Karte, die Sie jedem Dashboard hinzufügen können – nur anders eingestellt. Kopieren und in eine manuelle Karte einfügen.",
+        "full": "Vollständig",
+        "compact": "Kompakte Kachel",
+        "camera": "Kamera",
+        "copy": "Kopieren",
+        "copied": "Kopiert"
       }
     },
     "files_cloud": {
