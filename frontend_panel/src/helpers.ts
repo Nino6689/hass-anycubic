@@ -25,6 +25,7 @@ import {
   HassRoute,
   HomeAssistant,
   MediaViewType,
+  PrinterArtType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "./types";
@@ -958,6 +959,7 @@ export function getDefaultCardConfig(): AnycubicCardConfig {
     showSettingsButton: false,
     alwaysShow: false,
     mediaView: MediaViewType.Auto,
+    printerArt: PrinterArtType.Auto,
     showControls: true,
     sections: [CardSectionType.Filament],
   };

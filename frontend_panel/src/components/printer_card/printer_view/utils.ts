@@ -24,7 +24,6 @@ class Scale {
   }
 }
 
-
 export const printerConfigAnycubic: AnimatedPrinterConfig = {
   top: {
     width: 340,

@@ -40,8 +40,19 @@
         "scale_factor": "Facteur d'échelle",
         "slot_colors": "Préréglages de couleurs des emplacements",
         "media_view": "Vue principale",
+        "printer_art": "Illustration de l'imprimante",
         "show_controls": "Afficher les boutons de contrôle",
         "sections": "Sections dépliables"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automatique (détection)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / résine",
+          "fdm": "FDM générique"
+        }
       }
     },
     "print_settings": {

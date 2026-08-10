@@ -13,6 +13,7 @@ import {
   HomeAssistant,
   LitTemplateResult,
   MediaViewType,
+  PrinterArtType,
 } from "../../../types";
 
 import { getPrinterImageStateUrl } from "../../../helpers";
@@ -45,6 +46,9 @@ export class AnycubicPrintercardMediaView extends LitElement {
 
   @property({ attribute: "media-view" })
   public mediaView: MediaViewType = MediaViewType.Auto;
+
+  @property({ attribute: "printer-art" })
+  public printerArt?: PrinterArtType;
 
   @property({ attribute: false })
   public camera: AnycubicCameraChoice | undefined;
@@ -225,6 +229,7 @@ export class AnycubicPrintercardMediaView extends LitElement {
         .printerEntityIdPart=${this.printerEntityIdPart}
         .scaleFactor=${1}
         .cameraEntityId=${this._insetCameraEntityId()}
+        .printerArt=${this.printerArt}
       ></anycubic-printercard-printer_view>
     `;
   }

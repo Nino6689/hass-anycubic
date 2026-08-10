@@ -48,7 +48,15 @@ interface AceSpool {
 
 const rgbToHex = (rgb?: number[] | null): string | undefined =>
   Array.isArray(rgb) && rgb.length >= 3
-    ? "#" + rgb.slice(0, 3).map((c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, "0")).join("")
+    ? "#" +
+      rgb
+        .slice(0, 3)
+        .map((c) =>
+          Math.max(0, Math.min(255, Math.round(c)))
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join("")
     : undefined;
 
 @customElementIfUndef("anycubic-printercard-animated_printer")
@@ -74,12 +82,14 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   public cameraEntityId?: string;
 
   /** Overrides model detection when the reported name matches nothing.
-   *  kobra_s1_combo is absent on purpose: a Combo is an S1 with ACE units
-   *  wrapped around it, derived from the attached hardware rather than
-   *  chosen, so offering it here would let the override disagree with the
-   *  printer about what is plugged in. */
+   *
+   *  kobra_s1_combo IS selectable, and means more than the others: a Combo is
+   *  an S1 with ACE units wrapped around it rather than a drawing of its own,
+   *  so choosing it asserts the hardware. That is deliberate -- a Combo whose
+   *  ACE sensors report nothing yet has no other way to be drawn correctly,
+   *  and being drawn as a bare S1 is the worse failure. */
   @property({ attribute: "printer-art" })
-  public printerArt?: Exclude<PrinterArtKind, "kobra_s1_combo">;
+  public printerArt?: PrinterArtKind;
 
   @state()
   private _progressNum: number = 0;
@@ -169,20 +179,22 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
     spools: string[];
     active: number;
     units: 0 | 1 | 2;
-    remaining: Array<number | undefined>;
+    remaining: (number | undefined)[];
   } {
     const read = (key: string): AceSpool[] => {
       const stateObj = getStateObjByKey(this.hass, this.printerEntities, key);
-      const spools = stateObj?.attributes?.spool_info;
+      const spools = stateObj?.attributes.spool_info;
       return Array.isArray(spools) ? (spools as AceSpool[]) : [];
     };
 
     const primary = read("ace_spools");
     const secondary = read("secondary_ace_spools");
-    const units = (secondary.length ? 2 : primary.length ? 1 : 0) as 0 | 1 | 2;
+    const units = secondary.length ? 2 : primary.length ? 1 : 0;
 
     const all = [...primary, ...secondary];
-    const colours = all.map((s) => filamentColor(s.color_hex ?? rgbToHex(s.color)));
+    const colours = all.map((s) =>
+      filamentColor(s.color_hex ?? rgbToHex(s.color)),
+    );
     // consumables_percent is 0-100 when the printer reports it at all.
     // Undefined stays undefined: the artwork draws an unknown reel full,
     // because a reel we know nothing about must not look nearly empty.
@@ -194,8 +206,11 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
 
     // The feeding slot lives on the box, not on a sensor of its own, and is
     // null whenever the printer is drawing from the external spool instead.
-    const boxInfo = getStateObjByKey(this.hass, this.printerEntities, "ace_spools")
-      ?.attributes?.box_info as { loaded_slot?: number | null } | undefined;
+    const boxInfo = getStateObjByKey(
+      this.hass,
+      this.printerEntities,
+      "ace_spools",
+    )?.attributes.box_info as { loaded_slot?: number | null } | undefined;
     const loaded = boxInfo?.loaded_slot;
 
     return {
@@ -219,9 +234,13 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
         ).state,
       );
     const target = num(targetKey);
-    if (!Number.isFinite(target) || target <= 0) return 0;
+    if (!Number.isFinite(target) || target <= 0) {
+      return 0;
+    }
     const current = num(currentKey);
-    if (!Number.isFinite(current)) return 0;
+    if (!Number.isFinite(current)) {
+      return 0;
+    }
     // Ambient is roughly 20C; below that there is nothing to show.
     return Math.max(0, Math.min(1, (current - 20) / Math.max(1, target - 20)));
   }
@@ -232,14 +251,18 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
       this.printerEntities,
       "job_paused",
     )?.state;
-    if (paused === "on") return "paused";
+    if (paused === "on") {
+      return "paused";
+    }
     const job = getPrinterSensorStateObj(
       this.hass,
       this.printerEntities,
       this.printerEntityIdPart,
       "job_state",
     ).state.toLowerCase();
-    if (job.includes("fail") || job.includes("error")) return "error";
+    if (job.includes("fail") || job.includes("error")) {
+      return "error";
+    }
     return this._isPrinting ? "printing" : "idle";
   }
 
@@ -292,8 +315,14 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
           cameraLive,
           tip,
           lightOn: this._lightOn,
-          nozzleHeat: this._heat("nozzle_temperature", "target_nozzle_temperature"),
-          bedHeat: this._heat("hotbed_temperature", "target_hotbed_temperature"),
+          nozzleHeat: this._heat(
+            "nozzle_temperature",
+            "target_nozzle_temperature",
+          ),
+          bedHeat: this._heat(
+            "hotbed_temperature",
+            "target_hotbed_temperature",
+          ),
           fanOn:
             Number(
               getPrinterSensorStateObj(

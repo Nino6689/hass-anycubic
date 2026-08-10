@@ -40,8 +40,19 @@
         "scale_factor": "Skalierungsfaktor",
         "slot_colors": "Farbvoreinstellungen der Fächer",
         "media_view": "Hauptansicht",
+        "printer_art": "Druckergrafik",
         "show_controls": "Steuerungsschaltflächen anzeigen",
         "sections": "Ausklappbare Bereiche"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automatisch (erkennen)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / Harz",
+          "fdm": "FDM (allgemein)"
+        }
       }
     },
     "print_settings": {

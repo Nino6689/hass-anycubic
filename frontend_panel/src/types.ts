@@ -308,6 +308,7 @@ export interface AnycubicCardConfig {
   showSettingsButton?: boolean;
   alwaysShow?: boolean;
   mediaView?: MediaViewType;
+  printerArt?: PrinterArtType;
   showControls?: boolean;
   sections?: CardSectionType[];
 }
@@ -321,6 +322,25 @@ export enum MediaViewType {
   Preview = "preview",
   Printer = "printer",
   None = "none",
+}
+
+/** Which chassis the printer graphic draws. `Auto` defers to the fuzzy
+ *  machine_name match in `selectPrinterArt`, which is right for anything the
+ *  cloud names recognisably; the rest force a body for the machines it does
+ *  not. The values (apart from `Auto`) must stay identical to `PrinterArtKind`
+ *  in printer_view/printer_art.ts -- they are passed straight through as the
+ *  override.
+ *
+ *  `KobraS1Combo` is the odd one: there is no Combo drawing, it is the S1 with
+ *  ACE units stacked on top, so choosing it asserts that an ACE is attached
+ *  rather than merely picking a picture. */
+export enum PrinterArtType {
+  Auto = "auto",
+  KobraS1 = "kobra_s1",
+  KobraS1Combo = "kobra_s1_combo",
+  Kobra3 = "kobra_3",
+  Resin = "resin",
+  FDM = "fdm",
 }
 
 export enum CardSectionType {

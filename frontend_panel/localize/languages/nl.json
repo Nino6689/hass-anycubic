@@ -40,8 +40,19 @@
         "scale_factor": "Schaalfactor",
         "slot_colors": "Kleurvoorinstellingen per slot",
         "media_view": "Hoofdweergave",
+        "printer_art": "Printerafbeelding",
         "show_controls": "Bedieningsknoppen tonen",
         "sections": "Uitklapbare secties"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automatisch (detecteren)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / hars",
+          "fdm": "Algemene FDM"
+        }
       }
     },
     "print_settings": {

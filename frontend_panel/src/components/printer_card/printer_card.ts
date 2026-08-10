@@ -12,6 +12,7 @@ import {
   HomeAssistant,
   LitTemplateResult,
   MediaViewType,
+  PrinterArtType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "../../types";
@@ -101,6 +102,10 @@ export class AnycubicPrintercardEditor extends LitElement {
         this.config.mediaView,
         defaultConfig.mediaView,
       ) as MediaViewType;
+      this.config.printerArt = undefinedDefault(
+        this.config.printerArt,
+        defaultConfig.printerArt,
+      ) as PrinterArtType;
       this.config.showControls = undefinedDefault(
         this.config.showControls,
         defaultConfig.showControls,
@@ -188,6 +193,9 @@ export class AnycubicCard extends LitElement {
   private mediaView?: MediaViewType;
 
   @state()
+  private printerArt?: PrinterArtType;
+
+  @state()
   private showControls?: boolean;
 
   @state()
@@ -241,6 +249,10 @@ export class AnycubicCard extends LitElement {
         this.config.mediaView,
         defaultConfig.mediaView,
       ) as MediaViewType;
+      this.printerArt = undefinedDefault(
+        this.config.printerArt,
+        defaultConfig.printerArt,
+      ) as PrinterArtType;
       this.showControls = undefinedDefault(
         this.config.showControls,
         defaultConfig.showControls,
@@ -283,6 +295,7 @@ export class AnycubicCard extends LitElement {
         .scaleFactor=${this.scaleFactor}
         .slotColors=${this.slotColors}
         .mediaView=${this.mediaView}
+        .printerArt=${this.printerArt}
         .showControls=${this.showControls}
         .sections=${this.sections}
       ></anycubic-printercard-card>

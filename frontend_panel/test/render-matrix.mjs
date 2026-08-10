@@ -109,9 +109,34 @@ const MODELS = [
   ['Anycubic Kobra 3', 'kobra_3'],
   ['Kobra 2 Neo', 'kobra_3'],
   ['Photon Mono M5s', 'resin'],
+  // README lists these as supported. Neither contains "photon" or "mono", so
+  // before the matchers gained them both drew as FDM bedslingers.
+  ['M7 Pro', 'resin'],
+  ['M5s', 'resin'],
+  // First-gen Kobras: an open-frame bedslinger, which is the kobra_3 body.
+  ['Anycubic Kobra Neo', 'kobra_3'],
+  ['Kobra Max', 'kobra_3'],
   ['Something Unheard Of', 'fdm'],
   ['', 'fdm'],
   [undefined, 'fdm'],
+];
+
+/** [override, expected kind]. `null` means "must fall back to name matching
+ *  and still produce a real body" rather than any particular one. */
+const OVERRIDES = [
+  ['kobra_s1', 'kobra_s1'],
+  ['kobra_3', 'kobra_3'],
+  ['resin', 'resin'],
+  ['fdm', 'fdm'],
+  // Derived, not authored: it must still come back labelled as the Combo.
+  ['kobra_s1_combo', 'kobra_s1_combo'],
+  // Junk from a DOM attribute must not select anything. 'constructor' is the
+  // one that mattered: it is truthy on a plain object, so a bare
+  // `PRINTER_ART[override]` guard let a function through as the art.
+  ['nonsense', null],
+  ['constructor', null],
+  ['toString', null],
+  ['__proto__', null],
 ];
 
 const PROGRESS = [0, 0.004, 0.5, 1];
@@ -122,6 +147,43 @@ for (const [name, expectedKind] of MODELS) {
   const base = selectPrinterArt(name, 0);
   if (expectedKind && base.kind !== expectedKind && base.kind !== 'kobra_s1_combo') {
     problems.push(`match: ${JSON.stringify(name)} -> ${base.kind}, expected ${expectedKind}`);
+  }
+
+  // The override path, which nothing exercised before: it is the whole point
+  // of the card's printer-artwork setting, and junk must not reach the art.
+  for (const [ov, want] of OVERRIDES) {
+    cases++;
+    const label = `${name ?? 'undefined'}/override:${ov}`;
+    let art;
+    try {
+      art = selectPrinterArt(name, 0, ov, [], 0, []);
+    } catch (e) {
+      problems.push(`${label}: threw ${e.message}`);
+      continue;
+    }
+    if (want && art.kind !== want) {
+      problems.push(`${label}: -> ${art.kind}, expected ${want}`);
+    }
+    if (!want && art.kind === ov) {
+      problems.push(`${label}: junk override was accepted as a kind`);
+    }
+    // Whatever came back must be a drawable body, not a prototype member.
+    if (typeof art.viewBox !== 'string' || typeof art.body !== 'function') {
+      problems.push(`${label}: produced a non-art object`);
+    }
+    // Selecting the Combo asserts an ACE even though aceCount was 0.
+    if (ov === 'kobra_s1_combo' && !/ 344| 4\d\d/.test(art.viewBox)) {
+      problems.push(`${label}: Combo viewBox not grown for an ACE (${art.viewBox})`);
+    }
+    // Rendering is inside the try as well: a bad override does not fail at
+    // selection time, it fails later on `art.viewBox.split` — which without
+    // this catch takes the whole harness down with a stack trace instead of
+    // naming the case.
+    try {
+      inspect(label, renderPrinter(art, { progress: 0.4, status: 'printing' }), problems);
+    } catch (e) {
+      problems.push(`${label}: renderPrinter threw ${e.message}`);
+    }
   }
 
   for (const units of ACE) {

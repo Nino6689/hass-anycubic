@@ -40,8 +40,19 @@
         "scale_factor": "缩放比例",
         "slot_colors": "槽位颜色预设",
         "media_view": "主视图",
+        "printer_art": "打印机图形",
         "show_controls": "显示控制按钮",
         "sections": "可展开区块"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "自动（检测）",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon（树脂）",
+          "fdm": "通用 FDM"
+        }
       }
     },
     "print_settings": {

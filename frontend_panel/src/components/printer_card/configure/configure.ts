@@ -31,6 +31,7 @@ import {
   LitTemplateResult,
   MediaViewType,
   PageChangeDetail,
+  PrinterArtType,
   PrinterCardStatType,
   StatTypeACE,
   StatTypeFDM,
@@ -135,6 +136,9 @@ export class AnycubicPrintercardConfigure extends LitElement {
   @state()
   private _labelSections: string;
 
+  @state()
+  private _labelPrinterArt: string;
+
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
 
@@ -197,6 +201,10 @@ export class AnycubicPrintercardConfigure extends LitElement {
       );
       this._labelSections = localize(
         "card.configure.labels.sections",
+        this.language,
+      );
+      this._labelPrinterArt = localize(
+        "card.configure.labels.printer_art",
         this.language,
       );
     }
@@ -386,6 +394,8 @@ export class AnycubicPrintercardConfigure extends LitElement {
         return this._labelSlotColors;
       case "mediaView":
         return this._labelMediaView;
+      case "printerArt":
+        return this._labelPrinterArt;
       case "showControls":
         return this._labelShowControls;
       case "sections":
@@ -394,6 +404,12 @@ export class AnycubicPrintercardConfigure extends LitElement {
         return this._labelPrinter_id;
     }
   };
+
+  /** Unlike the other dropdowns, these option labels are translated. The
+   *  schema is rebuilt whenever `language` changes (see willUpdate), so
+   *  resolving them inline re-translates them without a @state cache each. */
+  private _optPrinterArt = (value: PrinterArtType): string =>
+    localize(`card.configure.options.printer_art.${value}`, this.language);
 
   private _computeSchemaMain(): HaFormBaseSchema[] {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -501,6 +517,41 @@ export class AnycubicPrintercardConfigure extends LitElement {
               { value: MediaViewType.Preview, label: "Job preview" },
               { value: MediaViewType.Printer, label: "Printer graphic" },
               { value: MediaViewType.None, label: "Hidden" },
+            ],
+            mode: "dropdown",
+            multiple: false,
+          },
+        },
+      },
+      {
+        name: "printerArt",
+        selector: {
+          select: {
+            options: [
+              {
+                value: PrinterArtType.Auto,
+                label: this._optPrinterArt(PrinterArtType.Auto),
+              },
+              {
+                value: PrinterArtType.KobraS1,
+                label: this._optPrinterArt(PrinterArtType.KobraS1),
+              },
+              {
+                value: PrinterArtType.KobraS1Combo,
+                label: this._optPrinterArt(PrinterArtType.KobraS1Combo),
+              },
+              {
+                value: PrinterArtType.Kobra3,
+                label: this._optPrinterArt(PrinterArtType.Kobra3),
+              },
+              {
+                value: PrinterArtType.Resin,
+                label: this._optPrinterArt(PrinterArtType.Resin),
+              },
+              {
+                value: PrinterArtType.FDM,
+                label: this._optPrinterArt(PrinterArtType.FDM),
+              },
             ],
             mode: "dropdown",
             multiple: false,

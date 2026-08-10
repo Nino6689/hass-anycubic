@@ -39,6 +39,7 @@ import {
   HomeAssistant,
   LitTemplateResult,
   MediaViewType,
+  PrinterArtType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "../../../types";
@@ -124,6 +125,9 @@ export class AnycubicPrintercardCard extends LitElement {
 
   @property({ attribute: "media-view" })
   public mediaView: MediaViewType = MediaViewType.Auto;
+
+  @property({ attribute: "printer-art" })
+  public printerArt: PrinterArtType = PrinterArtType.Auto;
 
   @property({ attribute: "show-controls", type: Boolean })
   public showControls?: boolean = true;
@@ -392,6 +396,7 @@ export class AnycubicPrintercardCard extends LitElement {
         .printerEntities=${this.printerEntities}
         .printerEntityIdPart=${this.printerEntityIdPart}
         .mediaView=${this.mediaView}
+        .printerArt=${this.printerArt}
         .camera=${this.camera}
         .isPrinting=${this.isPrinting}
       ></anycubic-printercard-media_view>
