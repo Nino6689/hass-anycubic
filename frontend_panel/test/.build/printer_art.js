@@ -386,32 +386,6 @@ var MATCHERS = [
   // every entry above.
   ["kobra", "kobra_3"]
 ];
-function selectPrinterArt(machineName, aceCount = 0, override, spools, activeSlot = 0, remaining = []) {
-  const name = (machineName ?? "").toLowerCase();
-  let kind = "fdm";
-  let units = aceCount;
-  if (override === "kobra_s1_combo") {
-    kind = "kobra_s1";
-    units = units > 0 ? units : 1;
-  } else if (override && // `override` arrives from a DOM attribute, so it can be any string.
-  // Plain `PRINTER_ART[override]` is truthy for 'constructor' and friends,
-  // which then blows up in artAspect() on `art.viewBox.split`.
-  Object.prototype.hasOwnProperty.call(PRINTER_ART, override)) {
-    kind = override;
-  } else {
-    for (const [needle, k] of MATCHERS) {
-      if (name.includes(needle)) {
-        kind = k;
-        break;
-      }
-    }
-  }
-  const art = PRINTER_ART[kind];
-  if (kind === "resin") {
-    return art;
-  }
-  return withFilamentSource(art, units, spools, activeSlot, remaining);
-}
 var gantryTransform = (art, progress, cameraLive) => cameraLive ? `translate(0 ${-art.park})` : `translate(0 ${(art.travel * (1 - progress / 100)).toFixed(1)})`;
 var nozzleTransform = (x, span = 48) => `translate(${(x * span).toFixed(1)} 0)`;
 var ACE_PITCH = 101;
@@ -459,12 +433,6 @@ var sideSpool = (color = "var(--ac-printer-accent, currentColor)", cy = 70, cx =
     <rect x="${cx - 12.5}" y="${cy - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="${cx + 7.5}" y="${cy - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>`;
-var withFilamentSource = (art, aceCount, spools = DEFAULT_SPOOLS, active = 0, remaining = []) => aceCount > 0 ? withAce(art, aceCount, spools, active, remaining) : {
-  ...art,
-  body: (st) => svg`
-          ${sideSpool(st.tip, art.kind === "kobra_3" ? 80 : 70, art.kind === "fdm" ? 222 : 219.5)}
-          ${art.body(st)}`
-};
 var NAMED_FILAMENT = {
   black: "#1c1c1e",
   white: "#f2f2f0",
@@ -503,6 +471,9 @@ function filamentColor(raw) {
   }
   return NAMED_FILAMENT[s.toLowerCase()] ?? UNKNOWN;
 }
+var rgbToHex = (rgb) => Array.isArray(rgb) && rgb.length >= 3 ? "#" + rgb.slice(0, 3).map(
+  (c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, "0")
+).join("") : void 0;
 var spoolColors = (slots = [], count = 1) => Array.from({ length: Math.max(1, count) * 4 }, (_, i) => {
   const slot = slots[i];
   if (!slot) {
@@ -516,9 +487,6 @@ var spoolColors = (slots = [], count = 1) => Array.from({ length: Math.max(1, co
   }
   return filamentColor(typeof slot.color === "string" ? slot.color : null);
 });
-var rgbToHex = (rgb) => Array.isArray(rgb) && rgb.length >= 3 ? "#" + rgb.slice(0, 3).map(
-  (c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, "0")
-).join("") : void 0;
 var activeTipColor = (slots, active = 0, singleFilament) => slots?.length ? filamentColor(slots[active]?.color) : filamentColor(singleFilament);
 var renderPrinter = (art, state = {}) => html` <svg
     class="ac-apr-svg"
@@ -542,6 +510,38 @@ var artAspect = (art) => {
   return `${w} / ${h}`;
 };
 var cameraInset = (art) => art.chamber.map((v) => `${v}%`).join(" ");
+var withFilamentSource = (art, aceCount, spools = DEFAULT_SPOOLS, active = 0, remaining = []) => aceCount > 0 ? withAce(art, aceCount, spools, active, remaining) : {
+  ...art,
+  body: (st) => svg`
+          ${sideSpool(st.tip, art.kind === "kobra_3" ? 80 : 70, art.kind === "fdm" ? 222 : 219.5)}
+          ${art.body(st)}`
+};
+function selectPrinterArt(machineName, aceCount = 0, override, spools, activeSlot = 0, remaining = []) {
+  const name = (machineName ?? "").toLowerCase();
+  let kind = "fdm";
+  let units = aceCount;
+  if (override === "kobra_s1_combo") {
+    kind = "kobra_s1";
+    units = units > 0 ? units : 1;
+  } else if (override && // `override` arrives from a DOM attribute, so it can be any string.
+  // Plain `PRINTER_ART[override]` is truthy for 'constructor' and friends,
+  // which then blows up in artAspect() on `art.viewBox.split`.
+  Object.prototype.hasOwnProperty.call(PRINTER_ART, override)) {
+    kind = override;
+  } else {
+    for (const [needle, k] of MATCHERS) {
+      if (name.includes(needle)) {
+        kind = k;
+        break;
+      }
+    }
+  }
+  const art = PRINTER_ART[kind];
+  if (kind === "resin") {
+    return art;
+  }
+  return withFilamentSource(art, units, spools, activeSlot, remaining);
+}
 export {
   DEFAULT_SPOOLS,
   PRINTER_ART,

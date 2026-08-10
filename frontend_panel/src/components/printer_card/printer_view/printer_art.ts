@@ -15,6 +15,11 @@
  */
 import { SVGTemplateResult, TemplateResult, html, nothing, svg } from "lit";
 
+/** Several parts of the artwork legitimately draw nothing -- a print that
+ *  has not started, a heater that is cold -- so this is the honest return
+ *  type for them rather than pretending they always produce markup. */
+type SVGOrNothing = SVGTemplateResult | typeof nothing;
+
 export type PrinterArtKind =
   | "kobra_s1"
   | "kobra_s1_combo"
@@ -85,7 +90,11 @@ export const DEFAULT_SPOOLS = ["#d94a3d", "#2f7fd1", "#e8b33a", "#3aa87a"];
  *
  * @param cx  centre x       @param cy  centre y       @param r  half-width
  */
-export const anycubicCube = (cx: number, cy: number, r: number) => {
+export const anycubicCube = (
+  cx: number,
+  cy: number,
+  r: number,
+): SVGTemplateResult => {
   const h = r * 0.575; // half-height of a face's vertical edge
   return svg`
     <g class="ac-apr-logo">
@@ -107,7 +116,12 @@ export const anycubicCube = (cx: number, cy: number, r: number) => {
  * below it -- kept low-opacity because the camera stream sits directly behind
  * this area, and a bright overlay would fog the video it is meant to light.
  */
-const chamberLight = (on: boolean, x: number, y: number, w: number) => svg`
+const chamberLight = (
+  on: boolean,
+  x: number,
+  y: number,
+  w: number,
+): SVGTemplateResult => svg`
   ${
     on
       ? svg`<rect x="${x - 2}" y="${y}" width="${w + 4}" height="26" rx="6"
@@ -137,7 +151,7 @@ const printedMass = (
   plateY: number,
   maxH: number,
   tip: string,
-) => {
+): SVGOrNothing => {
   if (!visible || progress <= 0.005) {
     return nothing;
   }
@@ -164,7 +178,13 @@ const printedMass = (
  * with a 60C target is fully warm while one at 60C with no target is not
  * warming at all -- which is what the machine actually means.
  */
-const heatGlow = (heat: number, x: number, y: number, w: number, h: number) =>
+const heatGlow = (
+  heat: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): SVGOrNothing =>
   heat <= 0.02
     ? nothing
     : svg`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"
@@ -182,7 +202,11 @@ const heatGlow = (heat: number, x: number, y: number, w: number, h: number) =>
  * reel rather than an absent one -- the ACE reports those differently and the
  * artwork should not conflate them.
  */
-const coil = (cx: number, colour?: string, remaining?: number) => {
+const coil = (
+  cx: number,
+  colour?: string,
+  remaining?: number,
+): SVGTemplateResult => {
   const fill = colour ?? "var(--ac-printer-rail, currentColor)";
   const frac =
     remaining === undefined ? 1 : Math.max(0, Math.min(1, remaining));
@@ -201,7 +225,11 @@ const coil = (cx: number, colour?: string, remaining?: number) => {
  * platform's group so it travels with it. Suppressed with the camera live,
  * for the same reason as the FDM mass.
  */
-const resinPrint = (visible: boolean, progress: number, tip: string) => {
+const resinPrint = (
+  visible: boolean,
+  progress: number,
+  tip: string,
+): SVGOrNothing => {
   if (!visible || progress <= 0.005) {
     return nothing;
   }
@@ -217,7 +245,12 @@ const resinPrint = (visible: boolean, progress: number, tip: string) => {
 };
 
 /** Part-cooling fan, on the chassis and so never over the stream. */
-const fanMark = (on: boolean, cx: number, cy: number, r: number) => svg`
+const fanMark = (
+  on: boolean,
+  cx: number,
+  cy: number,
+  r: number,
+): SVGTemplateResult => svg`
   <g opacity="${on ? 0.9 : 0.3}">
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.3"></circle>
     <g class="${on ? "ac-apr-fan" : ""}">
@@ -240,7 +273,7 @@ const screenFace = (
   cx: number,
   cy: number,
   r: number,
-) => {
+): SVGTemplateResult => {
   if (status === "paused") {
     const b = r * 0.32;
     return svg`<g>
@@ -269,7 +302,7 @@ const s1Body = ({
   bedHeat = 0,
   fanOn = false,
   status = "idle",
-}: PrinterBodyState) => svg`
+}: PrinterBodyState): SVGTemplateResult => svg`
   <g fill="currentColor">
     <rect x="38" y="20" width="163" height="20" rx="5"></rect>
     <rect x="38" y="34" width="11" height="162"></rect>
@@ -342,7 +375,7 @@ const aceModule = (
   unit = 0,
   /** Remaining filament per slot, 0-1; undefined means unreported. */
   remaining: (number | undefined)[] = [],
-) => svg`
+): SVGTemplateResult => svg`
   <g id="ace-${unit}">
     <rect x="45" y="6" width="149" height="95" rx="11" fill="currentColor"></rect>
     <rect x="45" y="6" width="149" height="16" rx="8" fill="currentColor"></rect>
@@ -360,7 +393,7 @@ const aceModule = (
       // Previously this drew unconditionally with the caller's raw index, so
       // the OTHER unit always got an out-of-range lookup and rendered
       // x="NaN" -- which happened in every two-unit configuration.
-      SPOOL_CX[active] === undefined
+      (SPOOL_CX[active] as number | undefined) === undefined
         ? nothing
         : svg`<rect x="${SPOOL_CX[active] - 17}" y="36" width="34" height="44" rx="5" fill="none"
                 stroke="${spools[active] ?? "currentColor"}" stroke-width="2"></rect>`
@@ -404,7 +437,7 @@ export const PRINTER_ART: Record<
       bedHeat = 0,
       fanOn = false,
       status = "idle",
-    }: PrinterBodyState) => svg`
+    }: PrinterBodyState): SVGTemplateResult => svg`
       <g fill="currentColor">
         <rect x="20" y="176" width="200" height="38" rx="7"></rect>
         <rect x="40" y="42" width="18" height="136" rx="3"></rect>
@@ -479,7 +512,7 @@ export const PRINTER_ART: Record<
       bedHeat = 0,
       fanOn = false,
       status = "idle",
-    }: PrinterBodyState) => svg`
+    }: PrinterBodyState): SVGTemplateResult => svg`
       <g fill="currentColor">
         <rect x="24" y="178" width="192" height="34" rx="6"></rect>
         <rect x="30" y="46" width="16" height="132" rx="3"></rect>
@@ -540,7 +573,7 @@ export const PRINTER_ART: Record<
       progress = 0,
       cameraLive = false,
       status = "idle",
-    }: PrinterBodyState) => svg`
+    }: PrinterBodyState): SVGTemplateResult => svg`
       <path d="M74 34 h92 a8 8 0 0 1 8 8 v108 h-108 v-108 a8 8 0 0 1 8 -8 Z" stroke="currentColor" stroke-opacity="0.45" stroke-width="4" fill="none"></path>
       <g fill="currentColor">
         <rect x="36" y="150" width="168" height="62" rx="8"></rect>
@@ -599,53 +632,6 @@ const MATCHERS: [string, Exclude<PrinterArtKind, "kobra_s1_combo">][] = [
   ["kobra", "kobra_3"],
 ];
 
-export function selectPrinterArt(
-  machineName?: string | null,
-  /** How many ACE units the card reports attached: 0, 1 or 2. */
-  aceCount: 0 | 1 | 2 = 0,
-  /** Forces a body instead of matching on the name. `kobra_s1_combo` is
-   *  accepted and means something stronger than the rest: it asserts an ACE is
-   *  attached, because the Combo is not an authored drawing but the S1 with
-   *  ACE units wrapped around it. */
-  override?: PrinterArtKind | null,
-  spools?: string[],
-  activeSlot = 0,
-  /** Per-slot remaining filament, 0-1, in the same order as `spools`. */
-  remaining: (number | undefined)[] = [],
-): PrinterArt {
-  const name = (machineName ?? "").toLowerCase();
-  let kind: Exclude<PrinterArtKind, "kobra_s1_combo"> = "fdm";
-  let units = aceCount;
-  if (override === "kobra_s1_combo") {
-    // Not a table lookup: withAce() derives the Combo from the S1 body, so
-    // picking it has to guarantee the hardware it is derived from.
-    kind = "kobra_s1";
-    units = units > 0 ? units : 1;
-  } else if (
-    override &&
-    // `override` arrives from a DOM attribute, so it can be any string.
-    // Plain `PRINTER_ART[override]` is truthy for 'constructor' and friends,
-    // which then blows up in artAspect() on `art.viewBox.split`.
-    Object.prototype.hasOwnProperty.call(PRINTER_ART, override)
-  ) {
-    kind = override;
-  } else {
-    for (const [needle, k] of MATCHERS) {
-      if (name.includes(needle)) {
-        kind = k;
-        break;
-      }
-    }
-  }
-  const art = PRINTER_ART[kind];
-  // Resin has no filament path at all. Every FDM body takes either a side
-  // spool (0 ACE) or 1-2 stacked ACE units.
-  if (kind === "resin") {
-    return art;
-  }
-  return withFilamentSource(art, units, spools, activeSlot, remaining);
-}
-
 /* ------------------------------------------------------- transform helpers */
 
 /**
@@ -668,7 +654,6 @@ export const nozzleTransform = (x: number, span = 48): string =>
 
 /* ------------------------------------------------- ACE units (0, 1 or 2) */
 
-const ACE_H = 95;
 const ACE_PITCH = 101;
 
 /**
@@ -745,7 +730,7 @@ export const sideSpool = (
   cy = 70,
   /** Centre x of the reel. Narrower bodies carry it further out. */
   cx = 219.5,
-) => svg`
+): SVGTemplateResult => svg`
   <g id="sidespool">
     <path d="M${cx - 7.5} ${cy - 12} C ${cx - 7.5} ${cy - 26} ${cx - 13.5} ${cy - 34} ${cx - 31.5} ${cy - 32}" stroke="${color}"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
@@ -755,23 +740,6 @@ export const sideSpool = (
     <rect x="${cx - 12.5}" y="${cy - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
     <rect x="${cx + 7.5}" y="${cy - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>`;
-
-/** 0 ACE -> side spool; 1-2 ACE -> stacked units, no side spool. */
-export const withFilamentSource = (
-  art: PrinterArt,
-  aceCount: 0 | 1 | 2,
-  spools: string[] = DEFAULT_SPOOLS,
-  active = 0,
-  remaining: (number | undefined)[] = [],
-): PrinterArt =>
-  aceCount > 0
-    ? withAce(art, aceCount, spools, active, remaining)
-    : {
-        ...art,
-        body: (st: PrinterBodyState) => svg`
-          ${sideSpool(st.tip, art.kind === "kobra_3" ? 80 : 70, art.kind === "fdm" ? 222 : 219.5)}
-          ${art.body(st)}`,
-      };
 
 /* -------------------------------------------------- filament colour lookup */
 
@@ -834,6 +802,20 @@ export function filamentColor(raw?: string | null): string {
  * every reel. The result is that all slots render one colour, which does not
  * look broken enough for anyone to investigate.
  */
+/** [r, g, b] -> '#rrggbb'. Undefined for anything that is not a triple. */
+export const rgbToHex = (rgb?: number[] | null): string | undefined =>
+  Array.isArray(rgb) && rgb.length >= 3
+    ? "#" +
+      rgb
+        .slice(0, 3)
+        .map((c) =>
+          Math.max(0, Math.min(255, Math.round(c)))
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join("")
+    : undefined;
+
 export const spoolColors = (
   slots: (
     | { color?: string | number[] | null; color_hex?: string | null }
@@ -855,20 +837,6 @@ export const spoolColors = (
     }
     return filamentColor(typeof slot.color === "string" ? slot.color : null);
   });
-
-/** [r, g, b] -> '#rrggbb'. Undefined for anything that is not a triple. */
-export const rgbToHex = (rgb?: number[] | null): string | undefined =>
-  Array.isArray(rgb) && rgb.length >= 3
-    ? "#" +
-      rgb
-        .slice(0, 3)
-        .map((c) =>
-          Math.max(0, Math.min(255, Math.round(c)))
-            .toString(16)
-            .padStart(2, "0"),
-        )
-        .join("")
-    : undefined;
 
 /** Colour for the nozzle tip: the active slot, or the single-extruder colour. */
 export const activeTipColor = (
@@ -956,3 +924,67 @@ export const cameraInset = (art: PrinterArt): string =>
   The old .ac-apr-frame / .ac-apr-xaxis / .ac-apr-gantry / .ac-apr-nozzle /
   .ac-apr-buildplate rules and the runtime scale maths in utils.ts can go.
 */
+
+/** 0 ACE -> side spool; 1-2 ACE -> stacked units, no side spool. */
+export const withFilamentSource = (
+  art: PrinterArt,
+  aceCount: 0 | 1 | 2,
+  spools: string[] = DEFAULT_SPOOLS,
+  active = 0,
+  remaining: (number | undefined)[] = [],
+): PrinterArt =>
+  aceCount > 0
+    ? withAce(art, aceCount, spools, active, remaining)
+    : {
+        ...art,
+        body: (st: PrinterBodyState) => svg`
+          ${sideSpool(st.tip, art.kind === "kobra_3" ? 80 : 70, art.kind === "fdm" ? 222 : 219.5)}
+          ${art.body(st)}`,
+      };
+
+export function selectPrinterArt(
+  machineName?: string | null,
+  /** How many ACE units the card reports attached: 0, 1 or 2. */
+  aceCount: 0 | 1 | 2 = 0,
+  /** Forces a body instead of matching on the name. `kobra_s1_combo` is
+   *  accepted and means something stronger than the rest: it asserts an ACE is
+   *  attached, because the Combo is not an authored drawing but the S1 with
+   *  ACE units wrapped around it. */
+  override?: PrinterArtKind | null,
+  spools?: string[],
+  activeSlot = 0,
+  /** Per-slot remaining filament, 0-1, in the same order as `spools`. */
+  remaining: (number | undefined)[] = [],
+): PrinterArt {
+  const name = (machineName ?? "").toLowerCase();
+  let kind: Exclude<PrinterArtKind, "kobra_s1_combo"> = "fdm";
+  let units = aceCount;
+  if (override === "kobra_s1_combo") {
+    // Not a table lookup: withAce() derives the Combo from the S1 body, so
+    // picking it has to guarantee the hardware it is derived from.
+    kind = "kobra_s1";
+    units = units > 0 ? units : 1;
+  } else if (
+    override &&
+    // `override` arrives from a DOM attribute, so it can be any string.
+    // Plain `PRINTER_ART[override]` is truthy for 'constructor' and friends,
+    // which then blows up in artAspect() on `art.viewBox.split`.
+    Object.prototype.hasOwnProperty.call(PRINTER_ART, override)
+  ) {
+    kind = override;
+  } else {
+    for (const [needle, k] of MATCHERS) {
+      if (name.includes(needle)) {
+        kind = k;
+        break;
+      }
+    }
+  }
+  const art = PRINTER_ART[kind];
+  // Resin has no filament path at all. Every FDM body takes either a side
+  // spool (0 ACE) or 1-2 stacked ACE units.
+  if (kind === "resin") {
+    return art;
+  }
+  return withFilamentSource(art, units, spools, activeSlot, remaining);
+}

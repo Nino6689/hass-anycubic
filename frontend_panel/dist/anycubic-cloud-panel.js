@@ -5393,10 +5393,34 @@
       </g>`
       }
     },
-    is = [["kobra s1", "kobra_s1"], ["kobra 3", "kobra_3"], ["kobra 2", "kobra_3"], ["photon", "resin"], ["mono", "resin"], ["m5s", "resin"], ["m7", "resin"], ["kobra", "kobra_3"]];
-  const rs = (t, e, i) => i ? `translate(0 ${-t.park})` : `translate(0 ${(t.travel * (1 - e / 100)).toFixed(1)})`,
+    is = [["kobra s1", "kobra_s1"], ["kobra 3", "kobra_3"], ["kobra 2", "kobra_3"], ["photon", "resin"], ["mono", "resin"], ["m5s", "resin"], ["m7", "resin"], ["kobra", "kobra_3"]],
+    rs = (t, e, i) => i ? `translate(0 ${-t.park})` : `translate(0 ${(t.travel * (1 - e / 100)).toFixed(1)})`,
     ns = (t, e = 48) => `translate(${(t * e).toFixed(1)} 0)`;
-  const ss = (t, e, i = qn, r = 0, n = []) => e > 0 ? function (t, e, i = qn, r = 0, n = []) {
+  const ss = {
+      black: "#1c1c1e",
+      white: "#f2f2f0",
+      grey: "#8a9099",
+      gray: "#8a9099",
+      silver: "#c2c7cc",
+      red: "#d94a3d",
+      orange: "#e07a2f",
+      yellow: "#e8b33a",
+      green: "#3aa87a",
+      blue: "#2f7fd1",
+      purple: "#7a5cd1",
+      pink: "#d9679b",
+      brown: "#8a5a3b",
+      clear: "#cfd8de",
+      natural: "#e6ded2",
+      transparent: "#cfd8de"
+    },
+    os = "var(--ac-printer-accent, currentColor)";
+  const as = t => {
+      const [,, e, i] = t.viewBox.split(/\s+/).map(Number);
+      return `${e} / ${i}`;
+    },
+    ls = t => t.chamber.map(t => `${t}%`).join(" "),
+    cs = (t, e, i = qn, r = 0, n = []) => e > 0 ? function (t, e, i = qn, r = 0, n = []) {
       if (e < 1) return t;
       const s = 101 * e + 14,
         o = 221 + s + 8,
@@ -5435,31 +5459,7 @@
     <rect x="${i + 7.5}" y="${e - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
   </g>`)(e.tip, "kobra_3" === t.kind ? 80 : 70, "fdm" === t.kind ? 222 : 219.5)}
           ${t.body(e)}`
-    }),
-    os = {
-      black: "#1c1c1e",
-      white: "#f2f2f0",
-      grey: "#8a9099",
-      gray: "#8a9099",
-      silver: "#c2c7cc",
-      red: "#d94a3d",
-      orange: "#e07a2f",
-      yellow: "#e8b33a",
-      green: "#3aa87a",
-      blue: "#2f7fd1",
-      purple: "#7a5cd1",
-      pink: "#d9679b",
-      brown: "#8a5a3b",
-      clear: "#cfd8de",
-      natural: "#e6ded2",
-      transparent: "#cfd8de"
-    },
-    as = "var(--ac-printer-accent, currentColor)";
-  const ls = t => {
-      const [,, e, i] = t.viewBox.split(/\s+/).map(Number);
-      return `${e} / ${i}`;
-    },
-    cs = t => t.chamber.map(t => `${t}%`).join(" ");
+    });
   let hs = class extends mt {
     constructor() {
       super(...arguments), this._progressNum = 0, this._isPrinting = !1, this._lightOn = !1;
@@ -5473,8 +5473,9 @@
     _machineName() {
       var t;
       for (const e in this.printerEntities) {
-        const i = this.printerEntities[e].device_id;
-        if (i && this.hass.devices[i]) return null !== (t = this.hass.devices[i].model) && void 0 !== t ? t : this.hass.devices[i].name;
+        const i = this.printerEntities[e].device_id,
+          r = i ? this.hass.devices[i] : void 0;
+        if (r) return null !== (t = r.model) && void 0 !== t ? t : r.name;
       }
     }
     _spoolState() {
@@ -5492,9 +5493,9 @@
           var e, i;
           return function (t) {
             var e;
-            if (!t) return as;
+            if (!t) return os;
             const i = String(t).trim();
-            return /^#[0-9a-f]{8}$/i.test(i) ? i.slice(0, 7) : /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(i) ? i : /^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(i) ? "#" + i.slice(0, 6) : /^(rgb|hsl)a?\(/i.test(i) ? i : null !== (e = os[i.toLowerCase()]) && void 0 !== e ? e : as;
+            return /^#[0-9a-f]{8}$/i.test(i) ? i.slice(0, 7) : /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(i) ? i : /^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(i) ? "#" + i.slice(0, 6) : /^(rgb|hsl)a?\(/i.test(i) ? i : null !== (e = ss[i.toLowerCase()]) && void 0 !== e ? e : os;
           }(null !== (e = t.color_hex) && void 0 !== e ? e : (i = t.color, Array.isArray(i) && i.length >= 3 ? "#" + i.slice(0, 3).map(t => Math.max(0, Math.min(255, Math.round(t))).toString(16).padStart(2, "0")).join("") : void 0));
         }),
         a = s.map(t => "number" == typeof t.consumables_percent ? Math.max(0, Math.min(1, t.consumables_percent / 100)) : void 0),
@@ -5537,7 +5538,7 @@
           break;
         }
         const c = es[a];
-        return "resin" === a ? c : ss(c, l, r, n, s);
+        return "resin" === a ? c : cs(c, l, r, n, s);
       }(this._machineName(), r, null !== (t = this.printerArt) && void 0 !== t ? t : null, e, i, n);
     }
     render() {
@@ -5553,8 +5554,8 @@
       <div
         class="ac-printercard-animatedprinter"
         style=${Rn({
-        "--ac-apr-chamber": cs(e),
-        "--ac-apr-aspect": ls(e)
+        "--ac-apr-chamber": ls(e),
+        "--ac-apr-aspect": as(e)
       })}
       >
         ${s ? K`

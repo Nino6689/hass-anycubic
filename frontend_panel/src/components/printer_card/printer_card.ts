@@ -121,9 +121,7 @@ export class AnycubicPrintercardEditor extends LitElement {
         this.config.showControls,
         defaultConfig.showControls,
       ) as boolean;
-      this.config.showMoveButtons = migratedShowMove(
-        this.config,
-      ) as boolean;
+      this.config.showMoveButtons = migratedShowMove(this.config);
       this.config.sections = undefinedDefault(
         this.config.sections,
         defaultConfig.sections,
@@ -274,7 +272,7 @@ export class AnycubicCard extends LitElement {
         this.config.showControls,
         defaultConfig.showControls,
       ) as boolean;
-      this.showMoveButtons = migratedShowMove(this.config) as boolean;
+      this.showMoveButtons = migratedShowMove(this.config);
       this.sections = undefinedDefault(
         this.config.sections,
         defaultConfig.sections,

@@ -1,28 +1,4 @@
-import {
-  AnimatedPrinterBasicDimension,
-  AnimatedPrinterConfig,
-  AnimatedPrinterDimensions,
-} from "../../../types";
-
-class Scale {
-  scale_factor: number;
-
-  constructor(scale_factor: number) {
-    this.scale_factor = scale_factor;
-  }
-
-  val(value): number {
-    return this.scale_factor * value;
-  }
-
-  og(value): number {
-    return value / this.scale_factor;
-  }
-
-  scaleFactor(): number {
-    return this.scale_factor;
-  }
-}
+import { AnimatedPrinterConfig } from "../../../types";
 
 export const printerConfigAnycubic: AnimatedPrinterConfig = {
   top: {

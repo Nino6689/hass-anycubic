@@ -2,16 +2,7 @@ import { CSSResult, LitElement, PropertyValues, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 
-import { customElementIfUndef } from "../../../internal/register-custom-element";
-
 import "../media_view/camera_stream.ts";
-
-import {
-  getPrinterImageStateUrl,
-  getPrinterSensorStateObj,
-  getStateObjByKey,
-  isPrintStatePrinting,
-} from "../../../helpers";
 
 import {
   PrinterArt,
@@ -22,9 +13,18 @@ import {
   renderPrinter,
   selectPrinterArt,
 } from "./printer_art";
+import {
+  getPrinterImageStateUrl,
+  getPrinterSensorStateObj,
+  getStateObjByKey,
+  isPrintStatePrinting,
+} from "../../../helpers";
+
+import { customElementIfUndef } from "../../../internal/register-custom-element";
 
 import {
   AnimatedPrinterConfig,
+  HassDevice,
   HassEntityInfos,
   HomeAssistant,
   LitTemplateResult,
@@ -165,10 +165,14 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   private _machineName(): string | undefined {
     for (const key in this.printerEntities) {
       const deviceId = this.printerEntities[key].device_id;
-      if (deviceId && this.hass.devices[deviceId]) {
-        return (
-          this.hass.devices[deviceId].model ?? this.hass.devices[deviceId].name
-        );
+      // hass.devices is typed as a total record, so TS thinks the lookup
+      // always succeeds; at runtime a stale entity can name a device that is
+      // gone, so the check stays and the type is narrowed by hand.
+      const device = deviceId
+        ? (this.hass.devices[deviceId] as HassDevice | undefined)
+        : undefined;
+      if (device) {
+        return device.model ?? device.name;
       }
     }
     return undefined;
@@ -183,7 +187,9 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   } {
     const read = (key: string): AceSpool[] => {
       const stateObj = getStateObjByKey(this.hass, this.printerEntities, key);
-      const spools = stateObj?.attributes.spool_info;
+      // Attributes are an `any` bag by definition -- this is the boundary
+      // where that becomes a typed array, so the cast belongs here.
+      const spools: unknown = stateObj?.attributes.spool_info;
       return Array.isArray(spools) ? (spools as AceSpool[]) : [];
     };
 
