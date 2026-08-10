@@ -132,6 +132,9 @@ export class AnycubicPrintercardCard extends LitElement {
   @property({ attribute: "show-controls", type: Boolean })
   public showControls?: boolean = true;
 
+  @property({ attribute: "show-move-buttons", type: Boolean })
+  public showMoveButtons?: boolean = false;
+
   @property({ attribute: false })
   public sections?: CardSectionType[];
 
@@ -290,7 +293,8 @@ export class AnycubicPrintercardCard extends LitElement {
               ${this._renderProgress()} ${this._renderStats()}
             </div>
           </div>
-          ${this._renderControls()} ${this._renderSections()}
+          ${this._renderControls()} ${this._renderMove()}
+          ${this._renderSections()}
         </div>
         <anycubic-printercard-multicolorbox_modal_spool
           .hass=${this.hass}
@@ -528,6 +532,16 @@ export class AnycubicPrintercardCard extends LitElement {
     `;
   }
 
+  /** The move pad, shown inline like the control buttons rather than behind a
+   *  chevron. It used to be a collapsible section, which buried the one part
+   *  of the card you reach for while standing at the printer. */
+  private _renderMove(): LitTemplateResult {
+    if (!this.showMoveButtons) {
+      return nothing;
+    }
+    return html`<div class="ac-move-panel">${this._renderMoveSection()}</div>`;
+  }
+
   private _renderSections(): LitTemplateResult {
     const wanted = this.sections ?? [CardSectionType.Filament];
     const rendered: LitTemplateResult[] = [];
@@ -538,15 +552,6 @@ export class AnycubicPrintercardCard extends LitElement {
           CardSectionType.Filament,
           "Filament",
           this._renderFilamentSection(),
-        ),
-      );
-    }
-    if (wanted.includes(CardSectionType.Move)) {
-      rendered.push(
-        this._renderSection(
-          CardSectionType.Move,
-          "Move",
-          this._renderMoveSection(),
         ),
       );
     }
@@ -1270,6 +1275,12 @@ export class AnycubicPrintercardCard extends LitElement {
       }
 
       .ac-section-body {
+        padding: 4px 0 12px 0;
+      }
+
+      /* Same breathing room the move pad had as a section body, so promoting
+         it out of the accordion does not change its spacing. */
+      .ac-move-panel {
         padding: 4px 0 12px 0;
       }
 

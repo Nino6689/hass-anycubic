@@ -35,6 +35,17 @@ window.console.info(
 
 const defaultConfig = getDefaultCardConfig();
 
+/** Move used to be one of the collapsible `sections`. A config saved back then
+ *  has no `showMoveButtons` at all, and reading the default would silently
+ *  take the move pad away from anyone who had deliberately turned it on, so an
+ *  old `sections: [... "move"]` is honoured as the toggle being set. */
+function migratedShowMove(config: AnycubicCardConfig): boolean {
+  if (typeof config.showMoveButtons === "boolean") {
+    return config.showMoveButtons;
+  }
+  return config.sections?.includes(CardSectionType.Move) ?? false;
+}
+
 @customElement("anycubic-card-editor")
 export class AnycubicPrintercardEditor extends LitElement {
   @property()
@@ -109,6 +120,9 @@ export class AnycubicPrintercardEditor extends LitElement {
       this.config.showControls = undefinedDefault(
         this.config.showControls,
         defaultConfig.showControls,
+      ) as boolean;
+      this.config.showMoveButtons = migratedShowMove(
+        this.config,
       ) as boolean;
       this.config.sections = undefinedDefault(
         this.config.sections,
@@ -199,6 +213,9 @@ export class AnycubicCard extends LitElement {
   private showControls?: boolean;
 
   @state()
+  private showMoveButtons?: boolean;
+
+  @state()
   private sections?: CardSectionType[];
 
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -257,6 +274,7 @@ export class AnycubicCard extends LitElement {
         this.config.showControls,
         defaultConfig.showControls,
       ) as boolean;
+      this.showMoveButtons = migratedShowMove(this.config) as boolean;
       this.sections = undefinedDefault(
         this.config.sections,
         defaultConfig.sections,
@@ -297,6 +315,7 @@ export class AnycubicCard extends LitElement {
         .mediaView=${this.mediaView}
         .printerArt=${this.printerArt}
         .showControls=${this.showControls}
+        .showMoveButtons=${this.showMoveButtons}
         .sections=${this.sections}
       ></anycubic-printercard-card>
     `;

@@ -309,6 +309,7 @@ export interface AnycubicCardConfig {
   alwaysShow?: boolean;
   mediaView?: MediaViewType;
   printerArt?: PrinterArtType;
+  showMoveButtons?: boolean;
   showControls?: boolean;
   sections?: CardSectionType[];
 }
@@ -345,6 +346,10 @@ export enum PrinterArtType {
 
 export enum CardSectionType {
   Filament = "filament",
+  /** @deprecated Move is its own `showMoveButtons` toggle now, shown inline
+   *  like the control buttons rather than folded away behind a chevron. The
+   *  member stays so a config saved before the change can be migrated (see
+   *  printer_card.ts) instead of silently losing its move pad. */
   Move = "move",
   Insights = "insights",
 }

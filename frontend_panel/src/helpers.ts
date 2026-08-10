@@ -960,6 +960,7 @@ export function getDefaultCardConfig(): AnycubicCardConfig {
     alwaysShow: false,
     mediaView: MediaViewType.Auto,
     printerArt: PrinterArtType.Auto,
+    showMoveButtons: false,
     showControls: true,
     sections: [CardSectionType.Filament],
   };

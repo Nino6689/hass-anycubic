@@ -134,6 +134,9 @@ export class AnycubicPrintercardConfigure extends LitElement {
   private _labelShowControls: string;
 
   @state()
+  private _labelShowMoveButtons: string;
+
+  @state()
   private _labelSections: string;
 
   @state()
@@ -197,6 +200,10 @@ export class AnycubicPrintercardConfigure extends LitElement {
       );
       this._labelShowControls = localize(
         "card.configure.labels.show_controls",
+        this.language,
+      );
+      this._labelShowMoveButtons = localize(
+        "card.configure.labels.show_move_buttons",
         this.language,
       );
       this._labelSections = localize(
@@ -398,6 +405,8 @@ export class AnycubicPrintercardConfigure extends LitElement {
         return this._labelPrinterArt;
       case "showControls":
         return this._labelShowControls;
+      case "showMoveButtons":
+        return this._labelShowMoveButtons;
       case "sections":
         return this._labelSections;
       default:
@@ -563,12 +572,15 @@ export class AnycubicPrintercardConfigure extends LitElement {
         selector: { boolean: {} },
       },
       {
+        name: "showMoveButtons",
+        selector: { boolean: {} },
+      },
+      {
         name: "sections",
         selector: {
           select: {
             options: [
               { value: CardSectionType.Filament, label: "Filament" },
-              { value: CardSectionType.Move, label: "Move" },
               { value: CardSectionType.Insights, label: "Insights" },
             ],
             mode: "list",

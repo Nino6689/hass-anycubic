@@ -42,6 +42,7 @@
         "media_view": "Vue principale",
         "printer_art": "Illustration de l'imprimante",
         "show_controls": "Afficher les boutons de contrôle",
+        "show_move_buttons": "Afficher les boutons de déplacement",
         "sections": "Sections dépliables"
       },
       "options": {

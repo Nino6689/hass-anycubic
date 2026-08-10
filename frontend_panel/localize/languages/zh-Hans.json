@@ -42,6 +42,7 @@
         "media_view": "主视图",
         "printer_art": "打印机图形",
         "show_controls": "显示控制按钮",
+        "show_move_buttons": "显示移动按钮",
         "sections": "可展开区块"
       },
       "options": {

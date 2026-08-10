@@ -42,6 +42,7 @@
         "media_view": "Hauptansicht",
         "printer_art": "Druckergrafik",
         "show_controls": "Steuerungsschaltflächen anzeigen",
+        "show_move_buttons": "Bewegungsschaltflächen anzeigen",
         "sections": "Ausklappbare Bereiche"
       },
       "options": {

@@ -42,6 +42,7 @@
         "media_view": "Main view",
         "printer_art": "Printer artwork",
         "show_controls": "Show control buttons",
+        "show_move_buttons": "Show move buttons",
         "sections": "Expandable sections"
       },
       "options": {
