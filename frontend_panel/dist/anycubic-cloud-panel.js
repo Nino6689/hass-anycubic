@@ -5334,7 +5334,7 @@
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g transform="${e}">
+    <g class="ac-apr-nozzle" transform="${e}">
       ${Qn(a, 108, 60, 24, 18)}
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
@@ -5407,7 +5407,7 @@
           <rect x="42" y="50" width="12" height="20" rx="2"></rect>
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
-        <g transform="${e}">
+        <g class="ac-apr-nozzle" transform="${e}">
           ${Qn(a, 108, 66, 24, 18)}
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
@@ -5471,7 +5471,7 @@
           <rect x="32" y="52" width="12" height="20" rx="2"></rect>
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
-        <g transform="${e}">
+        <g class="ac-apr-nozzle" transform="${e}">
           ${Qn(a, 109, 67, 22, 17)}
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
@@ -5850,13 +5850,18 @@
 
       /* The head sweeps only while a job is running. Driven from CSS rather
          than axis data, which the printer does not report often enough to
-         animate from -- when it is wired, replace this with nozzleTransform. */
-      .ac-apr-svg #nozzle {
+         animate from -- when it is wired, replace this with nozzleTransform.
+
+         Targeted by CLASS, not id. It was an id, and an unrelated cleanup that
+         removed the artwork's document-global ids silently killed the sweep:
+         the rule kept matching nothing and the head simply stopped moving. A
+         class cannot collide between two cards, so it satisfies both. */
+      .ac-apr-svg .ac-apr-nozzle {
         transform-box: fill-box;
         transform-origin: center;
       }
 
-      :host([printing]) .ac-apr-svg #nozzle {
+      :host([printing]) .ac-apr-svg .ac-apr-nozzle {
         animation: ac-apr-sweep 4.4s ease-in-out infinite;
       }
 
@@ -5886,7 +5891,7 @@
          they stop rather than slow: the fan still reads as running from its
          opacity, and the head from its position. */
       @media (prefers-reduced-motion: reduce) {
-        :host([printing]) .ac-apr-svg #nozzle,
+        :host([printing]) .ac-apr-svg .ac-apr-nozzle,
         .ac-apr-svg .ac-apr-fan {
           animation: none;
         }

@@ -449,13 +449,18 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
 
       /* The head sweeps only while a job is running. Driven from CSS rather
          than axis data, which the printer does not report often enough to
-         animate from -- when it is wired, replace this with nozzleTransform. */
-      .ac-apr-svg #nozzle {
+         animate from -- when it is wired, replace this with nozzleTransform.
+
+         Targeted by CLASS, not id. It was an id, and an unrelated cleanup that
+         removed the artwork's document-global ids silently killed the sweep:
+         the rule kept matching nothing and the head simply stopped moving. A
+         class cannot collide between two cards, so it satisfies both. */
+      .ac-apr-svg .ac-apr-nozzle {
         transform-box: fill-box;
         transform-origin: center;
       }
 
-      :host([printing]) .ac-apr-svg #nozzle {
+      :host([printing]) .ac-apr-svg .ac-apr-nozzle {
         animation: ac-apr-sweep 4.4s ease-in-out infinite;
       }
 
@@ -485,7 +490,7 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
          they stop rather than slow: the fan still reads as running from its
          opacity, and the head from its position. */
       @media (prefers-reduced-motion: reduce) {
-        :host([printing]) .ac-apr-svg #nozzle,
+        :host([printing]) .ac-apr-svg .ac-apr-nozzle,
         .ac-apr-svg .ac-apr-fan {
           animation: none;
         }

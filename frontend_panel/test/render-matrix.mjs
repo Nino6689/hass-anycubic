@@ -297,6 +297,38 @@ for (const progress of [0.01, 0.25, 0.6, 1]) {
   }
 }
 
+/* ------------------------------------------- the head the CSS animates */
+
+// The sweep is a CSS animation in animated_printer.ts targeting a selector in
+// the artwork. Nothing links the two, so removing the target leaves a rule
+// matching nothing and the head silently stops moving -- which is exactly what
+// happened when the artwork's global ids were cleaned up. This asserts the
+// artwork still emits what that stylesheet animates.
+{
+  const css = readFileSync(
+    join(here, '..', 'src', 'components', 'printer_card', 'printer_view', 'animated_printer.ts'),
+    'utf8',
+  );
+  const target = css.match(/:host\(\[printing\]\)\s+\.ac-apr-svg\s+([.#][\w-]+)\s*\{[^}]*animation:/);
+  if (!target) {
+    problems.push('sweep: no printing-gated animation rule found in the stylesheet');
+  } else {
+    const sel = target[1];
+    if (sel.startsWith('#')) {
+      problems.push(`sweep: animation targets an id (${sel}); ids are document-global and collide between cards`);
+    }
+    const attr = sel.startsWith('.') ? `class="${sel.slice(1)}"` : `id="${sel.slice(1)}"`;
+    for (const kind of ['kobra_s1', 'kobra_3', 'fdm']) {
+      cases++;
+      const art = selectPrinterArt(null, 0, kind, ['#d94a3d'], 0, []);
+      const m = flatten(renderPrinter(art, { progress: 0.5, status: 'printing' })).markup;
+      if (!m.includes(attr)) {
+        problems.push(`sweep: ${kind} does not emit ${attr}, so the head cannot animate`);
+      }
+    }
+  }
+}
+
 /* --------------------------------------------- contrast of the reel edges */
 
 // A reel has to read against the chassis whatever colour the filament is.

@@ -224,7 +224,7 @@ var s1Body = ({
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g transform="${nozzle}">
+    <g class="ac-apr-nozzle" transform="${nozzle}">
       ${heatGlow(nozzleHeat, 108, 60, 24, 18)}
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
@@ -330,7 +330,7 @@ var PRINTER_ART = {
           <rect x="42" y="50" width="12" height="20" rx="2"></rect>
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
-        <g transform="${nozzle}">
+        <g class="ac-apr-nozzle" transform="${nozzle}">
           ${heatGlow(nozzleHeat, 108, 66, 24, 18)}
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
@@ -396,7 +396,7 @@ var PRINTER_ART = {
           <rect x="32" y="52" width="12" height="20" rx="2"></rect>
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
-        <g transform="${nozzle}">
+        <g class="ac-apr-nozzle" transform="${nozzle}">
           ${heatGlow(nozzleHeat, 109, 67, 22, 17)}
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
