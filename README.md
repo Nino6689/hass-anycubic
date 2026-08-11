@@ -1112,6 +1112,8 @@ value wins.
 
 ## 🧵 Filament and the ACE
 
+![Filament tracking and the insights that come from it](docs/images/filament-tracking.png)
+
 The ACE appears as its **own device**, linked to the printer rather than buried inside it — so
 its spools, drying and fan entities stay together, and a second unit has somewhere to live:
 
