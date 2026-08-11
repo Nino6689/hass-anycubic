@@ -12,6 +12,7 @@ import { customElementIfUndef } from "../../../internal/register-custom-element"
 import {
   getPrinterDryingButtonStateObj,
   getPrinterEntityId,
+  getStrictMatchingEntity,
   isPrinterButtonStateAvailable,
 } from "../../../helpers";
 
@@ -200,7 +201,11 @@ export class AnycubicPrintercardMulticolorboxModalDrying extends LitElement {
 
     if (
       changedProperties.has("hass") ||
-      changedProperties.has("selectedPrinterDevice")
+      changedProperties.has("selectedPrinterDevice") ||
+      // Opening the modal for the SECOND ACE changes box_id in the same
+      // update cycle; without this the preset reads below still hold the
+      // first box's entities and the wrong unit gets dried.
+      changedProperties.has("box_id")
     ) {
       const dryingPresetState1: AnycubicDryingPresetEntity =
         getPrinterDryingButtonStateObj(
@@ -362,11 +367,17 @@ export class AnycubicPrintercardMulticolorboxModalDrying extends LitElement {
     if (this.printerEntityIdPart) {
       this.hass
         .callService("button", "press", {
-          entity_id: getPrinterEntityId(
-            this.printerEntityIdPart,
-            "button",
-            suffix,
-          ),
+          // Registry lookup first -- a concatenated id only exists on
+          // English installs registered before the ACE became its own
+          // device. The old id stays as the last resort.
+          entity_id:
+            getStrictMatchingEntity(
+              this.printerEntities,
+              this.printerEntityIdPart,
+              "button",
+              suffix,
+            )?.entity_id ??
+            getPrinterEntityId(this.printerEntityIdPart, "button", suffix),
         })
         .then()
         .catch((_e: unknown) => {

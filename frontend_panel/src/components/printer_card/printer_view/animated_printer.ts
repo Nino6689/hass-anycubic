@@ -128,16 +128,19 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
       this.imagePreviewBgUrl = prevUrl ? `url('${prevUrl}')` : undefined;
     }
 
-    this._progressNum =
-      Number(
-        getPrinterSensorStateObj(
-          this.hass,
-          this.printerEntities,
-          this.printerEntityIdPart,
-          "job_progress",
-          0,
-        ).state,
-      ) / 100;
+    // The default only applies when the entity is MISSING; an offline
+    // printer's sensor exists with state "unavailable", and NaN would ride
+    // into every transform the artwork derives from progress.
+    const rawProgress = Number(
+      getPrinterSensorStateObj(
+        this.hass,
+        this.printerEntities,
+        this.printerEntityIdPart,
+        "job_progress",
+        0,
+      ).state,
+    );
+    this._progressNum = Number.isFinite(rawProgress) ? rawProgress / 100 : 0;
 
     this._isPrinting = isPrintStatePrinting(
       getPrinterSensorStateObj(

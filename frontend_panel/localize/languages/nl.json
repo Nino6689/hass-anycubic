@@ -53,6 +53,18 @@
           "kobra_3": "Kobra 3 / Kobra 2",
           "resin": "Photon / hars",
           "fdm": "Algemene FDM"
+        },
+        "media_view": {
+          "auto": "Automatisch",
+          "camera": "Camera",
+          "preview": "Afdrukvoorbeeld",
+          "printer": "Printerafbeelding",
+          "printer_model": "Printerafbeelding + model",
+          "none": "Verborgen"
+        },
+        "sections": {
+          "filament": "Filament",
+          "insights": "Inzichten"
         }
       }
     },
@@ -109,6 +121,14 @@
       "Z Up Height": "Z-hefhoogte",
       "Z Up Speed": "Z-hefsnelheid",
       "Z Down Speed": "Z-daalsnelheid"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Camera",
+        "preview": "Voorbeeld",
+        "printer": "Printer",
+        "printer_model": "Printer + model"
+      }
     }
   },
   "panels": {

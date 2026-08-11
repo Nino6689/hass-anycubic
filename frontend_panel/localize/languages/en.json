@@ -53,6 +53,18 @@
           "kobra_3": "Kobra 3 / Kobra 2",
           "resin": "Photon / resin",
           "fdm": "Generic FDM"
+        },
+        "media_view": {
+          "auto": "Automatic",
+          "camera": "Camera",
+          "preview": "Job preview",
+          "printer": "Printer graphic",
+          "printer_model": "Printer graphic + model",
+          "none": "Hidden"
+        },
+        "sections": {
+          "filament": "Filament",
+          "insights": "Insights"
         }
       }
     },
@@ -109,6 +121,14 @@
       "Z Up Height": "Z Up Height",
       "Z Up Speed": "Z Up Speed",
       "Z Down Speed": "Z Down Speed"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Camera",
+        "preview": "Preview",
+        "printer": "Printer",
+        "printer_model": "Printer + model"
+      }
     }
   },
   "panels": {

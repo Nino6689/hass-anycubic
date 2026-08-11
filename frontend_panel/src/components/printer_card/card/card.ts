@@ -410,6 +410,7 @@ export class AnycubicPrintercardCard extends LitElement {
     return html`
       <anycubic-printercard-media_view
         .hass=${this.hass}
+        .language=${this.language}
         .printerEntities=${this.printerEntities}
         .printerEntityIdPart=${this.printerEntityIdPart}
         .mediaView=${this.mediaView}

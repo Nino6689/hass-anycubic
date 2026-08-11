@@ -420,6 +420,9 @@ export class AnycubicPrintercardConfigure extends LitElement {
   private _optPrinterArt = (value: PrinterArtType): string =>
     localize(`card.configure.options.printer_art.${value}`, this.language);
 
+  private _opt = (group: string, value: string): string =>
+    localize(`card.configure.options.${group}.${value}`, this.language);
+
   private _computeSchemaMain(): HaFormBaseSchema[] {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!this.printers) {
@@ -521,15 +524,30 @@ export class AnycubicPrintercardConfigure extends LitElement {
         selector: {
           select: {
             options: [
-              { value: MediaViewType.Auto, label: "Automatic" },
-              { value: MediaViewType.Camera, label: "Camera" },
-              { value: MediaViewType.Preview, label: "Job preview" },
-              { value: MediaViewType.Printer, label: "Printer graphic" },
+              {
+                value: MediaViewType.Auto,
+                label: this._opt("media_view", "auto"),
+              },
+              {
+                value: MediaViewType.Camera,
+                label: this._opt("media_view", "camera"),
+              },
+              {
+                value: MediaViewType.Preview,
+                label: this._opt("media_view", "preview"),
+              },
+              {
+                value: MediaViewType.Printer,
+                label: this._opt("media_view", "printer"),
+              },
               {
                 value: MediaViewType.PrinterModel,
-                label: "Printer graphic + model",
+                label: this._opt("media_view", "printer_model"),
               },
-              { value: MediaViewType.None, label: "Hidden" },
+              {
+                value: MediaViewType.None,
+                label: this._opt("media_view", "none"),
+              },
             ],
             mode: "dropdown",
             multiple: false,
@@ -584,8 +602,14 @@ export class AnycubicPrintercardConfigure extends LitElement {
         selector: {
           select: {
             options: [
-              { value: CardSectionType.Filament, label: "Filament" },
-              { value: CardSectionType.Insights, label: "Insights" },
+              {
+                value: CardSectionType.Filament,
+                label: this._opt("sections", "filament"),
+              },
+              {
+                value: CardSectionType.Insights,
+                label: this._opt("sections", "insights"),
+              },
             ],
             mode: "list",
             multiple: true,

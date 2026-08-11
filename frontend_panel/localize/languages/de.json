@@ -53,6 +53,18 @@
           "kobra_3": "Kobra 3 / Kobra 2",
           "resin": "Photon / Harz",
           "fdm": "FDM (allgemein)"
+        },
+        "media_view": {
+          "auto": "Automatisch",
+          "camera": "Kamera",
+          "preview": "Druckvorschau",
+          "printer": "Druckergrafik",
+          "printer_model": "Druckergrafik + Modell",
+          "none": "Ausgeblendet"
+        },
+        "sections": {
+          "filament": "Filament",
+          "insights": "Einblicke"
         }
       }
     },
@@ -109,6 +121,14 @@
       "Z Up Height": "Z-Hubhöhe",
       "Z Up Speed": "Z-Hubgeschwindigkeit",
       "Z Down Speed": "Z-Senkgeschwindigkeit"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Kamera",
+        "preview": "Vorschau",
+        "printer": "Drucker",
+        "printer_model": "Drucker + Modell"
+      }
     }
   },
   "panels": {

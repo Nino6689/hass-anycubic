@@ -295,22 +295,51 @@ export function getPrinterEntities(
   return entities;
 }
 
+/**
+ * Entity-id text is the WRONG identity and it bit twice before this landed:
+ * ids slugify from the entity's display name in the server's language at
+ * registration time, so a German install never matches an English suffix; and
+ * when the ACE moved onto its own device, fresh installs gained an "_ace_pro_"
+ * infix that no suffix ever matched -- while every dev machine kept its old
+ * ids and kept working. The integration-owned `translation_key` is stable
+ * across languages, devices and renames, so it is consulted first; the suffix
+ * remains as a fallback for the few lookups whose suffix never matched a key.
+ */
+function matchByKeyOrSuffix(
+  entities: HassEntityInfos,
+  match_domain: string,
+  match_suffix: string,
+  strictPrefix?: string,
+): HassEntityInfo | undefined {
+  let suffixHit: HassEntityInfo | undefined;
+  for (const key in entities) {
+    const ent = entities[key];
+    const splitID = key.split(".");
+    if (splitID[0] !== match_domain) {
+      continue;
+    }
+    if (ent.translation_key === match_suffix) {
+      return ent;
+    }
+    if (!suffixHit) {
+      const idPart = splitID[1];
+      const matched = strictPrefix
+        ? idPart.split(strictPrefix)[1] === match_suffix
+        : idPart.endsWith(match_suffix);
+      if (matched) {
+        suffixHit = ent;
+      }
+    }
+  }
+  return suffixHit;
+}
+
 export function getMatchingEntity(
   entities: HassEntityInfos,
   match_domain: string,
   match_suffix: string,
 ): HassEntityInfo | undefined {
-  for (const key in entities) {
-    const ent = entities[key];
-    const splitID = key.split(".");
-    const domain: string = splitID[0];
-    const entity_id: string = splitID[1];
-
-    if (domain === match_domain && entity_id.endsWith(match_suffix)) {
-      return ent;
-    }
-  }
-  return undefined;
+  return matchByKeyOrSuffix(entities, match_domain, match_suffix);
 }
 
 export function getPrinterEntityId(
@@ -330,17 +359,12 @@ export function getStrictMatchingEntity(
   if (!printerEntityIdPart) {
     return undefined;
   }
-  for (const key in entities) {
-    const ent = entities[key];
-    const splitID = key.split(".");
-    const domain: string = splitID[0];
-    const entityIdPart: string = splitID[1].split(printerEntityIdPart)[1];
-
-    if (domain === match_domain && entityIdPart === match_suffix) {
-      return ent;
-    }
-  }
-  return undefined;
+  return matchByKeyOrSuffix(
+    entities,
+    match_domain,
+    match_suffix,
+    printerEntityIdPart,
+  );
 }
 
 export function getPrinterEntityIdPart(
@@ -910,6 +934,12 @@ export const getEntityTemperature = (
   round: boolean = false,
 ): string => {
   const t: number = parseFloat(temperatureEntity.state);
+  // "unavailable" parses to NaN and NaN survives the unit conversion, so an
+  // offline printer read "NaN°C" -- worse than no reading, because it looks
+  // like a measurement.
+  if (isNaN(t)) {
+    return UNKNOWN_VALUE;
+  }
   const u: TemperatureUnit = temperatureUnitFromEntity(temperatureEntity);
   const tc: number = convertTemperature(t, u, temperatureUnit || u);
 

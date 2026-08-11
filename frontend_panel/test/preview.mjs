@@ -75,7 +75,10 @@ writeFileSync(join(here, 'preview.html'), `<!doctype html><meta charset="utf-8">
      the tall Combo bodies in either flex or grid, so they overflowed and read
      as broken artwork. Every body is square or portrait, so deriving the width
      from a full-height box always fits. */
-  .stage { position:relative; aspect-ratio:var(--aspect); height:100%; width:auto; max-width:100%; margin:0 auto;
+  /* With the viewBox now actually quoted (see the flatten note above), the
+     SVG meet-fits its box by itself, so the stage needs no aspect arithmetic:
+     any residual mismatch letterboxes instead of clipping. */
+  .stage { position:relative; width:100%; height:100%; margin:0 auto;
     --primary-text-color:#c9d3dc; --secondary-text-color:#8b98a4; --divider-color:#5d6a76;
     --primary-color:#4a9fd8; --ha-card-background:#1b2229; }
   /* Standing in for the camera. It is inset from the STAGE, and the stage is

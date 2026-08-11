@@ -498,13 +498,45 @@ export class AnycubicViewMain extends LitElement {
 
   private _copyPreset = (ev: Event): void => {
     const btn = ev.currentTarget as HTMLButtonElement & { yaml: string };
-    void window.navigator.clipboard.writeText(btn.yaml).then(() => {
+    // navigator.clipboard is [SecureContext]-only, and most Home Assistant
+    // installs are plain http on the LAN -- where the flagship button of this
+    // section would otherwise do nothing, silently. The textarea +
+    // execCommand path is the one that works there.
+    const copied = (): void => {
       const was = btn.textContent;
       btn.textContent = localize("panels.main.presets.copied", this.language);
       setTimeout(() => {
         btn.textContent = was;
       }, 1500);
-    });
+    };
+    const fallback = (): void => {
+      const ta = document.createElement("textarea");
+      ta.value = btn.yaml;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      let didCopy = false;
+      try {
+        didCopy = document.execCommand("copy");
+      } catch (_e) {
+        didCopy = false;
+      }
+      ta.remove();
+      if (didCopy) {
+        copied();
+      }
+    };
+    // The DOM types say clipboard always exists; at runtime it is undefined
+    // outside secure contexts, which is most LAN Home Assistant installs.
+    // The cast keeps the guard the type system would otherwise "simplify"
+    // into a crash.
+    const clip = window.navigator.clipboard as Clipboard | undefined;
+    if (clip?.writeText) {
+      clip.writeText(btn.yaml).then(copied, fallback);
+    } else {
+      fallback();
+    }
   };
 
   render(): LitTemplateResult {

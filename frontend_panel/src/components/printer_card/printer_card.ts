@@ -1,5 +1,7 @@
 import { LitElement, PropertyValues, html } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { property, state } from "lit/decorators.js";
+
+import { customElementIfUndef } from "../../internal/register-custom-element";
 
 import * as pkgjson from "../../../package.json";
 
@@ -46,7 +48,7 @@ function migratedShowMove(config: AnycubicCardConfig): boolean {
   return config.sections?.includes(CardSectionType.Move) ?? false;
 }
 
-@customElement("anycubic-card-editor")
+@customElementIfUndef("anycubic-card-editor")
 export class AnycubicPrintercardEditor extends LitElement {
   @property()
   public hass!: HomeAssistant;
@@ -130,7 +132,10 @@ export class AnycubicPrintercardEditor extends LitElement {
   }
 
   public setConfig(config: AnycubicCardConfig): void {
-    this.config = config;
+    // A copy, not the reference: willUpdate assigns defaults onto this
+    // object, and mutating the one the dashboard editor handed over makes
+    // Lovelace think the user edited the card.
+    this.config = { ...config };
   }
 
   render(): LitTemplateResult {
@@ -145,7 +150,7 @@ export class AnycubicPrintercardEditor extends LitElement {
   }
 }
 
-@customElement("anycubic-card")
+@customElementIfUndef("anycubic-card")
 export class AnycubicCard extends LitElement {
   @property()
   public hass!: HomeAssistant;
@@ -288,7 +293,10 @@ export class AnycubicCard extends LitElement {
   }
 
   public setConfig(config: AnycubicCardConfig): void {
-    this.config = config;
+    // A copy, not the reference: willUpdate assigns defaults onto this
+    // object, and mutating the one the dashboard editor handed over makes
+    // Lovelace think the user edited the card.
+    this.config = { ...config };
   }
 
   render(): LitTemplateResult {

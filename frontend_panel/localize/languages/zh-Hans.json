@@ -53,6 +53,18 @@
           "kobra_3": "Kobra 3 / Kobra 2",
           "resin": "Photon（树脂）",
           "fdm": "通用 FDM"
+        },
+        "media_view": {
+          "auto": "自动",
+          "camera": "摄像头",
+          "preview": "打印预览",
+          "printer": "打印机图形",
+          "printer_model": "打印机图形 + 模型",
+          "none": "隐藏"
+        },
+        "sections": {
+          "filament": "耗材",
+          "insights": "洞察"
         }
       }
     },
@@ -109,6 +121,14 @@
       "Z Up Height": "Z 抬升高度",
       "Z Up Speed": "Z 抬升速度",
       "Z Down Speed": "Z 下降速度"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "摄像头",
+        "preview": "预览",
+        "printer": "打印机",
+        "printer_model": "打印机 + 模型"
+      }
     }
   },
   "panels": {

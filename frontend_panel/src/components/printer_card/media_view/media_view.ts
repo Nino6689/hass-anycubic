@@ -3,6 +3,8 @@ import { CSSResult, LitElement, PropertyValues, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 
+import { localize } from "../../../../localize/localize";
+
 import { customElementIfUndef } from "../../../internal/register-custom-element";
 
 import {
@@ -52,6 +54,9 @@ export class AnycubicPrintercardMediaView extends LitElement {
 
   @property({ attribute: "no-camera", type: Boolean })
   public noCamera: boolean = false;
+
+  @property()
+  public language: string = "en";
 
   @property({ attribute: false })
   public camera: AnycubicCameraChoice | undefined;
@@ -116,20 +121,20 @@ export class AnycubicPrintercardMediaView extends LitElement {
       tabs.push({
         key: MediaViewType.Camera,
         icon: mdiCctv,
-        label: "Camera",
+        label: localize("card.media_view.tabs.camera", this.language),
       });
     }
     if (this._usablePreview()) {
       tabs.push({
         key: MediaViewType.Preview,
         icon: mdiImageOutline,
-        label: "Preview",
+        label: localize("card.media_view.tabs.preview", this.language),
       });
     }
     tabs.push({
       key: MediaViewType.Printer,
       icon: mdiPrinter3d,
-      label: "Printer",
+      label: localize("card.media_view.tabs.printer", this.language),
     });
     // Only worth offering when there is actually a model to put in the
     // chamber, and only as a separate choice when a camera could otherwise
@@ -138,7 +143,7 @@ export class AnycubicPrintercardMediaView extends LitElement {
       tabs.push({
         key: MediaViewType.PrinterModel,
         icon: mdiCube,
-        label: "Printer + model",
+        label: localize("card.media_view.tabs.printer_model", this.language),
       });
     }
     return tabs;
