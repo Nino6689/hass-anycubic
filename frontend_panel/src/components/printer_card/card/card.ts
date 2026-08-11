@@ -39,6 +39,7 @@ import {
   HomeAssistant,
   LitTemplateResult,
   MediaViewType,
+  PrinterArtType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "../../../types";
@@ -125,8 +126,24 @@ export class AnycubicPrintercardCard extends LitElement {
   @property({ attribute: "media-view" })
   public mediaView: MediaViewType = MediaViewType.Auto;
 
+  @property({ attribute: "printer-art" })
+  public printerArt: PrinterArtType = PrinterArtType.Auto;
+
+  /** Never acquire the camera, whatever the media view asks for.
+   *
+   *  For galleries and previews. Starting a cloud stream is not a passive act:
+   *  the Anycubic account hands the camera to whichever session asked most
+   *  recently, so a page that renders several cards at once would quietly take
+   *  it from the phone app -- three times over, in the case that prompted
+   *  this. */
+  @property({ attribute: "no-camera", type: Boolean })
+  public noCamera: boolean = false;
+
   @property({ attribute: "show-controls", type: Boolean })
   public showControls?: boolean = true;
+
+  @property({ attribute: "show-move-buttons", type: Boolean })
+  public showMoveButtons?: boolean = false;
 
   @property({ attribute: false })
   public sections?: CardSectionType[];
@@ -224,12 +241,15 @@ export class AnycubicPrintercardCard extends LitElement {
           "ace_spools",
           "inactive",
         ).state === "active";
+      // The sensor is registered as `secondary_ace_spools`; this asked for
+      // the pre-rename `secondary_multi_color_box_spools`, so the suffix never
+      // matched and a second ACE unit was invisible in the Filament section.
       this.hasSecondaryColorbox =
         getPrinterSensorStateObj(
           this.hass,
           this.printerEntities,
           this.printerEntityIdPart,
-          "secondary_multi_color_box_spools",
+          "secondary_ace_spools",
           "inactive",
         ).state === "active";
 
@@ -286,7 +306,8 @@ export class AnycubicPrintercardCard extends LitElement {
               ${this._renderProgress()} ${this._renderStats()}
             </div>
           </div>
-          ${this._renderControls()} ${this._renderSections()}
+          ${this._renderControls()} ${this._renderMove()}
+          ${this._renderSections()}
         </div>
         <anycubic-printercard-multicolorbox_modal_spool
           .hass=${this.hass}
@@ -389,9 +410,12 @@ export class AnycubicPrintercardCard extends LitElement {
     return html`
       <anycubic-printercard-media_view
         .hass=${this.hass}
+        .language=${this.language}
         .printerEntities=${this.printerEntities}
         .printerEntityIdPart=${this.printerEntityIdPart}
         .mediaView=${this.mediaView}
+        .printerArt=${this.printerArt}
+        .noCamera=${this.noCamera}
         .camera=${this.camera}
         .isPrinting=${this.isPrinting}
       ></anycubic-printercard-media_view>
@@ -523,6 +547,16 @@ export class AnycubicPrintercardCard extends LitElement {
     `;
   }
 
+  /** The move pad, shown inline like the control buttons rather than behind a
+   *  chevron. It used to be a collapsible section, which buried the one part
+   *  of the card you reach for while standing at the printer. */
+  private _renderMove(): LitTemplateResult {
+    if (!this.showMoveButtons) {
+      return nothing;
+    }
+    return html`<div class="ac-move-panel">${this._renderMoveSection()}</div>`;
+  }
+
   private _renderSections(): LitTemplateResult {
     const wanted = this.sections ?? [CardSectionType.Filament];
     const rendered: LitTemplateResult[] = [];
@@ -533,15 +567,6 @@ export class AnycubicPrintercardCard extends LitElement {
           CardSectionType.Filament,
           "Filament",
           this._renderFilamentSection(),
-        ),
-      );
-    }
-    if (wanted.includes(CardSectionType.Move)) {
-      rendered.push(
-        this._renderSection(
-          CardSectionType.Move,
-          "Move",
-          this._renderMoveSection(),
         ),
       );
     }
@@ -1265,6 +1290,12 @@ export class AnycubicPrintercardCard extends LitElement {
       }
 
       .ac-section-body {
+        padding: 4px 0 12px 0;
+      }
+
+      /* Same breathing room the move pad had as a section body, so promoting
+         it out of the accordion does not change its spacing. */
+      .ac-move-panel {
         padding: 4px 0 12px 0;
       }
 

@@ -40,8 +40,32 @@
         "scale_factor": "Schaalfactor",
         "slot_colors": "Kleurvoorinstellingen per slot",
         "media_view": "Hoofdweergave",
+        "printer_art": "Printerafbeelding",
         "show_controls": "Bedieningsknoppen tonen",
+        "show_move_buttons": "Verplaatsknoppen tonen",
         "sections": "Uitklapbare secties"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automatisch (detecteren)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / hars",
+          "fdm": "Algemene FDM"
+        },
+        "media_view": {
+          "auto": "Automatisch",
+          "camera": "Camera",
+          "preview": "Afdrukvoorbeeld",
+          "printer": "Printerafbeelding",
+          "printer_model": "Printerafbeelding + model",
+          "none": "Verborgen"
+        },
+        "sections": {
+          "filament": "Filament",
+          "insights": "Inzichten"
+        }
       }
     },
     "print_settings": {
@@ -97,6 +121,14 @@
       "Z Up Height": "Z-hefhoogte",
       "Z Up Speed": "Z-hefsnelheid",
       "Z Down Speed": "Z-daalsnelheid"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Camera",
+        "preview": "Voorbeeld",
+        "printer": "Printer",
+        "printer_model": "Printer + model"
+      }
     }
   },
   "panels": {
@@ -129,6 +161,21 @@
             "drying_progress": "ACE-droogvoortgang"
           }
         }
+      },
+      "groups": {
+        "machine": "Machine",
+        "ace": "ACE",
+        "diagnostics": "Identificatie"
+      },
+      "presets": {
+        "title": "Bouw dit op je eigen dashboard",
+        "lede": "Elk hiervan is dezelfde kaart als hierboven, anders ingesteld, op de breedte die een dashboardkolom geeft. Voorbeelden openen nooit de camera; de printerafbeelding staat hier in de plaats. Kopieer er een en plak die in een handmatige kaart.",
+        "full": "Volledig",
+        "compact": "Compacte tegel",
+        "copy": "Kopiëren",
+        "copied": "Gekopieerd",
+        "model": "Printer + model",
+        "vertical": "Verticaal"
       }
     },
     "files_cloud": {

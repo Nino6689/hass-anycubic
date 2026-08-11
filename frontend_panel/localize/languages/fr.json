@@ -40,8 +40,32 @@
         "scale_factor": "Facteur d'échelle",
         "slot_colors": "Préréglages de couleurs des emplacements",
         "media_view": "Vue principale",
+        "printer_art": "Illustration de l'imprimante",
         "show_controls": "Afficher les boutons de contrôle",
+        "show_move_buttons": "Afficher les boutons de déplacement",
         "sections": "Sections dépliables"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automatique (détection)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / résine",
+          "fdm": "FDM générique"
+        },
+        "media_view": {
+          "auto": "Automatique",
+          "camera": "Caméra",
+          "preview": "Aperçu du travail",
+          "printer": "Illustration de l'imprimante",
+          "printer_model": "Illustration + modèle",
+          "none": "Masqué"
+        },
+        "sections": {
+          "filament": "Filament",
+          "insights": "Aperçus"
+        }
       }
     },
     "print_settings": {
@@ -97,6 +121,14 @@
       "Z Up Height": "Hauteur de levée Z",
       "Z Up Speed": "Vitesse de montée Z",
       "Z Down Speed": "Vitesse de descente Z"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Caméra",
+        "preview": "Aperçu",
+        "printer": "Imprimante",
+        "printer_model": "Imprimante + modèle"
+      }
     }
   },
   "panels": {
@@ -129,6 +161,21 @@
             "drying_progress": "Progression du séchage ACE"
           }
         }
+      },
+      "groups": {
+        "machine": "Machine",
+        "ace": "ACE",
+        "diagnostics": "Identifiants"
+      },
+      "presets": {
+        "title": "Reproduire ceci sur votre tableau de bord",
+        "lede": "Chacune est la même carte que ci-dessus, réglée autrement, à la largeur qu'une colonne de tableau de bord lui donne. Les aperçus n'ouvrent jamais la caméra : l'illustration de l'imprimante la remplace ici. Copiez-en une et collez-la dans une carte manuelle.",
+        "full": "Complète",
+        "compact": "Tuile compacte",
+        "copy": "Copier",
+        "copied": "Copié",
+        "model": "Imprimante + modèle",
+        "vertical": "Verticale"
       }
     },
     "files_cloud": {

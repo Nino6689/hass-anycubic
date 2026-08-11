@@ -1,5 +1,7 @@
 import { LitElement, PropertyValues, html } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { property, state } from "lit/decorators.js";
+
+import { customElementIfUndef } from "../../internal/register-custom-element";
 
 import * as pkgjson from "../../../package.json";
 
@@ -12,6 +14,7 @@ import {
   HomeAssistant,
   LitTemplateResult,
   MediaViewType,
+  PrinterArtType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "../../types";
@@ -34,7 +37,18 @@ window.console.info(
 
 const defaultConfig = getDefaultCardConfig();
 
-@customElement("anycubic-card-editor")
+/** Move used to be one of the collapsible `sections`. A config saved back then
+ *  has no `showMoveButtons` at all, and reading the default would silently
+ *  take the move pad away from anyone who had deliberately turned it on, so an
+ *  old `sections: [... "move"]` is honoured as the toggle being set. */
+function migratedShowMove(config: AnycubicCardConfig): boolean {
+  if (typeof config.showMoveButtons === "boolean") {
+    return config.showMoveButtons;
+  }
+  return config.sections?.includes(CardSectionType.Move) ?? false;
+}
+
+@customElementIfUndef("anycubic-card-editor")
 export class AnycubicPrintercardEditor extends LitElement {
   @property()
   public hass!: HomeAssistant;
@@ -101,10 +115,15 @@ export class AnycubicPrintercardEditor extends LitElement {
         this.config.mediaView,
         defaultConfig.mediaView,
       ) as MediaViewType;
+      this.config.printerArt = undefinedDefault(
+        this.config.printerArt,
+        defaultConfig.printerArt,
+      ) as PrinterArtType;
       this.config.showControls = undefinedDefault(
         this.config.showControls,
         defaultConfig.showControls,
       ) as boolean;
+      this.config.showMoveButtons = migratedShowMove(this.config);
       this.config.sections = undefinedDefault(
         this.config.sections,
         defaultConfig.sections,
@@ -113,7 +132,10 @@ export class AnycubicPrintercardEditor extends LitElement {
   }
 
   public setConfig(config: AnycubicCardConfig): void {
-    this.config = config;
+    // A copy, not the reference: willUpdate assigns defaults onto this
+    // object, and mutating the one the dashboard editor handed over makes
+    // Lovelace think the user edited the card.
+    this.config = { ...config };
   }
 
   render(): LitTemplateResult {
@@ -128,7 +150,7 @@ export class AnycubicPrintercardEditor extends LitElement {
   }
 }
 
-@customElement("anycubic-card")
+@customElementIfUndef("anycubic-card")
 export class AnycubicCard extends LitElement {
   @property()
   public hass!: HomeAssistant;
@@ -188,7 +210,13 @@ export class AnycubicCard extends LitElement {
   private mediaView?: MediaViewType;
 
   @state()
+  private printerArt?: PrinterArtType;
+
+  @state()
   private showControls?: boolean;
+
+  @state()
+  private showMoveButtons?: boolean;
 
   @state()
   private sections?: CardSectionType[];
@@ -241,10 +269,15 @@ export class AnycubicCard extends LitElement {
         this.config.mediaView,
         defaultConfig.mediaView,
       ) as MediaViewType;
+      this.printerArt = undefinedDefault(
+        this.config.printerArt,
+        defaultConfig.printerArt,
+      ) as PrinterArtType;
       this.showControls = undefinedDefault(
         this.config.showControls,
         defaultConfig.showControls,
       ) as boolean;
+      this.showMoveButtons = migratedShowMove(this.config);
       this.sections = undefinedDefault(
         this.config.sections,
         defaultConfig.sections,
@@ -260,7 +293,10 @@ export class AnycubicCard extends LitElement {
   }
 
   public setConfig(config: AnycubicCardConfig): void {
-    this.config = config;
+    // A copy, not the reference: willUpdate assigns defaults onto this
+    // object, and mutating the one the dashboard editor handed over makes
+    // Lovelace think the user edited the card.
+    this.config = { ...config };
   }
 
   render(): LitTemplateResult {
@@ -283,7 +319,9 @@ export class AnycubicCard extends LitElement {
         .scaleFactor=${this.scaleFactor}
         .slotColors=${this.slotColors}
         .mediaView=${this.mediaView}
+        .printerArt=${this.printerArt}
         .showControls=${this.showControls}
+        .showMoveButtons=${this.showMoveButtons}
         .sections=${this.sections}
       ></anycubic-printercard-card>
     `;

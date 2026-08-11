@@ -31,6 +31,7 @@ import {
   LitTemplateResult,
   MediaViewType,
   PageChangeDetail,
+  PrinterArtType,
   PrinterCardStatType,
   StatTypeACE,
   StatTypeFDM,
@@ -133,7 +134,13 @@ export class AnycubicPrintercardConfigure extends LitElement {
   private _labelShowControls: string;
 
   @state()
+  private _labelShowMoveButtons: string;
+
+  @state()
   private _labelSections: string;
+
+  @state()
+  private _labelPrinterArt: string;
 
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
@@ -195,8 +202,16 @@ export class AnycubicPrintercardConfigure extends LitElement {
         "card.configure.labels.show_controls",
         this.language,
       );
+      this._labelShowMoveButtons = localize(
+        "card.configure.labels.show_move_buttons",
+        this.language,
+      );
       this._labelSections = localize(
         "card.configure.labels.sections",
+        this.language,
+      );
+      this._labelPrinterArt = localize(
+        "card.configure.labels.printer_art",
         this.language,
       );
     }
@@ -386,14 +401,27 @@ export class AnycubicPrintercardConfigure extends LitElement {
         return this._labelSlotColors;
       case "mediaView":
         return this._labelMediaView;
+      case "printerArt":
+        return this._labelPrinterArt;
       case "showControls":
         return this._labelShowControls;
+      case "showMoveButtons":
+        return this._labelShowMoveButtons;
       case "sections":
         return this._labelSections;
       default:
         return this._labelPrinter_id;
     }
   };
+
+  /** Unlike the other dropdowns, these option labels are translated. The
+   *  schema is rebuilt whenever `language` changes (see willUpdate), so
+   *  resolving them inline re-translates them without a @state cache each. */
+  private _optPrinterArt = (value: PrinterArtType): string =>
+    localize(`card.configure.options.printer_art.${value}`, this.language);
+
+  private _opt = (group: string, value: string): string =>
+    localize(`card.configure.options.${group}.${value}`, this.language);
 
   private _computeSchemaMain(): HaFormBaseSchema[] {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -496,11 +524,65 @@ export class AnycubicPrintercardConfigure extends LitElement {
         selector: {
           select: {
             options: [
-              { value: MediaViewType.Auto, label: "Automatic" },
-              { value: MediaViewType.Camera, label: "Camera" },
-              { value: MediaViewType.Preview, label: "Job preview" },
-              { value: MediaViewType.Printer, label: "Printer graphic" },
-              { value: MediaViewType.None, label: "Hidden" },
+              {
+                value: MediaViewType.Auto,
+                label: this._opt("media_view", "auto"),
+              },
+              {
+                value: MediaViewType.Camera,
+                label: this._opt("media_view", "camera"),
+              },
+              {
+                value: MediaViewType.Preview,
+                label: this._opt("media_view", "preview"),
+              },
+              {
+                value: MediaViewType.Printer,
+                label: this._opt("media_view", "printer"),
+              },
+              {
+                value: MediaViewType.PrinterModel,
+                label: this._opt("media_view", "printer_model"),
+              },
+              {
+                value: MediaViewType.None,
+                label: this._opt("media_view", "none"),
+              },
+            ],
+            mode: "dropdown",
+            multiple: false,
+          },
+        },
+      },
+      {
+        name: "printerArt",
+        selector: {
+          select: {
+            options: [
+              {
+                value: PrinterArtType.Auto,
+                label: this._optPrinterArt(PrinterArtType.Auto),
+              },
+              {
+                value: PrinterArtType.KobraS1,
+                label: this._optPrinterArt(PrinterArtType.KobraS1),
+              },
+              {
+                value: PrinterArtType.KobraS1Combo,
+                label: this._optPrinterArt(PrinterArtType.KobraS1Combo),
+              },
+              {
+                value: PrinterArtType.Kobra3,
+                label: this._optPrinterArt(PrinterArtType.Kobra3),
+              },
+              {
+                value: PrinterArtType.Resin,
+                label: this._optPrinterArt(PrinterArtType.Resin),
+              },
+              {
+                value: PrinterArtType.FDM,
+                label: this._optPrinterArt(PrinterArtType.FDM),
+              },
             ],
             mode: "dropdown",
             multiple: false,
@@ -512,13 +594,22 @@ export class AnycubicPrintercardConfigure extends LitElement {
         selector: { boolean: {} },
       },
       {
+        name: "showMoveButtons",
+        selector: { boolean: {} },
+      },
+      {
         name: "sections",
         selector: {
           select: {
             options: [
-              { value: CardSectionType.Filament, label: "Filament" },
-              { value: CardSectionType.Move, label: "Move" },
-              { value: CardSectionType.Insights, label: "Insights" },
+              {
+                value: CardSectionType.Filament,
+                label: this._opt("sections", "filament"),
+              },
+              {
+                value: CardSectionType.Insights,
+                label: this._opt("sections", "insights"),
+              },
             ],
             mode: "list",
             multiple: true,

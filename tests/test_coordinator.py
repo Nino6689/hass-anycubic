@@ -7,8 +7,10 @@ by hand because they only happen on the unhappy path.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
+import ssl
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -336,3 +338,86 @@ class TestLocalFileList:
             await coordinator._async_check_local_file_list_changed(None, printer)
 
         refresh.assert_not_awaited()
+
+
+class TestMqttFailureIsVisible:
+    """A connect that raises must say so, and must not disable MQTT forever.
+
+    The executor future was stored and never inspected, so a TLS handshake
+    failure, a refused port or a cert the local OpenSSL declines to load all
+    vanished without trace -- and because the failed future stayed non-None,
+    the "start MQTT" guard never fired again. One failure disabled MQTT for
+    the life of the entry, with the manual switch and the refresh button both
+    silently doing nothing. That was reported from the field (issue #13) as
+    "no MQTT-related messages appear in the logs at all".
+    """
+
+    @pytest.fixture
+    def loaded(self, hass: HomeAssistant, mock_entry, mock_api):
+        async def _build():
+            from helpers import setup_entry
+
+            await setup_entry(hass, mock_entry)
+            return mock_entry.runtime_data, mock_api[0]
+
+        return _build
+
+    async def test_the_failure_is_logged_with_the_address(self, loaded, caplog) -> None:
+        coordinator, api = await loaded()
+        api.endpoints.mqtt_host = "mqtt.anycubicloud.com"
+        api.endpoints.mqtt_port = 8883
+
+        failed: asyncio.Future = asyncio.get_running_loop().create_future()
+        failed.set_exception(ssl.SSLError("handshake failure"))
+        coordinator._mqtt_task = failed
+        coordinator._mqtt_task_finished(failed)
+
+        assert coordinator._mqtt_last_error is not None
+        # The address belongs in the message: a wrong host or port is
+        # otherwise indistinguishable from the service being down.
+        assert "mqtt.anycubicloud.com:8883" in coordinator._mqtt_last_error
+        assert "SSLError" in coordinator._mqtt_last_error
+        assert "Anycubic MQTT connection failed" in caplog.text
+
+    async def test_a_failure_does_not_disable_mqtt_forever(self, loaded) -> None:
+        coordinator, api = await loaded()
+        failed: asyncio.Future = asyncio.get_running_loop().create_future()
+        failed.set_exception(OSError("connection refused"))
+        coordinator._mqtt_task = failed
+
+        coordinator._mqtt_task_finished(failed)
+
+        # Cleared, so the "start MQTT" guard can fire again. Left set, the
+        # integration would never retry for the life of the entry.
+        assert coordinator._mqtt_task is None
+
+    async def test_the_error_reaches_diagnostics(self, loaded) -> None:
+        coordinator, api = await loaded()
+        failed: asyncio.Future = asyncio.get_running_loop().create_future()
+        failed.set_exception(ssl.SSLError("bad handshake"))
+        coordinator._mqtt_task = failed
+        coordinator._mqtt_task_finished(failed)
+
+        # Alongside mqtt_connection_active, which is coordinator-wide and
+        # already lives in the per-printer dict.
+        printer = next(iter(coordinator.printers.values()))
+        built = coordinator._build_printer_dict(printer)
+        assert "SSLError" in str(built["states"]["mqtt_last_error"])
+        # And on the sensor itself, so "off" carries its own reason.
+        assert "SSLError" in str(built["attributes"]["mqtt_connection_active"]["last_error"])
+
+    async def test_refresh_works_when_mqtt_never_started(self, loaded) -> None:
+        """The button is pressed precisely when MQTT is not running, and it
+        used to return early in exactly that case."""
+        coordinator, api = await loaded()
+        api.mqtt_is_started = False
+        coordinator._mqtt_last_refresh = None
+        coordinator._mqtt_task = MagicMock()
+
+        with patch.object(
+            type(coordinator), "_check_anycubic_mqtt_connection", AsyncMock()
+        ) as check:
+            await coordinator.refresh_anycubic_mqtt_connection()
+
+        check.assert_awaited_once()
+        assert coordinator._mqtt_task is None

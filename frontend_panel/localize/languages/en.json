@@ -40,8 +40,32 @@
         "scale_factor": "Scale Factor",
         "slot_colors": "Slot Colour Presets",
         "media_view": "Main view",
+        "printer_art": "Printer artwork",
         "show_controls": "Show control buttons",
+        "show_move_buttons": "Show move buttons",
         "sections": "Expandable sections"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automatic (detect)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / resin",
+          "fdm": "Generic FDM"
+        },
+        "media_view": {
+          "auto": "Automatic",
+          "camera": "Camera",
+          "preview": "Job preview",
+          "printer": "Printer graphic",
+          "printer_model": "Printer graphic + model",
+          "none": "Hidden"
+        },
+        "sections": {
+          "filament": "Filament",
+          "insights": "Insights"
+        }
       }
     },
     "print_settings": {
@@ -97,6 +121,14 @@
       "Z Up Height": "Z Up Height",
       "Z Up Speed": "Z Up Speed",
       "Z Down Speed": "Z Down Speed"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Camera",
+        "preview": "Preview",
+        "printer": "Printer",
+        "printer_model": "Printer + model"
+      }
     }
   },
   "panels": {
@@ -129,6 +161,21 @@
             "drying_progress": "ACE Drying Progress"
           }
         }
+      },
+      "groups": {
+        "machine": "Machine",
+        "ace": "ACE",
+        "diagnostics": "Identifiers"
+      },
+      "presets": {
+        "title": "Build this on your own dashboard",
+        "lede": "Each of these is the same card as above, set up differently — shown at the width a dashboard column gives it. Previews never open the camera, so the printer graphic stands in for it here. Copy one and paste it into a Manual card.",
+        "full": "Full",
+        "compact": "Compact tile",
+        "copy": "Copy",
+        "copied": "Copied",
+        "model": "Printer + model",
+        "vertical": "Vertical"
       }
     },
     "files_cloud": {

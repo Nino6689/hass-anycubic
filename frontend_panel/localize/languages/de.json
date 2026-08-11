@@ -40,8 +40,32 @@
         "scale_factor": "Skalierungsfaktor",
         "slot_colors": "Farbvoreinstellungen der Fächer",
         "media_view": "Hauptansicht",
+        "printer_art": "Druckergrafik",
         "show_controls": "Steuerungsschaltflächen anzeigen",
+        "show_move_buttons": "Bewegungsschaltflächen anzeigen",
         "sections": "Ausklappbare Bereiche"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automatisch (erkennen)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / Harz",
+          "fdm": "FDM (allgemein)"
+        },
+        "media_view": {
+          "auto": "Automatisch",
+          "camera": "Kamera",
+          "preview": "Druckvorschau",
+          "printer": "Druckergrafik",
+          "printer_model": "Druckergrafik + Modell",
+          "none": "Ausgeblendet"
+        },
+        "sections": {
+          "filament": "Filament",
+          "insights": "Einblicke"
+        }
       }
     },
     "print_settings": {
@@ -97,6 +121,14 @@
       "Z Up Height": "Z-Hubhöhe",
       "Z Up Speed": "Z-Hubgeschwindigkeit",
       "Z Down Speed": "Z-Senkgeschwindigkeit"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Kamera",
+        "preview": "Vorschau",
+        "printer": "Drucker",
+        "printer_model": "Drucker + Modell"
+      }
     }
   },
   "panels": {
@@ -129,6 +161,21 @@
             "drying_progress": "ACE-Trocknungsfortschritt"
           }
         }
+      },
+      "groups": {
+        "machine": "Gerät",
+        "ace": "ACE",
+        "diagnostics": "Kennungen"
+      },
+      "presets": {
+        "title": "Auf dem eigenen Dashboard nachbauen",
+        "lede": "Jede davon ist dieselbe Karte wie oben, nur anders eingestellt – in der Breite gezeigt, die eine Dashboard-Spalte ihr gibt. Vorschauen öffnen nie die Kamera; hier steht die Druckergrafik dafür. Kopieren und in eine manuelle Karte einfügen.",
+        "full": "Vollständig",
+        "compact": "Kompakte Kachel",
+        "copy": "Kopieren",
+        "copied": "Kopiert",
+        "model": "Drucker + Modell",
+        "vertical": "Vertikal"
       }
     },
     "files_cloud": {

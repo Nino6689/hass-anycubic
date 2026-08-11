@@ -1,7 +1,9 @@
-import { mdiCctv, mdiImageOutline, mdiPrinter3d } from "@mdi/js";
+import { mdiCctv, mdiCube, mdiImageOutline, mdiPrinter3d } from "@mdi/js";
 import { CSSResult, LitElement, PropertyValues, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
+
+import { localize } from "../../../../localize/localize";
 
 import { customElementIfUndef } from "../../../internal/register-custom-element";
 
@@ -13,6 +15,7 @@ import {
   HomeAssistant,
   LitTemplateResult,
   MediaViewType,
+  PrinterArtType,
 } from "../../../types";
 
 import { getPrinterImageStateUrl } from "../../../helpers";
@@ -45,6 +48,15 @@ export class AnycubicPrintercardMediaView extends LitElement {
 
   @property({ attribute: "media-view" })
   public mediaView: MediaViewType = MediaViewType.Auto;
+
+  @property({ attribute: "printer-art" })
+  public printerArt?: PrinterArtType;
+
+  @property({ attribute: "no-camera", type: Boolean })
+  public noCamera: boolean = false;
+
+  @property()
+  public language: string = "en";
 
   @property({ attribute: false })
   public camera: AnycubicCameraChoice | undefined;
@@ -105,25 +117,35 @@ export class AnycubicPrintercardMediaView extends LitElement {
 
   private _availableTabs(): MediaTab[] {
     const tabs: MediaTab[] = [];
-    if (this.camera) {
+    if (this.camera && !this.noCamera) {
       tabs.push({
         key: MediaViewType.Camera,
         icon: mdiCctv,
-        label: "Camera",
+        label: localize("card.media_view.tabs.camera", this.language),
       });
     }
     if (this._usablePreview()) {
       tabs.push({
         key: MediaViewType.Preview,
         icon: mdiImageOutline,
-        label: "Preview",
+        label: localize("card.media_view.tabs.preview", this.language),
       });
     }
     tabs.push({
       key: MediaViewType.Printer,
       icon: mdiPrinter3d,
-      label: "Printer",
+      label: localize("card.media_view.tabs.printer", this.language),
     });
+    // Only worth offering when there is actually a model to put in the
+    // chamber, and only as a separate choice when a camera could otherwise
+    // claim it -- with no camera, `Printer` already shows the model.
+    if (this._usablePreview() && this.camera) {
+      tabs.push({
+        key: MediaViewType.PrinterModel,
+        icon: mdiCube,
+        label: localize("card.media_view.tabs.printer_model", this.language),
+      });
+    }
     return tabs;
   }
 
@@ -181,7 +203,9 @@ export class AnycubicPrintercardMediaView extends LitElement {
     return html`
       <div
         class="ac-media ${classMap({
-          "ac-media-tall": active === MediaViewType.Printer,
+          "ac-media-tall":
+            active === MediaViewType.Printer ||
+            active === MediaViewType.PrinterModel,
         })}"
       >
         <div class="ac-media-surface">${this._renderSurface(active)}</div>
@@ -198,7 +222,7 @@ export class AnycubicPrintercardMediaView extends LitElement {
   }
 
   private _renderSurface(active: MediaViewType): LitTemplateResult {
-    if (active === MediaViewType.Camera && this.camera) {
+    if (active === MediaViewType.Camera && this.camera && !this.noCamera) {
       return html`
         <anycubic-printercard-camera_stream
           .hass=${this.hass}
@@ -225,6 +249,7 @@ export class AnycubicPrintercardMediaView extends LitElement {
         .printerEntityIdPart=${this.printerEntityIdPart}
         .scaleFactor=${1}
         .cameraEntityId=${this._insetCameraEntityId()}
+        .printerArt=${this.printerArt}
       ></anycubic-printercard-printer_view>
     `;
   }
@@ -237,7 +262,16 @@ export class AnycubicPrintercardMediaView extends LitElement {
    * away from whatever else is watching, so it must follow from a choice.
    */
   private _insetCameraEntityId(): string | undefined {
-    if (!this.camera) {
+    // `available` matters as much as `chosen`. selectPrinterCamera falls back
+    // to cameras[0] when nothing is available, so an offline LAN camera still
+    // arrives here -- and claiming the chamber with it left a dead black
+    // rectangle where the sliced model should have been.
+    if (this.noCamera || !this.camera || !this.camera.available) {
+      return undefined;
+    }
+    // PrinterModel deliberately withholds the chamber from the camera so the
+    // sliced model can have it; that is the whole difference between the two.
+    if (this._activeTab() === MediaViewType.PrinterModel) {
       return undefined;
     }
     const chosen =

@@ -24,9 +24,9 @@
   function n(t, e, i, r) {
     var n,
       s = arguments.length,
-      o = s < 3 ? e : null === r ? r = Object.getOwnPropertyDescriptor(e, i) : r;
-    if ("object" == typeof Reflect && "function" == typeof Reflect.decorate) o = Reflect.decorate(t, e, i, r);else for (var a = t.length - 1; a >= 0; a--) (n = t[a]) && (o = (s < 3 ? n(o) : s > 3 ? n(e, i, o) : n(e, i)) || o);
-    return s > 3 && o && Object.defineProperty(e, i, o), o;
+      a = s < 3 ? e : null === r ? r = Object.getOwnPropertyDescriptor(e, i) : r;
+    if ("object" == typeof Reflect && "function" == typeof Reflect.decorate) a = Reflect.decorate(t, e, i, r);else for (var o = t.length - 1; o >= 0; o--) (n = t[o]) && (a = (s < 3 ? n(a) : s > 3 ? n(e, i, a) : n(e, i)) || a);
+    return s > 3 && a && Object.defineProperty(e, i, a), a;
   }
   function s(t, e, i) {
     if (i || 2 === arguments.length) for (var r, n = 0, s = e.length; n < s; n++) !r && n in e || (r || (r = Array.prototype.slice.call(e, 0, n)), r[n] = e[n]);
@@ -38,8 +38,8 @@
        * Copyright 2019 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const o = globalThis,
-    a = o.ShadowRoot && (void 0 === o.ShadyCSS || o.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype,
+  const a = globalThis,
+    o = a.ShadowRoot && (void 0 === a.ShadyCSS || a.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype,
     l = Symbol(),
     c = new WeakMap();
   class h {
@@ -50,7 +50,7 @@
     get styleSheet() {
       let t = this.o;
       const e = this.t;
-      if (a && void 0 === t) {
+      if (o && void 0 === t) {
         const i = void 0 !== e && 1 === e.length;
         i && (t = c.get(e)), void 0 === t && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), i && c.set(e, t));
       }
@@ -69,7 +69,7 @@
       })(i) + t[r + 1], t[0]);
       return new h(i, t, l);
     },
-    u = a ? t => t : t => t instanceof CSSStyleSheet ? (t => {
+    u = o ? t => t : t => t instanceof CSSStyleSheet ? (t => {
       let e = "";
       for (const i of t.cssRules) e += i.cssText;
       return d(e);
@@ -83,16 +83,16 @@
       is: g,
       defineProperty: m,
       getOwnPropertyDescriptor: b,
-      getOwnPropertyNames: _,
-      getOwnPropertySymbols: v,
-      getPrototypeOf: y
+      getOwnPropertyNames: v,
+      getOwnPropertySymbols: y,
+      getPrototypeOf: f
     } = Object,
-    f = globalThis,
-    w = f.trustedTypes,
+    _ = globalThis,
+    w = _.trustedTypes,
     x = w ? w.emptyScript : "",
-    E = f.reactiveElementPolyfillSupport,
-    S = (t, e) => t,
-    $ = {
+    $ = _.reactiveElementPolyfillSupport,
+    E = (t, e) => t,
+    S = {
       toAttribute(t, e) {
         switch (e) {
           case Boolean:
@@ -125,22 +125,22 @@
       }
     },
     P = (t, e) => !g(t, e),
-    A = {
+    C = {
       attribute: !0,
       type: String,
-      converter: $,
+      converter: S,
       reflect: !1,
       hasChanged: P
     };
-  Symbol.metadata ??= Symbol("metadata"), f.litPropertyMetadata ??= new WeakMap();
-  class T extends HTMLElement {
+  Symbol.metadata ??= Symbol("metadata"), _.litPropertyMetadata ??= new WeakMap();
+  class A extends HTMLElement {
     static addInitializer(t) {
       this._$Ei(), (this.l ??= []).push(t);
     }
     static get observedAttributes() {
       return this.finalize(), this._$Eh && [...this._$Eh.keys()];
     }
-    static createProperty(t, e = A) {
+    static createProperty(t, e = C) {
       if (e.state && (e.attribute = !1), this._$Ei(), this.elementProperties.set(t, e), !e.noAccessor) {
         const i = Symbol(),
           r = this.getPropertyDescriptor(t, i, e);
@@ -172,18 +172,18 @@
       };
     }
     static getPropertyOptions(t) {
-      return this.elementProperties.get(t) ?? A;
+      return this.elementProperties.get(t) ?? C;
     }
     static _$Ei() {
-      if (this.hasOwnProperty(S("elementProperties"))) return;
-      const t = y(this);
+      if (this.hasOwnProperty(E("elementProperties"))) return;
+      const t = f(this);
       t.finalize(), void 0 !== t.l && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
     }
     static finalize() {
-      if (this.hasOwnProperty(S("finalized"))) return;
-      if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(S("properties"))) {
+      if (this.hasOwnProperty(E("finalized"))) return;
+      if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(E("properties"))) {
         const t = this.properties,
-          e = [..._(t), ...v(t)];
+          e = [...v(t), ...y(t)];
         for (const i of e) this.createProperty(i, t[i]);
       }
       const t = this[Symbol.metadata];
@@ -231,9 +231,9 @@
     createRenderRoot() {
       const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
       return ((t, e) => {
-        if (a) t.adoptedStyleSheets = e.map(t => t instanceof CSSStyleSheet ? t : t.styleSheet);else for (const i of e) {
+        if (o) t.adoptedStyleSheets = e.map(t => t instanceof CSSStyleSheet ? t : t.styleSheet);else for (const i of e) {
           const e = document.createElement("style"),
-            r = o.litNonce;
+            r = a.litNonce;
           void 0 !== r && e.setAttribute("nonce", r), e.textContent = i.cssText, t.appendChild(e);
         }
       })(t, this.constructor.elementStyles), t;
@@ -252,7 +252,7 @@
       const i = this.constructor.elementProperties.get(t),
         r = this.constructor._$Eu(t, i);
       if (void 0 !== r && !0 === i.reflect) {
-        const n = (void 0 !== i.converter?.toAttribute ? i.converter : $).toAttribute(e, i.type);
+        const n = (void 0 !== i.converter?.toAttribute ? i.converter : S).toAttribute(e, i.type);
         this._$Em = t, null == n ? this.removeAttribute(r) : this.setAttribute(r, n), this._$Em = null;
       }
     }
@@ -263,7 +263,7 @@
         const t = i.getPropertyOptions(r),
           n = "function" == typeof t.converter ? {
             fromAttribute: t.converter
-          } : void 0 !== t.converter?.fromAttribute ? t.converter : $;
+          } : void 0 !== t.converter?.fromAttribute ? t.converter : S;
         this._$Em = r, this[r] = n.fromAttribute(e, t.type), this._$Em = null;
       }
     }
@@ -331,25 +331,25 @@
     updated(t) {}
     firstUpdated(t) {}
   }
-  T.elementStyles = [], T.shadowRootOptions = {
+  A.elementStyles = [], A.shadowRootOptions = {
     mode: "open"
-  }, T[S("elementProperties")] = new Map(), T[S("finalized")] = new Map(), E?.({
-    ReactiveElement: T
-  }), (f.reactiveElementVersions ??= []).push("2.0.4");
+  }, A[E("elementProperties")] = new Map(), A[E("finalized")] = new Map(), $?.({
+    ReactiveElement: A
+  }), (_.reactiveElementVersions ??= []).push("2.0.4");
   /**
        * @license
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const C = globalThis,
-    k = C.trustedTypes,
-    H = k ? k.createPolicy("lit-html", {
+  const T = globalThis,
+    k = T.trustedTypes,
+    M = k ? k.createPolicy("lit-html", {
       createHTML: t => t
     }) : void 0,
-    D = "$lit$",
-    M = `lit$${Math.random().toFixed(9).slice(2)}$`,
-    B = "?" + M,
-    F = `<${B}>`,
+    H = "$lit$",
+    D = `lit$${Math.random().toFixed(9).slice(2)}$`,
+    F = "?" + D,
+    B = `<${F}>`,
     I = document,
     L = () => I.createComment(""),
     N = t => null === t || "object" != typeof t && "function" != typeof t,
@@ -360,41 +360,43 @@
     j = /-->/g,
     V = />/g,
     G = RegExp(`>|${U}(?:([^\\s"'>=/]+)(${U}*=${U}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"),
-    Y = /'/g,
-    Z = /"/g,
-    q = /^(?:script|style|textarea|title)$/i,
-    W = (t => (e, ...i) => ({
+    Z = /'/g,
+    Y = /"/g,
+    K = /^(?:script|style|textarea|title)$/i,
+    q = t => (e, ...i) => ({
       _$litType$: t,
       strings: e,
       values: i
-    }))(1),
-    X = Symbol.for("lit-noChange"),
-    K = Symbol.for("lit-nothing"),
-    Q = new WeakMap(),
-    J = I.createTreeWalker(I, 129);
-  function tt(t, e) {
+    }),
+    W = q(1),
+    X = q(2),
+    Q = Symbol.for("lit-noChange"),
+    J = Symbol.for("lit-nothing"),
+    tt = new WeakMap(),
+    et = I.createTreeWalker(I, 129);
+  function it(t, e) {
     if (!Array.isArray(t) || !t.hasOwnProperty("raw")) throw Error("invalid template strings array");
-    return void 0 !== H ? H.createHTML(e) : e;
+    return void 0 !== M ? M.createHTML(e) : e;
   }
-  const et = (t, e) => {
+  const rt = (t, e) => {
     const i = t.length - 1,
       r = [];
     let n,
       s = 2 === e ? "<svg>" : "",
-      o = R;
+      a = R;
     for (let e = 0; e < i; e++) {
       const i = t[e];
-      let a,
+      let o,
         l,
         c = -1,
         h = 0;
-      for (; h < i.length && (o.lastIndex = h, l = o.exec(i), null !== l);) h = o.lastIndex, o === R ? "!--" === l[1] ? o = j : void 0 !== l[1] ? o = V : void 0 !== l[2] ? (q.test(l[2]) && (n = RegExp("</" + l[2], "g")), o = G) : void 0 !== l[3] && (o = G) : o === G ? ">" === l[0] ? (o = n ?? R, c = -1) : void 0 === l[1] ? c = -2 : (c = o.lastIndex - l[2].length, a = l[1], o = void 0 === l[3] ? G : '"' === l[3] ? Z : Y) : o === Z || o === Y ? o = G : o === j || o === V ? o = R : (o = G, n = void 0);
-      const d = o === G && t[e + 1].startsWith("/>") ? " " : "";
-      s += o === R ? i + F : c >= 0 ? (r.push(a), i.slice(0, c) + D + i.slice(c) + M + d) : i + M + (-2 === c ? e : d);
+      for (; h < i.length && (a.lastIndex = h, l = a.exec(i), null !== l);) h = a.lastIndex, a === R ? "!--" === l[1] ? a = j : void 0 !== l[1] ? a = V : void 0 !== l[2] ? (K.test(l[2]) && (n = RegExp("</" + l[2], "g")), a = G) : void 0 !== l[3] && (a = G) : a === G ? ">" === l[0] ? (a = n ?? R, c = -1) : void 0 === l[1] ? c = -2 : (c = a.lastIndex - l[2].length, o = l[1], a = void 0 === l[3] ? G : '"' === l[3] ? Y : Z) : a === Y || a === Z ? a = G : a === j || a === V ? a = R : (a = G, n = void 0);
+      const d = a === G && t[e + 1].startsWith("/>") ? " " : "";
+      s += a === R ? i + B : c >= 0 ? (r.push(o), i.slice(0, c) + H + i.slice(c) + D + d) : i + D + (-2 === c ? e : d);
     }
-    return [tt(t, s + (t[i] || "<?>") + (2 === e ? "</svg>" : "")), r];
+    return [it(t, s + (t[i] || "<?>") + (2 === e ? "</svg>" : "")), r];
   };
-  class it {
+  class nt {
     constructor({
       strings: t,
       _$litType$: e
@@ -403,51 +405,51 @@
       this.parts = [];
       let n = 0,
         s = 0;
-      const o = t.length - 1,
-        a = this.parts,
-        [l, c] = et(t, e);
-      if (this.el = it.createElement(l, i), J.currentNode = this.el.content, 2 === e) {
+      const a = t.length - 1,
+        o = this.parts,
+        [l, c] = rt(t, e);
+      if (this.el = nt.createElement(l, i), et.currentNode = this.el.content, 2 === e) {
         const t = this.el.content.firstChild;
         t.replaceWith(...t.childNodes);
       }
-      for (; null !== (r = J.nextNode()) && a.length < o;) {
+      for (; null !== (r = et.nextNode()) && o.length < a;) {
         if (1 === r.nodeType) {
-          if (r.hasAttributes()) for (const t of r.getAttributeNames()) if (t.endsWith(D)) {
+          if (r.hasAttributes()) for (const t of r.getAttributeNames()) if (t.endsWith(H)) {
             const e = c[s++],
-              i = r.getAttribute(t).split(M),
-              o = /([.?@])?(.*)/.exec(e);
-            a.push({
+              i = r.getAttribute(t).split(D),
+              a = /([.?@])?(.*)/.exec(e);
+            o.push({
               type: 1,
               index: n,
-              name: o[2],
+              name: a[2],
               strings: i,
-              ctor: "." === o[1] ? at : "?" === o[1] ? lt : "@" === o[1] ? ct : ot
+              ctor: "." === a[1] ? ct : "?" === a[1] ? ht : "@" === a[1] ? dt : lt
             }), r.removeAttribute(t);
-          } else t.startsWith(M) && (a.push({
+          } else t.startsWith(D) && (o.push({
             type: 6,
             index: n
           }), r.removeAttribute(t));
-          if (q.test(r.tagName)) {
-            const t = r.textContent.split(M),
+          if (K.test(r.tagName)) {
+            const t = r.textContent.split(D),
               e = t.length - 1;
             if (e > 0) {
               r.textContent = k ? k.emptyScript : "";
-              for (let i = 0; i < e; i++) r.append(t[i], L()), J.nextNode(), a.push({
+              for (let i = 0; i < e; i++) r.append(t[i], L()), et.nextNode(), o.push({
                 type: 2,
                 index: ++n
               });
               r.append(t[e], L());
             }
           }
-        } else if (8 === r.nodeType) if (r.data === B) a.push({
+        } else if (8 === r.nodeType) if (r.data === F) o.push({
           type: 2,
           index: n
         });else {
           let t = -1;
-          for (; -1 !== (t = r.data.indexOf(M, t + 1));) a.push({
+          for (; -1 !== (t = r.data.indexOf(D, t + 1));) o.push({
             type: 7,
             index: n
-          }), t += M.length - 1;
+          }), t += D.length - 1;
         }
         n++;
       }
@@ -457,13 +459,13 @@
       return i.innerHTML = t, i;
     }
   }
-  function rt(t, e, i = t, r) {
-    if (e === X) return e;
+  function st(t, e, i = t, r) {
+    if (e === Q) return e;
     let n = void 0 !== r ? i._$Co?.[r] : i._$Cl;
     const s = N(e) ? void 0 : e._$litDirective$;
-    return n?.constructor !== s && (n?._$AO?.(!1), void 0 === s ? n = void 0 : (n = new s(t), n._$AT(t, i, r)), void 0 !== r ? (i._$Co ??= [])[r] = n : i._$Cl = n), void 0 !== n && (e = rt(t, n._$AS(t, e.values), n, r)), e;
+    return n?.constructor !== s && (n?._$AO?.(!1), void 0 === s ? n = void 0 : (n = new s(t), n._$AT(t, i, r)), void 0 !== r ? (i._$Co ??= [])[r] = n : i._$Cl = n), void 0 !== n && (e = st(t, n._$AS(t, e.values), n, r)), e;
   }
-  class nt {
+  class at {
     constructor(t, e) {
       this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = e;
     }
@@ -481,31 +483,31 @@
           parts: i
         } = this._$AD,
         r = (t?.creationScope ?? I).importNode(e, !0);
-      J.currentNode = r;
-      let n = J.nextNode(),
+      et.currentNode = r;
+      let n = et.nextNode(),
         s = 0,
-        o = 0,
-        a = i[0];
-      for (; void 0 !== a;) {
-        if (s === a.index) {
+        a = 0,
+        o = i[0];
+      for (; void 0 !== o;) {
+        if (s === o.index) {
           let e;
-          2 === a.type ? e = new st(n, n.nextSibling, this, t) : 1 === a.type ? e = new a.ctor(n, a.name, a.strings, this, t) : 6 === a.type && (e = new ht(n, this, t)), this._$AV.push(e), a = i[++o];
+          2 === o.type ? e = new ot(n, n.nextSibling, this, t) : 1 === o.type ? e = new o.ctor(n, o.name, o.strings, this, t) : 6 === o.type && (e = new pt(n, this, t)), this._$AV.push(e), o = i[++a];
         }
-        s !== a?.index && (n = J.nextNode(), s++);
+        s !== o?.index && (n = et.nextNode(), s++);
       }
-      return J.currentNode = I, r;
+      return et.currentNode = I, r;
     }
     p(t) {
       let e = 0;
       for (const i of this._$AV) void 0 !== i && (void 0 !== i.strings ? (i._$AI(t, i, e), e += i.strings.length - 2) : i._$AI(t[e])), e++;
     }
   }
-  class st {
+  class ot {
     get _$AU() {
       return this._$AM?._$AU ?? this._$Cv;
     }
     constructor(t, e, i, r) {
-      this.type = 2, this._$AH = K, this._$AN = void 0, this._$AA = t, this._$AB = e, this._$AM = i, this.options = r, this._$Cv = r?.isConnected ?? !0;
+      this.type = 2, this._$AH = J, this._$AN = void 0, this._$AA = t, this._$AB = e, this._$AM = i, this.options = r, this._$Cv = r?.isConnected ?? !0;
     }
     get parentNode() {
       let t = this._$AA.parentNode;
@@ -519,7 +521,7 @@
       return this._$AB;
     }
     _$AI(t, e = this) {
-      t = rt(this, t, e), N(t) ? t === K || null == t || "" === t ? (this._$AH !== K && this._$AR(), this._$AH = K) : t !== this._$AH && t !== X && this._(t) : void 0 !== t._$litType$ ? this.$(t) : void 0 !== t.nodeType ? this.T(t) : z(t) ? this.k(t) : this._(t);
+      t = st(this, t, e), N(t) ? t === J || null == t || "" === t ? (this._$AH !== J && this._$AR(), this._$AH = J) : t !== this._$AH && t !== Q && this._(t) : void 0 !== t._$litType$ ? this.$(t) : void 0 !== t.nodeType ? this.T(t) : z(t) ? this.k(t) : this._(t);
     }
     S(t) {
       return this._$AA.parentNode.insertBefore(t, this._$AB);
@@ -528,30 +530,30 @@
       this._$AH !== t && (this._$AR(), this._$AH = this.S(t));
     }
     _(t) {
-      this._$AH !== K && N(this._$AH) ? this._$AA.nextSibling.data = t : this.T(I.createTextNode(t)), this._$AH = t;
+      this._$AH !== J && N(this._$AH) ? this._$AA.nextSibling.data = t : this.T(I.createTextNode(t)), this._$AH = t;
     }
     $(t) {
       const {
           values: e,
           _$litType$: i
         } = t,
-        r = "number" == typeof i ? this._$AC(t) : (void 0 === i.el && (i.el = it.createElement(tt(i.h, i.h[0]), this.options)), i);
+        r = "number" == typeof i ? this._$AC(t) : (void 0 === i.el && (i.el = nt.createElement(it(i.h, i.h[0]), this.options)), i);
       if (this._$AH?._$AD === r) this._$AH.p(e);else {
-        const t = new nt(r, this),
+        const t = new at(r, this),
           i = t.u(this.options);
         t.p(e), this.T(i), this._$AH = t;
       }
     }
     _$AC(t) {
-      let e = Q.get(t.strings);
-      return void 0 === e && Q.set(t.strings, e = new it(t)), e;
+      let e = tt.get(t.strings);
+      return void 0 === e && tt.set(t.strings, e = new nt(t)), e;
     }
     k(t) {
       O(this._$AH) || (this._$AH = [], this._$AR());
       const e = this._$AH;
       let i,
         r = 0;
-      for (const n of t) r === e.length ? e.push(i = new st(this.S(L()), this.S(L()), this, this.options)) : i = e[r], i._$AI(n), r++;
+      for (const n of t) r === e.length ? e.push(i = new ot(this.S(L()), this.S(L()), this, this.options)) : i = e[r], i._$AI(n), r++;
       r < e.length && (this._$AR(i && i._$AB.nextSibling, r), e.length = r);
     }
     _$AR(t = this._$AA.nextSibling, e) {
@@ -564,7 +566,7 @@
       void 0 === this._$AM && (this._$Cv = t, this._$AP?.(t));
     }
   }
-  class ot {
+  class lt {
     get tagName() {
       return this.element.tagName;
     }
@@ -572,54 +574,54 @@
       return this._$AM._$AU;
     }
     constructor(t, e, i, r, n) {
-      this.type = 1, this._$AH = K, this._$AN = void 0, this.element = t, this.name = e, this._$AM = r, this.options = n, i.length > 2 || "" !== i[0] || "" !== i[1] ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = K;
+      this.type = 1, this._$AH = J, this._$AN = void 0, this.element = t, this.name = e, this._$AM = r, this.options = n, i.length > 2 || "" !== i[0] || "" !== i[1] ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = J;
     }
     _$AI(t, e = this, i, r) {
       const n = this.strings;
       let s = !1;
-      if (void 0 === n) t = rt(this, t, e, 0), s = !N(t) || t !== this._$AH && t !== X, s && (this._$AH = t);else {
+      if (void 0 === n) t = st(this, t, e, 0), s = !N(t) || t !== this._$AH && t !== Q, s && (this._$AH = t);else {
         const r = t;
-        let o, a;
-        for (t = n[0], o = 0; o < n.length - 1; o++) a = rt(this, r[i + o], e, o), a === X && (a = this._$AH[o]), s ||= !N(a) || a !== this._$AH[o], a === K ? t = K : t !== K && (t += (a ?? "") + n[o + 1]), this._$AH[o] = a;
+        let a, o;
+        for (t = n[0], a = 0; a < n.length - 1; a++) o = st(this, r[i + a], e, a), o === Q && (o = this._$AH[a]), s ||= !N(o) || o !== this._$AH[a], o === J ? t = J : t !== J && (t += (o ?? "") + n[a + 1]), this._$AH[a] = o;
       }
       s && !r && this.j(t);
     }
     j(t) {
-      t === K ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
+      t === J ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
     }
   }
-  class at extends ot {
+  class ct extends lt {
     constructor() {
       super(...arguments), this.type = 3;
     }
     j(t) {
-      this.element[this.name] = t === K ? void 0 : t;
+      this.element[this.name] = t === J ? void 0 : t;
     }
   }
-  class lt extends ot {
+  class ht extends lt {
     constructor() {
       super(...arguments), this.type = 4;
     }
     j(t) {
-      this.element.toggleAttribute(this.name, !!t && t !== K);
+      this.element.toggleAttribute(this.name, !!t && t !== J);
     }
   }
-  class ct extends ot {
+  class dt extends lt {
     constructor(t, e, i, r, n) {
       super(t, e, i, r, n), this.type = 5;
     }
     _$AI(t, e = this) {
-      if ((t = rt(this, t, e, 0) ?? K) === X) return;
+      if ((t = st(this, t, e, 0) ?? J) === Q) return;
       const i = this._$AH,
-        r = t === K && i !== K || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive,
-        n = t !== K && (i === K || r);
+        r = t === J && i !== J || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive,
+        n = t !== J && (i === J || r);
       r && this.element.removeEventListener(this.name, this, i), n && this.element.addEventListener(this.name, this, t), this._$AH = t;
     }
     handleEvent(t) {
       "function" == typeof this._$AH ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
     }
   }
-  class ht {
+  class pt {
     constructor(t, e, i) {
       this.element = t, this.type = 6, this._$AN = void 0, this._$AM = e, this.options = i;
     }
@@ -627,33 +629,33 @@
       return this._$AM._$AU;
     }
     _$AI(t) {
-      rt(this, t);
+      st(this, t);
     }
   }
-  const dt = {
-      P: D,
-      A: M,
-      C: B,
+  const ut = {
+      P: H,
+      A: D,
+      C: F,
       M: 1,
-      L: et,
-      R: nt,
+      L: rt,
+      R: at,
       D: z,
-      V: rt,
-      I: st,
-      H: ot,
-      N: lt,
-      U: ct,
-      B: at,
-      F: ht
+      V: st,
+      I: ot,
+      H: lt,
+      N: ht,
+      U: dt,
+      B: ct,
+      F: pt
     },
-    pt = C.litHtmlPolyfillSupport;
-  pt?.(it, st), (C.litHtmlVersions ??= []).push("3.1.4");
+    gt = T.litHtmlPolyfillSupport;
+  gt?.(nt, ot), (T.litHtmlVersions ??= []).push("3.1.4");
   /**
        * @license
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  class ut extends T {
+  class mt extends A {
     constructor() {
       super(...arguments), this.renderOptions = {
         host: this
@@ -670,7 +672,7 @@
         let n = r._$litPart$;
         if (void 0 === n) {
           const t = i?.renderBefore ?? null;
-          r._$litPart$ = n = new st(e.insertBefore(L(), t), t, void 0, i ?? {});
+          r._$litPart$ = n = new ot(e.insertBefore(L(), t), t, void 0, i ?? {});
         }
         return n._$AI(t), n;
       })(e, this.renderRoot, this.renderOptions);
@@ -682,22 +684,22 @@
       super.disconnectedCallback(), this._$Do?.setConnected(!1);
     }
     render() {
-      return X;
+      return Q;
     }
   }
-  ut._$litElement$ = !0, ut.finalized = !0, globalThis.litElementHydrateSupport?.({
-    LitElement: ut
+  mt._$litElement$ = !0, mt.finalized = !0, globalThis.litElementHydrateSupport?.({
+    LitElement: mt
   });
-  const gt = globalThis.litElementPolyfillSupport;
-  gt?.({
-    LitElement: ut
+  const bt = globalThis.litElementPolyfillSupport;
+  bt?.({
+    LitElement: mt
   }), (globalThis.litElementVersions ??= []).push("4.0.6");
   /**
        * @license
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const mt = t => (e, i) => {
+  const vt = t => (e, i) => {
       void 0 !== i ? i.addInitializer(() => {
         customElements.define(t, e);
       }) : customElements.define(t, e);
@@ -707,14 +709,14 @@
          * Copyright 2017 Google LLC
          * SPDX-License-Identifier: BSD-3-Clause
          */,
-    bt = {
+    yt = {
       attribute: !0,
       type: String,
-      converter: $,
+      converter: S,
       reflect: !1,
       hasChanged: P
     },
-    _t = (t = bt, e, i) => {
+    ft = (t = yt, e, i) => {
       const {
         kind: r,
         metadata: n
@@ -745,8 +747,8 @@
       }
       throw Error("Unsupported decorator location: " + r);
     };
-  function vt(t) {
-    return (e, i) => "object" == typeof i ? _t(t, e, i) : ((t, e, i) => {
+  function _t(t) {
+    return (e, i) => "object" == typeof i ? ft(t, e, i) : ((t, e, i) => {
       const r = e.hasOwnProperty(i);
       return e.constructor.createProperty(i, r ? {
         ...t,
@@ -759,8 +761,8 @@
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  function yt(t) {
-    return vt({
+  function wt(t) {
+    return _t({
       ...t,
       state: !0,
       attribute: !1
@@ -771,13 +773,13 @@
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const ft = (t, e, i) => (i.configurable = !0, i.enumerable = !0, Reflect.decorate && "object" != typeof e && Object.defineProperty(t, e, i), i)
+  const xt = (t, e, i) => (i.configurable = !0, i.enumerable = !0, Reflect.decorate && "object" != typeof e && Object.defineProperty(t, e, i), i)
   /**
        * @license
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */;
-  function wt(t, e) {
+  function $t(t, e) {
     return (i, r, n) => {
       const s = e => e.renderRoot?.querySelector(t) ?? null;
       if (e) {
@@ -795,165 +797,165 @@
             }
           };
         })();
-        return ft(i, r, {
+        return xt(i, r, {
           get() {
             let i = t.call(this);
             return void 0 === i && (i = s(this), (null !== i || this.hasUpdated) && e.call(this, i)), i;
           }
         });
       }
-      return ft(i, r, {
+      return xt(i, r, {
         get() {
           return s(this);
         }
       });
     };
   }
-  const xt = 6048e5,
-    Et = 864e5,
-    St = 6e4,
-    $t = 36e5,
-    Pt = Symbol.for("constructDateFrom");
-  function At(t, e) {
-    return "function" == typeof t ? t(e) : t && "object" == typeof t && Pt in t ? t[Pt](e) : t instanceof Date ? new t.constructor(e) : new Date(e);
-  }
+  const Et = 6048e5,
+    St = 864e5,
+    Pt = 6e4,
+    Ct = 36e5,
+    At = Symbol.for("constructDateFrom");
   function Tt(t, e) {
-    return At(e || t, t);
+    return "function" == typeof t ? t(e) : t && "object" == typeof t && At in t ? t[At](e) : t instanceof Date ? new t.constructor(e) : new Date(e);
   }
-  function Ct(t, e, i) {
+  function kt(t, e) {
+    return Tt(e || t, t);
+  }
+  function Mt(t, e, i) {
     const {
         years: r = 0,
         months: n = 0,
         weeks: s = 0,
-        days: o = 0,
-        hours: a = 0,
+        days: a = 0,
+        hours: o = 0,
         minutes: l = 0,
         seconds: c = 0
       } = e,
-      h = Tt(t, i?.in),
+      h = kt(t, i?.in),
       d = n || r ? function (t, e, i) {
-        const r = Tt(t, i?.in);
-        if (isNaN(e)) return At(i?.in || t, NaN);
+        const r = kt(t, i?.in);
+        if (isNaN(e)) return Tt(i?.in || t, NaN);
         if (!e) return r;
         const n = r.getDate(),
-          s = At(i?.in || t, r.getTime());
+          s = Tt(i?.in || t, r.getTime());
         return s.setMonth(r.getMonth() + e + 1, 0), n >= s.getDate() ? s : (r.setFullYear(s.getFullYear(), s.getMonth(), n), r);
       }(h, n + 12 * r) : h,
-      p = o || s ? function (t, e, i) {
-        const r = Tt(t, i?.in);
-        return isNaN(e) ? At(i?.in || t, NaN) : e ? (r.setDate(r.getDate() + e), r) : r;
-      }(d, o + 7 * s) : d,
-      u = 1e3 * (c + 60 * (l + 60 * a));
-    return At(i?.in || t, +p + u);
+      p = a || s ? function (t, e, i) {
+        const r = kt(t, i?.in);
+        return isNaN(e) ? Tt(i?.in || t, NaN) : e ? (r.setDate(r.getDate() + e), r) : r;
+      }(d, a + 7 * s) : d,
+      u = 1e3 * (c + 60 * (l + 60 * o));
+    return Tt(i?.in || t, +p + u);
   }
-  let kt = {};
-  function Ht() {
-    return kt;
+  let Ht = {};
+  function Dt() {
+    return Ht;
   }
-  function Dt(t, e) {
-    const i = Ht(),
+  function Ft(t, e) {
+    const i = Dt(),
       r = e?.weekStartsOn ?? e?.locale?.options?.weekStartsOn ?? i.weekStartsOn ?? i.locale?.options?.weekStartsOn ?? 0,
-      n = Tt(t, e?.in),
+      n = kt(t, e?.in),
       s = n.getDay(),
-      o = (s < r ? 7 : 0) + s - r;
-    return n.setDate(n.getDate() - o), n.setHours(0, 0, 0, 0), n;
+      a = (s < r ? 7 : 0) + s - r;
+    return n.setDate(n.getDate() - a), n.setHours(0, 0, 0, 0), n;
   }
-  function Mt(t, e) {
-    return Dt(t, {
+  function Bt(t, e) {
+    return Ft(t, {
       ...e,
       weekStartsOn: 1
     });
   }
-  function Bt(t, e) {
-    const i = Tt(t, e?.in),
+  function It(t, e) {
+    const i = kt(t, e?.in),
       r = i.getFullYear(),
-      n = At(i, 0);
+      n = Tt(i, 0);
     n.setFullYear(r + 1, 0, 4), n.setHours(0, 0, 0, 0);
-    const s = Mt(n),
-      o = At(i, 0);
-    o.setFullYear(r, 0, 4), o.setHours(0, 0, 0, 0);
-    const a = Mt(o);
-    return i.getTime() >= s.getTime() ? r + 1 : i.getTime() >= a.getTime() ? r : r - 1;
+    const s = Bt(n),
+      a = Tt(i, 0);
+    a.setFullYear(r, 0, 4), a.setHours(0, 0, 0, 0);
+    const o = Bt(a);
+    return i.getTime() >= s.getTime() ? r + 1 : i.getTime() >= o.getTime() ? r : r - 1;
   }
-  function Ft(t) {
-    const e = Tt(t),
+  function Lt(t) {
+    const e = kt(t),
       i = new Date(Date.UTC(e.getFullYear(), e.getMonth(), e.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds()));
     return i.setUTCFullYear(e.getFullYear()), +t - +i;
   }
-  function It(t, ...e) {
-    const i = At.bind(null, t || e.find(t => "object" == typeof t));
+  function Nt(t, ...e) {
+    const i = Tt.bind(null, t || e.find(t => "object" == typeof t));
     return e.map(i);
   }
-  function Lt(t, e) {
-    const i = Tt(t, e?.in);
+  function Ot(t, e) {
+    const i = kt(t, e?.in);
     return i.setHours(0, 0, 0, 0), i;
   }
-  function Nt(t, e, i) {
-    const [r, n] = It(i?.in, t, e),
-      s = Lt(r),
-      o = Lt(n),
-      a = +s - Ft(s),
-      l = +o - Ft(o);
-    return Math.round((a - l) / Et);
-  }
-  function Ot(t, e) {
-    const i = +Tt(t) - +Tt(e);
-    return i < 0 ? -1 : i > 0 ? 1 : i;
-  }
-  function zt(t) {
-    return !(!((e = t) instanceof Date || "object" == typeof e && "[object Date]" === Object.prototype.toString.call(e)) && "number" != typeof t || isNaN(+Tt(t)));
-    var e;
+  function zt(t, e, i) {
+    const [r, n] = Nt(i?.in, t, e),
+      s = Ot(r),
+      a = Ot(n),
+      o = +s - Lt(s),
+      l = +a - Lt(a);
+    return Math.round((o - l) / St);
   }
   function Ut(t, e) {
-    const i = t.getFullYear() - e.getFullYear() || t.getMonth() - e.getMonth() || t.getDate() - e.getDate() || t.getHours() - e.getHours() || t.getMinutes() - e.getMinutes() || t.getSeconds() - e.getSeconds() || t.getMilliseconds() - e.getMilliseconds();
+    const i = +kt(t) - +kt(e);
     return i < 0 ? -1 : i > 0 ? 1 : i;
   }
   function Rt(t) {
+    return !(!((e = t) instanceof Date || "object" == typeof e && "[object Date]" === Object.prototype.toString.call(e)) && "number" != typeof t || isNaN(+kt(t)));
+    var e;
+  }
+  function jt(t, e) {
+    const i = t.getFullYear() - e.getFullYear() || t.getMonth() - e.getMonth() || t.getDate() - e.getDate() || t.getHours() - e.getHours() || t.getMinutes() - e.getMinutes() || t.getSeconds() - e.getSeconds() || t.getMilliseconds() - e.getMilliseconds();
+    return i < 0 ? -1 : i > 0 ? 1 : i;
+  }
+  function Vt(t) {
     return e => {
       const i = (t ? Math[t] : Math.trunc)(e);
       return 0 === i ? 0 : i;
     };
   }
-  function jt(t, e) {
-    return +Tt(t) - +Tt(e);
+  function Gt(t, e) {
+    return +kt(t) - +kt(e);
   }
-  function Vt(t, e) {
-    const i = Tt(t, e?.in);
+  function Zt(t, e) {
+    const i = kt(t, e?.in);
     return +function (t, e) {
-      const i = Tt(t, e?.in);
+      const i = kt(t, e?.in);
       return i.setHours(23, 59, 59, 999), i;
     }(i, e) == +function (t, e) {
-      const i = Tt(t, e?.in),
+      const i = kt(t, e?.in),
         r = i.getMonth();
       return i.setFullYear(i.getFullYear(), r + 1, 0), i.setHours(23, 59, 59, 999), i;
     }(i, e);
   }
-  function Gt(t, e, i) {
-    const [r, n, s] = It(i?.in, t, t, e),
-      o = Ot(n, s),
-      a = Math.abs(function (t, e, i) {
-        const [r, n] = It(i?.in, t, e);
+  function Yt(t, e, i) {
+    const [r, n, s] = Nt(i?.in, t, t, e),
+      a = Ut(n, s),
+      o = Math.abs(function (t, e, i) {
+        const [r, n] = Nt(i?.in, t, e);
         return 12 * (r.getFullYear() - n.getFullYear()) + (r.getMonth() - n.getMonth());
       }(n, s));
-    if (a < 1) return 0;
-    1 === n.getMonth() && n.getDate() > 27 && n.setDate(30), n.setMonth(n.getMonth() - o * a);
-    let l = Ot(n, s) === -o;
-    Vt(r) && 1 === a && 1 === Ot(r, s) && (l = !1);
-    const c = o * (a - +l);
+    if (o < 1) return 0;
+    1 === n.getMonth() && n.getDate() > 27 && n.setDate(30), n.setMonth(n.getMonth() - a * o);
+    let l = Ut(n, s) === -a;
+    Zt(r) && 1 === o && 1 === Ut(r, s) && (l = !1);
+    const c = a * (o - +l);
     return 0 === c ? 0 : c;
   }
-  function Yt(t, e, i) {
-    const [r, n] = It(i?.in, t, e),
-      s = Ot(r, n),
-      o = Math.abs(function (t, e, i) {
-        const [r, n] = It(i?.in, t, e);
+  function Kt(t, e, i) {
+    const [r, n] = Nt(i?.in, t, e),
+      s = Ut(r, n),
+      a = Math.abs(function (t, e, i) {
+        const [r, n] = Nt(i?.in, t, e);
         return r.getFullYear() - n.getFullYear();
       }(r, n));
     r.setFullYear(1584), n.setFullYear(1584);
-    const a = s * (o - +(Ot(r, n) === -s));
-    return 0 === a ? 0 : a;
+    const o = s * (a - +(Ut(r, n) === -s));
+    return 0 === o ? 0 : o;
   }
-  const Zt = {
+  const qt = {
     lessThanXSeconds: {
       one: "less than a second",
       other: "less than {{count}} seconds"
@@ -1016,14 +1018,14 @@
       other: "almost {{count}} years"
     }
   };
-  function qt(t) {
+  function Wt(t) {
     return (e = {}) => {
       const i = e.width ? String(e.width) : t.defaultWidth;
       return t.formats[i] || t.formats[t.defaultWidth];
     };
   }
-  const Wt = {
-      date: qt({
+  const Xt = {
+      date: Wt({
         formats: {
           full: "EEEE, MMMM do, y",
           long: "MMMM do, y",
@@ -1032,7 +1034,7 @@
         },
         defaultWidth: "full"
       }),
-      time: qt({
+      time: Wt({
         formats: {
           full: "h:mm:ss a zzzz",
           long: "h:mm:ss a z",
@@ -1041,7 +1043,7 @@
         },
         defaultWidth: "full"
       }),
-      dateTime: qt({
+      dateTime: Wt({
         formats: {
           full: "{{date}} 'at' {{time}}",
           long: "{{date}} 'at' {{time}}",
@@ -1051,7 +1053,7 @@
         defaultWidth: "full"
       })
     },
-    Xt = {
+    Qt = {
       lastWeek: "'last' eeee 'at' p",
       yesterday: "'yesterday at' p",
       today: "'today at' p",
@@ -1059,7 +1061,7 @@
       nextWeek: "eeee 'at' p",
       other: "P"
     };
-  function Kt(t) {
+  function Jt(t) {
     return (e, i) => {
       let r;
       if ("formatting" === (i?.context ? String(i.context) : "standalone") && t.formattingValues) {
@@ -1074,39 +1076,39 @@
       return r[t.argumentCallback ? t.argumentCallback(e) : e];
     };
   }
-  function Qt(t) {
+  function te(t) {
     return (e, i = {}) => {
       const r = i.width,
         n = r && t.matchPatterns[r] || t.matchPatterns[t.defaultMatchWidth],
         s = e.match(n);
       if (!s) return null;
-      const o = s[0],
-        a = r && t.parsePatterns[r] || t.parsePatterns[t.defaultParseWidth],
-        l = Array.isArray(a) ? function (t, e) {
+      const a = s[0],
+        o = r && t.parsePatterns[r] || t.parsePatterns[t.defaultParseWidth],
+        l = Array.isArray(o) ? function (t, e) {
           for (let i = 0; i < t.length; i++) if (e(t[i])) return i;
           return;
-        }(a, t => t.test(o)) : function (t, e) {
+        }(o, t => t.test(a)) : function (t, e) {
           for (const i in t) if (Object.prototype.hasOwnProperty.call(t, i) && e(t[i])) return i;
           return;
-        }(a, t => t.test(o));
+        }(o, t => t.test(a));
       let c;
       c = t.valueCallback ? t.valueCallback(l) : l, c = i.valueCallback ? i.valueCallback(c) : c;
       return {
         value: c,
-        rest: e.slice(o.length)
+        rest: e.slice(a.length)
       };
     };
   }
-  var Jt;
-  const te = {
+  var ee;
+  const ie = {
     code: "en-US",
     formatDistance: (t, e, i) => {
       let r;
-      const n = Zt[t];
+      const n = qt[t];
       return r = "string" == typeof n ? n : 1 === e ? n.one : n.other.replace("{{count}}", e.toString()), i?.addSuffix ? i.comparison && i.comparison > 0 ? "in " + r : r + " ago" : r;
     },
-    formatLong: Wt,
-    formatRelative: (t, e, i, r) => Xt[t],
+    formatLong: Xt,
+    formatRelative: (t, e, i, r) => Qt[t],
     localize: {
       ordinalNumber: (t, e) => {
         const i = Number(t),
@@ -1121,7 +1123,7 @@
         }
         return i + "th";
       },
-      era: Kt({
+      era: Jt({
         values: {
           narrow: ["B", "A"],
           abbreviated: ["BC", "AD"],
@@ -1129,7 +1131,7 @@
         },
         defaultWidth: "wide"
       }),
-      quarter: Kt({
+      quarter: Jt({
         values: {
           narrow: ["1", "2", "3", "4"],
           abbreviated: ["Q1", "Q2", "Q3", "Q4"],
@@ -1138,7 +1140,7 @@
         defaultWidth: "wide",
         argumentCallback: t => t - 1
       }),
-      month: Kt({
+      month: Jt({
         values: {
           narrow: ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"],
           abbreviated: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
@@ -1146,7 +1148,7 @@
         },
         defaultWidth: "wide"
       }),
-      day: Kt({
+      day: Jt({
         values: {
           narrow: ["S", "M", "T", "W", "T", "F", "S"],
           short: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
@@ -1155,7 +1157,7 @@
         },
         defaultWidth: "wide"
       }),
-      dayPeriod: Kt({
+      dayPeriod: Jt({
         values: {
           narrow: {
             am: "a",
@@ -1225,23 +1227,23 @@
       })
     },
     match: {
-      ordinalNumber: (Jt = {
+      ordinalNumber: (ee = {
         matchPattern: /^(\d+)(th|st|nd|rd)?/i,
         parsePattern: /\d+/i,
         valueCallback: t => parseInt(t, 10)
       }, (t, e = {}) => {
-        const i = t.match(Jt.matchPattern);
+        const i = t.match(ee.matchPattern);
         if (!i) return null;
         const r = i[0],
-          n = t.match(Jt.parsePattern);
+          n = t.match(ee.parsePattern);
         if (!n) return null;
-        let s = Jt.valueCallback ? Jt.valueCallback(n[0]) : n[0];
+        let s = ee.valueCallback ? ee.valueCallback(n[0]) : n[0];
         return s = e.valueCallback ? e.valueCallback(s) : s, {
           value: s,
           rest: t.slice(r.length)
         };
       }),
-      era: Qt({
+      era: te({
         matchPatterns: {
           narrow: /^(b|a)/i,
           abbreviated: /^(b\.?\s?c\.?|b\.?\s?c\.?\s?e\.?|a\.?\s?d\.?|c\.?\s?e\.?)/i,
@@ -1253,7 +1255,7 @@
         },
         defaultParseWidth: "any"
       }),
-      quarter: Qt({
+      quarter: te({
         matchPatterns: {
           narrow: /^[1234]/i,
           abbreviated: /^q[1234]/i,
@@ -1266,7 +1268,7 @@
         defaultParseWidth: "any",
         valueCallback: t => t + 1
       }),
-      month: Qt({
+      month: te({
         matchPatterns: {
           narrow: /^[jfmasond]/i,
           abbreviated: /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i,
@@ -1279,7 +1281,7 @@
         },
         defaultParseWidth: "any"
       }),
-      day: Qt({
+      day: te({
         matchPatterns: {
           narrow: /^[smtwf]/i,
           short: /^(su|mo|tu|we|th|fr|sa)/i,
@@ -1293,7 +1295,7 @@
         },
         defaultParseWidth: "any"
       }),
-      dayPeriod: Qt({
+      dayPeriod: te({
         matchPatterns: {
           narrow: /^(a|p|mi|n|(in the|at) (morning|afternoon|evening|night))/i,
           any: /^([ap]\.?\s?m\.?|midnight|noon|(in the|at) (morning|afternoon|evening|night))/i
@@ -1319,61 +1321,61 @@
       firstWeekContainsDate: 1
     }
   };
-  function ee(t, e) {
-    const i = Tt(t, e?.in),
-      r = Nt(i, function (t, e) {
-        const i = Tt(t, e?.in);
+  function re(t, e) {
+    const i = kt(t, e?.in),
+      r = zt(i, function (t, e) {
+        const i = kt(t, e?.in);
         return i.setFullYear(i.getFullYear(), 0, 1), i.setHours(0, 0, 0, 0), i;
       }(i));
     return r + 1;
   }
-  function ie(t, e) {
-    const i = Tt(t, e?.in),
-      r = +Mt(i) - +function (t, e) {
-        const i = Bt(t, e),
-          r = At(e?.in || t, 0);
-        return r.setFullYear(i, 0, 4), r.setHours(0, 0, 0, 0), Mt(r);
-      }(i);
-    return Math.round(r / xt) + 1;
-  }
-  function re(t, e) {
-    const i = Tt(t, e?.in),
-      r = i.getFullYear(),
-      n = Ht(),
-      s = e?.firstWeekContainsDate ?? e?.locale?.options?.firstWeekContainsDate ?? n.firstWeekContainsDate ?? n.locale?.options?.firstWeekContainsDate ?? 1,
-      o = At(e?.in || t, 0);
-    o.setFullYear(r + 1, 0, s), o.setHours(0, 0, 0, 0);
-    const a = Dt(o, e),
-      l = At(e?.in || t, 0);
-    l.setFullYear(r, 0, s), l.setHours(0, 0, 0, 0);
-    const c = Dt(l, e);
-    return +i >= +a ? r + 1 : +i >= +c ? r : r - 1;
-  }
   function ne(t, e) {
-    const i = Tt(t, e?.in),
-      r = +Dt(i, e) - +function (t, e) {
-        const i = Ht(),
-          r = e?.firstWeekContainsDate ?? e?.locale?.options?.firstWeekContainsDate ?? i.firstWeekContainsDate ?? i.locale?.options?.firstWeekContainsDate ?? 1,
-          n = re(t, e),
-          s = At(e?.in || t, 0);
-        return s.setFullYear(n, 0, r), s.setHours(0, 0, 0, 0), Dt(s, e);
-      }(i, e);
-    return Math.round(r / xt) + 1;
+    const i = kt(t, e?.in),
+      r = +Bt(i) - +function (t, e) {
+        const i = It(t, e),
+          r = Tt(e?.in || t, 0);
+        return r.setFullYear(i, 0, 4), r.setHours(0, 0, 0, 0), Bt(r);
+      }(i);
+    return Math.round(r / Et) + 1;
   }
   function se(t, e) {
+    const i = kt(t, e?.in),
+      r = i.getFullYear(),
+      n = Dt(),
+      s = e?.firstWeekContainsDate ?? e?.locale?.options?.firstWeekContainsDate ?? n.firstWeekContainsDate ?? n.locale?.options?.firstWeekContainsDate ?? 1,
+      a = Tt(e?.in || t, 0);
+    a.setFullYear(r + 1, 0, s), a.setHours(0, 0, 0, 0);
+    const o = Ft(a, e),
+      l = Tt(e?.in || t, 0);
+    l.setFullYear(r, 0, s), l.setHours(0, 0, 0, 0);
+    const c = Ft(l, e);
+    return +i >= +o ? r + 1 : +i >= +c ? r : r - 1;
+  }
+  function ae(t, e) {
+    const i = kt(t, e?.in),
+      r = +Ft(i, e) - +function (t, e) {
+        const i = Dt(),
+          r = e?.firstWeekContainsDate ?? e?.locale?.options?.firstWeekContainsDate ?? i.firstWeekContainsDate ?? i.locale?.options?.firstWeekContainsDate ?? 1,
+          n = se(t, e),
+          s = Tt(e?.in || t, 0);
+        return s.setFullYear(n, 0, r), s.setHours(0, 0, 0, 0), Ft(s, e);
+      }(i, e);
+    return Math.round(r / Et) + 1;
+  }
+  function oe(t, e) {
     return (t < 0 ? "-" : "") + Math.abs(t).toString().padStart(e, "0");
   }
-  const oe = {
+  const le = {
       y(t, e) {
         const i = t.getFullYear(),
           r = i > 0 ? i : 1 - i;
-        return se("yy" === e ? r % 100 : r, e.length);
+        return oe("yy" === e ? r % 100 : r, e.length);
       },
       M(t, e) {
         const i = t.getMonth();
-        return "M" === e ? String(i + 1) : se(i + 1, 2);
+        return "M" === e ? String(i + 1) : oe(i + 1, 2);
       },
-      d: (t, e) => se(t.getDate(), e.length),
+      d: (t, e) => oe(t.getDate(), e.length),
       a(t, e) {
         const i = t.getHours() / 12 >= 1 ? "pm" : "am";
         switch (e) {
@@ -1388,23 +1390,23 @@
             return "am" === i ? "a.m." : "p.m.";
         }
       },
-      h: (t, e) => se(t.getHours() % 12 || 12, e.length),
-      H: (t, e) => se(t.getHours(), e.length),
-      m: (t, e) => se(t.getMinutes(), e.length),
-      s: (t, e) => se(t.getSeconds(), e.length),
+      h: (t, e) => oe(t.getHours() % 12 || 12, e.length),
+      H: (t, e) => oe(t.getHours(), e.length),
+      m: (t, e) => oe(t.getMinutes(), e.length),
+      s: (t, e) => oe(t.getSeconds(), e.length),
       S(t, e) {
         const i = e.length,
           r = t.getMilliseconds();
-        return se(Math.trunc(r * Math.pow(10, i - 3)), e.length);
+        return oe(Math.trunc(r * Math.pow(10, i - 3)), e.length);
       }
     },
-    ae = "midnight",
-    le = "noon",
-    ce = "morning",
-    he = "afternoon",
-    de = "evening",
-    pe = "night",
-    ue = {
+    ce = "midnight",
+    he = "noon",
+    de = "morning",
+    pe = "afternoon",
+    ue = "evening",
+    ge = "night",
+    me = {
       G: function (t, e, i) {
         const r = t.getFullYear() > 0 ? 1 : 0;
         switch (e) {
@@ -1432,23 +1434,23 @@
             unit: "year"
           });
         }
-        return oe.y(t, e);
+        return le.y(t, e);
       },
       Y: function (t, e, i, r) {
-        const n = re(t, r),
+        const n = se(t, r),
           s = n > 0 ? n : 1 - n;
         if ("YY" === e) {
-          return se(s % 100, 2);
+          return oe(s % 100, 2);
         }
         return "Yo" === e ? i.ordinalNumber(s, {
           unit: "year"
-        }) : se(s, e.length);
+        }) : oe(s, e.length);
       },
       R: function (t, e) {
-        return se(Bt(t), e.length);
+        return oe(It(t), e.length);
       },
       u: function (t, e) {
-        return se(t.getFullYear(), e.length);
+        return oe(t.getFullYear(), e.length);
       },
       Q: function (t, e, i) {
         const r = Math.ceil((t.getMonth() + 1) / 3);
@@ -1456,7 +1458,7 @@
           case "Q":
             return String(r);
           case "QQ":
-            return se(r, 2);
+            return oe(r, 2);
           case "Qo":
             return i.ordinalNumber(r, {
               unit: "quarter"
@@ -1484,7 +1486,7 @@
           case "q":
             return String(r);
           case "qq":
-            return se(r, 2);
+            return oe(r, 2);
           case "qo":
             return i.ordinalNumber(r, {
               unit: "quarter"
@@ -1511,7 +1513,7 @@
         switch (e) {
           case "M":
           case "MM":
-            return oe.M(t, e);
+            return le.M(t, e);
           case "Mo":
             return i.ordinalNumber(r + 1, {
               unit: "month"
@@ -1539,7 +1541,7 @@
           case "L":
             return String(r + 1);
           case "LL":
-            return se(r + 1, 2);
+            return oe(r + 1, 2);
           case "Lo":
             return i.ordinalNumber(r + 1, {
               unit: "month"
@@ -1562,27 +1564,27 @@
         }
       },
       w: function (t, e, i, r) {
-        const n = ne(t, r);
+        const n = ae(t, r);
         return "wo" === e ? i.ordinalNumber(n, {
           unit: "week"
-        }) : se(n, e.length);
+        }) : oe(n, e.length);
       },
       I: function (t, e, i) {
-        const r = ie(t);
+        const r = ne(t);
         return "Io" === e ? i.ordinalNumber(r, {
           unit: "week"
-        }) : se(r, e.length);
+        }) : oe(r, e.length);
       },
       d: function (t, e, i) {
         return "do" === e ? i.ordinalNumber(t.getDate(), {
           unit: "date"
-        }) : oe.d(t, e);
+        }) : le.d(t, e);
       },
       D: function (t, e, i) {
-        const r = ee(t);
+        const r = re(t);
         return "Do" === e ? i.ordinalNumber(r, {
           unit: "dayOfYear"
-        }) : se(r, e.length);
+        }) : oe(r, e.length);
       },
       E: function (t, e, i) {
         const r = t.getDay();
@@ -1618,7 +1620,7 @@
           case "e":
             return String(s);
           case "ee":
-            return se(s, 2);
+            return oe(s, 2);
           case "eo":
             return i.ordinalNumber(s, {
               unit: "day"
@@ -1652,7 +1654,7 @@
           case "c":
             return String(s);
           case "cc":
-            return se(s, e.length);
+            return oe(s, e.length);
           case "co":
             return i.ordinalNumber(s, {
               unit: "day"
@@ -1686,7 +1688,7 @@
           case "i":
             return String(n);
           case "ii":
-            return se(n, e.length);
+            return oe(n, e.length);
           case "io":
             return i.ordinalNumber(n, {
               unit: "day"
@@ -1742,7 +1744,7 @@
       b: function (t, e, i) {
         const r = t.getHours();
         let n;
-        switch (n = 12 === r ? le : 0 === r ? ae : r / 12 >= 1 ? "pm" : "am", e) {
+        switch (n = 12 === r ? he : 0 === r ? ce : r / 12 >= 1 ? "pm" : "am", e) {
           case "b":
           case "bb":
             return i.dayPeriod(n, {
@@ -1769,7 +1771,7 @@
       B: function (t, e, i) {
         const r = t.getHours();
         let n;
-        switch (n = r >= 17 ? de : r >= 12 ? he : r >= 4 ? ce : pe, e) {
+        switch (n = r >= 17 ? ue : r >= 12 ? pe : r >= 4 ? de : ge, e) {
           case "B":
           case "BB":
           case "BBB":
@@ -1796,61 +1798,61 @@
             unit: "hour"
           });
         }
-        return oe.h(t, e);
+        return le.h(t, e);
       },
       H: function (t, e, i) {
         return "Ho" === e ? i.ordinalNumber(t.getHours(), {
           unit: "hour"
-        }) : oe.H(t, e);
+        }) : le.H(t, e);
       },
       K: function (t, e, i) {
         const r = t.getHours() % 12;
         return "Ko" === e ? i.ordinalNumber(r, {
           unit: "hour"
-        }) : se(r, e.length);
+        }) : oe(r, e.length);
       },
       k: function (t, e, i) {
         let r = t.getHours();
         return 0 === r && (r = 24), "ko" === e ? i.ordinalNumber(r, {
           unit: "hour"
-        }) : se(r, e.length);
+        }) : oe(r, e.length);
       },
       m: function (t, e, i) {
         return "mo" === e ? i.ordinalNumber(t.getMinutes(), {
           unit: "minute"
-        }) : oe.m(t, e);
+        }) : le.m(t, e);
       },
       s: function (t, e, i) {
         return "so" === e ? i.ordinalNumber(t.getSeconds(), {
           unit: "second"
-        }) : oe.s(t, e);
+        }) : le.s(t, e);
       },
       S: function (t, e) {
-        return oe.S(t, e);
+        return le.S(t, e);
       },
       X: function (t, e, i) {
         const r = t.getTimezoneOffset();
         if (0 === r) return "Z";
         switch (e) {
           case "X":
-            return me(r);
+            return ve(r);
           case "XXXX":
           case "XX":
-            return be(r);
+            return ye(r);
           default:
-            return be(r, ":");
+            return ye(r, ":");
         }
       },
       x: function (t, e, i) {
         const r = t.getTimezoneOffset();
         switch (e) {
           case "x":
-            return me(r);
+            return ve(r);
           case "xxxx":
           case "xx":
-            return be(r);
+            return ye(r);
           default:
-            return be(r, ":");
+            return ye(r, ":");
         }
       },
       O: function (t, e, i) {
@@ -1859,9 +1861,9 @@
           case "O":
           case "OO":
           case "OOO":
-            return "GMT" + ge(r, ":");
-          default:
             return "GMT" + be(r, ":");
+          default:
+            return "GMT" + ye(r, ":");
         }
       },
       z: function (t, e, i) {
@@ -1870,37 +1872,37 @@
           case "z":
           case "zz":
           case "zzz":
-            return "GMT" + ge(r, ":");
-          default:
             return "GMT" + be(r, ":");
+          default:
+            return "GMT" + ye(r, ":");
         }
       },
       t: function (t, e, i) {
-        return se(Math.trunc(+t / 1e3), e.length);
+        return oe(Math.trunc(+t / 1e3), e.length);
       },
       T: function (t, e, i) {
-        return se(+t, e.length);
+        return oe(+t, e.length);
       }
     };
-  function ge(t, e = "") {
+  function be(t, e = "") {
     const i = t > 0 ? "-" : "+",
       r = Math.abs(t),
       n = Math.trunc(r / 60),
       s = r % 60;
-    return 0 === s ? i + String(n) : i + String(n) + e + se(s, 2);
+    return 0 === s ? i + String(n) : i + String(n) + e + oe(s, 2);
   }
-  function me(t, e) {
+  function ve(t, e) {
     if (t % 60 == 0) {
-      return (t > 0 ? "-" : "+") + se(Math.abs(t) / 60, 2);
+      return (t > 0 ? "-" : "+") + oe(Math.abs(t) / 60, 2);
     }
-    return be(t, e);
+    return ye(t, e);
   }
-  function be(t, e = "") {
+  function ye(t, e = "") {
     const i = t > 0 ? "-" : "+",
       r = Math.abs(t);
-    return i + se(Math.trunc(r / 60), 2) + e + se(r % 60, 2);
+    return i + oe(Math.trunc(r / 60), 2) + e + oe(r % 60, 2);
   }
-  const _e = (t, e) => {
+  const fe = (t, e) => {
       switch (t) {
         case "P":
           return e.date({
@@ -1920,7 +1922,7 @@
           });
       }
     },
-    ve = (t, e) => {
+    _e = (t, e) => {
       switch (t) {
         case "p":
           return e.time({
@@ -1940,13 +1942,13 @@
           });
       }
     },
-    ye = {
-      p: ve,
+    we = {
+      p: _e,
       P: (t, e) => {
         const i = t.match(/(P+)(p+)?/) || [],
           r = i[1],
           n = i[2];
-        if (!n) return _e(t, e);
+        if (!n) return fe(t, e);
         let s;
         switch (r) {
           case "P":
@@ -1969,31 +1971,31 @@
               width: "full"
             });
         }
-        return s.replace("{{date}}", _e(r, e)).replace("{{time}}", ve(n, e));
+        return s.replace("{{date}}", fe(r, e)).replace("{{time}}", _e(n, e));
       }
     },
-    fe = /^D+$/,
-    we = /^Y+$/,
-    xe = ["D", "DD", "YY", "YYYY"];
-  const Ee = /[yYQqMLwIdDecihHKkms]o|(\w)\1*|''|'(''|[^'])+('|$)|./g,
-    Se = /P+p+|P+|p+|''|'(''|[^'])+('|$)|./g,
-    $e = /^'([^]*?)'?$/,
-    Pe = /''/g,
-    Ae = /[a-zA-Z]/;
-  function Te(t, e, i) {
-    const r = Ht(),
-      n = i?.locale ?? r.locale ?? te,
+    xe = /^D+$/,
+    $e = /^Y+$/,
+    Ee = ["D", "DD", "YY", "YYYY"];
+  const Se = /[yYQqMLwIdDecihHKkms]o|(\w)\1*|''|'(''|[^'])+('|$)|./g,
+    Pe = /P+p+|P+|p+|''|'(''|[^'])+('|$)|./g,
+    Ce = /^'([^]*?)'?$/,
+    Ae = /''/g,
+    Te = /[a-zA-Z]/;
+  function ke(t, e, i) {
+    const r = Dt(),
+      n = i?.locale ?? r.locale ?? ie,
       s = i?.firstWeekContainsDate ?? i?.locale?.options?.firstWeekContainsDate ?? r.firstWeekContainsDate ?? r.locale?.options?.firstWeekContainsDate ?? 1,
-      o = i?.weekStartsOn ?? i?.locale?.options?.weekStartsOn ?? r.weekStartsOn ?? r.locale?.options?.weekStartsOn ?? 0,
-      a = Tt(t, i?.in);
-    if (!zt(a)) throw new RangeError("Invalid time value");
-    let l = e.match(Se).map(t => {
+      a = i?.weekStartsOn ?? i?.locale?.options?.weekStartsOn ?? r.weekStartsOn ?? r.locale?.options?.weekStartsOn ?? 0,
+      o = kt(t, i?.in);
+    if (!Rt(o)) throw new RangeError("Invalid time value");
+    let l = e.match(Pe).map(t => {
       const e = t[0];
       if ("p" === e || "P" === e) {
-        return (0, ye[e])(t, n.formatLong);
+        return (0, we[e])(t, n.formatLong);
       }
       return t;
-    }).join("").match(Ee).map(t => {
+    }).join("").match(Se).map(t => {
       if ("''" === t) return {
         isToken: !1,
         value: "'"
@@ -2001,144 +2003,141 @@
       const e = t[0];
       if ("'" === e) return {
         isToken: !1,
-        value: Ce(t)
+        value: Me(t)
       };
-      if (ue[e]) return {
+      if (me[e]) return {
         isToken: !0,
         value: t
       };
-      if (e.match(Ae)) throw new RangeError("Format string contains an unescaped latin alphabet character `" + e + "`");
+      if (e.match(Te)) throw new RangeError("Format string contains an unescaped latin alphabet character `" + e + "`");
       return {
         isToken: !1,
         value: t
       };
     });
-    n.localize.preprocessor && (l = n.localize.preprocessor(a, l));
+    n.localize.preprocessor && (l = n.localize.preprocessor(o, l));
     const c = {
       firstWeekContainsDate: s,
-      weekStartsOn: o,
+      weekStartsOn: a,
       locale: n
     };
     return l.map(r => {
       if (!r.isToken) return r.value;
       const s = r.value;
       (!i?.useAdditionalWeekYearTokens && function (t) {
-        return we.test(t);
+        return $e.test(t);
       }(s) || !i?.useAdditionalDayOfYearTokens && function (t) {
-        return fe.test(t);
+        return xe.test(t);
       }(s)) && function (t, e, i) {
         const r = function (t, e, i) {
           const r = "Y" === t[0] ? "years" : "days of the month";
           return `Use \`${t.toLowerCase()}\` instead of \`${t}\` (in \`${e}\`) for formatting ${r} to the input \`${i}\`; see: https://github.com/date-fns/date-fns/blob/master/docs/unicodeTokens.md`;
         }(t, e, i);
-        if (console.warn(r), xe.includes(t)) throw new RangeError(r);
+        if (console.warn(r), Ee.includes(t)) throw new RangeError(r);
       }(s, e, String(t));
-      return (0, ue[s[0]])(a, s, n.localize, c);
+      return (0, me[s[0]])(o, s, n.localize, c);
     }).join("");
   }
-  function Ce(t) {
-    const e = t.match($e);
-    return e ? e[1].replace(Pe, "'") : t;
+  function Me(t) {
+    const e = t.match(Ce);
+    return e ? e[1].replace(Ae, "'") : t;
   }
-  function ke(t, e) {
+  function He(t, e) {
     const {
         start: i,
         end: r
       } = function (t, e) {
-        const [i, r] = It(t, e.start, e.end);
+        const [i, r] = Nt(t, e.start, e.end);
         return {
           start: i,
           end: r
         };
       }(e?.in, t),
       n = {},
-      s = Yt(r, i);
+      s = Kt(r, i);
     s && (n.years = s);
-    const o = Ct(i, {
+    const a = Mt(i, {
         years: n.years
       }),
-      a = Gt(r, o);
-    a && (n.months = a);
-    const l = Ct(o, {
+      o = Yt(r, a);
+    o && (n.months = o);
+    const l = Mt(a, {
         months: n.months
       }),
       c = function (t, e, i) {
-        const [r, n] = It(i?.in, t, e),
-          s = Ut(r, n),
-          o = Math.abs(Nt(r, n));
-        r.setDate(r.getDate() - s * o);
-        const a = s * (o - Number(Ut(r, n) === -s));
-        return 0 === a ? 0 : a;
+        const [r, n] = Nt(i?.in, t, e),
+          s = jt(r, n),
+          a = Math.abs(zt(r, n));
+        r.setDate(r.getDate() - s * a);
+        const o = s * (a - Number(jt(r, n) === -s));
+        return 0 === o ? 0 : o;
       }(r, l);
     c && (n.days = c);
-    const h = Ct(l, {
+    const h = Mt(l, {
         days: n.days
       }),
       d = function (t, e, i) {
-        const [r, n] = It(i?.in, t, e),
-          s = (+r - +n) / $t;
-        return Rt(i?.roundingMethod)(s);
+        const [r, n] = Nt(i?.in, t, e),
+          s = (+r - +n) / Ct;
+        return Vt(i?.roundingMethod)(s);
       }(r, h);
     d && (n.hours = d);
-    const p = Ct(h, {
+    const p = Mt(h, {
         hours: n.hours
       }),
       u = function (t, e, i) {
-        const r = jt(t, e) / St;
-        return Rt(i?.roundingMethod)(r);
+        const r = Gt(t, e) / Pt;
+        return Vt(i?.roundingMethod)(r);
       }(r, p);
     u && (n.minutes = u);
     const g = function (t, e, i) {
-      const r = jt(t, e) / 1e3;
-      return Rt(i?.roundingMethod)(r);
-    }(r, Ct(p, {
+      const r = Gt(t, e) / 1e3;
+      return Vt(i?.roundingMethod)(r);
+    }(r, Mt(p, {
       minutes: n.minutes
     }));
     return g && (n.seconds = g), n;
   }
-  const He = "anycubic_cloud",
-    De = (t, e, i, r) => {
+  const De = "anycubic_cloud",
+    Fe = (t, e, i, r) => {
       const n = r || {},
         s = i ?? {},
-        o = new Event(e, {
+        a = new Event(e, {
           bubbles: void 0 === n.bubbles || n.bubbles,
           cancelable: Boolean(n.cancelable),
           composed: void 0 === n.composed || n.composed
         });
-      return o.detail = s, t.dispatchEvent(o), o;
+      return a.detail = s, t.dispatchEvent(a), a;
     };
-  var Me, Be, Fe, Ie, Le, Ne;
+  var Be, Ie, Le, Ne, Oe, ze;
   !function (t) {
     t.ETA = "ETA", t.Elapsed = "Elapsed", t.Remaining = "Remaining";
-  }(Me || (Me = {})), function (t) {
-    t.F = "F", t.C = "C";
   }(Be || (Be = {})), function (t) {
-    t.Status = "Status", t.PrinterOnline = "Online", t.Availability = "Availability", t.ProjectName = "Project", t.CurrentLayer = "Layer";
-  }(Fe || (Fe = {})), function (t) {
-    t.HotendCurrent = "Hotend", t.BedCurrent = "Bed", t.HotendTarget = "T Hotend", t.BedTarget = "T Bed", t.DryingStatus = "Dry Status", t.DryingTime = "Dry Time", t.SpeedMode = "Speed Mode", t.FanSpeed = "Fan Speed";
+    t.F = "F", t.C = "C";
   }(Ie || (Ie = {})), function (t) {
-    t.DryingStatus = "Dry Status", t.DryingTime = "Dry Time";
+    t.Status = "Status", t.PrinterOnline = "Online", t.Availability = "Availability", t.ProjectName = "Project", t.CurrentLayer = "Layer";
   }(Le || (Le = {})), function (t) {
+    t.HotendCurrent = "Hotend", t.BedCurrent = "Bed", t.HotendTarget = "T Hotend", t.BedTarget = "T Bed", t.DryingStatus = "Dry Status", t.DryingTime = "Dry Time", t.SpeedMode = "Speed Mode", t.FanSpeed = "Fan Speed";
+  }(Ne || (Ne = {})), function (t) {
+    t.DryingStatus = "Dry Status", t.DryingTime = "Dry Time";
+  }(Oe || (Oe = {})), function (t) {
     t.OnTime = "On Time", t.OffTime = "Off Time", t.BottomTime = "Bottom Time", t.ModelHeight = "Model Height", t.BottomLayers = "Bottom Layers", t.ZUpHeight = "Z Up Height", t.ZUpSpeed = "Z Up Speed", t.ZDownSpeed = "Z Down Speed";
-  }(Ne || (Ne = {}));
-  const Oe = Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, Me), Fe), Ie), Le), Ne);
-  var ze, Ue, Re, je;
+  }(ze || (ze = {}));
+  const Ue = Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, Be), Le), Ne), Oe), ze);
+  var Re, je, Ve, Ge, Ze;
   !function (t) {
-    t.Auto = "auto", t.Camera = "camera", t.Preview = "preview", t.Printer = "printer", t.None = "none";
-  }(ze || (ze = {})), function (t) {
-    t.Filament = "filament", t.Move = "move", t.Insights = "insights";
-  }(Ue || (Ue = {})), function (t) {
-    t.PLA = "PLA", t.PETG = "PETG", t.ABS = "ABS", t.PACF = "PACF", t.PC = "PC", t.ASA = "ASA", t.HIPS = "HIPS", t.PA = "PA", t.PLA_SE = "PLA_SE";
+    t.Auto = "auto", t.Camera = "camera", t.Preview = "preview", t.Printer = "printer", t.PrinterModel = "printer_model", t.None = "none";
   }(Re || (Re = {})), function (t) {
+    t.Auto = "auto", t.KobraS1 = "kobra_s1", t.KobraS1Combo = "kobra_s1_combo", t.Kobra3 = "kobra_3", t.Resin = "resin", t.FDM = "fdm";
+  }(je || (je = {})), function (t) {
+    t.Filament = "filament", t.Move = "move", t.Insights = "insights";
+  }(Ve || (Ve = {})), function (t) {
+    t.PLA = "PLA", t.PETG = "PETG", t.ABS = "ABS", t.PACF = "PACF", t.PC = "PC", t.ASA = "ASA", t.HIPS = "HIPS", t.PA = "PA", t.PLA_SE = "PLA_SE";
+  }(Ge || (Ge = {})), function (t) {
     t.PAUSE = "pause", t.RESUME = "resume", t.CANCEL = "cancel";
-  }(je || (je = {}));
-  const Ve = ["width", "height", "left", "top"];
-  function Ge(t, e) {
-    Object.keys(e).forEach(t => {
-      Ve.includes(t) && !isNaN(e[t]) && (e[t] = e[t].toString() + "px");
-    }), t && Object.assign(t.style, e);
-  }
-  function Ye(t) {
+  }(Ze || (Ze = {}));
+  const Ye = "—";
+  function Ke(t) {
     return {
       state: t.state,
       attributes: t.attributes,
@@ -2152,36 +2151,36 @@
       }
     };
   }
-  function Ze(t) {
+  function qe(t) {
     return t.toLowerCase().split(" ").map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(" ");
   }
-  function qe(t, e) {
+  function We(t, e) {
     return e ? t.states[e.entity_id] : void 0;
   }
-  function We(t, e) {
-    const i = qe(t, e);
+  function Xe(t, e) {
+    const i = We(t, e);
     return i ? String(i.state) : "";
   }
-  function Xe(t, e, i, r) {
-    return "on" === We(t, e) ? i : r;
+  function Qe(t, e, i, r) {
+    return "on" === Xe(t, e) ? i : r;
   }
-  function Ke(t, e) {
+  function Je(t, e) {
     var i;
     return null === (i = function (t, e) {
       for (const i in t) if (t[i].translation_key === e) return t[i];
     }(t, e)) || void 0 === i ? void 0 : i.entity_id;
   }
-  function Qe(t, e, i) {
-    const r = Ke(e, i);
+  function ti(t, e, i) {
+    const r = Je(e, i);
     return r ? t.states[r] : void 0;
   }
-  function Je(t, e, i) {
-    const r = Qe(t, e, i);
+  function ei(t, e, i) {
+    const r = ti(t, e, i);
     if (!r || "unavailable" === r.state || "unknown" === r.state) return;
     const n = parseFloat(r.state);
     return isNaN(n) ? void 0 : n;
   }
-  function ti(t, e) {
+  function ii(t, e) {
     const i = {};
     if (e) {
       const r = new Set([e]);
@@ -2193,28 +2192,31 @@
     }
     return i;
   }
-  function ei(t, e, i) {
-    for (const r in t) {
-      const n = t[r],
-        s = r.split("."),
-        o = s[0],
-        a = s[1];
-      if (o === e && a.endsWith(i)) return n;
+  function ri(t, e, i, r) {
+    let n;
+    for (const s in t) {
+      const a = t[s],
+        o = s.split(".");
+      if (o[0] === e) {
+        if (a.translation_key === i) return a;
+        if (!n) {
+          const t = o[1];
+          (r ? t.split(r)[1] === i : t.endsWith(i)) && (n = a);
+        }
+      }
     }
+    return n;
   }
-  function ii(t, e, i) {
+  function ni(t, e, i) {
+    return ri(t, e, i);
+  }
+  function si(t, e, i) {
     return e + "." + String(t) + i;
   }
-  function ri(t, e, i, r) {
-    if (e) for (const n in t) {
-      const s = t[n],
-        o = n.split("."),
-        a = o[0],
-        l = o[1].split(e)[1];
-      if (a === i && l === r) return s;
-    }
+  function ai(t, e, i, r) {
+    if (e) return ri(t, i, r, e);
   }
-  function ni(t) {
+  function oi(t) {
     for (const e in t) {
       const t = e.split("."),
         i = t[0],
@@ -2222,9 +2224,9 @@
       if ("binary_sensor" === i && r.endsWith("printer_online")) return r.split("printer_online")[0];
     }
   }
-  function si(t, e, i, r) {
+  function li(t, e, i, r) {
     return function (t, e, i, r, n = "unavailable", s = {}) {
-      return qe(t, ri(e, i, "button", r)) || Ye({
+      return We(t, ai(e, i, "button", r)) || Ke({
         state: String(n),
         attributes: s
       });
@@ -2233,125 +2235,127 @@
       temperature: 0
     });
   }
-  function oi(t) {
+  function ci(t) {
     return !["unavailable"].includes(t.state);
   }
-  function ai(t, e, i, r) {
-    const n = qe(t, ri(e, i, "image", r));
+  function hi(t, e, i, r) {
+    const n = We(t, ai(e, i, "image", r));
     return n ? function (t) {
       const e = t.attributes.access_token;
       return `${window.location.origin}/api/image_proxy/${t.entity_id}?token=${e}`;
     }(n) : void 0;
   }
-  function li(t, e, i, r, n = "unavailable", s = {}) {
-    return qe(t, ri(e, i, "sensor", r)) || Ye({
+  function di(t, e, i, r, n = "unavailable", s = {}) {
+    return We(t, ai(e, i, "sensor", r)) || Ke({
       state: String(n),
       attributes: s
     });
   }
-  function ci(t, e, i, r) {
-    const n = ri(e, i, "sensor", r);
+  function pi(t, e, i, r) {
+    const n = ai(e, i, "sensor", r);
     return n ? function (t, e) {
-      const i = qe(t, e),
+      const i = We(t, e),
         r = i ? parseFloat(i.state) : 0;
       return isNaN(r) ? 0 : r;
     }(t, n) : void 0;
   }
-  function hi(t, e, i, r, n, s, o = void 0) {
-    const a = ri(e, i, "binary_sensor", r);
-    return a ? Xe(t, a, n, s) : o;
+  function ui(t, e, i, r, n, s, a = void 0) {
+    const o = ai(e, i, "binary_sensor", r);
+    return o ? Qe(t, o, n, s) : a;
   }
-  function di(t, e, i, r) {
-    const n = ri(e, i, "update", r);
-    return n ? Xe(t, n, "Update Available", "Up To Date") : void 0;
+  function gi(t, e, i, r) {
+    const n = ai(e, i, "update", r);
+    return n ? Qe(t, n, "Update Available", "Up To Date") : void 0;
   }
-  function pi(t, e, i) {
-    return "Filament" === li(t, e, i, "current_status").attributes.material_type;
+  function mi(t, e, i) {
+    return "Filament" === di(t, e, i, "current_status").attributes.material_type;
   }
-  function ui(t) {
+  function bi(t) {
     const e = t.path.split("/");
     return e.length > 1 ? e[1] : void 0;
   }
-  function gi(t) {
+  function vi(t) {
     const e = t.path.split("/");
     return e.length > 2 ? e[2] : "main";
   }
-  function mi(t) {
+  function yi(t) {
     return ["printing", "preheating", "paused", "downloading", "checking"].includes(t);
   }
-  function bi(t) {
-    return e = 1e3 * t, ke({
+  function fi(t) {
+    return e = 1e3 * t, He({
       start: new Date(0),
       end: new Date(e)
     });
     var e;
   }
   const _i = (t, e) => {
-      if (0 !== t && (!t || isNaN(t))) return "—";
-      const i = bi(e ? 60 * Math.ceil(Number(t) / 60) : Number(t));
-      return `${i.days && i.days > 0 ? `${i.days}d` : ""}${i.hours && i.hours > 0 ? `${i.hours}h` : ""}${i.minutes && i.minutes > 0 ? `${i.minutes}m` : ""}${i.seconds && i.seconds > 0 ? `${i.seconds}s` : e ? "" : "0s"}`;
+      if (0 !== t && (!t || isNaN(t))) return Ye;
+      const i = fi(e ? 60 * Math.ceil(Number(t) / 60) : Number(t)),
+        r = [];
+      return i.days && r.push(`${i.days}d`), i.hours && r.length < 2 && r.push(`${i.hours}h`), i.minutes && r.length < 2 && !i.days && r.push(`${i.minutes}m`), i.seconds && r.length < 2 && !i.days && !i.hours && !e && r.push(`${i.seconds}s`), r.length ? r.join(" ") : e ? "0m" : "0s";
     },
-    vi = (t, e, i = !1, r = !1) => {
+    wi = (t, e, i = !1, r = !1) => {
       switch (e) {
-        case Me.Remaining:
+        case Be.Remaining:
           return _i(t, i);
-        case Me.ETA:
+        case Be.ETA:
           return ((t, e, i) => {
-            if (0 !== t && (!t || isNaN(t))) return "—";
+            if (0 !== t && (!t || isNaN(t))) return Ye;
             const r = e ? "" : ":ss",
               n = i ? `HH:mm${r}` : `h:mm${r} a`,
               s = new Date();
-            return s.setSeconds(s.getSeconds() + Number(t)), Te(s, n);
+            return s.setSeconds(s.getSeconds() + Number(t)), ke(s, n);
           })(t, i, r);
-        case Me.Elapsed:
+        case Be.Elapsed:
           return _i(t, i);
         default:
-          return "—";
+          return Ye;
       }
     };
-  const yi = {
-      [Be.C]: {
-        [Be.C]: t => t,
-        [Be.F]: t => 9 * t / 5 + 32
+  const xi = {
+      [Ie.C]: {
+        [Ie.C]: t => t,
+        [Ie.F]: t => 9 * t / 5 + 32
       },
-      [Be.F]: {
-        [Be.C]: t => 5 * (t - 32) / 9,
-        [Be.F]: t => t
+      [Ie.F]: {
+        [Ie.C]: t => 5 * (t - 32) / 9,
+        [Ie.F]: t => t
       }
     },
-    fi = (t, e, i = !1) => {
-      const r = parseFloat(t.state),
-        n = (t => {
+    $i = (t, e, i = !1) => {
+      const r = parseFloat(t.state);
+      if (isNaN(r)) return Ye;
+      const n = (t => {
           switch (t.attributes.unit_of_measurement) {
             case "°C":
             default:
-              return Be.C;
+              return Ie.C;
             case "°F":
-              return Be.F;
+              return Ie.F;
           }
         })(t),
-        s = (o = r, l = e || n, yi[a = n] && yi[a][l] ? yi[a][l](o) : -1);
-      var o, a, l;
+        s = (a = r, l = e || n, xi[o = n] && xi[o][l] ? xi[o][l](a) : -1);
+      var a, o, l;
       return `${i ? Math.round(s) : s.toFixed(2)}°${e || n}`;
     };
-  function wi() {
-    return [Oe.Status, Oe.ETA, Oe.Elapsed, Oe.Remaining];
+  function Ei() {
+    return [Ue.Status, Ue.ETA, Ue.Elapsed, Ue.Remaining];
   }
-  function xi() {
-    return [...wi(), Oe.HotendCurrent, Oe.BedCurrent, Oe.HotendTarget, Oe.BedTarget, Oe.PrinterOnline, Oe.Availability, Oe.ProjectName, Oe.CurrentLayer];
+  function Si() {
+    return [...Ei(), Ue.HotendCurrent, Ue.BedCurrent, Ue.HotendTarget, Ue.BedTarget, Ue.PrinterOnline, Ue.Availability, Ue.ProjectName, Ue.CurrentLayer];
   }
-  function Ei(t) {
+  function Pi(t) {
     var e;
     return (null !== (e = t.attributes.available_modes) && void 0 !== e ? e : []).reduce((t, e) => Object.assign(Object.assign({}, t), {
       [e.mode]: e.description
     }), {});
   }
-  function Si(t) {
-    return t && Object.values(Re).includes(t) ? Re[t.toUpperCase()] : void 0;
+  function Ci(t) {
+    return t && Object.values(Ge).includes(t) ? Ge[t.toUpperCase()] : void 0;
   }
-  let $i = class extends ut {
+  let Ai = class extends mt {
     willUpdate(t) {
-      super.willUpdate(t), t.has("selectedPrinterID") && (this.printerEntities = ti(this.hass, this.selectedPrinterID));
+      super.willUpdate(t), t.has("selectedPrinterID") && (this.printerEntities = ii(this.hass, this.selectedPrinterID));
     }
     render() {
       return W`
@@ -2387,19 +2391,19 @@
     `;
     }
   };
-  n([vt()], $i.prototype, "hass", void 0), n([vt()], $i.prototype, "language", void 0), n([vt({
+  n([_t()], Ai.prototype, "hass", void 0), n([_t()], Ai.prototype, "language", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], $i.prototype, "narrow", void 0), n([vt()], $i.prototype, "route", void 0), n([vt()], $i.prototype, "panel", void 0), n([vt()], $i.prototype, "printers", void 0), n([vt({
+  })], Ai.prototype, "narrow", void 0), n([_t()], Ai.prototype, "route", void 0), n([_t()], Ai.prototype, "panel", void 0), n([_t()], Ai.prototype, "printers", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], $i.prototype, "selectedPrinterID", void 0), n([vt({
+  })], Ai.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], $i.prototype, "selectedPrinterDevice", void 0), n([yt()], $i.prototype, "printerEntities", void 0), $i = n([mt("anycubic-view-debug")], $i);
-  var Pi,
-    Ai,
-    Ti,
-    Ci = "Anycubic Cloud",
-    ki = {
+  })], Ai.prototype, "selectedPrinterDevice", void 0), n([wt()], Ai.prototype, "printerEntities", void 0), Ai = n([vt("anycubic-view-debug")], Ai);
+  var Ti,
+    ki,
+    Mi,
+    Hi = "Anycubic Cloud",
+    Di = {
       actions: {
         cancel: "Abbrechen",
         pause: "Pausieren",
@@ -2413,7 +2417,7 @@
         mqtt_unsupported: "Diese Funktion benötigt MQTT zum Abrufen der Daten, mit der eingestellten Authentifizierungsmethode wird MQTT leider nicht unterstützt."
       }
     },
-    Hi = {
+    Fi = {
       buttons: {
         print_settings: "Druckeinstellungen",
         dry: "Trocknen",
@@ -2439,8 +2443,32 @@
           scale_factor: "Skalierungsfaktor",
           slot_colors: "Farbvoreinstellungen der Fächer",
           media_view: "Hauptansicht",
+          printer_art: "Druckergrafik",
           show_controls: "Steuerungsschaltflächen anzeigen",
+          show_move_buttons: "Bewegungsschaltflächen anzeigen",
           sections: "Ausklappbare Bereiche"
+        },
+        options: {
+          printer_art: {
+            auto: "Automatisch (erkennen)",
+            kobra_s1: "Kobra S1",
+            kobra_s1_combo: "Kobra S1 Combo",
+            kobra_3: "Kobra 3 / Kobra 2",
+            resin: "Photon / Harz",
+            fdm: "FDM (allgemein)"
+          },
+          media_view: {
+            auto: "Automatisch",
+            camera: "Kamera",
+            preview: "Druckvorschau",
+            printer: "Druckergrafik",
+            printer_model: "Druckergrafik + Modell",
+            none: "Ausgeblendet"
+          },
+          sections: {
+            filament: "Filament",
+            insights: "Einblicke"
+          }
         }
       },
       print_settings: {
@@ -2496,9 +2524,17 @@
         "Z Up Height": "Z-Hubhöhe",
         "Z Up Speed": "Z-Hubgeschwindigkeit",
         "Z Down Speed": "Z-Senkgeschwindigkeit"
+      },
+      media_view: {
+        tabs: {
+          camera: "Kamera",
+          preview: "Vorschau",
+          printer: "Drucker",
+          printer_model: "Drucker + Modell"
+        }
       }
     },
-    Di = {
+    Bi = {
       initial: {
         printer_select: "Bitte wählen Sie einen Drucker."
       },
@@ -2528,6 +2564,21 @@
               drying_progress: "ACE-Trocknungsfortschritt"
             }
           }
+        },
+        groups: {
+          machine: "Gerät",
+          ace: "ACE",
+          diagnostics: "Kennungen"
+        },
+        presets: {
+          title: "Auf dem eigenen Dashboard nachbauen",
+          lede: "Jede davon ist dieselbe Karte wie oben, nur anders eingestellt – in der Breite gezeigt, die eine Dashboard-Spalte ihr gibt. Vorschauen öffnen nie die Kamera; hier steht die Druckergrafik dafür. Kopieren und in eine manuelle Karte einfügen.",
+          full: "Vollständig",
+          compact: "Kompakte Kachel",
+          copy: "Kopieren",
+          copied: "Kopiert",
+          model: "Drucker + Modell",
+          vertical: "Vertikal"
         }
       },
       files_cloud: {
@@ -2555,22 +2606,22 @@
         cards: {}
       }
     },
-    Mi = {
-      title: Ci,
-      common: ki,
-      card: Hi,
-      panels: Di
-    },
-    Bi = Object.freeze({
-      __proto__: null,
-      title: Ci,
-      common: ki,
-      card: Hi,
-      panels: Di,
-      default: Mi
-    }),
-    Fi = "Anycubic Cloud",
     Ii = {
+      title: Hi,
+      common: Di,
+      card: Fi,
+      panels: Bi
+    },
+    Li = Object.freeze({
+      __proto__: null,
+      title: Hi,
+      common: Di,
+      card: Fi,
+      panels: Bi,
+      default: Ii
+    }),
+    Ni = "Anycubic Cloud",
+    Oi = {
       actions: {
         cancel: "Cancel",
         pause: "Pause",
@@ -2584,7 +2635,7 @@
         mqtt_unsupported: "This feature requires MQTT to retrieve data but unfortunately MQTT is not supported with the configured authentication mode."
       }
     },
-    Li = {
+    zi = {
       buttons: {
         print_settings: "Print Settings",
         dry: "Dry",
@@ -2610,8 +2661,32 @@
           scale_factor: "Scale Factor",
           slot_colors: "Slot Colour Presets",
           media_view: "Main view",
+          printer_art: "Printer artwork",
           show_controls: "Show control buttons",
+          show_move_buttons: "Show move buttons",
           sections: "Expandable sections"
+        },
+        options: {
+          printer_art: {
+            auto: "Automatic (detect)",
+            kobra_s1: "Kobra S1",
+            kobra_s1_combo: "Kobra S1 Combo",
+            kobra_3: "Kobra 3 / Kobra 2",
+            resin: "Photon / resin",
+            fdm: "Generic FDM"
+          },
+          media_view: {
+            auto: "Automatic",
+            camera: "Camera",
+            preview: "Job preview",
+            printer: "Printer graphic",
+            printer_model: "Printer graphic + model",
+            none: "Hidden"
+          },
+          sections: {
+            filament: "Filament",
+            insights: "Insights"
+          }
         }
       },
       print_settings: {
@@ -2667,9 +2742,17 @@
         "Z Up Height": "Z Up Height",
         "Z Up Speed": "Z Up Speed",
         "Z Down Speed": "Z Down Speed"
+      },
+      media_view: {
+        tabs: {
+          camera: "Camera",
+          preview: "Preview",
+          printer: "Printer",
+          printer_model: "Printer + model"
+        }
       }
     },
-    Ni = {
+    Ui = {
       initial: {
         printer_select: "Select a printer."
       },
@@ -2699,6 +2782,21 @@
               drying_progress: "ACE Drying Progress"
             }
           }
+        },
+        groups: {
+          machine: "Machine",
+          ace: "ACE",
+          diagnostics: "Identifiers"
+        },
+        presets: {
+          title: "Build this on your own dashboard",
+          lede: "Each of these is the same card as above, set up differently — shown at the width a dashboard column gives it. Previews never open the camera, so the printer graphic stands in for it here. Copy one and paste it into a Manual card.",
+          full: "Full",
+          compact: "Compact tile",
+          copy: "Copy",
+          copied: "Copied",
+          model: "Printer + model",
+          vertical: "Vertical"
         }
       },
       files_cloud: {
@@ -2726,22 +2824,22 @@
         cards: {}
       }
     },
-    Oi = {
-      title: Fi,
-      common: Ii,
-      card: Li,
-      panels: Ni
-    },
-    zi = Object.freeze({
-      __proto__: null,
-      title: Fi,
-      common: Ii,
-      card: Li,
-      panels: Ni,
-      default: Oi
-    }),
-    Ui = "Anycubic Cloud",
     Ri = {
+      title: Ni,
+      common: Oi,
+      card: zi,
+      panels: Ui
+    },
+    ji = Object.freeze({
+      __proto__: null,
+      title: Ni,
+      common: Oi,
+      card: zi,
+      panels: Ui,
+      default: Ri
+    }),
+    Vi = "Anycubic Cloud",
+    Gi = {
       actions: {
         cancel: "Annuler",
         pause: "Pause",
@@ -2755,7 +2853,7 @@
         mqtt_unsupported: "Cette fonctionnalité nécessite MQTT pour récupérer les données, mais MQTT n'est malheureusement pas pris en charge par le mode d'authentification configuré."
       }
     },
-    ji = {
+    Zi = {
       buttons: {
         print_settings: "Paramètres d'impression",
         dry: "Sécher",
@@ -2781,8 +2879,32 @@
           scale_factor: "Facteur d'échelle",
           slot_colors: "Préréglages de couleurs des emplacements",
           media_view: "Vue principale",
+          printer_art: "Illustration de l'imprimante",
           show_controls: "Afficher les boutons de contrôle",
+          show_move_buttons: "Afficher les boutons de déplacement",
           sections: "Sections dépliables"
+        },
+        options: {
+          printer_art: {
+            auto: "Automatique (détection)",
+            kobra_s1: "Kobra S1",
+            kobra_s1_combo: "Kobra S1 Combo",
+            kobra_3: "Kobra 3 / Kobra 2",
+            resin: "Photon / résine",
+            fdm: "FDM générique"
+          },
+          media_view: {
+            auto: "Automatique",
+            camera: "Caméra",
+            preview: "Aperçu du travail",
+            printer: "Illustration de l'imprimante",
+            printer_model: "Illustration + modèle",
+            none: "Masqué"
+          },
+          sections: {
+            filament: "Filament",
+            insights: "Aperçus"
+          }
         }
       },
       print_settings: {
@@ -2838,9 +2960,17 @@
         "Z Up Height": "Hauteur de levée Z",
         "Z Up Speed": "Vitesse de montée Z",
         "Z Down Speed": "Vitesse de descente Z"
+      },
+      media_view: {
+        tabs: {
+          camera: "Caméra",
+          preview: "Aperçu",
+          printer: "Imprimante",
+          printer_model: "Imprimante + modèle"
+        }
       }
     },
-    Vi = {
+    Yi = {
       initial: {
         printer_select: "Sélectionnez une imprimante."
       },
@@ -2870,6 +3000,21 @@
               drying_progress: "Progression du séchage ACE"
             }
           }
+        },
+        groups: {
+          machine: "Machine",
+          ace: "ACE",
+          diagnostics: "Identifiants"
+        },
+        presets: {
+          title: "Reproduire ceci sur votre tableau de bord",
+          lede: "Chacune est la même carte que ci-dessus, réglée autrement, à la largeur qu'une colonne de tableau de bord lui donne. Les aperçus n'ouvrent jamais la caméra : l'illustration de l'imprimante la remplace ici. Copiez-en une et collez-la dans une carte manuelle.",
+          full: "Complète",
+          compact: "Tuile compacte",
+          copy: "Copier",
+          copied: "Copié",
+          model: "Imprimante + modèle",
+          vertical: "Verticale"
         }
       },
       files_cloud: {
@@ -2897,22 +3042,22 @@
         cards: {}
       }
     },
-    Gi = {
-      title: Ui,
-      common: Ri,
-      card: ji,
-      panels: Vi
+    Ki = {
+      title: Vi,
+      common: Gi,
+      card: Zi,
+      panels: Yi
     },
-    Yi = Object.freeze({
+    qi = Object.freeze({
       __proto__: null,
-      title: Ui,
-      common: Ri,
-      card: ji,
-      panels: Vi,
-      default: Gi
+      title: Vi,
+      common: Gi,
+      card: Zi,
+      panels: Yi,
+      default: Ki
     }),
-    Zi = "Anycubic Cloud",
-    qi = {
+    Wi = "Anycubic Cloud",
+    Xi = {
       actions: {
         cancel: "Annuleren",
         pause: "Pauzeren",
@@ -2926,7 +3071,7 @@
         mqtt_unsupported: "Deze functie heeft MQTT nodig om gegevens op te halen, maar MQTT wordt helaas niet ondersteund door de ingestelde authenticatiemethode."
       }
     },
-    Wi = {
+    Qi = {
       buttons: {
         print_settings: "Printinstellingen",
         dry: "Drogen",
@@ -2952,8 +3097,32 @@
           scale_factor: "Schaalfactor",
           slot_colors: "Kleurvoorinstellingen per slot",
           media_view: "Hoofdweergave",
+          printer_art: "Printerafbeelding",
           show_controls: "Bedieningsknoppen tonen",
+          show_move_buttons: "Verplaatsknoppen tonen",
           sections: "Uitklapbare secties"
+        },
+        options: {
+          printer_art: {
+            auto: "Automatisch (detecteren)",
+            kobra_s1: "Kobra S1",
+            kobra_s1_combo: "Kobra S1 Combo",
+            kobra_3: "Kobra 3 / Kobra 2",
+            resin: "Photon / hars",
+            fdm: "Algemene FDM"
+          },
+          media_view: {
+            auto: "Automatisch",
+            camera: "Camera",
+            preview: "Afdrukvoorbeeld",
+            printer: "Printerafbeelding",
+            printer_model: "Printerafbeelding + model",
+            none: "Verborgen"
+          },
+          sections: {
+            filament: "Filament",
+            insights: "Inzichten"
+          }
         }
       },
       print_settings: {
@@ -3009,9 +3178,17 @@
         "Z Up Height": "Z-hefhoogte",
         "Z Up Speed": "Z-hefsnelheid",
         "Z Down Speed": "Z-daalsnelheid"
+      },
+      media_view: {
+        tabs: {
+          camera: "Camera",
+          preview: "Voorbeeld",
+          printer: "Printer",
+          printer_model: "Printer + model"
+        }
       }
     },
-    Xi = {
+    Ji = {
       initial: {
         printer_select: "Selecteer een printer."
       },
@@ -3041,6 +3218,21 @@
               drying_progress: "ACE-droogvoortgang"
             }
           }
+        },
+        groups: {
+          machine: "Machine",
+          ace: "ACE",
+          diagnostics: "Identificatie"
+        },
+        presets: {
+          title: "Bouw dit op je eigen dashboard",
+          lede: "Elk hiervan is dezelfde kaart als hierboven, anders ingesteld, op de breedte die een dashboardkolom geeft. Voorbeelden openen nooit de camera; de printerafbeelding staat hier in de plaats. Kopieer er een en plak die in een handmatige kaart.",
+          full: "Volledig",
+          compact: "Compacte tegel",
+          copy: "Kopiëren",
+          copied: "Gekopieerd",
+          model: "Printer + model",
+          vertical: "Verticaal"
         }
       },
       files_cloud: {
@@ -3068,22 +3260,22 @@
         cards: {}
       }
     },
-    Ki = {
-      title: Zi,
-      common: qi,
-      card: Wi,
-      panels: Xi
-    },
-    Qi = Object.freeze({
-      __proto__: null,
-      title: Zi,
-      common: qi,
-      card: Wi,
-      panels: Xi,
-      default: Ki
-    }),
-    Ji = "Anycubic Cloud",
     tr = {
+      title: Wi,
+      common: Xi,
+      card: Qi,
+      panels: Ji
+    },
+    er = Object.freeze({
+      __proto__: null,
+      title: Wi,
+      common: Xi,
+      card: Qi,
+      panels: Ji,
+      default: tr
+    }),
+    ir = "Anycubic Cloud",
+    rr = {
       actions: {
         cancel: "取消",
         pause: "暂停",
@@ -3097,7 +3289,7 @@
         mqtt_unsupported: "此功能需要通过 MQTT 获取数据，但当前配置的认证方式不支持 MQTT。"
       }
     },
-    er = {
+    nr = {
       buttons: {
         print_settings: "打印设置",
         dry: "烘干",
@@ -3123,8 +3315,32 @@
           scale_factor: "缩放比例",
           slot_colors: "槽位颜色预设",
           media_view: "主视图",
+          printer_art: "打印机图形",
           show_controls: "显示控制按钮",
+          show_move_buttons: "显示移动按钮",
           sections: "可展开区块"
+        },
+        options: {
+          printer_art: {
+            auto: "自动（检测）",
+            kobra_s1: "Kobra S1",
+            kobra_s1_combo: "Kobra S1 Combo",
+            kobra_3: "Kobra 3 / Kobra 2",
+            resin: "Photon（树脂）",
+            fdm: "通用 FDM"
+          },
+          media_view: {
+            auto: "自动",
+            camera: "摄像头",
+            preview: "打印预览",
+            printer: "打印机图形",
+            printer_model: "打印机图形 + 模型",
+            none: "隐藏"
+          },
+          sections: {
+            filament: "耗材",
+            insights: "洞察"
+          }
         }
       },
       print_settings: {
@@ -3180,9 +3396,17 @@
         "Z Up Height": "Z 抬升高度",
         "Z Up Speed": "Z 抬升速度",
         "Z Down Speed": "Z 下降速度"
+      },
+      media_view: {
+        tabs: {
+          camera: "摄像头",
+          preview: "预览",
+          printer: "打印机",
+          printer_model: "打印机 + 模型"
+        }
       }
     },
-    ir = {
+    sr = {
       initial: {
         printer_select: "请选择打印机。"
       },
@@ -3212,6 +3436,21 @@
               drying_progress: "ACE 烘干进度"
             }
           }
+        },
+        groups: {
+          machine: "设备",
+          ace: "ACE",
+          diagnostics: "标识信息"
+        },
+        presets: {
+          title: "在你自己的仪表板上搭建",
+          lede: "下面每一张都是上方的同一张卡片，只是设置不同，并按仪表板栏位的宽度显示。预览不会打开摄像头，此处以打印机图形代替。复制一段并粘贴到手动卡片中。",
+          full: "完整",
+          compact: "紧凑磁贴",
+          copy: "复制",
+          copied: "已复制",
+          model: "打印机 + 模型",
+          vertical: "竖向"
         }
       },
       files_cloud: {
@@ -3239,63 +3478,63 @@
         cards: {}
       }
     },
-    rr = {
-      title: Ji,
-      common: tr,
-      card: er,
-      panels: ir
+    ar = {
+      title: ir,
+      common: rr,
+      card: nr,
+      panels: sr
     },
-    nr = Object.freeze({
+    or = Object.freeze({
       __proto__: null,
-      title: Ji,
-      common: tr,
-      card: er,
-      panels: ir,
-      default: rr
+      title: ir,
+      common: rr,
+      card: nr,
+      panels: sr,
+      default: ar
     });
-  function sr(t) {
-    return t.type === Ai.literal;
-  }
-  function or(t) {
-    return t.type === Ai.argument;
-  }
-  function ar(t) {
-    return t.type === Ai.number;
-  }
   function lr(t) {
-    return t.type === Ai.date;
+    return t.type === ki.literal;
   }
   function cr(t) {
-    return t.type === Ai.time;
+    return t.type === ki.argument;
   }
   function hr(t) {
-    return t.type === Ai.select;
+    return t.type === ki.number;
   }
   function dr(t) {
-    return t.type === Ai.plural;
+    return t.type === ki.date;
   }
   function pr(t) {
-    return t.type === Ai.pound;
+    return t.type === ki.time;
   }
   function ur(t) {
-    return t.type === Ai.tag;
+    return t.type === ki.select;
   }
   function gr(t) {
-    return !(!t || "object" != typeof t || t.type !== Ti.number);
+    return t.type === ki.plural;
   }
   function mr(t) {
-    return !(!t || "object" != typeof t || t.type !== Ti.dateTime);
+    return t.type === ki.pound;
+  }
+  function br(t) {
+    return t.type === ki.tag;
+  }
+  function vr(t) {
+    return !(!t || "object" != typeof t || t.type !== Mi.number);
+  }
+  function yr(t) {
+    return !(!t || "object" != typeof t || t.type !== Mi.dateTime);
   }
   !function (t) {
     t[t.EXPECT_ARGUMENT_CLOSING_BRACE = 1] = "EXPECT_ARGUMENT_CLOSING_BRACE", t[t.EMPTY_ARGUMENT = 2] = "EMPTY_ARGUMENT", t[t.MALFORMED_ARGUMENT = 3] = "MALFORMED_ARGUMENT", t[t.EXPECT_ARGUMENT_TYPE = 4] = "EXPECT_ARGUMENT_TYPE", t[t.INVALID_ARGUMENT_TYPE = 5] = "INVALID_ARGUMENT_TYPE", t[t.EXPECT_ARGUMENT_STYLE = 6] = "EXPECT_ARGUMENT_STYLE", t[t.INVALID_NUMBER_SKELETON = 7] = "INVALID_NUMBER_SKELETON", t[t.INVALID_DATE_TIME_SKELETON = 8] = "INVALID_DATE_TIME_SKELETON", t[t.EXPECT_NUMBER_SKELETON = 9] = "EXPECT_NUMBER_SKELETON", t[t.EXPECT_DATE_TIME_SKELETON = 10] = "EXPECT_DATE_TIME_SKELETON", t[t.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE = 11] = "UNCLOSED_QUOTE_IN_ARGUMENT_STYLE", t[t.EXPECT_SELECT_ARGUMENT_OPTIONS = 12] = "EXPECT_SELECT_ARGUMENT_OPTIONS", t[t.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE = 13] = "EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE", t[t.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE = 14] = "INVALID_PLURAL_ARGUMENT_OFFSET_VALUE", t[t.EXPECT_SELECT_ARGUMENT_SELECTOR = 15] = "EXPECT_SELECT_ARGUMENT_SELECTOR", t[t.EXPECT_PLURAL_ARGUMENT_SELECTOR = 16] = "EXPECT_PLURAL_ARGUMENT_SELECTOR", t[t.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT = 17] = "EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT", t[t.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT = 18] = "EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT", t[t.INVALID_PLURAL_ARGUMENT_SELECTOR = 19] = "INVALID_PLURAL_ARGUMENT_SELECTOR", t[t.DUPLICATE_PLURAL_ARGUMENT_SELECTOR = 20] = "DUPLICATE_PLURAL_ARGUMENT_SELECTOR", t[t.DUPLICATE_SELECT_ARGUMENT_SELECTOR = 21] = "DUPLICATE_SELECT_ARGUMENT_SELECTOR", t[t.MISSING_OTHER_CLAUSE = 22] = "MISSING_OTHER_CLAUSE", t[t.INVALID_TAG = 23] = "INVALID_TAG", t[t.INVALID_TAG_NAME = 25] = "INVALID_TAG_NAME", t[t.UNMATCHED_CLOSING_TAG = 26] = "UNMATCHED_CLOSING_TAG", t[t.UNCLOSED_TAG = 27] = "UNCLOSED_TAG";
-  }(Pi || (Pi = {})), function (t) {
+  }(Ti || (Ti = {})), function (t) {
     t[t.literal = 0] = "literal", t[t.argument = 1] = "argument", t[t.number = 2] = "number", t[t.date = 3] = "date", t[t.time = 4] = "time", t[t.select = 5] = "select", t[t.plural = 6] = "plural", t[t.pound = 7] = "pound", t[t.tag = 8] = "tag";
-  }(Ai || (Ai = {})), function (t) {
+  }(ki || (ki = {})), function (t) {
     t[t.number = 0] = "number", t[t.dateTime = 1] = "dateTime";
-  }(Ti || (Ti = {}));
-  var br = /[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/,
+  }(Mi || (Mi = {}));
+  var fr = /[ \xA0\u1680\u2000-\u200A\u202F\u205F\u3000]/,
     _r = /(?:[Eec]{1,6}|G{1,5}|[Qq]{1,5}|(?:[yYur]+|U{1,5})|[ML]{1,5}|d{1,2}|D{1,3}|F{1}|[abB]{1,5}|[hkHK]{1,2}|w{1,2}|W{1}|m{1,2}|s{1,2}|[zZOvVxX]{1,4})(?=([^']*'[^']*')*[^']*$)/g;
-  function vr(t) {
+  function wr(t) {
     var e = {};
     return t.replace(_r, function (t) {
       var i = t.length;
@@ -3384,18 +3623,18 @@
       return "";
     }), e;
   }
-  var yr = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
-  var fr = /^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,
-    wr = /^(@+)?(\+|#+)?[rs]?$/g,
-    xr = /(\*)(0+)|(#+)(0+)|(0+)/g,
-    Er = /^(0+)$/;
-  function Sr(t) {
+  var xr = /[\t-\r \x85\u200E\u200F\u2028\u2029]/i;
+  var $r = /^\.(?:(0+)(\*)?|(#+)|(0+)(#+))$/g,
+    Er = /^(@+)?(\+|#+)?[rs]?$/g,
+    Sr = /(\*)(0+)|(#+)(0+)|(0+)/g,
+    Pr = /^(0+)$/;
+  function Cr(t) {
     var e = {};
-    return "r" === t[t.length - 1] ? e.roundingPriority = "morePrecision" : "s" === t[t.length - 1] && (e.roundingPriority = "lessPrecision"), t.replace(wr, function (t, i, r) {
+    return "r" === t[t.length - 1] ? e.roundingPriority = "morePrecision" : "s" === t[t.length - 1] && (e.roundingPriority = "lessPrecision"), t.replace(Er, function (t, i, r) {
       return "string" != typeof r ? (e.minimumSignificantDigits = i.length, e.maximumSignificantDigits = i.length) : "+" === r ? e.minimumSignificantDigits = i.length : "#" === i[0] ? e.maximumSignificantDigits = i.length : (e.minimumSignificantDigits = i.length, e.maximumSignificantDigits = i.length + ("string" == typeof r ? r.length : 0)), "";
     }), e;
   }
-  function $r(t) {
+  function Ar(t) {
     switch (t) {
       case "sign-auto":
         return {
@@ -3435,7 +3674,7 @@
         };
     }
   }
-  function Pr(t) {
+  function Tr(t) {
     var e;
     if ("E" === t[0] && "E" === t[1] ? (e = {
       notation: "engineering"
@@ -3443,16 +3682,16 @@
       notation: "scientific"
     }, t = t.slice(1)), e) {
       var i = t.slice(0, 2);
-      if ("+!" === i ? (e.signDisplay = "always", t = t.slice(2)) : "+?" === i && (e.signDisplay = "exceptZero", t = t.slice(2)), !Er.test(t)) throw new Error("Malformed concise eng/scientific notation");
+      if ("+!" === i ? (e.signDisplay = "always", t = t.slice(2)) : "+?" === i && (e.signDisplay = "exceptZero", t = t.slice(2)), !Pr.test(t)) throw new Error("Malformed concise eng/scientific notation");
       e.minimumIntegerDigits = t.length;
     }
     return e;
   }
-  function Ar(t) {
-    var e = $r(t);
+  function kr(t) {
+    var e = Ar(t);
     return e || {};
   }
-  function Tr(t) {
+  function Mr(t) {
     for (var e = {}, i = 0, n = t; i < n.length; i++) {
       var s = n[i];
       switch (s.stem) {
@@ -3490,14 +3729,14 @@
           e = r(r(r({}, e), {
             notation: "scientific"
           }), s.options.reduce(function (t, e) {
-            return r(r({}, t), Ar(e));
+            return r(r({}, t), kr(e));
           }, {}));
           continue;
         case "engineering":
           e = r(r(r({}, e), {
             notation: "engineering"
           }), s.options.reduce(function (t, e) {
-            return r(r({}, t), Ar(e));
+            return r(r({}, t), kr(e));
           }, {}));
           continue;
         case "notation-simple":
@@ -3541,35 +3780,35 @@
           continue;
         case "integer-width":
           if (s.options.length > 1) throw new RangeError("integer-width stems only accept a single optional option");
-          s.options[0].replace(xr, function (t, i, r, n, s, o) {
+          s.options[0].replace(Sr, function (t, i, r, n, s, a) {
             if (i) e.minimumIntegerDigits = r.length;else {
               if (n && s) throw new Error("We currently do not support maximum integer digits");
-              if (o) throw new Error("We currently do not support exact integer digits");
+              if (a) throw new Error("We currently do not support exact integer digits");
             }
             return "";
           });
           continue;
       }
-      if (Er.test(s.stem)) e.minimumIntegerDigits = s.stem.length;else if (fr.test(s.stem)) {
+      if (Pr.test(s.stem)) e.minimumIntegerDigits = s.stem.length;else if ($r.test(s.stem)) {
         if (s.options.length > 1) throw new RangeError("Fraction-precision stems only accept a single optional option");
-        s.stem.replace(fr, function (t, i, r, n, s, o) {
-          return "*" === r ? e.minimumFractionDigits = i.length : n && "#" === n[0] ? e.maximumFractionDigits = n.length : s && o ? (e.minimumFractionDigits = s.length, e.maximumFractionDigits = s.length + o.length) : (e.minimumFractionDigits = i.length, e.maximumFractionDigits = i.length), "";
+        s.stem.replace($r, function (t, i, r, n, s, a) {
+          return "*" === r ? e.minimumFractionDigits = i.length : n && "#" === n[0] ? e.maximumFractionDigits = n.length : s && a ? (e.minimumFractionDigits = s.length, e.maximumFractionDigits = s.length + a.length) : (e.minimumFractionDigits = i.length, e.maximumFractionDigits = i.length), "";
         });
-        var o = s.options[0];
-        "w" === o ? e = r(r({}, e), {
+        var a = s.options[0];
+        "w" === a ? e = r(r({}, e), {
           trailingZeroDisplay: "stripIfInteger"
-        }) : o && (e = r(r({}, e), Sr(o)));
-      } else if (wr.test(s.stem)) e = r(r({}, e), Sr(s.stem));else {
-        var a = $r(s.stem);
-        a && (e = r(r({}, e), a));
-        var l = Pr(s.stem);
+        }) : a && (e = r(r({}, e), Cr(a)));
+      } else if (Er.test(s.stem)) e = r(r({}, e), Cr(s.stem));else {
+        var o = Ar(s.stem);
+        o && (e = r(r({}, e), o));
+        var l = Tr(s.stem);
         l && (e = r(r({}, e), l));
       }
     }
     return e;
   }
-  var Cr,
-    kr = {
+  var Hr,
+    Dr = {
       "001": ["H", "h"],
       AC: ["H", "h", "hb", "hB"],
       AD: ["H", "hB"],
@@ -3844,7 +4083,7 @@
       "te-IN": ["hB", "h", "H"],
       "zu-ZA": ["H", "hB", "hb", "h"]
     };
-  function Hr(t) {
+  function Fr(t) {
     var e = t.hourCycle;
     if (void 0 === e && t.hourCycles && t.hourCycles.length && (e = t.hourCycles[0]), e) switch (e) {
       case "h24":
@@ -3860,38 +4099,38 @@
     }
     var i,
       r = t.language;
-    return "root" !== r && (i = t.maximize().region), (kr[i || ""] || kr[r || ""] || kr["".concat(r, "-001")] || kr["001"])[0];
+    return "root" !== r && (i = t.maximize().region), (Dr[i || ""] || Dr[r || ""] || Dr["".concat(r, "-001")] || Dr["001"])[0];
   }
-  var Dr = new RegExp("^".concat(br.source, "*")),
-    Mr = new RegExp("".concat(br.source, "*$"));
-  function Br(t, e) {
+  var Br = new RegExp("^".concat(fr.source, "*")),
+    Ir = new RegExp("".concat(fr.source, "*$"));
+  function Lr(t, e) {
     return {
       start: t,
       end: e
     };
   }
-  var Fr = !!String.prototype.startsWith && "_a".startsWith("a", 1),
-    Ir = !!String.fromCodePoint,
-    Lr = !!Object.fromEntries,
-    Nr = !!String.prototype.codePointAt,
-    Or = !!String.prototype.trimStart,
-    zr = !!String.prototype.trimEnd,
-    Ur = !!Number.isSafeInteger ? Number.isSafeInteger : function (t) {
+  var Nr = !!String.prototype.startsWith && "_a".startsWith("a", 1),
+    Or = !!String.fromCodePoint,
+    zr = !!Object.fromEntries,
+    Ur = !!String.prototype.codePointAt,
+    Rr = !!String.prototype.trimStart,
+    jr = !!String.prototype.trimEnd,
+    Vr = !!Number.isSafeInteger ? Number.isSafeInteger : function (t) {
       return "number" == typeof t && isFinite(t) && Math.floor(t) === t && Math.abs(t) <= 9007199254740991;
     },
-    Rr = !0;
+    Gr = !0;
   try {
-    Rr = "a" === (null === (Cr = Xr("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu").exec("a")) || void 0 === Cr ? void 0 : Cr[0]);
+    Gr = "a" === (null === (Hr = Jr("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu").exec("a")) || void 0 === Hr ? void 0 : Hr[0]);
   } catch (V) {
-    Rr = !1;
+    Gr = !1;
   }
-  var jr,
-    Vr = Fr ? function (t, e, i) {
+  var Zr,
+    Yr = Nr ? function (t, e, i) {
       return t.startsWith(e, i);
     } : function (t, e, i) {
       return t.slice(i, i + e.length) === e;
     },
-    Gr = Ir ? String.fromCodePoint : function () {
+    Kr = Or ? String.fromCodePoint : function () {
       for (var t = [], e = 0; e < arguments.length; e++) t[e] = arguments[e];
       for (var i, r = "", n = t.length, s = 0; n > s;) {
         if ((i = t[s++]) > 1114111) throw RangeError(i + " is not a valid code point");
@@ -3899,16 +4138,16 @@
       }
       return r;
     },
-    Yr = Lr ? Object.fromEntries : function (t) {
+    qr = zr ? Object.fromEntries : function (t) {
       for (var e = {}, i = 0, r = t; i < r.length; i++) {
         var n = r[i],
           s = n[0],
-          o = n[1];
-        e[s] = o;
+          a = n[1];
+        e[s] = a;
       }
       return e;
     },
-    Zr = Nr ? function (t, e) {
+    Wr = Ur ? function (t, e) {
       return t.codePointAt(e);
     } : function (t, e) {
       var i = t.length;
@@ -3918,34 +4157,34 @@
         return n < 55296 || n > 56319 || e + 1 === i || (r = t.charCodeAt(e + 1)) < 56320 || r > 57343 ? n : r - 56320 + (n - 55296 << 10) + 65536;
       }
     },
-    qr = Or ? function (t) {
+    Xr = Rr ? function (t) {
       return t.trimStart();
     } : function (t) {
-      return t.replace(Dr, "");
+      return t.replace(Br, "");
     },
-    Wr = zr ? function (t) {
+    Qr = jr ? function (t) {
       return t.trimEnd();
     } : function (t) {
-      return t.replace(Mr, "");
+      return t.replace(Ir, "");
     };
-  function Xr(t, e) {
+  function Jr(t, e) {
     return new RegExp(t, e);
   }
-  if (Rr) {
-    var Kr = Xr("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
-    jr = function (t, e) {
+  if (Gr) {
+    var tn = Jr("([^\\p{White_Space}\\p{Pattern_Syntax}]*)", "yu");
+    Zr = function (t, e) {
       var i;
-      return Kr.lastIndex = e, null !== (i = Kr.exec(t)[1]) && void 0 !== i ? i : "";
+      return tn.lastIndex = e, null !== (i = tn.exec(t)[1]) && void 0 !== i ? i : "";
     };
-  } else jr = function (t, e) {
+  } else Zr = function (t, e) {
     for (var i = [];;) {
-      var r = Zr(t, e);
-      if (void 0 === r || en(r) || rn(r)) break;
+      var r = Wr(t, e);
+      if (void 0 === r || sn(r) || an(r)) break;
       i.push(r), e += r >= 65536 ? 2 : 1;
     }
-    return Gr.apply(void 0, i);
+    return Kr.apply(void 0, i);
   };
-  var Qr = function () {
+  var en = function () {
     function t(t, e) {
       void 0 === e && (e = {}), this.message = t, this.position = {
         offset: 0,
@@ -3967,9 +4206,9 @@
           if (35 !== n || "plural" !== e && "selectordinal" !== e) {
             if (60 === n && !this.ignoreTag && 47 === this.peek()) {
               if (i) break;
-              return this.error(Pi.UNMATCHED_CLOSING_TAG, Br(this.clonePosition(), this.clonePosition()));
+              return this.error(Ti.UNMATCHED_CLOSING_TAG, Lr(this.clonePosition(), this.clonePosition()));
             }
-            if (60 === n && !this.ignoreTag && Jr(this.peek() || 0)) {
+            if (60 === n && !this.ignoreTag && rn(this.peek() || 0)) {
               if ((s = this.parseTag(t, e)).err) return s;
               r.push(s.val);
             } else {
@@ -3978,10 +4217,10 @@
               r.push(s.val);
             }
           } else {
-            var o = this.clonePosition();
+            var a = this.clonePosition();
             this.bump(), r.push({
-              type: Ai.pound,
-              location: Br(o, this.clonePosition())
+              type: ki.pound,
+              location: Lr(a, this.clonePosition())
             });
           }
         }
@@ -3996,9 +4235,9 @@
       var r = this.parseTagName();
       if (this.bumpSpace(), this.bumpIf("/>")) return {
         val: {
-          type: Ai.literal,
+          type: ki.literal,
           value: "<".concat(r, "/>"),
-          location: Br(i, this.clonePosition())
+          location: Lr(i, this.clonePosition())
         },
         err: null
       };
@@ -4006,26 +4245,26 @@
         var n = this.parseMessage(t + 1, e, !0);
         if (n.err) return n;
         var s = n.val,
-          o = this.clonePosition();
+          a = this.clonePosition();
         if (this.bumpIf("</")) {
-          if (this.isEOF() || !Jr(this.char())) return this.error(Pi.INVALID_TAG, Br(o, this.clonePosition()));
-          var a = this.clonePosition();
-          return r !== this.parseTagName() ? this.error(Pi.UNMATCHED_CLOSING_TAG, Br(a, this.clonePosition())) : (this.bumpSpace(), this.bumpIf(">") ? {
+          if (this.isEOF() || !rn(this.char())) return this.error(Ti.INVALID_TAG, Lr(a, this.clonePosition()));
+          var o = this.clonePosition();
+          return r !== this.parseTagName() ? this.error(Ti.UNMATCHED_CLOSING_TAG, Lr(o, this.clonePosition())) : (this.bumpSpace(), this.bumpIf(">") ? {
             val: {
-              type: Ai.tag,
+              type: ki.tag,
               value: r,
               children: s,
-              location: Br(i, this.clonePosition())
+              location: Lr(i, this.clonePosition())
             },
             err: null
-          } : this.error(Pi.INVALID_TAG, Br(o, this.clonePosition())));
+          } : this.error(Ti.INVALID_TAG, Lr(a, this.clonePosition())));
         }
-        return this.error(Pi.UNCLOSED_TAG, Br(i, this.clonePosition()));
+        return this.error(Ti.UNCLOSED_TAG, Lr(i, this.clonePosition()));
       }
-      return this.error(Pi.INVALID_TAG, Br(i, this.clonePosition()));
+      return this.error(Ti.INVALID_TAG, Lr(i, this.clonePosition()));
     }, t.prototype.parseTagName = function () {
       var t = this.offset();
-      for (this.bump(); !this.isEOF() && tn(this.char());) this.bump();
+      for (this.bump(); !this.isEOF() && nn(this.char());) this.bump();
       return this.message.slice(t, this.offset());
     }, t.prototype.parseLiteral = function (t, e) {
       for (var i = this.clonePosition(), r = "";;) {
@@ -4033,23 +4272,23 @@
         if (n) r += n;else {
           var s = this.tryParseUnquoted(t, e);
           if (s) r += s;else {
-            var o = this.tryParseLeftAngleBracket();
-            if (!o) break;
-            r += o;
+            var a = this.tryParseLeftAngleBracket();
+            if (!a) break;
+            r += a;
           }
         }
       }
-      var a = Br(i, this.clonePosition());
+      var o = Lr(i, this.clonePosition());
       return {
         val: {
-          type: Ai.literal,
+          type: ki.literal,
           value: r,
-          location: a
+          location: o
         },
         err: null
       };
     }, t.prototype.tryParseLeftAngleBracket = function () {
-      return this.isEOF() || 60 !== this.char() || !this.ignoreTag && (Jr(t = this.peek() || 0) || 47 === t) ? null : (this.bump(), "<");
+      return this.isEOF() || 60 !== this.char() || !this.ignoreTag && (rn(t = this.peek() || 0) || 47 === t) ? null : (this.bump(), "<");
       var t;
     }, t.prototype.tryParseQuote = function (t) {
       if (this.isEOF() || 39 !== this.char()) return null;
@@ -4080,50 +4319,50 @@
         } else e.push(i);
         this.bump();
       }
-      return Gr.apply(void 0, e);
+      return Kr.apply(void 0, e);
     }, t.prototype.tryParseUnquoted = function (t, e) {
       if (this.isEOF()) return null;
       var i = this.char();
-      return 60 === i || 123 === i || 35 === i && ("plural" === e || "selectordinal" === e) || 125 === i && t > 0 ? null : (this.bump(), Gr(i));
+      return 60 === i || 123 === i || 35 === i && ("plural" === e || "selectordinal" === e) || 125 === i && t > 0 ? null : (this.bump(), Kr(i));
     }, t.prototype.parseArgument = function (t, e) {
       var i = this.clonePosition();
-      if (this.bump(), this.bumpSpace(), this.isEOF()) return this.error(Pi.EXPECT_ARGUMENT_CLOSING_BRACE, Br(i, this.clonePosition()));
-      if (125 === this.char()) return this.bump(), this.error(Pi.EMPTY_ARGUMENT, Br(i, this.clonePosition()));
+      if (this.bump(), this.bumpSpace(), this.isEOF()) return this.error(Ti.EXPECT_ARGUMENT_CLOSING_BRACE, Lr(i, this.clonePosition()));
+      if (125 === this.char()) return this.bump(), this.error(Ti.EMPTY_ARGUMENT, Lr(i, this.clonePosition()));
       var r = this.parseIdentifierIfPossible().value;
-      if (!r) return this.error(Pi.MALFORMED_ARGUMENT, Br(i, this.clonePosition()));
-      if (this.bumpSpace(), this.isEOF()) return this.error(Pi.EXPECT_ARGUMENT_CLOSING_BRACE, Br(i, this.clonePosition()));
+      if (!r) return this.error(Ti.MALFORMED_ARGUMENT, Lr(i, this.clonePosition()));
+      if (this.bumpSpace(), this.isEOF()) return this.error(Ti.EXPECT_ARGUMENT_CLOSING_BRACE, Lr(i, this.clonePosition()));
       switch (this.char()) {
         case 125:
           return this.bump(), {
             val: {
-              type: Ai.argument,
+              type: ki.argument,
               value: r,
-              location: Br(i, this.clonePosition())
+              location: Lr(i, this.clonePosition())
             },
             err: null
           };
         case 44:
-          return this.bump(), this.bumpSpace(), this.isEOF() ? this.error(Pi.EXPECT_ARGUMENT_CLOSING_BRACE, Br(i, this.clonePosition())) : this.parseArgumentOptions(t, e, r, i);
+          return this.bump(), this.bumpSpace(), this.isEOF() ? this.error(Ti.EXPECT_ARGUMENT_CLOSING_BRACE, Lr(i, this.clonePosition())) : this.parseArgumentOptions(t, e, r, i);
         default:
-          return this.error(Pi.MALFORMED_ARGUMENT, Br(i, this.clonePosition()));
+          return this.error(Ti.MALFORMED_ARGUMENT, Lr(i, this.clonePosition()));
       }
     }, t.prototype.parseIdentifierIfPossible = function () {
       var t = this.clonePosition(),
         e = this.offset(),
-        i = jr(this.message, e),
+        i = Zr(this.message, e),
         r = e + i.length;
       return this.bumpTo(r), {
         value: i,
-        location: Br(t, this.clonePosition())
+        location: Lr(t, this.clonePosition())
       };
     }, t.prototype.parseArgumentOptions = function (t, e, i, n) {
       var s,
-        o = this.clonePosition(),
-        a = this.parseIdentifierIfPossible().value,
+        a = this.clonePosition(),
+        o = this.parseIdentifierIfPossible().value,
         l = this.clonePosition();
-      switch (a) {
+      switch (o) {
         case "":
-          return this.error(Pi.EXPECT_ARGUMENT_TYPE, Br(o, l));
+          return this.error(Ti.EXPECT_ARGUMENT_TYPE, Lr(a, l));
         case "number":
         case "date":
         case "time":
@@ -4132,51 +4371,51 @@
           if (this.bumpIf(",")) {
             this.bumpSpace();
             var h = this.clonePosition();
-            if ((v = this.parseSimpleArgStyleIfPossible()).err) return v;
-            if (0 === (g = Wr(v.val)).length) return this.error(Pi.EXPECT_ARGUMENT_STYLE, Br(this.clonePosition(), this.clonePosition()));
+            if ((y = this.parseSimpleArgStyleIfPossible()).err) return y;
+            if (0 === (g = Qr(y.val)).length) return this.error(Ti.EXPECT_ARGUMENT_STYLE, Lr(this.clonePosition(), this.clonePosition()));
             c = {
               style: g,
-              styleLocation: Br(h, this.clonePosition())
+              styleLocation: Lr(h, this.clonePosition())
             };
           }
-          if ((y = this.tryParseArgumentClose(n)).err) return y;
-          var d = Br(n, this.clonePosition());
-          if (c && Vr(null == c ? void 0 : c.style, "::", 0)) {
-            var p = qr(c.style.slice(2));
-            if ("number" === a) return (v = this.parseNumberSkeletonFromString(p, c.styleLocation)).err ? v : {
+          if ((f = this.tryParseArgumentClose(n)).err) return f;
+          var d = Lr(n, this.clonePosition());
+          if (c && Yr(null == c ? void 0 : c.style, "::", 0)) {
+            var p = Xr(c.style.slice(2));
+            if ("number" === o) return (y = this.parseNumberSkeletonFromString(p, c.styleLocation)).err ? y : {
               val: {
-                type: Ai.number,
+                type: ki.number,
                 value: i,
                 location: d,
-                style: v.val
+                style: y.val
               },
               err: null
             };
-            if (0 === p.length) return this.error(Pi.EXPECT_DATE_TIME_SKELETON, d);
+            if (0 === p.length) return this.error(Ti.EXPECT_DATE_TIME_SKELETON, d);
             var u = p;
             this.locale && (u = function (t, e) {
               for (var i = "", r = 0; r < t.length; r++) {
                 var n = t.charAt(r);
                 if ("j" === n) {
                   for (var s = 0; r + 1 < t.length && t.charAt(r + 1) === n;) s++, r++;
-                  var o = 1 + (1 & s),
-                    a = s < 2 ? 1 : 3 + (s >> 1),
-                    l = Hr(e);
-                  for ("H" != l && "k" != l || (a = 0); a-- > 0;) i += "a";
-                  for (; o-- > 0;) i = l + i;
+                  var a = 1 + (1 & s),
+                    o = s < 2 ? 1 : 3 + (s >> 1),
+                    l = Fr(e);
+                  for ("H" != l && "k" != l || (o = 0); o-- > 0;) i += "a";
+                  for (; a-- > 0;) i = l + i;
                 } else i += "J" === n ? "H" : n;
               }
               return i;
             }(p, this.locale));
             var g = {
-              type: Ti.dateTime,
+              type: Mi.dateTime,
               pattern: u,
               location: c.styleLocation,
-              parsedOptions: this.shouldParseSkeletons ? vr(u) : {}
+              parsedOptions: this.shouldParseSkeletons ? wr(u) : {}
             };
             return {
               val: {
-                type: "date" === a ? Ai.date : Ai.time,
+                type: "date" === o ? ki.date : ki.time,
                 value: i,
                 location: d,
                 style: g
@@ -4186,7 +4425,7 @@
           }
           return {
             val: {
-              type: "number" === a ? Ai.number : "date" === a ? Ai.date : Ai.time,
+              type: "number" === o ? ki.number : "date" === o ? ki.date : ki.time,
               value: i,
               location: d,
               style: null !== (s = null == c ? void 0 : c.style) && void 0 !== s ? s : null
@@ -4197,45 +4436,45 @@
         case "selectordinal":
         case "select":
           var m = this.clonePosition();
-          if (this.bumpSpace(), !this.bumpIf(",")) return this.error(Pi.EXPECT_SELECT_ARGUMENT_OPTIONS, Br(m, r({}, m)));
+          if (this.bumpSpace(), !this.bumpIf(",")) return this.error(Ti.EXPECT_SELECT_ARGUMENT_OPTIONS, Lr(m, r({}, m)));
           this.bumpSpace();
           var b = this.parseIdentifierIfPossible(),
-            _ = 0;
-          if ("select" !== a && "offset" === b.value) {
-            if (!this.bumpIf(":")) return this.error(Pi.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Br(this.clonePosition(), this.clonePosition()));
-            var v;
-            if (this.bumpSpace(), (v = this.tryParseDecimalInteger(Pi.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Pi.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE)).err) return v;
-            this.bumpSpace(), b = this.parseIdentifierIfPossible(), _ = v.val;
+            v = 0;
+          if ("select" !== o && "offset" === b.value) {
+            if (!this.bumpIf(":")) return this.error(Ti.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Lr(this.clonePosition(), this.clonePosition()));
+            var y;
+            if (this.bumpSpace(), (y = this.tryParseDecimalInteger(Ti.EXPECT_PLURAL_ARGUMENT_OFFSET_VALUE, Ti.INVALID_PLURAL_ARGUMENT_OFFSET_VALUE)).err) return y;
+            this.bumpSpace(), b = this.parseIdentifierIfPossible(), v = y.val;
           }
-          var y,
-            f = this.tryParsePluralOrSelectOptions(t, a, e, b);
-          if (f.err) return f;
-          if ((y = this.tryParseArgumentClose(n)).err) return y;
-          var w = Br(n, this.clonePosition());
-          return "select" === a ? {
+          var f,
+            _ = this.tryParsePluralOrSelectOptions(t, o, e, b);
+          if (_.err) return _;
+          if ((f = this.tryParseArgumentClose(n)).err) return f;
+          var w = Lr(n, this.clonePosition());
+          return "select" === o ? {
             val: {
-              type: Ai.select,
+              type: ki.select,
               value: i,
-              options: Yr(f.val),
+              options: qr(_.val),
               location: w
             },
             err: null
           } : {
             val: {
-              type: Ai.plural,
+              type: ki.plural,
               value: i,
-              options: Yr(f.val),
-              offset: _,
-              pluralType: "plural" === a ? "cardinal" : "ordinal",
+              options: qr(_.val),
+              offset: v,
+              pluralType: "plural" === o ? "cardinal" : "ordinal",
               location: w
             },
             err: null
           };
         default:
-          return this.error(Pi.INVALID_ARGUMENT_TYPE, Br(o, l));
+          return this.error(Ti.INVALID_ARGUMENT_TYPE, Lr(a, l));
       }
     }, t.prototype.tryParseArgumentClose = function (t) {
-      return this.isEOF() || 125 !== this.char() ? this.error(Pi.EXPECT_ARGUMENT_CLOSING_BRACE, Br(t, this.clonePosition())) : (this.bump(), {
+      return this.isEOF() || 125 !== this.char() ? this.error(Ti.EXPECT_ARGUMENT_CLOSING_BRACE, Lr(t, this.clonePosition())) : (this.bump(), {
         val: !0,
         err: null
       });
@@ -4245,7 +4484,7 @@
           case 39:
             this.bump();
             var i = this.clonePosition();
-            if (!this.bumpUntil("'")) return this.error(Pi.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE, Br(i, this.clonePosition()));
+            if (!this.bumpUntil("'")) return this.error(Ti.UNCLOSED_QUOTE_IN_ARGUMENT_STYLE, Lr(i, this.clonePosition()));
             this.bump();
             break;
           case 123:
@@ -4271,55 +4510,55 @@
       try {
         i = function (t) {
           if (0 === t.length) throw new Error("Number skeleton cannot be empty");
-          for (var e = t.split(yr).filter(function (t) {
+          for (var e = t.split(xr).filter(function (t) {
               return t.length > 0;
             }), i = [], r = 0, n = e; r < n.length; r++) {
             var s = n[r].split("/");
             if (0 === s.length) throw new Error("Invalid number skeleton");
-            for (var o = s[0], a = s.slice(1), l = 0, c = a; l < c.length; l++) if (0 === c[l].length) throw new Error("Invalid number skeleton");
+            for (var a = s[0], o = s.slice(1), l = 0, c = o; l < c.length; l++) if (0 === c[l].length) throw new Error("Invalid number skeleton");
             i.push({
-              stem: o,
-              options: a
+              stem: a,
+              options: o
             });
           }
           return i;
         }(t);
       } catch (t) {
-        return this.error(Pi.INVALID_NUMBER_SKELETON, e);
+        return this.error(Ti.INVALID_NUMBER_SKELETON, e);
       }
       return {
         val: {
-          type: Ti.number,
+          type: Mi.number,
           tokens: i,
           location: e,
-          parsedOptions: this.shouldParseSkeletons ? Tr(i) : {}
+          parsedOptions: this.shouldParseSkeletons ? Mr(i) : {}
         },
         err: null
       };
     }, t.prototype.tryParsePluralOrSelectOptions = function (t, e, i, r) {
-      for (var n, s = !1, o = [], a = new Set(), l = r.value, c = r.location;;) {
+      for (var n, s = !1, a = [], o = new Set(), l = r.value, c = r.location;;) {
         if (0 === l.length) {
           var h = this.clonePosition();
           if ("select" === e || !this.bumpIf("=")) break;
-          var d = this.tryParseDecimalInteger(Pi.EXPECT_PLURAL_ARGUMENT_SELECTOR, Pi.INVALID_PLURAL_ARGUMENT_SELECTOR);
+          var d = this.tryParseDecimalInteger(Ti.EXPECT_PLURAL_ARGUMENT_SELECTOR, Ti.INVALID_PLURAL_ARGUMENT_SELECTOR);
           if (d.err) return d;
-          c = Br(h, this.clonePosition()), l = this.message.slice(h.offset, this.offset());
+          c = Lr(h, this.clonePosition()), l = this.message.slice(h.offset, this.offset());
         }
-        if (a.has(l)) return this.error("select" === e ? Pi.DUPLICATE_SELECT_ARGUMENT_SELECTOR : Pi.DUPLICATE_PLURAL_ARGUMENT_SELECTOR, c);
+        if (o.has(l)) return this.error("select" === e ? Ti.DUPLICATE_SELECT_ARGUMENT_SELECTOR : Ti.DUPLICATE_PLURAL_ARGUMENT_SELECTOR, c);
         "other" === l && (s = !0), this.bumpSpace();
         var p = this.clonePosition();
-        if (!this.bumpIf("{")) return this.error("select" === e ? Pi.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT : Pi.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT, Br(this.clonePosition(), this.clonePosition()));
+        if (!this.bumpIf("{")) return this.error("select" === e ? Ti.EXPECT_SELECT_ARGUMENT_SELECTOR_FRAGMENT : Ti.EXPECT_PLURAL_ARGUMENT_SELECTOR_FRAGMENT, Lr(this.clonePosition(), this.clonePosition()));
         var u = this.parseMessage(t + 1, e, i);
         if (u.err) return u;
         var g = this.tryParseArgumentClose(p);
         if (g.err) return g;
-        o.push([l, {
+        a.push([l, {
           value: u.val,
-          location: Br(p, this.clonePosition())
-        }]), a.add(l), this.bumpSpace(), l = (n = this.parseIdentifierIfPossible()).value, c = n.location;
+          location: Lr(p, this.clonePosition())
+        }]), o.add(l), this.bumpSpace(), l = (n = this.parseIdentifierIfPossible()).value, c = n.location;
       }
-      return 0 === o.length ? this.error("select" === e ? Pi.EXPECT_SELECT_ARGUMENT_SELECTOR : Pi.EXPECT_PLURAL_ARGUMENT_SELECTOR, Br(this.clonePosition(), this.clonePosition())) : this.requiresOtherClause && !s ? this.error(Pi.MISSING_OTHER_CLAUSE, Br(this.clonePosition(), this.clonePosition())) : {
-        val: o,
+      return 0 === a.length ? this.error("select" === e ? Ti.EXPECT_SELECT_ARGUMENT_SELECTOR : Ti.EXPECT_PLURAL_ARGUMENT_SELECTOR, Lr(this.clonePosition(), this.clonePosition())) : this.requiresOtherClause && !s ? this.error(Ti.MISSING_OTHER_CLAUSE, Lr(this.clonePosition(), this.clonePosition())) : {
+        val: a,
         err: null
       };
     }, t.prototype.tryParseDecimalInteger = function (t, e) {
@@ -4327,15 +4566,15 @@
         r = this.clonePosition();
       this.bumpIf("+") || this.bumpIf("-") && (i = -1);
       for (var n = !1, s = 0; !this.isEOF();) {
-        var o = this.char();
-        if (!(o >= 48 && o <= 57)) break;
-        n = !0, s = 10 * s + (o - 48), this.bump();
+        var a = this.char();
+        if (!(a >= 48 && a <= 57)) break;
+        n = !0, s = 10 * s + (a - 48), this.bump();
       }
-      var a = Br(r, this.clonePosition());
-      return n ? Ur(s *= i) ? {
+      var o = Lr(r, this.clonePosition());
+      return n ? Vr(s *= i) ? {
         val: s,
         err: null
-      } : this.error(e, a) : this.error(t, a);
+      } : this.error(e, o) : this.error(t, o);
     }, t.prototype.offset = function () {
       return this.position.offset;
     }, t.prototype.isEOF = function () {
@@ -4349,7 +4588,7 @@
     }, t.prototype.char = function () {
       var t = this.position.offset;
       if (t >= this.message.length) throw Error("out of bound");
-      var e = Zr(this.message, t);
+      var e = Wr(this.message, t);
       if (void 0 === e) throw Error("Offset ".concat(t, " is at invalid UTF-16 code unit boundary"));
       return e;
     }, t.prototype.error = function (t, e) {
@@ -4367,7 +4606,7 @@
         10 === t ? (this.position.line += 1, this.position.column = 1, this.position.offset += 1) : (this.position.column += 1, this.position.offset += t < 65536 ? 1 : 2);
       }
     }, t.prototype.bumpIf = function (t) {
-      if (Vr(this.message, t, this.offset())) {
+      if (Yr(this.message, t, this.offset())) {
         for (var e = 0; e < t.length; e++) this.bump();
         return !0;
       }
@@ -4385,7 +4624,7 @@
         if (this.bump(), this.isEOF()) break;
       }
     }, t.prototype.bumpSpace = function () {
-      for (; !this.isEOF() && en(this.char());) this.bump();
+      for (; !this.isEOF() && sn(this.char());) this.bump();
     }, t.prototype.peek = function () {
       if (this.isEOF()) return null;
       var t = this.char(),
@@ -4394,90 +4633,90 @@
       return null != i ? i : null;
     }, t;
   }();
-  function Jr(t) {
+  function rn(t) {
     return t >= 97 && t <= 122 || t >= 65 && t <= 90;
   }
-  function tn(t) {
+  function nn(t) {
     return 45 === t || 46 === t || t >= 48 && t <= 57 || 95 === t || t >= 97 && t <= 122 || t >= 65 && t <= 90 || 183 == t || t >= 192 && t <= 214 || t >= 216 && t <= 246 || t >= 248 && t <= 893 || t >= 895 && t <= 8191 || t >= 8204 && t <= 8205 || t >= 8255 && t <= 8256 || t >= 8304 && t <= 8591 || t >= 11264 && t <= 12271 || t >= 12289 && t <= 55295 || t >= 63744 && t <= 64975 || t >= 65008 && t <= 65533 || t >= 65536 && t <= 983039;
   }
-  function en(t) {
+  function sn(t) {
     return t >= 9 && t <= 13 || 32 === t || 133 === t || t >= 8206 && t <= 8207 || 8232 === t || 8233 === t;
   }
-  function rn(t) {
+  function an(t) {
     return t >= 33 && t <= 35 || 36 === t || t >= 37 && t <= 39 || 40 === t || 41 === t || 42 === t || 43 === t || 44 === t || 45 === t || t >= 46 && t <= 47 || t >= 58 && t <= 59 || t >= 60 && t <= 62 || t >= 63 && t <= 64 || 91 === t || 92 === t || 93 === t || 94 === t || 96 === t || 123 === t || 124 === t || 125 === t || 126 === t || 161 === t || t >= 162 && t <= 165 || 166 === t || 167 === t || 169 === t || 171 === t || 172 === t || 174 === t || 176 === t || 177 === t || 182 === t || 187 === t || 191 === t || 215 === t || 247 === t || t >= 8208 && t <= 8213 || t >= 8214 && t <= 8215 || 8216 === t || 8217 === t || 8218 === t || t >= 8219 && t <= 8220 || 8221 === t || 8222 === t || 8223 === t || t >= 8224 && t <= 8231 || t >= 8240 && t <= 8248 || 8249 === t || 8250 === t || t >= 8251 && t <= 8254 || t >= 8257 && t <= 8259 || 8260 === t || 8261 === t || 8262 === t || t >= 8263 && t <= 8273 || 8274 === t || 8275 === t || t >= 8277 && t <= 8286 || t >= 8592 && t <= 8596 || t >= 8597 && t <= 8601 || t >= 8602 && t <= 8603 || t >= 8604 && t <= 8607 || 8608 === t || t >= 8609 && t <= 8610 || 8611 === t || t >= 8612 && t <= 8613 || 8614 === t || t >= 8615 && t <= 8621 || 8622 === t || t >= 8623 && t <= 8653 || t >= 8654 && t <= 8655 || t >= 8656 && t <= 8657 || 8658 === t || 8659 === t || 8660 === t || t >= 8661 && t <= 8691 || t >= 8692 && t <= 8959 || t >= 8960 && t <= 8967 || 8968 === t || 8969 === t || 8970 === t || 8971 === t || t >= 8972 && t <= 8991 || t >= 8992 && t <= 8993 || t >= 8994 && t <= 9e3 || 9001 === t || 9002 === t || t >= 9003 && t <= 9083 || 9084 === t || t >= 9085 && t <= 9114 || t >= 9115 && t <= 9139 || t >= 9140 && t <= 9179 || t >= 9180 && t <= 9185 || t >= 9186 && t <= 9254 || t >= 9255 && t <= 9279 || t >= 9280 && t <= 9290 || t >= 9291 && t <= 9311 || t >= 9472 && t <= 9654 || 9655 === t || t >= 9656 && t <= 9664 || 9665 === t || t >= 9666 && t <= 9719 || t >= 9720 && t <= 9727 || t >= 9728 && t <= 9838 || 9839 === t || t >= 9840 && t <= 10087 || 10088 === t || 10089 === t || 10090 === t || 10091 === t || 10092 === t || 10093 === t || 10094 === t || 10095 === t || 10096 === t || 10097 === t || 10098 === t || 10099 === t || 10100 === t || 10101 === t || t >= 10132 && t <= 10175 || t >= 10176 && t <= 10180 || 10181 === t || 10182 === t || t >= 10183 && t <= 10213 || 10214 === t || 10215 === t || 10216 === t || 10217 === t || 10218 === t || 10219 === t || 10220 === t || 10221 === t || 10222 === t || 10223 === t || t >= 10224 && t <= 10239 || t >= 10240 && t <= 10495 || t >= 10496 && t <= 10626 || 10627 === t || 10628 === t || 10629 === t || 10630 === t || 10631 === t || 10632 === t || 10633 === t || 10634 === t || 10635 === t || 10636 === t || 10637 === t || 10638 === t || 10639 === t || 10640 === t || 10641 === t || 10642 === t || 10643 === t || 10644 === t || 10645 === t || 10646 === t || 10647 === t || 10648 === t || t >= 10649 && t <= 10711 || 10712 === t || 10713 === t || 10714 === t || 10715 === t || t >= 10716 && t <= 10747 || 10748 === t || 10749 === t || t >= 10750 && t <= 11007 || t >= 11008 && t <= 11055 || t >= 11056 && t <= 11076 || t >= 11077 && t <= 11078 || t >= 11079 && t <= 11084 || t >= 11085 && t <= 11123 || t >= 11124 && t <= 11125 || t >= 11126 && t <= 11157 || 11158 === t || t >= 11159 && t <= 11263 || t >= 11776 && t <= 11777 || 11778 === t || 11779 === t || 11780 === t || 11781 === t || t >= 11782 && t <= 11784 || 11785 === t || 11786 === t || 11787 === t || 11788 === t || 11789 === t || t >= 11790 && t <= 11798 || 11799 === t || t >= 11800 && t <= 11801 || 11802 === t || 11803 === t || 11804 === t || 11805 === t || t >= 11806 && t <= 11807 || 11808 === t || 11809 === t || 11810 === t || 11811 === t || 11812 === t || 11813 === t || 11814 === t || 11815 === t || 11816 === t || 11817 === t || t >= 11818 && t <= 11822 || 11823 === t || t >= 11824 && t <= 11833 || t >= 11834 && t <= 11835 || t >= 11836 && t <= 11839 || 11840 === t || 11841 === t || 11842 === t || t >= 11843 && t <= 11855 || t >= 11856 && t <= 11857 || 11858 === t || t >= 11859 && t <= 11903 || t >= 12289 && t <= 12291 || 12296 === t || 12297 === t || 12298 === t || 12299 === t || 12300 === t || 12301 === t || 12302 === t || 12303 === t || 12304 === t || 12305 === t || t >= 12306 && t <= 12307 || 12308 === t || 12309 === t || 12310 === t || 12311 === t || 12312 === t || 12313 === t || 12314 === t || 12315 === t || 12316 === t || 12317 === t || t >= 12318 && t <= 12319 || 12320 === t || 12336 === t || 64830 === t || 64831 === t || t >= 65093 && t <= 65094;
   }
-  function nn(t) {
+  function on(t) {
     t.forEach(function (t) {
-      if (delete t.location, hr(t) || dr(t)) for (var e in t.options) delete t.options[e].location, nn(t.options[e].value);else ar(t) && gr(t.style) || (lr(t) || cr(t)) && mr(t.style) ? delete t.style.location : ur(t) && nn(t.children);
+      if (delete t.location, ur(t) || gr(t)) for (var e in t.options) delete t.options[e].location, on(t.options[e].value);else hr(t) && vr(t.style) || (dr(t) || pr(t)) && yr(t.style) ? delete t.style.location : br(t) && on(t.children);
     });
   }
-  function sn(t, e) {
+  function ln(t, e) {
     void 0 === e && (e = {}), e = r({
       shouldParseSkeletons: !0,
       requiresOtherClause: !0
     }, e);
-    var i = new Qr(t, e).parse();
+    var i = new en(t, e).parse();
     if (i.err) {
-      var n = SyntaxError(Pi[i.err.kind]);
+      var n = SyntaxError(Ti[i.err.kind]);
       throw n.location = i.err.location, n.originalMessage = i.err.message, n;
     }
-    return (null == e ? void 0 : e.captureLocation) || nn(i.val), i.val;
+    return (null == e ? void 0 : e.captureLocation) || on(i.val), i.val;
   }
-  function on(t, e) {
-    var i = e && e.cache ? e.cache : gn,
-      r = e && e.serializer ? e.serializer : dn;
-    return (e && e.strategy ? e.strategy : hn)(t, {
+  function cn(t, e) {
+    var i = e && e.cache ? e.cache : vn,
+      r = e && e.serializer ? e.serializer : gn;
+    return (e && e.strategy ? e.strategy : un)(t, {
       cache: i,
       serializer: r
     });
   }
-  function an(t, e, i, r) {
+  function hn(t, e, i, r) {
     var n,
       s = null == (n = r) || "number" == typeof n || "boolean" == typeof n ? r : i(r),
-      o = e.get(s);
-    return void 0 === o && (o = t.call(this, r), e.set(s, o)), o;
+      a = e.get(s);
+    return void 0 === a && (a = t.call(this, r), e.set(s, a)), a;
   }
-  function ln(t, e, i) {
+  function dn(t, e, i) {
     var r = Array.prototype.slice.call(arguments, 3),
       n = i(r),
       s = e.get(n);
     return void 0 === s && (s = t.apply(this, r), e.set(n, s)), s;
   }
-  function cn(t, e, i, r, n) {
+  function pn(t, e, i, r, n) {
     return i.bind(e, t, r, n);
   }
-  function hn(t, e) {
-    return cn(t, this, 1 === t.length ? an : ln, e.cache.create(), e.serializer);
+  function un(t, e) {
+    return pn(t, this, 1 === t.length ? hn : dn, e.cache.create(), e.serializer);
   }
-  var dn = function () {
+  var gn = function () {
     return JSON.stringify(arguments);
   };
-  function pn() {
+  function mn() {
     this.cache = Object.create(null);
   }
-  pn.prototype.get = function (t) {
+  mn.prototype.get = function (t) {
     return this.cache[t];
-  }, pn.prototype.set = function (t, e) {
+  }, mn.prototype.set = function (t, e) {
     this.cache[t] = e;
   };
-  var un,
-    gn = {
+  var bn,
+    vn = {
       create: function () {
-        return new pn();
+        return new mn();
       }
     },
-    mn = {
+    yn = {
       variadic: function (t, e) {
-        return cn(t, this, ln, e.cache.create(), e.serializer);
+        return pn(t, this, dn, e.cache.create(), e.serializer);
       },
       monadic: function (t, e) {
-        return cn(t, this, an, e.cache.create(), e.serializer);
+        return pn(t, this, hn, e.cache.create(), e.serializer);
       }
     };
   !function (t) {
     t.MISSING_VALUE = "MISSING_VALUE", t.INVALID_VALUE = "INVALID_VALUE", t.MISSING_INTL_API = "MISSING_INTL_API";
-  }(un || (un = {}));
-  var bn,
+  }(bn || (bn = {}));
+  var fn,
     _n = function (t) {
       function e(e, i, r) {
         var n = t.call(this, e) || this;
@@ -4487,94 +4726,94 @@
         return "[formatjs Error: ".concat(this.code, "] ").concat(this.message);
       }, e;
     }(Error),
-    vn = function (t) {
+    wn = function (t) {
       function e(e, i, r, n) {
-        return t.call(this, 'Invalid values for "'.concat(e, '": "').concat(i, '". Options are "').concat(Object.keys(r).join('", "'), '"'), un.INVALID_VALUE, n) || this;
+        return t.call(this, 'Invalid values for "'.concat(e, '": "').concat(i, '". Options are "').concat(Object.keys(r).join('", "'), '"'), bn.INVALID_VALUE, n) || this;
       }
       return i(e, t), e;
     }(_n),
-    yn = function (t) {
+    xn = function (t) {
       function e(e, i, r) {
-        return t.call(this, 'Value for "'.concat(e, '" must be of type ').concat(i), un.INVALID_VALUE, r) || this;
+        return t.call(this, 'Value for "'.concat(e, '" must be of type ').concat(i), bn.INVALID_VALUE, r) || this;
       }
       return i(e, t), e;
     }(_n),
-    fn = function (t) {
+    $n = function (t) {
       function e(e, i) {
-        return t.call(this, 'The intl string context variable "'.concat(e, '" was not provided to the string "').concat(i, '"'), un.MISSING_VALUE, i) || this;
+        return t.call(this, 'The intl string context variable "'.concat(e, '" was not provided to the string "').concat(i, '"'), bn.MISSING_VALUE, i) || this;
       }
       return i(e, t), e;
     }(_n);
-  function wn(t) {
+  function En(t) {
     return "function" == typeof t;
   }
-  function xn(t, e, i, r, n, s, o) {
-    if (1 === t.length && sr(t[0])) return [{
-      type: bn.literal,
+  function Sn(t, e, i, r, n, s, a) {
+    if (1 === t.length && lr(t[0])) return [{
+      type: fn.literal,
       value: t[0].value
     }];
-    for (var a = [], l = 0, c = t; l < c.length; l++) {
+    for (var o = [], l = 0, c = t; l < c.length; l++) {
       var h = c[l];
-      if (sr(h)) a.push({
-        type: bn.literal,
+      if (lr(h)) o.push({
+        type: fn.literal,
         value: h.value
-      });else if (pr(h)) "number" == typeof s && a.push({
-        type: bn.literal,
+      });else if (mr(h)) "number" == typeof s && o.push({
+        type: fn.literal,
         value: i.getNumberFormat(e).format(s)
       });else {
         var d = h.value;
-        if (!n || !(d in n)) throw new fn(d, o);
+        if (!n || !(d in n)) throw new $n(d, a);
         var p = n[d];
-        if (or(h)) p && "string" != typeof p && "number" != typeof p || (p = "string" == typeof p || "number" == typeof p ? String(p) : ""), a.push({
-          type: "string" == typeof p ? bn.literal : bn.object,
+        if (cr(h)) p && "string" != typeof p && "number" != typeof p || (p = "string" == typeof p || "number" == typeof p ? String(p) : ""), o.push({
+          type: "string" == typeof p ? fn.literal : fn.object,
           value: p
-        });else if (lr(h)) {
-          var u = "string" == typeof h.style ? r.date[h.style] : mr(h.style) ? h.style.parsedOptions : void 0;
-          a.push({
-            type: bn.literal,
+        });else if (dr(h)) {
+          var u = "string" == typeof h.style ? r.date[h.style] : yr(h.style) ? h.style.parsedOptions : void 0;
+          o.push({
+            type: fn.literal,
             value: i.getDateTimeFormat(e, u).format(p)
           });
-        } else if (cr(h)) {
-          u = "string" == typeof h.style ? r.time[h.style] : mr(h.style) ? h.style.parsedOptions : r.time.medium;
-          a.push({
-            type: bn.literal,
+        } else if (pr(h)) {
+          u = "string" == typeof h.style ? r.time[h.style] : yr(h.style) ? h.style.parsedOptions : r.time.medium;
+          o.push({
+            type: fn.literal,
             value: i.getDateTimeFormat(e, u).format(p)
           });
-        } else if (ar(h)) {
-          (u = "string" == typeof h.style ? r.number[h.style] : gr(h.style) ? h.style.parsedOptions : void 0) && u.scale && (p *= u.scale || 1), a.push({
-            type: bn.literal,
+        } else if (hr(h)) {
+          (u = "string" == typeof h.style ? r.number[h.style] : vr(h.style) ? h.style.parsedOptions : void 0) && u.scale && (p *= u.scale || 1), o.push({
+            type: fn.literal,
             value: i.getNumberFormat(e, u).format(p)
           });
         } else {
-          if (ur(h)) {
+          if (br(h)) {
             var g = h.children,
               m = h.value,
               b = n[m];
-            if (!wn(b)) throw new yn(m, "function", o);
-            var _ = b(xn(g, e, i, r, n, s).map(function (t) {
+            if (!En(b)) throw new xn(m, "function", a);
+            var v = b(Sn(g, e, i, r, n, s).map(function (t) {
               return t.value;
             }));
-            Array.isArray(_) || (_ = [_]), a.push.apply(a, _.map(function (t) {
+            Array.isArray(v) || (v = [v]), o.push.apply(o, v.map(function (t) {
               return {
-                type: "string" == typeof t ? bn.literal : bn.object,
+                type: "string" == typeof t ? fn.literal : fn.object,
                 value: t
               };
             }));
           }
-          if (hr(h)) {
-            if (!(v = h.options[p] || h.options.other)) throw new vn(h.value, p, Object.keys(h.options), o);
-            a.push.apply(a, xn(v.value, e, i, r, n));
-          } else if (dr(h)) {
-            var v;
-            if (!(v = h.options["=".concat(p)])) {
-              if (!Intl.PluralRules) throw new _n('Intl.PluralRules is not available in this environment.\nTry polyfilling it using "@formatjs/intl-pluralrules"\n', un.MISSING_INTL_API, o);
-              var y = i.getPluralRules(e, {
+          if (ur(h)) {
+            if (!(y = h.options[p] || h.options.other)) throw new wn(h.value, p, Object.keys(h.options), a);
+            o.push.apply(o, Sn(y.value, e, i, r, n));
+          } else if (gr(h)) {
+            var y;
+            if (!(y = h.options["=".concat(p)])) {
+              if (!Intl.PluralRules) throw new _n('Intl.PluralRules is not available in this environment.\nTry polyfilling it using "@formatjs/intl-pluralrules"\n', bn.MISSING_INTL_API, a);
+              var f = i.getPluralRules(e, {
                 type: h.pluralType
               }).select(p - (h.offset || 0));
-              v = h.options[y] || h.options.other;
+              y = h.options[f] || h.options.other;
             }
-            if (!v) throw new vn(h.value, p, Object.keys(h.options), o);
-            a.push.apply(a, xn(v.value, e, i, r, n, p - (h.offset || 0)));
+            if (!y) throw new wn(h.value, p, Object.keys(h.options), a);
+            o.push.apply(o, Sn(y.value, e, i, r, n, p - (h.offset || 0)));
           } else ;
         }
       }
@@ -4582,19 +4821,19 @@
     return function (t) {
       return t.length < 2 ? t : t.reduce(function (t, e) {
         var i = t[t.length - 1];
-        return i && i.type === bn.literal && e.type === bn.literal ? i.value += e.value : t.push(e), t;
+        return i && i.type === fn.literal && e.type === fn.literal ? i.value += e.value : t.push(e), t;
       }, []);
-    }(a);
+    }(o);
   }
-  function En(t, e) {
+  function Pn(t, e) {
     return e ? Object.keys(t).reduce(function (i, n) {
-      var s, o;
-      return i[n] = (s = t[n], (o = e[n]) ? r(r(r({}, s || {}), o || {}), Object.keys(s).reduce(function (t, e) {
-        return t[e] = r(r({}, s[e]), o[e] || {}), t;
+      var s, a;
+      return i[n] = (s = t[n], (a = e[n]) ? r(r(r({}, s || {}), a || {}), Object.keys(s).reduce(function (t, e) {
+        return t[e] = r(r({}, s[e]), a[e] || {}), t;
       }, {})) : s), i;
     }, r({}, t)) : t;
   }
-  function Sn(t) {
+  function Cn(t) {
     return {
       create: function () {
         return {
@@ -4610,10 +4849,10 @@
   }
   !function (t) {
     t[t.literal = 0] = "literal", t[t.object = 1] = "object";
-  }(bn || (bn = {}));
-  var $n = function () {
-      function t(e, i, n, o) {
-        var a,
+  }(fn || (fn = {}));
+  var An = function () {
+      function t(e, i, n, a) {
+        var o,
           l = this;
         if (void 0 === i && (i = t.defaultLocale), this.formatterCache = {
           number: {},
@@ -4623,11 +4862,11 @@
           var e = l.formatToParts(t);
           if (1 === e.length) return e[0].value;
           var i = e.reduce(function (t, e) {
-            return t.length && e.type === bn.literal && "string" == typeof t[t.length - 1] ? t[t.length - 1] += e.value : t.push(e.value), t;
+            return t.length && e.type === fn.literal && "string" == typeof t[t.length - 1] ? t[t.length - 1] += e.value : t.push(e.value), t;
           }, []);
           return i.length <= 1 ? i[0] || "" : i;
         }, this.formatToParts = function (t) {
-          return xn(l.ast, l.locales, l.formatters, l.formats, t, void 0, l.message);
+          return Sn(l.ast, l.locales, l.formatters, l.formats, t, void 0, l.message);
         }, this.resolvedOptions = function () {
           var t;
           return {
@@ -4637,7 +4876,7 @@
           return l.ast;
         }, this.locales = i, this.resolvedLocale = t.resolveLocale(i), "string" == typeof e) {
           if (this.message = e, !t.__parse) throw new TypeError("IntlMessageFormat.__parse must be set to process `message` of type `string`");
-          var c = o || {};
+          var c = a || {};
           c.formatters;
           var h = function (t, e) {
             var i = {};
@@ -4653,31 +4892,31 @@
           }));
         } else this.ast = e;
         if (!Array.isArray(this.ast)) throw new TypeError("A message must be provided as a String or AST.");
-        this.formats = En(t.formats, n), this.formatters = o && o.formatters || (void 0 === (a = this.formatterCache) && (a = {
+        this.formats = Pn(t.formats, n), this.formatters = a && a.formatters || (void 0 === (o = this.formatterCache) && (o = {
           number: {},
           dateTime: {},
           pluralRules: {}
         }), {
-          getNumberFormat: on(function () {
+          getNumberFormat: cn(function () {
             for (var t, e = [], i = 0; i < arguments.length; i++) e[i] = arguments[i];
             return new ((t = Intl.NumberFormat).bind.apply(t, s([void 0], e, !1)))();
           }, {
-            cache: Sn(a.number),
-            strategy: mn.variadic
+            cache: Cn(o.number),
+            strategy: yn.variadic
           }),
-          getDateTimeFormat: on(function () {
+          getDateTimeFormat: cn(function () {
             for (var t, e = [], i = 0; i < arguments.length; i++) e[i] = arguments[i];
             return new ((t = Intl.DateTimeFormat).bind.apply(t, s([void 0], e, !1)))();
           }, {
-            cache: Sn(a.dateTime),
-            strategy: mn.variadic
+            cache: Cn(o.dateTime),
+            strategy: yn.variadic
           }),
-          getPluralRules: on(function () {
+          getPluralRules: cn(function () {
             for (var t, e = [], i = 0; i < arguments.length; i++) e[i] = arguments[i];
             return new ((t = Intl.PluralRules).bind.apply(t, s([void 0], e, !1)))();
           }, {
-            cache: Sn(a.pluralRules),
-            strategy: mn.variadic
+            cache: Cn(o.pluralRules),
+            strategy: yn.variadic
           })
         });
       }
@@ -4692,7 +4931,7 @@
           var e = Intl.NumberFormat.supportedLocalesOf(t);
           return e.length > 0 ? new Intl.Locale(e[0]) : new Intl.Locale("string" == typeof t ? t : t[0]);
         }
-      }, t.__parse = sn, t.formats = {
+      }, t.__parse = ln, t.formats = {
         number: {
           integer: {
             maximumFractionDigits: 0
@@ -4752,51 +4991,51 @@
         }
       }, t;
     }(),
-    Pn = $n,
-    An = {
-      de: Bi,
-      en: zi,
-      fr: Yi,
-      nl: Qi,
-      "zh-Hans": nr
+    Tn = An,
+    kn = {
+      de: Li,
+      en: ji,
+      fr: qi,
+      nl: er,
+      "zh-Hans": or
     };
-  function Tn(t, e, ...i) {
+  function Mn(t, e, ...i) {
     const r = e.replace(/['"]+/g, "");
     var n;
     try {
-      n = t.split(".").reduce((t, e) => t[e], An[r]);
+      n = t.split(".").reduce((t, e) => t[e], kn[r]);
     } catch (e) {
-      n = t.split(".").reduce((t, e) => t[e], An.en);
+      n = t.split(".").reduce((t, e) => t[e], kn.en);
     }
-    if (void 0 === n && (n = t.split(".").reduce((t, e) => t[e], An.en)), !i.length) return n;
+    if (void 0 === n && (n = t.split(".").reduce((t, e) => t[e], kn.en)), !i.length) return n;
     const s = {};
     for (let t = 0; t < i.length; t += 2) {
       let e = i[t];
       e = e.replace(/^{([^}]+)?}$/, "$1"), s[e] = i[t + 1];
     }
     try {
-      return new Pn(n, e).format(s);
+      return new Tn(n, e).format(s);
     } catch (t) {
       return "Translation " + t;
     }
   }
-  var Cn = "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z",
-    kn = "M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z",
-    Hn = "M7,10L12,15L17,10H7Z",
-    Dn = "M7,15L12,10L17,15H7Z",
-    Mn = "M8,5.14V19.14L19,12.14L8,5.14Z";
+  var Hn = "M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z",
+    Dn = "M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z",
+    Fn = "M7,10L12,15L17,10H7Z",
+    Bn = "M7,15L12,10L17,15H7Z",
+    In = "M8,5.14V19.14L19,12.14L8,5.14Z";
   /**
        * @license
        * Copyright 2017 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const Bn = 1,
-    Fn = 2,
-    In = t => (...e) => ({
+  const Ln = 1,
+    Nn = 2,
+    On = t => (...e) => ({
       _$litDirective$: t,
       values: e
     });
-  class Ln {
+  class zn {
     constructor(t) {}
     get _$AU() {
       return this._$AM._$AU;
@@ -4816,9 +5055,9 @@
        * Copyright 2018 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const Nn = In(class extends Ln {
+  const Un = On(class extends zn {
       constructor(t) {
-        if (super(t), t.type !== Bn || "class" !== t.name || t.strings?.length > 2) throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.");
+        if (super(t), t.type !== Ln || "class" !== t.name || t.strings?.length > 2) throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.");
       }
       render(t) {
         return " " + Object.keys(t).filter(e => t[e]).join(" ") + " ";
@@ -4835,14 +5074,14 @@
           const r = !!e[t];
           r === this.st.has(t) || this.nt?.has(t) || (r ? (i.add(t), this.st.add(t)) : (i.remove(t), this.st.delete(t)));
         }
-        return X;
+        return Q;
       }
     }),
-    On = "important",
-    zn = " !" + On,
-    Un = In(class extends Ln {
+    Rn = "important",
+    jn = " !" + Rn,
+    Vn = On(class extends zn {
       constructor(t) {
-        if (super(t), t.type !== Bn || "style" !== t.name || t.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
+        if (super(t), t.type !== Ln || "style" !== t.name || t.strings?.length > 2) throw Error("The `styleMap` directive must be used in the `style` attribute and must be the only part in the attribute.");
       }
       render(t) {
         return Object.keys(t).reduce((e, i) => {
@@ -4860,14 +5099,14 @@
           const r = e[t];
           if (null != r) {
             this.ft.add(t);
-            const e = "string" == typeof r && r.endsWith(zn);
-            t.includes("-") || e ? i.setProperty(t, e ? r.slice(0, -11) : r, e ? On : "") : i[t] = r;
+            const e = "string" == typeof r && r.endsWith(jn);
+            t.includes("-") || e ? i.setProperty(t, e ? r.slice(0, -11) : r, e ? Rn : "") : i[t] = r;
           }
         }
-        return X;
+        return Q;
       }
     }),
-    Rn = t => e => "function" == typeof e ? ((t, e) => (window.customElements.get(t) || window.customElements.define(t, e), e))(t, e) : ((t, e) => {
+    Gn = t => e => "function" == typeof e ? ((t, e) => (window.customElements.get(t) || window.customElements.define(t, e), e))(t, e) : ((t, e) => {
       const {
         kind: i,
         elements: r
@@ -4879,463 +5118,60 @@
           window.customElements.get(t) || window.customElements.define(t, e);
         }
       };
-    })(t, e);
+    })(t, e),
+    Zn = {
+      top: {
+        width: 340,
+        height: 20
+      },
+      bottom: {
+        width: 340,
+        height: 52.3
+      },
+      left: {
+        width: 30,
+        height: 400
+      },
+      right: {
+        width: 30,
+        height: 380
+      },
+      buildplate: {
+        maxWidth: 250,
+        maxHeight: 260,
+        verticalOffset: 55
+      },
+      xAxis: {
+        stepper: !0,
+        width: 400,
+        offsetLeft: -30,
+        height: 30,
+        extruder: {
+          width: 60,
+          height: 100
+        }
+      }
+    };
   /**
        * @license
        * Copyright 2018 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  class jn {
-    constructor(t) {
-      this.scale_factor = t;
-    }
-    val(t) {
-      return this.scale_factor * t;
-    }
-    og(t) {
-      return t / this.scale_factor;
-    }
-    scaleFactor() {
-      return this.scale_factor;
-    }
-  }
-  const Vn = {
-    top: {
-      width: 340,
-      height: 20
-    },
-    bottom: {
-      width: 340,
-      height: 52.3
-    },
-    left: {
-      width: 30,
-      height: 400
-    },
-    right: {
-      width: 30,
-      height: 380
-    },
-    buildplate: {
-      maxWidth: 250,
-      maxHeight: 260,
-      verticalOffset: 55
-    },
-    xAxis: {
-      stepper: !0,
-      width: 400,
-      offsetLeft: -30,
-      height: 30,
-      extruder: {
-        width: 60,
-        height: 100
-      }
-    }
-  };
-  class Gn {
-    constructor(t, {
-      target: e,
-      config: i,
-      callback: r,
-      skipInitial: n
-    }) {
-      this.t = new Set(), this.o = !1, this.i = !1, this.h = t, null !== e && this.t.add(e ?? t), this.l = i, this.o = n ?? this.o, this.callback = r, window.ResizeObserver ? (this.u = new ResizeObserver(t => {
-        this.handleChanges(t), this.h.requestUpdate();
-      }), t.addController(this)) : console.warn("ResizeController error: browser does not support ResizeObserver.");
-    }
-    handleChanges(t) {
-      this.value = this.callback?.(t, this.u);
-    }
-    hostConnected() {
-      for (const t of this.t) this.observe(t);
-    }
-    hostDisconnected() {
-      this.disconnect();
-    }
-    async hostUpdated() {
-      !this.o && this.i && this.handleChanges([]), this.i = !1;
-    }
-    observe(t) {
-      this.t.add(t), this.u.observe(t, this.l), this.i = !0, this.h.requestUpdate();
-    }
-    unobserve(t) {
-      this.t.delete(t), this.u.unobserve(t);
-    }
-    disconnect() {
-      this.u.disconnect();
-    }
-  }
-  /**
-       * @license
-       * Copyright 2020 Google LLC
-       * SPDX-License-Identifier: BSD-3-Clause
-       */
-  const {
-      I: Yn
-    } = dt,
-    Zn = () => document.createComment(""),
-    qn = (t, e, i) => {
-      const r = t._$AA.parentNode,
-        n = void 0 === e ? t._$AB : e._$AA;
-      if (void 0 === i) {
-        const e = r.insertBefore(Zn(), n),
-          s = r.insertBefore(Zn(), n);
-        i = new Yn(e, s, t, t.options);
-      } else {
-        const e = i._$AB.nextSibling,
-          s = i._$AM,
-          o = s !== t;
-        if (o) {
-          let e;
-          i._$AQ?.(t), i._$AM = t, void 0 !== i._$AP && (e = t._$AU) !== s._$AU && i._$AP(e);
-        }
-        if (e !== n || o) {
-          let t = i._$AA;
-          for (; t !== e;) {
-            const e = t.nextSibling;
-            r.insertBefore(t, n), t = e;
-          }
-        }
-      }
-      return i;
-    },
-    Wn = (t, e, i = t) => (t._$AI(e, i), t),
-    Xn = {},
-    Kn = t => {
-      t._$AP?.(!1, !0);
-      let e = t._$AA;
-      const i = t._$AB.nextSibling;
-      for (; e !== i;) {
-        const t = e.nextSibling;
-        e.remove(), e = t;
-      }
-    },
-    Qn = (t, e) => {
-      const i = t._$AN;
-      if (void 0 === i) return !1;
-      for (const t of i) t._$AO?.(e, !1), Qn(t, e);
-      return !0;
-    },
-    Jn = t => {
-      let e, i;
-      do {
-        if (void 0 === (e = t._$AM)) break;
-        i = e._$AN, i.delete(t), t = e;
-      } while (0 === i?.size);
-    },
-    ts = t => {
-      for (let e; e = t._$AM; t = e) {
-        let i = e._$AN;
-        if (void 0 === i) e._$AN = i = new Set();else if (i.has(t)) break;
-        i.add(t), rs(e);
-      }
-    };
-  /**
-       * @license
-       * Copyright 2017 Google LLC
-       * SPDX-License-Identifier: BSD-3-Clause
-       */
-  function es(t) {
-    void 0 !== this._$AN ? (Jn(this), this._$AM = t, ts(this)) : this._$AM = t;
-  }
-  function is(t, e = !1, i = 0) {
-    const r = this._$AH,
-      n = this._$AN;
-    if (void 0 !== n && 0 !== n.size) if (e) {
-      if (Array.isArray(r)) for (let t = i; t < r.length; t++) Qn(r[t], !1), Jn(r[t]);else null != r && (Qn(r, !1), Jn(r));
-    } else Qn(this, t);
-  }
-  const rs = t => {
-    t.type == Fn && (t._$AP ??= is, t._$AQ ??= es);
-  };
-  class ns extends Ln {
-    constructor() {
-      super(...arguments), this._$AN = void 0;
-    }
-    _$AT(t, e, i) {
-      super._$AT(t, e, i), ts(this), this.isConnected = t._$AU;
-    }
-    _$AO(t, e = !0) {
-      t !== this.isConnected && (this.isConnected = t, t ? this.reconnected?.() : this.disconnected?.()), e && (Qn(this, t), Jn(this));
-    }
-    setValue(t) {
-      if ((t => void 0 === t.strings)(this._$Ct)) this._$Ct._$AI(t, this);else {
-        const e = [...this._$Ct._$AH];
-        e[this._$Ci] = t, this._$Ct._$AI(e, this, 0);
-      }
-    }
-    disconnected() {}
-    reconnected() {}
-  }
-  const ss = new WeakMap();
-  let os = 0;
-  const as = new Map(),
-    ls = new WeakSet(),
-    cs = () => new Promise(t => requestAnimationFrame(t)),
-    hs = (t, e) => {
-      const i = t - e;
-      return 0 === i ? void 0 : i;
-    },
-    ds = (t, e) => {
-      const i = t / e;
-      return 1 === i ? void 0 : i;
-    },
-    ps = {
-      left: (t, e) => {
-        const i = hs(t, e);
-        return {
-          value: i,
-          transform: null == i || isNaN(i) ? void 0 : `translateX(${i}px)`
-        };
-      },
-      top: (t, e) => {
-        const i = hs(t, e);
-        return {
-          value: i,
-          transform: null == i || isNaN(i) ? void 0 : `translateY(${i}px)`
-        };
-      },
-      width: (t, e) => {
-        let i;
-        0 === e && (e = 1, i = {
-          width: "1px"
-        });
-        const r = ds(t, e);
-        return {
-          value: r,
-          overrideFrom: i,
-          transform: null == r || isNaN(r) ? void 0 : `scaleX(${r})`
-        };
-      },
-      height: (t, e) => {
-        let i;
-        0 === e && (e = 1, i = {
-          height: "1px"
-        });
-        const r = ds(t, e);
-        return {
-          value: r,
-          overrideFrom: i,
-          transform: null == r || isNaN(r) ? void 0 : `scaleY(${r})`
-        };
-      }
-    },
-    us = {
-      duration: 333,
-      easing: "ease-in-out"
-    },
-    gs = ["left", "top", "width", "height", "opacity", "color", "background"],
-    ms = new WeakMap();
-  const bs = In(class extends ns {
-    constructor(t) {
-      if (super(t), this.t = !1, this.i = null, this.o = null, this.h = !0, this.shouldLog = !1, t.type === Fn) throw Error("The `animate` directive must be used in attribute position.");
-      this.createFinished();
-    }
-    createFinished() {
-      this.resolveFinished?.(), this.finished = new Promise(t => {
-        this.l = t;
-      });
-    }
-    async resolveFinished() {
-      this.l?.(), this.l = void 0;
-    }
-    render(t) {
-      return K;
-    }
-    getController() {
-      return ss.get(this.u);
-    }
-    isDisabled() {
-      return this.options.disabled || this.getController()?.disabled;
-    }
-    update(t, [e]) {
-      const i = void 0 === this.u;
-      return i && (this.u = t.options?.host, this.u.addController(this), this.u.updateComplete.then(t => this.t = !0), this.element = t.element, ms.set(this.element, this)), this.optionsOrCallback = e, (i || "function" != typeof e) && this.p(e), this.render(e);
-    }
-    p(t) {
-      t = t ?? {};
-      const e = this.getController();
-      void 0 !== e && ((t = {
-        ...e.defaultOptions,
-        ...t
-      }).keyframeOptions = {
-        ...e.defaultOptions.keyframeOptions,
-        ...t.keyframeOptions
-      }), t.properties ??= gs, this.options = t;
-    }
-    m() {
-      const t = {},
-        e = this.element.getBoundingClientRect(),
-        i = getComputedStyle(this.element);
-      return this.options.properties.forEach(r => {
-        const n = e[r] ?? (ps[r] ? void 0 : i[r]),
-          s = Number(n);
-        t[r] = isNaN(s) ? n + "" : s;
-      }), t;
-    }
-    v() {
-      let t,
-        e = !0;
-      return this.options.guard && (t = this.options.guard(), e = ((t, e) => {
-        if (Array.isArray(t)) {
-          if (Array.isArray(e) && e.length === t.length && t.every((t, i) => t === e[i])) return !1;
-        } else if (e === t) return !1;
-        return !0;
-      })(t, this._)), this.h = this.t && !this.isDisabled() && !this.isAnimating() && e && this.element.isConnected, this.h && (this._ = Array.isArray(t) ? Array.from(t) : t), this.h;
-    }
-    hostUpdate() {
-      "function" == typeof this.optionsOrCallback && this.p(this.optionsOrCallback()), this.v() && (this.A = this.m(), this.i = this.i ?? this.element.parentNode, this.o = this.element.nextSibling);
-    }
-    async hostUpdated() {
-      if (!this.h || !this.element.isConnected || this.options.skipInitial && !this.isHostRendered) return;
-      let t;
-      this.prepare(), await cs;
-      const e = this.O(),
-        i = this.j(this.options.keyframeOptions, e),
-        r = this.m();
-      if (void 0 !== this.A) {
-        const {
-          from: i,
-          to: n
-        } = this.N(this.A, r, e);
-        this.log("measured", [this.A, r, i, n]), t = this.calculateKeyframes(i, n);
-      } else {
-        const i = as.get(this.options.inId);
-        if (i) {
-          as.delete(this.options.inId);
-          const {
-            from: n,
-            to: s
-          } = this.N(i, r, e);
-          t = this.calculateKeyframes(n, s), t = this.options.in ? [{
-            ...this.options.in[0],
-            ...t[0]
-          }, ...this.options.in.slice(1), t[1]] : t, os++, t.forEach(t => t.zIndex = os);
-        } else this.options.in && (t = [...this.options.in, {}]);
-      }
-      this.animate(t, i);
-    }
-    resetStyles() {
-      void 0 !== this.P && (this.element.setAttribute("style", this.P ?? ""), this.P = void 0);
-    }
-    commitStyles() {
-      this.P = this.element.getAttribute("style"), this.webAnimation?.commitStyles(), this.webAnimation?.cancel();
-    }
-    reconnected() {}
-    async disconnected() {
-      if (!this.h) return;
-      if (void 0 !== this.options.id && as.set(this.options.id, this.A), void 0 === this.options.out) return;
-      if (this.prepare(), await cs(), this.i?.isConnected) {
-        const t = this.o && this.o.parentNode === this.i ? this.o : null;
-        if (this.i.insertBefore(this.element, t), this.options.stabilizeOut) {
-          const t = this.m();
-          this.log("stabilizing out");
-          const e = this.A.left - t.left,
-            i = this.A.top - t.top;
-          !("static" === getComputedStyle(this.element).position) || 0 === e && 0 === i || (this.element.style.position = "relative"), 0 !== e && (this.element.style.left = e + "px"), 0 !== i && (this.element.style.top = i + "px");
-        }
-      }
-      const t = this.j(this.options.keyframeOptions);
-      await this.animate(this.options.out, t), this.element.remove();
-    }
-    prepare() {
-      this.createFinished();
-    }
-    start() {
-      this.options.onStart?.(this);
-    }
-    didFinish(t) {
-      t && this.options.onComplete?.(this), this.A = void 0, this.animatingProperties = void 0, this.frames = void 0, this.resolveFinished();
-    }
-    O() {
-      const t = [];
-      for (let e = this.element.parentNode; e; e = e?.parentNode) {
-        const i = ms.get(e);
-        i && !i.isDisabled() && i && t.push(i);
-      }
-      return t;
-    }
-    get isHostRendered() {
-      const t = ls.has(this.u);
-      return t || this.u.updateComplete.then(() => {
-        ls.add(this.u);
-      }), t;
-    }
-    j(t, e = this.O()) {
-      const i = {
-        ...us
-      };
-      return e.forEach(t => Object.assign(i, t.options.keyframeOptions)), Object.assign(i, t), i;
-    }
-    N(t, e, i) {
-      t = {
-        ...t
-      }, e = {
-        ...e
-      };
-      const r = i.map(t => t.animatingProperties).filter(t => void 0 !== t);
-      let n = 1,
-        s = 1;
-      return r.length > 0 && (r.forEach(t => {
-        t.width && (n /= t.width), t.height && (s /= t.height);
-      }), void 0 !== t.left && void 0 !== e.left && (t.left = n * t.left, e.left = n * e.left), void 0 !== t.top && void 0 !== e.top && (t.top = s * t.top, e.top = s * e.top)), {
-        from: t,
-        to: e
-      };
-    }
-    calculateKeyframes(t, e, i = !1) {
-      const r = {},
-        n = {};
-      let s = !1;
-      const o = {};
-      for (const i in e) {
-        const a = t[i],
-          l = e[i];
-        if (i in ps) {
-          const t = ps[i];
-          if (void 0 === a || void 0 === l) continue;
-          const e = t(a, l);
-          void 0 !== e.transform && (o[i] = e.value, s = !0, r.transform = `${r.transform ?? ""} ${e.transform}`, void 0 !== e.overrideFrom && Object.assign(r, e.overrideFrom));
-        } else a !== l && void 0 !== a && void 0 !== l && (s = !0, r[i] = a, n[i] = l);
-      }
-      return r.transformOrigin = n.transformOrigin = i ? "center center" : "top left", this.animatingProperties = o, s ? [r, n] : void 0;
-    }
-    async animate(t, e = this.options.keyframeOptions) {
-      this.start(), this.frames = t;
-      let i = !1;
-      if (!this.isAnimating() && !this.isDisabled() && (this.options.onFrames && (this.frames = t = this.options.onFrames(this), this.log("modified frames", t)), void 0 !== t)) {
-        this.log("animate", [t, e]), i = !0, this.webAnimation = this.element.animate(t, e);
-        const r = this.getController();
-        r?.add(this);
-        try {
-          await this.webAnimation.finished;
-        } catch (t) {}
-        r?.remove(this);
-      }
-      return this.didFinish(i), i;
-    }
-    isAnimating() {
-      return "running" === this.webAnimation?.playState || this.webAnimation?.pending;
-    }
-    log(t, e) {
-      this.shouldLog && !this.isDisabled() && console.log(t, this.options.id, e);
-    }
-  });
-  let _s;
-  let vs = class extends ut {
+  let Yn;
+  let Kn = class extends mt {
     constructor() {
       super(...arguments), this._elementReady = !!customElements.get("ha-camera-stream"), this._loadFailed = !1;
     }
     willUpdate(t) {
       super.willUpdate(t), this._elementReady || this._loadFailed || !this.cameraEntityId || async function (t) {
-        customElements.get("ha-camera-stream") || (_s || (_s = (async () => {
+        customElements.get("ha-camera-stream") || (Yn || (Yn = (async () => {
           const e = await window.loadCardHelpers().then(t => t);
           e.createCardElement({
             type: "picture-entity",
             entity: t,
             camera_view: "live"
           }), await customElements.whenDefined("ha-camera-stream");
-        })()), await _s);
+        })()), await Yn);
       }(this.cameraEntityId).then(() => {
         this._elementReady = !0;
       }, () => {
@@ -5361,12 +5197,19 @@
         display: block;
         width: 100%;
         height: 100%;
+        /* ha-camera-stream has its own shadow root, so its internal <video>
+           cannot be styled from here and sizes itself to the stream's own
+           aspect ratio. Without this it escapes the box entirely -- in the
+           printer card that meant the video spilling out past the chassis
+           instead of sitting inside the build chamber. */
+        overflow: hidden;
       }
 
       ha-camera-stream {
         display: block;
         width: 100%;
         height: 100%;
+        object-fit: cover;
       }
 
       .ac-cam-message {
@@ -5381,322 +5224,828 @@
     `;
     }
   };
-  n([vt()], vs.prototype, "hass", void 0), n([vt({
+  n([_t()], Kn.prototype, "hass", void 0), n([_t({
     attribute: "camera-entity-id"
-  })], vs.prototype, "cameraEntityId", void 0), n([yt()], vs.prototype, "_elementReady", void 0), n([yt()], vs.prototype, "_loadFailed", void 0), vs = n([Rn("anycubic-printercard-camera_stream")], vs);
-  const ys = {
-      keyframeOptions: {
-        duration: 2e3,
-        direction: "alternate",
-        composite: "add"
-      },
-      properties: ["left"]
+  })], Kn.prototype, "cameraEntityId", void 0), n([wt()], Kn.prototype, "_elementReady", void 0), n([wt()], Kn.prototype, "_loadFailed", void 0), Kn = n([Gn("anycubic-printercard-camera_stream")], Kn);
+  const qn = [66.5, 102, 137.5, 173],
+    Wn = ["#d94a3d", "#2f7fd1", "#e8b33a", "#3aa87a"],
+    Xn = (t, e, i, r, n = !0) => X`
+  ${t && n ? X`
+        <g class="ac-apr-wash" fill="var(--ac-printer-light, #ffd88a)">
+          <rect x="${e + 3}" y="${i + 3}" width="${r - 6}" height="34" opacity="0.055"></rect>
+          <rect x="${e + 3}" y="${i + 3}" width="${r - 6}" height="18" opacity="0.075"></rect>
+          <rect x="${e + 3}" y="${i + 3}" width="${r - 6}" height="8" opacity="0.1"></rect>
+        </g>` : J}
+  <rect x="${e}" y="${i}" width="${r}" height="3" rx="1.5"
+        fill="${t ? "var(--ac-printer-light, #ffd88a)" : "currentColor"}"
+        opacity="${t ? .95 : .3}"></rect>
+  ${t ? X`<rect x="${(e + .18 * r).toFixed(1)}" y="${i + .7}" width="${(.64 * r).toFixed(1)}" height="1.2" rx="0.6"
+              fill="#ffffff" opacity="0.6"></rect>` : J}`,
+    Qn = t => {
+      if (!t || !/^#[0-9a-f]{6}$/i.test(t)) return "rgba(255,255,255,0.35)";
+      const e = parseInt(t.slice(1), 16);
+      return (.299 * (e >> 16 & 255) + .587 * (e >> 8 & 255) + .114 * (255 & e)) / 255 < .45 ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)";
     },
-    fs = {
-      keyframeOptions: {
-        duration: 100,
-        composite: "add"
+    Jn = (t, e, i, r, n, s, a, o) => {
+      if (!t || e <= .005) return J;
+      if (o) {
+        const t = Math.min(1, e),
+          l = s,
+          c = Math.min(r, l),
+          h = i + (r - c) / 2,
+          d = n - l,
+          p = l * t,
+          u = ((t, ...e) => {
+            const i = `${t}|${e.map(t => t.toFixed(2)).join(",")}`;
+            let r = 0;
+            for (let t = 0; t < i.length; t++) r = 31 * r + i.charCodeAt(t) | 0;
+            return `acm${(r >>> 0).toString(36)}`;
+          })(o, h, d, c, l, p);
+        return X`
+      <g class="ac-apr-print">
+        <defs>
+          <!-- mask-type:alpha, not a filter and not a luminance mask. The
+               render is a transparent PNG of a near-black object, so its
+               ALPHA is the silhouette and its luminance is nothing: a default
+               luminance mask renders it almost invisible. Masking a plain
+               rect of the filament colour gives the part's real outline in
+               the colour it is actually being printed in. -->
+          <mask id="${u}m" style="mask-type:alpha">
+            <image href="${o}" x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                   width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                   preserveAspectRatio="xMidYMax meet"></image>
+          </mask>
+          <clipPath id="${u}c">
+            <rect x="${h.toFixed(1)}" y="${(n - p).toFixed(1)}"
+                  width="${c.toFixed(1)}" height="${p.toFixed(1)}"></rect>
+          </clipPath>
+        </defs>
+        <g clip-path="url(#${u}c)">
+          <!-- A halo of the same silhouette, very slightly larger, in the
+               contrasting edge colour. The live printer is loaded with PLA+
+               at #1A1A1A and the chamber is darker still, so without this the
+               part is a black shape on a black background. Scaling about the
+               shape's own centre keeps it registered. -->
+          <g transform="translate(${(h + c / 2).toFixed(1)} ${(d + l / 2).toFixed(1)}) scale(1.035) translate(${(-h - c / 2).toFixed(1)} ${(-d - l / 2).toFixed(1)})">
+            <rect x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                  width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                  fill="${Qn(a)}" mask="url(#${u}m)"></rect>
+          </g>
+          <rect x="${h.toFixed(1)}" y="${d.toFixed(1)}"
+                width="${c.toFixed(1)}" height="${l.toFixed(1)}"
+                fill="${a}" mask="url(#${u}m)"></rect>
+        </g>
+        <rect x="${h.toFixed(1)}" y="${(n - p).toFixed(1)}"
+              width="${c.toFixed(1)}" height="1.4"
+              fill="var(--ac-printer-card-bg, #fff)" opacity="0.55"></rect>
+      </g>`;
+      }
+      const l = Math.min(1, e) * s,
+        c = .22 * r,
+        h = Math.min(6, .25 * l),
+        d = i + c,
+        p = r - 2 * c,
+        u = [];
+      for (let t = n - 4; t > n - l + 1; t -= 4) {
+        const e = h * ((n - t) / Math.max(1, l));
+        u.push(X`<line x1="${(d + e).toFixed(1)}" y1="${t.toFixed(1)}"
+                x2="${(d + p - e).toFixed(1)}" y2="${t.toFixed(1)}"
+                stroke="var(--ac-printer-card-bg, #fff)" stroke-opacity="0.14"
+                stroke-width="0.8"></line>`);
+      }
+      return X`
+    <g class="ac-apr-print">
+      <path d="M${d} ${n} L${d + h} ${n - l} L${d + p - h} ${n - l} L${d + p} ${n} Z"
+            fill="${a}" opacity="0.9"></path>
+      ${u}
+      <path d="M${d} ${n} L${d + h} ${n - l} L${d + h + .32 * p} ${n - l} L${d + .32 * p} ${n} Z"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.07"></path>
+      <rect x="${d + h}" y="${(n - l).toFixed(1)}" width="${(p - 2 * h).toFixed(1)}" height="1.6"
+            fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
+    </g>`;
+    },
+    ts = t => {
+      const e = Math.max(0, Math.min(1, t)),
+        i = (t, i) => Math.round(t + (i - t) * e);
+      return `rgb(${i(255, 255)},${i(180, 79)},${i(84, 33)})`;
+    },
+    es = (t, e, i) => t <= .02 ? J : X`
+      <g class="ac-apr-ember">
+        <rect x="${e - 11}" y="${i}" width="22" height="10" rx="5"
+              fill="${ts(t)}" opacity="${(.18 * t).toFixed(2)}"></rect>
+        <rect x="${e - 15}" y="${i - 1.5}" width="30" height="3" rx="1.5"
+              fill="${ts(t)}" opacity="${(.3 + .6 * t).toFixed(2)}"></rect>
+      </g>`,
+    is = (t, e, i, r, n) => t <= .02 ? J : X`
+      <rect class="ac-apr-bedember" x="${e}" y="${i}" width="${r}" height="${n}" rx="${n / 2}"
+            fill="${ts(t)}" opacity="${(.25 + .6 * t).toFixed(2)}"></rect>`,
+    rs = (t, e, i, r) => X`
+  <g opacity="${t ? .9 : .3}">
+    <circle cx="${e}" cy="${i}" r="${r}" fill="none" stroke="currentColor" stroke-width="1.3"></circle>
+    <g class="${t ? "ac-apr-fan" : ""}">
+      <path d="M${e} ${i - .7 * r} A${.7 * r} ${.7 * r} 0 0 1 ${e + .61 * r} ${i + .35 * r} L${e} ${i} Z" fill="currentColor"></path>
+      <path d="M${e + .61 * r} ${i + .35 * r} A${.7 * r} ${.7 * r} 0 0 1 ${e - .61 * r} ${i + .35 * r} L${e} ${i} Z" fill="currentColor" opacity="0.7"></path>
+      <path d="M${e - .61 * r} ${i + .35 * r} A${.7 * r} ${.7 * r} 0 0 1 ${e} ${i - .7 * r} L${e} ${i} Z" fill="currentColor" opacity="0.45"></path>
+    </g>
+  </g>`,
+    ns = (t, e, i, r) => {
+      if ("paused" === t) {
+        const t = .32 * r;
+        return X`<g>
+      <rect x="${e - 1.9 * t}" y="${i - .75 * r}" width="${t}" height="${1.5 * r}" rx="${.3 * t}" fill="#e8b33a"></rect>
+      <rect x="${e + .9 * t}" y="${i - .75 * r}" width="${t}" height="${1.5 * r}" rx="${.3 * t}" fill="#e8b33a"></rect>
+    </g>`;
+      }
+      return "error" === t ? X`<g>
+      <path d="M${e} ${i - r} L${e + r} ${i + .72 * r} L${e - r} ${i + .72 * r} Z"
+            fill="none" stroke="#e05252" stroke-width="${.24 * r}" stroke-linejoin="round"></path>
+      <rect x="${e - .1 * r}" y="${i - .3 * r}" width="${.2 * r}" height="${.62 * r}" rx="${.1 * r}" fill="#e05252"></rect>
+    </g>` : ((t, e, i) => {
+        const r = .575 * i;
+        return X`
+    <g class="ac-apr-logo">
+      <path d="M${t} ${e - 1.05 * i} L${t + i} ${e - .9 * r} L${t} ${e + .2 * r} L${t - i} ${e - .9 * r} Z"
+            fill="#403f44"></path>
+      <path d="M${t - i} ${e - .9 * r} L${t} ${e + .2 * r} L${t} ${e + 1.05 * i} L${t - i} ${e + 1.1 * r} Z"
+            fill="#2b262c"></path>
+      <path d="M${t + i} ${e - .9 * r} L${t + i} ${e + 1.1 * r} L${t} ${e + 1.05 * i} L${t} ${e + .2 * r} Z"
+            fill="#41649a"></path>
+    </g>`;
+      })(e, i, r);
+    },
+    ss = (t, e = 0, i = "M188 88 C 216 94 214 116 196 122", r = !0, n = 0, s = []) => {
+      var a;
+      return X`
+  <g id="ace-${n}">
+    <rect x="45" y="6" width="149" height="95" rx="11" fill="currentColor"></rect>
+    <rect x="45" y="6" width="149" height="16" rx="8" fill="currentColor"></rect>
+    <rect x="56" y="21" width="127" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.28"></rect>
+    <rect x="103" y="9" width="34" height="4" rx="2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.22"></rect>
+    ${qn.map((e, i) => X`
+      <rect x="${e - 15}" y="38" width="30" height="40" rx="4" fill="var(--ac-printer-card-bg, #fff)" opacity="0.9"></rect>
+      ${((t, e, i) => {
+        const r = null != e ? e : "var(--ac-printer-rail, currentColor)",
+          n = 11 + 21 * (void 0 === i ? 1 : Math.max(0, Math.min(1, i)));
+        return X`
+    <rect x="${t - 9}" y="${(42 + (32 - n) / 2).toFixed(1)}" width="18" height="${n.toFixed(1)}" rx="2" fill="${r}"
+          stroke="${Qn(e)}" stroke-width="0.75"></rect>
+    <rect x="${t - 9}" y="55" width="18" height="5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.25"></rect>`;
+      })(e, t[i], s[i])}
+      <rect x="${e - 13.5}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>
+      <rect x="${e + 9}" y="40" width="4.5" height="36" rx="2" fill="currentColor" opacity="0.9"></rect>`)}
+    ${void 0 === qn[e] ? J : X`<rect x="${qn[e] - 17}" y="36" width="34" height="44" rx="5" fill="none"
+                stroke="${null !== (a = t[e]) && void 0 !== a ? a : "currentColor"}" stroke-width="2"></rect>`}
+    <rect x="56" y="86" width="127" height="7" rx="3.5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.18"></rect>
+    <circle cx="186" cy="16" r="2.6" fill="var(--ac-printer-accent, currentColor)"></circle>
+  </g>
+  <path d="${i}" stroke="${r && t[e] || "var(--ac-printer-rail, currentColor)"}"
+        stroke-opacity="0.9" stroke-width="4.5" stroke-linecap="round" fill="none"></path>`;
+    },
+    as = {
+      kobra_s1: {
+        kind: "kobra_s1",
+        park: 36,
+        viewBox: "0 0 240 240",
+        chamber: [16.7, 19.6, 20, 19.2],
+        travel: 104,
+        body: ({
+          gantry: t,
+          nozzle: e,
+          tip: i = "var(--ac-printer-accent, currentColor)",
+          lightOn: r = !1,
+          progress: n = 0,
+          chamberBusy: s = !1,
+          previewUrl: a,
+          nozzleHeat: o = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
+        }) => X`
+  <g fill="currentColor">
+    <rect x="38" y="20" width="163" height="20" rx="5"></rect>
+    <rect x="38" y="34" width="11" height="162"></rect>
+    <rect x="190" y="34" width="11" height="162"></rect>
+    <rect x="38" y="188" width="163" height="26" rx="5"></rect>
+    <rect x="47" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
+    <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
+  </g>
+  <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
+  <g>
+    <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
+    <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
+    ${ns(h, 172, 13, 7.5)}
+  </g>
+  <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
+  ${Xn(r, 56, 42, 127, !s)}
+  <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
+  <g fill="currentColor" opacity="0.75">
+    <rect x="46" y="56" width="5" height="15" rx="2"></rect>
+    <rect x="46" y="155" width="5" height="15" rx="2"></rect>
+  </g>
+  ${rs(c, 195.5, 114, 7.5)}
+  <path d="M58 46 L82 46 L60 104 L58 104 Z" fill="currentColor" opacity="0.05"></path>
+  <path d="M90 46 L100 46 L74 118 L68 118 Z" fill="currentColor" opacity="0.04"></path>
+  <g fill="currentColor" opacity="0.22">
+    <rect x="47" y="194" width="42" height="2.5" rx="1"></rect>
+    <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
+    <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
+  </g>
+  <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
+  <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  ${is(s ? 0 : l, 64, 186, 112, 3)}
+  ${Jn(!s, n, 56, 128, 178, 66, i, a)}
+  <g transform="${t}"
+     style="${s ? "display:none" : ""}">
+    <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <g fill="currentColor" opacity="0.9">
+      <rect x="49" y="44" width="13" height="20" rx="2"></rect>
+      <rect x="177" y="44" width="13" height="20" rx="2"></rect>
+    </g>
+    <g class="ac-apr-nozzle" transform="${e}">
+      <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
+      <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
+        <rect x="107" y="45" width="20" height="2" rx="1"></rect>
+        <rect x="107" y="50" width="20" height="2" rx="1"></rect>
+        <rect x="107" y="55" width="20" height="2" rx="1"></rect>
+      </g>
+      <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
+      <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
+      <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="${i}"></path>
+      ${es(o, 119.5, 65)}
+    </g>
+  </g>`
       },
-      properties: ["top"]
-    };
-  let ws = class extends ut {
+      kobra_3: {
+        kind: "kobra_3",
+        park: 36,
+        viewBox: "0 0 240 240",
+        chamber: [19, 24, 30, 24],
+        travel: 92,
+        body: ({
+          gantry: t,
+          nozzle: e,
+          tip: i = "var(--ac-printer-accent, currentColor)",
+          lightOn: r = !1,
+          progress: n = 0,
+          chamberBusy: s = !1,
+          previewUrl: a,
+          nozzleHeat: o = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
+        }) => X`
+      <g fill="currentColor">
+        <rect x="20" y="176" width="200" height="38" rx="7"></rect>
+        <rect x="40" y="42" width="18" height="136" rx="3"></rect>
+        <rect x="182" y="42" width="18" height="136" rx="3"></rect>
+        <rect x="40" y="30" width="160" height="16" rx="5"></rect>
+        <rect x="36" y="214" width="24" height="8" rx="3" opacity="0.8"></rect>
+        <rect x="180" y="214" width="24" height="8" rx="3" opacity="0.8"></rect>
+      </g>
+      <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.2">
+        <rect x="46" y="52" width="6" height="120" rx="3"></rect>
+        <rect x="188" y="52" width="6" height="120" rx="3"></rect>
+        <rect x="52" y="35" width="136" height="5" rx="2.5"></rect>
+      </g>
+      <g fill="currentColor" opacity="0.85">
+        <circle cx="52" cy="38" r="5"></circle>
+        <circle cx="188" cy="38" r="5"></circle>
+      </g>
+      <g fill="currentColor" opacity="0.22">
+        <rect x="34" y="184" width="44" height="2.5" rx="1"></rect>
+        <rect x="34" y="190" width="44" height="2.5" rx="1"></rect>
+        <rect x="34" y="196" width="44" height="2.5" rx="1"></rect>
+      </g>
+      <rect x="146" y="29" width="50" height="15" rx="3" fill="currentColor" opacity="0.9"></rect>
+      <rect x="150" y="32" width="42" height="9" rx="2" fill="#101216"></rect>
+      ${ns(h, 171, 36.5, 5)}
+      ${Xn(r, 52, 47, 136, !s)}
+      <rect x="54" y="177" width="132" height="3" rx="1.5" fill="var(--ac-printer-rail, currentColor)" opacity="0.5"></rect>
+      <rect x="62" y="166" width="116" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
+      <rect x="70" y="174" width="100" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      ${is(s ? 0 : l, 70, 174, 100, 4)}
+      ${Jn(!s, n, 62, 116, 166, 58, i, a)}
+      ${rs(c, 30, 196, 7)}
+      <g transform="${t}"
+     style="${s ? "display:none" : ""}">
+        <rect x="42" y="54" width="156" height="1.6" fill="currentColor" opacity="0.2"></rect>
+        <rect x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <g fill="currentColor" opacity="0.9">
+          <rect x="42" y="50" width="12" height="20" rx="2"></rect>
+          <rect x="186" y="50" width="12" height="20" rx="2"></rect>
+        </g>
+        <g class="ac-apr-nozzle" transform="${e}">
+          <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
+          <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
+            <rect x="107" y="51" width="20" height="2" rx="1"></rect>
+            <rect x="107" y="56" width="20" height="2" rx="1"></rect>
+            <rect x="107" y="61" width="20" height="2" rx="1"></rect>
+          </g>
+          <rect x="130" y="50" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
+          <path d="M113 71 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
+          <path d="M115.9 79 h7.2 l-0.6 3 h-6 Z" fill="${i}"></path>
+          ${es(o, 119.5, 71)}
+        </g>
+      </g>`
+      },
+      fdm: {
+        kind: "fdm",
+        park: 34,
+        viewBox: "0 0 240 240",
+        chamber: [20, 19.2, 29, 19.2],
+        travel: 92,
+        body: ({
+          gantry: t,
+          nozzle: e,
+          tip: i = "var(--ac-printer-accent, currentColor)",
+          lightOn: r = !1,
+          progress: n = 0,
+          chamberBusy: s = !1,
+          previewUrl: a,
+          nozzleHeat: o = 0,
+          bedHeat: l = 0,
+          fanOn: c = !1,
+          status: h = "idle"
+        }) => X`
+      <g fill="currentColor">
+        <rect x="24" y="178" width="192" height="34" rx="6"></rect>
+        <rect x="30" y="46" width="16" height="132" rx="3"></rect>
+        <rect x="194" y="46" width="16" height="132" rx="3"></rect>
+        <rect x="30" y="34" width="180" height="14" rx="4"></rect>
+      </g>
+      <rect x="46" y="52" width="148" height="126" stroke="currentColor" stroke-opacity="0.22" stroke-width="2" stroke-dasharray="5 6" fill="none"></rect>
+      <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.18">
+        <rect x="35" y="52" width="6" height="120" rx="3"></rect>
+        <rect x="199" y="52" width="6" height="120" rx="3"></rect>
+      </g>
+      <rect x="60" y="170" width="120" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
+      <rect x="68" y="178" width="104" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      ${is(s ? 0 : l, 68, 178, 104, 4)}
+      ${Jn(!s, n, 60, 120, 170, 60, i, a)}
+      ${rs(c, 34, 200, 6.5)}
+      <rect x="154" y="33" width="50" height="16" rx="3" fill="currentColor" opacity="0.9"></rect>
+      <rect x="158" y="36" width="42" height="10" rx="2" fill="#101216"></rect>
+      ${ns(h, 179, 41, 5)}
+      ${Xn(r, 46, 52, 148, !s)}
+      <g fill="currentColor" opacity="0.2">
+        <rect x="36" y="188" width="40" height="2.5" rx="1"></rect>
+        <rect x="36" y="194" width="40" height="2.5" rx="1"></rect>
+      </g>
+      <g transform="${t}"
+     style="${s ? "display:none" : ""}">
+        <rect x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <g fill="currentColor" opacity="0.9">
+          <rect x="32" y="52" width="12" height="20" rx="2"></rect>
+          <rect x="196" y="52" width="12" height="20" rx="2"></rect>
+        </g>
+        <g class="ac-apr-nozzle" transform="${e}">
+          <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
+          <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
+            <rect x="109" y="53" width="18" height="2" rx="1"></rect>
+            <rect x="109" y="58" width="18" height="2" rx="1"></rect>
+            <rect x="109" y="63" width="18" height="2" rx="1"></rect>
+          </g>
+          <path d="M113 72 h13 l-3 7.5 h-7 Z" fill="currentColor"></path>
+          <path d="M116 79.5 h7 l-0.5 2.5 h-6 Z" fill="${i}"></path>
+          ${es(o, 119.5, 72)}
+        </g>
+      </g>`
+      },
+      resin: {
+        kind: "resin",
+        park: 0,
+        viewBox: "0 0 240 240",
+        chamber: [16, 26, 38, 26],
+        travel: 76,
+        body: ({
+          gantry: t,
+          tip: e = "var(--ac-printer-accent, currentColor)",
+          progress: i = 0,
+          chamberBusy: r = !1,
+          status: n = "idle"
+        }) => X`
+      <path d="M74 34 h92 a8 8 0 0 1 8 8 v108 h-108 v-108 a8 8 0 0 1 8 -8 Z" stroke="currentColor" stroke-opacity="0.45" stroke-width="4" fill="none"></path>
+      <g fill="currentColor">
+        <rect x="36" y="150" width="168" height="62" rx="8"></rect>
+        <rect x="52" y="212" width="24" height="8" rx="3" opacity="0.8"></rect>
+        <rect x="164" y="212" width="24" height="8" rx="3" opacity="0.8"></rect>
+        <rect x="58" y="40" width="16" height="110" rx="4"></rect>
+      </g>
+      <rect x="104" y="26" width="36" height="6" rx="3" fill="currentColor" opacity="0.5"></rect>
+      <rect x="63" y="46" width="5" height="100" rx="2.5" fill="var(--ac-printer-card-bg, #fff)" opacity="0.22"></rect>
+      <rect x="130" y="162" width="60" height="26" rx="5" fill="currentColor" opacity="0.9"></rect>
+      <rect x="136" y="168" width="48" height="14" rx="3" fill="#101216"></rect>
+      ${ns(n, 160, 175, 5.5)}
+      <g fill="currentColor" opacity="0.2">
+        <rect x="50" y="176" width="46" height="2.5" rx="1"></rect>
+        <rect x="50" y="182" width="46" height="2.5" rx="1"></rect>
+        <rect x="50" y="188" width="46" height="2.5" rx="1"></rect>
+      </g>
+      <path d="M80 126 h84 l-6 24 h-72 Z" fill="currentColor" opacity="0.28"></path>
+      <path d="M85 137 h74" stroke="${e}" stroke-opacity="0.75" stroke-width="3"></path>
+      <rect x="78" y="118" width="96" height="8" rx="2" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
+      <g transform="${t}">
+        <rect x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
+        <g>
+          <rect x="84" y="48" width="66" height="6" rx="2" fill="currentColor"></rect>
+          <rect x="96" y="54" width="42" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.8"></rect>
+        </g>
+        ${((t, e, i) => {
+          if (!t || e <= .005) return J;
+          const r = 40 * Math.min(1, e),
+            n = 106;
+          return X`
+    <g class="ac-apr-print">
+      <path d="M${n} ${68} L${128} ${68} L${124} ${(68 + r).toFixed(1)} L${110} ${(68 + r).toFixed(1)} Z"
+            fill="${i}" opacity="0.8"></path>
+    </g>`;
+        })(!r, i, e)}
+      </g>`
+      }
+    },
+    os = [["kobra s1", "kobra_s1"], ["kobra 3", "kobra_3"], ["kobra 2", "kobra_3"], ["photon", "resin"], ["mono", "resin"], ["m5s", "resin"], ["m7", "resin"], ["kobra", "kobra_3"]],
+    ls = (t, e, i) => i ? `translate(0 ${-t.park})` : `translate(0 ${(t.travel * (1 - e / 100)).toFixed(1)})`,
+    cs = (t, e = 48) => `translate(${(t * e).toFixed(1)} 0)`;
+  const hs = {
+      black: "#1c1c1e",
+      white: "#f2f2f0",
+      grey: "#8a9099",
+      gray: "#8a9099",
+      silver: "#c2c7cc",
+      red: "#d94a3d",
+      orange: "#e07a2f",
+      yellow: "#e8b33a",
+      green: "#3aa87a",
+      blue: "#2f7fd1",
+      purple: "#7a5cd1",
+      pink: "#d9679b",
+      brown: "#8a5a3b",
+      clear: "#cfd8de",
+      natural: "#e6ded2",
+      transparent: "#cfd8de"
+    },
+    ds = "var(--ac-printer-accent, currentColor)";
+  const ps = t => {
+      const [,, e, i] = t.viewBox.split(/\s+/).map(Number);
+      return `${e} / ${i}`;
+    },
+    us = t => t.chamber.map(t => `${t}%`).join(" "),
+    gs = (t, e, i = Wn, r = 0, n = []) => e > 0 ? function (t, e, i = Wn, r = 0, n = []) {
+      if (e < 1) return t;
+      const s = 101 * e + 14,
+        a = 221 + s + 8,
+        [o, l, c, h] = t.chamber,
+        d = o / 100 * 240,
+        p = 240 - c / 100 * 240;
+      return Object.assign(Object.assign({}, t), {
+        kind: "kobra_s1" === t.kind ? "kobra_s1_combo" : t.kind,
+        viewBox: `0 0 240 ${a}`,
+        chamber: [+((d + s) / a * 100).toFixed(2), l, +((a - (p + s)) / a * 100).toFixed(2), h],
+        body: a => X`
+      ${Array.from({
+          length: e
+        }, (t, a) => {
+          const o = s - 101 * a,
+            l = Math.floor(r / 4) === a,
+            c = 0 === a && 2 === e ? `M188 88 C 214 94 219 106 219 130 L 219 ${o + 8} C 219 ${o + 17} 210 ${o + 21} 200 ${o + 22}` : `M188 88 C 216 94 214 ${o + 12} 196 ${o + 22}`,
+            h = i.slice(4 * a, 4 * a + 4),
+            d = n.slice(4 * a, 4 * a + 4);
+          return X`<g transform="translate(0 ${101 * a})">
+          ${ss(h, l ? r - 4 * a : -1, c, l, a, d)}
+        </g>`;
+        })}
+      <g transform="translate(0 ${s})">${t.body(a)}</g>`
+      });
+    }(t, e, i, r, n) : Object.assign(Object.assign({}, t), {
+      body: e => X`
+          ${((t = "var(--ac-printer-accent, currentColor)", e = 70, i = 219.5) => X`
+  <g>
+    <path d="M${i - 7.5} ${e - 12} C ${i - 7.5} ${e - 26} ${i - 13.5} ${e - 34} ${i - 31.5} ${e - 32}" stroke="${t}"
+          stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
+    <rect x="${i - 23.5}" y="${e - 3}" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
+    <rect x="${i - 8.5}" y="${e - 18}" width="17" height="36" rx="2" fill="${t}"
+          stroke="${Qn(t)}" stroke-width="0.75"></rect>
+    <!-- Wound filament: a couple of banded highlights so the reel reads as
+         coiled material rather than a solid block of colour. -->
+    <rect x="${i - 8.5}" y="${e - 13}" width="17" height="1.2" fill="var(--ac-printer-card-bg, #fff)" opacity="0.16"></rect>
+    <rect x="${i - 8.5}" y="${e + 10}" width="17" height="1.2" fill="#000" opacity="0.14"></rect>
+    <!-- The hub, which is what makes it a reel seen edge-on and not a pill. -->
+    <rect x="${i - 8.5}" y="${e - 4.5}" width="17" height="9" rx="1"
+          fill="var(--ac-printer-card-bg, #fff)" opacity="0.30"></rect>
+    <rect x="${i - 2.2}" y="${e - 3}" width="4.4" height="6" rx="1"
+          fill="currentColor" opacity="0.55"></rect>
+    <rect x="${i - 12.5}" y="${e - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
+    <rect x="${i + 7.5}" y="${e - 23}" width="5" height="46" rx="2.5" fill="currentColor" opacity="0.9"></rect>
+  </g>`)(e.tip, "kobra_3" === t.kind ? 80 : 70, "fdm" === t.kind ? 222 : 219.5)}
+          ${t.body(e)}`
+    });
+  let ms = class extends mt {
     constructor() {
-      super(...arguments), this._progressNum = 0, this.animKeyframeGantry = 0, this._isPrinting = !1, this._gantryAnimOptions = () => Object.assign(Object.assign({}, ys), {
-        onComplete: this._moveGantry,
-        disabled: !(this.dimensions && this._isPrinting)
-      }), this._onResizeEvent = () => {
-        if (this._rootElement) {
-          const t = this._rootElement.clientHeight,
-            e = this._rootElement.clientWidth;
-          this._setDimensions(e, t);
-        }
-      }, this._moveGantry = () => {
-        this.animKeyframeGantry = this._isPrinting ? Number(!this.animKeyframeGantry) : 0;
-      };
-    }
-    connectedCallback() {
-      super.connectedCallback(), this.resizeObserver = new Gn(this, {
-        callback: this._onResizeEvent
-      }), this.dimensions && this._isPrinting && this._moveGantry();
-    }
-    disconnectedCallback() {
-      super.disconnectedCallback();
+      super(...arguments), this._progressNum = 0, this._isPrinting = !1, this._lightOn = !1;
     }
     willUpdate(t) {
-      if (super.willUpdate(t), t.has("scaleFactor") && this._onResizeEvent(), t.has("hass") || t.has("printerEntities") || t.has("printerEntityIdPart")) {
-        const t = ai(this.hass, this.printerEntities, this.printerEntityIdPart, "job_preview");
-        this.imagePreviewUrl !== t && (this.imagePreviewUrl = t, this.imagePreviewBgUrl = this.imagePreviewUrl ? `url('${t}')` : void 0), this._progressNum = Number(li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_progress", 0).state) / 100;
-        const e = mi(li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state").state.toLowerCase());
-        this.dimensions && !this._isPrinting && e && this._moveGantry(), this._isPrinting = e;
+      var e;
+      if (super.willUpdate(t), !t.has("hass") && !t.has("printerEntities") && !t.has("printerEntityIdPart")) return;
+      const i = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "job_preview");
+      this.imagePreviewUrl !== i && (this.imagePreviewUrl = i, this.imagePreviewBgUrl = i ? `url('${i}')` : void 0);
+      const r = Number(di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_progress", 0).state);
+      this._progressNum = Number.isFinite(r) ? r / 100 : 0, this._isPrinting = yi(di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state").state.toLowerCase()), this._lightOn = "on" === (null === (e = ti(this.hass, this.printerEntities, "printer_light")) || void 0 === e ? void 0 : e.state);
+    }
+    _machineName() {
+      var t;
+      for (const e in this.printerEntities) {
+        const i = this.printerEntities[e].device_id,
+          r = i ? this.hass.devices[i] : void 0;
+        if (r) return null !== (t = r.model) && void 0 !== t ? t : r.name;
       }
     }
-    update(t) {
-      if (super.update(t), (t.has("dimensions") || t.has("animKeyframeGantry") || t.has("hass")) && this.dimensions) {
-        const e = this.cameraEntityId ? -this.dimensions.BuildArea.height : -1 * this._progressNum * this.dimensions.BuildArea.height;
-        Ge(this._elAcAPr_xaxis, Object.assign(Object.assign({}, this.dimensions.XAxis), {
-          top: this.dimensions.XAxis.top + e
-        })), Ge(this._elAcAPr_gantry, Object.assign(Object.assign({}, this.dimensions.Gantry), {
-          left: 0 !== this.animKeyframeGantry ? this.dimensions.Gantry.left + this.dimensions.BuildPlate.width : this.dimensions.Gantry.left,
-          top: this.dimensions.Gantry.top + e
-        })), Ge(this._elAcAPr_animprint, {
-          height: 100 * this._progressNum + "%"
-        }), t.has("dimensions") && this.dimensions && (Ge(this._elAcAPr_scalable, Object.assign({}, this.dimensions.Scalable)), Ge(this._elAcAPr_frame, Object.assign({}, this.dimensions.Frame)), Ge(this._elAcAPr_hole, Object.assign({}, this.dimensions.Hole)), Ge(this._elAcAPr_buildarea, Object.assign({}, this.dimensions.BuildArea)), Ge(this._elAcAPr_buildplate, Object.assign({}, this.dimensions.BuildPlate)), Ge(this._elAcAPr_nozzle, Object.assign({}, this.dimensions.Nozzle)));
-      }
+    _spoolState() {
+      var t;
+      const e = t => {
+          const e = ti(this.hass, this.printerEntities, t),
+            i = null == e ? void 0 : e.attributes.spool_info;
+          return Array.isArray(i) ? i : [];
+        },
+        i = e("ace_spools"),
+        r = e("secondary_ace_spools"),
+        n = r.length ? 2 : i.length ? 1 : 0,
+        s = [...i, ...r],
+        a = s.map(t => {
+          var e, i;
+          return function (t) {
+            var e;
+            if (!t) return ds;
+            const i = String(t).trim();
+            return /^#[0-9a-f]{8}$/i.test(i) ? i.slice(0, 7) : /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(i) ? i : /^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(i) ? "#" + i.slice(0, 6) : /^(rgb|hsl)a?\(/i.test(i) ? i : null !== (e = hs[i.toLowerCase()]) && void 0 !== e ? e : ds;
+          }(null !== (e = t.color_hex) && void 0 !== e ? e : (i = t.color, Array.isArray(i) && i.length >= 3 ? "#" + i.slice(0, 3).map(t => Math.max(0, Math.min(255, Math.round(t))).toString(16).padStart(2, "0")).join("") : void 0));
+        }),
+        o = s.map(t => "number" == typeof t.consumables_percent ? Math.max(0, Math.min(1, t.consumables_percent / 100)) : void 0),
+        l = null === (t = ti(this.hass, this.printerEntities, "ace_spools")) || void 0 === t ? void 0 : t.attributes.box_info,
+        c = null == l ? void 0 : l.loaded_slot;
+      return {
+        spools: a,
+        active: "number" == typeof c && c > 0 ? c - 1 : 0,
+        units: n,
+        remaining: o
+      };
+    }
+    _heat(t, e) {
+      const i = t => Number(di(this.hass, this.printerEntities, this.printerEntityIdPart, t, 0).state),
+        r = i(e);
+      if (!Number.isFinite(r) || r <= 0) return 0;
+      const n = i(t);
+      return Number.isFinite(n) ? Math.max(0, Math.min(1, (n - 20) / Math.max(1, r - 20))) : 0;
+    }
+    _status() {
+      var t;
+      if ("on" === (null === (t = ti(this.hass, this.printerEntities, "job_is_paused")) || void 0 === t ? void 0 : t.state)) return "paused";
+      const e = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state").state.toLowerCase();
+      return e.includes("fail") || e.includes("error") ? "error" : this._isPrinting ? "printing" : "idle";
+    }
+    _art() {
+      var t;
+      const {
+        spools: e,
+        active: i,
+        units: r,
+        remaining: n
+      } = this._spoolState();
+      return function (t, e = 0, i, r, n = 0, s = []) {
+        const a = (null != t ? t : "").toLowerCase();
+        let o = "fdm",
+          l = e;
+        if ("kobra_s1_combo" === i) o = "kobra_s1", l = l > 0 ? l : 1;else if (i && Object.prototype.hasOwnProperty.call(as, i)) o = i;else for (const [t, e] of os) if (a.includes(t)) {
+          o = e;
+          break;
+        }
+        const c = as[o];
+        return "resin" === o ? c : gs(c, l, r, n, s);
+      }(this._machineName(), r, null !== (t = this.printerArt) && void 0 !== t ? t : null, e, i, n);
     }
     render() {
-      const t = {
-        "background-image": this.imagePreviewBgUrl
-      };
+      var t;
+      const e = this._art(),
+        {
+          spools: i,
+          active: r
+        } = this._spoolState(),
+        n = null !== (t = i[r]) && void 0 !== t ? t : void 0,
+        s = Boolean(this.cameraEntityId);
       return W`
-      <div class="ac-printercard-animatedprinter">
-        ${this.dimensions ? W` <div class="ac-apr-scalable">
-              <div class="ac-apr-frame">
-                <div class="ac-apr-hole"></div>
-              </div>
-              <div class="ac-apr-buildarea">
-                ${this.cameraEntityId ? W`
-                      <anycubic-printercard-camera_stream
-                        class="ac-apr-camera"
-                        .hass=${this.hass}
-                        .cameraEntityId=${this.cameraEntityId}
-                      ></anycubic-printercard-camera_stream>
-                    ` : W`
-                      <div class="ac-apr-animprint">
-                        ${this.imagePreviewBgUrl ? W`
-                              <div
-                                class="ac-apr-imgprev"
-                                style=${Un(t)}
-                              ></div>
-                            ` : K}
-                      </div>
-                    `}
-              </div>
-              <div class="ac-apr-buildplate"></div>
-              <div
-                class="ac-apr-xaxis"
-                ${bs(Object.assign({}, fs))}
-              ></div>
-              <div
-                class="ac-apr-gantry"
-                ${bs(Object.assign({}, fs))}
-                ${bs(this._gantryAnimOptions)}
-              >
-                <div class="ac-apr-nozzle"></div>
-              </div>
-            </div>` : K}
+      <div
+        class="ac-printercard-animatedprinter"
+        style=${Vn({
+        "--ac-apr-chamber": us(e),
+        "--ac-apr-aspect": ps(e)
+      })}
+      >
+        ${s ? W`
+              <anycubic-printercard-camera_stream
+                class="ac-apr-camera"
+                .hass=${this.hass}
+                .cameraEntityId=${this.cameraEntityId}
+              ></anycubic-printercard-camera_stream>
+            ` : J}
+        ${((t, e = {}) => {
+        var i, r;
+        return W` <svg
+    class="ac-apr-svg"
+    viewBox=${t.viewBox}
+    fill="none"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+  >
+    ${t.body(Object.assign(Object.assign({}, e), {
+          gantry: ls(t, 100 * (null !== (i = e.progress) && void 0 !== i ? i : 0), !!e.cameraLive),
+          chamberBusy: !!e.cameraLive,
+          nozzle: cs(null !== (r = e.nozzleX) && void 0 !== r ? r : 0)
+        }))}
+  </svg>`;
+      })(e, {
+        progress: this._progressNum,
+        cameraLive: s,
+        previewUrl: s ? void 0 : this.imagePreviewUrl,
+        tip: n,
+        lightOn: this._lightOn,
+        nozzleHeat: this._heat("nozzle_temperature", "target_nozzle_temperature"),
+        bedHeat: this._heat("hotbed_temperature", "target_hotbed_temperature"),
+        fanOn: Number(di(this.hass, this.printerEntities, this.printerEntityIdPart, "fan_speed", 0).state) > 0,
+        status: this._status()
+      })}
       </div>
     `;
-    }
-    _setDimensions(t, e) {
-      this.dimensions = function (t, e, i) {
-        const r = e.height / (t.top.height + t.bottom.height + t.left.height),
-          n = e.width / (t.top.width + t.left.width + t.right.width),
-          s = new jn(Math.min(r, n) * i),
-          o = s.val(t.top.width),
-          a = s.val(t.top.height + t.bottom.height + t.left.height),
-          l = s.val(t.top.width - (t.left.width + t.right.width)),
-          c = s.val(t.left.height),
-          h = s.val(t.left.width),
-          d = s.val(t.top.height),
-          p = s.val(t.top.height - t.buildplate.verticalOffset) + c,
-          u = p + s.val((t.xAxis.extruder.height - t.xAxis.height) / 2 - (t.xAxis.extruder.height + 12)),
-          g = s.val(t.buildplate.maxWidth),
-          m = s.val(t.buildplate.maxHeight),
-          b = s.val(t.left.width + (s.og(l) - t.buildplate.maxWidth) / 2),
-          _ = p - s.val(t.buildplate.maxHeight),
-          v = g,
-          y = b,
-          f = p,
-          w = s.val(t.xAxis.width),
-          x = s.val(t.xAxis.height),
-          E = s.val(t.xAxis.offsetLeft),
-          S = w,
-          $ = x,
-          P = s.val(t.xAxis.extruder.width),
-          A = s.val(t.xAxis.extruder.height),
-          T = y - P / 2,
-          C = T + g,
-          k = s.val(12),
-          H = s.val(12),
-          D = f - A - H;
-        return {
-          Scalable: {
-            width: o,
-            height: a
-          },
-          Frame: {
-            width: o,
-            height: a
-          },
-          Hole: {
-            width: l,
-            height: c,
-            left: h,
-            top: d
-          },
-          BuildArea: {
-            width: g,
-            height: m,
-            left: b,
-            top: _
-          },
-          BuildPlate: {
-            width: v,
-            left: y,
-            top: f
-          },
-          XAxis: {
-            width: w,
-            height: x,
-            left: E,
-            top: D + .7 * A - x / 2
-          },
-          Track: {
-            width: S,
-            height: $
-          },
-          Basis: {
-            Y: p,
-            X: u
-          },
-          Gantry: {
-            width: P,
-            height: A,
-            left: T,
-            top: D
-          },
-          Nozzle: {
-            width: k,
-            height: H,
-            left: (P - k) / 2,
-            top: A
-          },
-          GantryMaxLeft: C
-        };
-      }(this.printerConfig, {
-        width: t,
-        height: e
-      }, this.scaleFactor || 1);
     }
     static get styles() {
       return p`
       :host {
-        display: block;
-        width: 100%;
-        height: 100%;
-        box-sizing: border-box;
-      }
-
-      .ac-printercard-animatedprinter {
-        width: 100%;
-        height: 100%;
-        box-sizing: border-box;
         display: flex;
+        align-items: center;
         justify-content: center;
-        align-items: center;
-      }
-
-      .ac-apr-scalable {
-        position: relative;
-      }
-
-      .ac-apr-frame {
-        top: 0px;
-        left: 0px;
-        border-radius: 8px;
-        background-color: #bbbbbb;
-        position: absolute;
-      }
-
-      .ac-apr-hole {
-        position: absolute;
-        top: 0px;
-        left: 0px;
-        background-color: var(
-          --ha-card-background,
-          var(--card-background-color, white)
-        );
-        border-radius: 8px;
-      }
-
-      .ac-apr-buildarea {
-        background-color: rgba(0, 0, 0, 0.075);
+        width: 100%;
+        height: 100%;
         box-sizing: border-box;
-        position: absolute;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        align-items: center;
-        border-radius: 8px;
+        /* Without this the host has no definite height for max-height to
+           resolve against, and the cap silently does nothing. */
+        min-height: 0;
+      }
+
+      /* The wrapper carries the drawing's own aspect ratio, and is capped by
+         BOTH dimensions of whatever box the card gives it.
+
+         This is what stops the printer rendering enormous. width:100% on the
+         SVG alone means its height just follows the aspect ratio with nothing
+         to cap it, and a Combo with two ACE units is nearly twice as tall as
+         it is wide. Constraining the wrapper rather than letting the SVG
+         letterbox inside it also keeps the camera aligned: the stream is
+         positioned by percentage inset OF THIS BOX, so if the drawing did not
+         fill it exactly, the chamber hole would stop lining up with the video
+         behind it. */
+      .ac-printercard-animatedprinter {
+        position: relative;
+        aspect-ratio: var(--ac-apr-aspect, 1 / 1);
+        max-width: 100%;
+        max-height: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
         overflow: hidden;
       }
 
-      .ac-apr-buildplate {
-        box-sizing: border-box;
-        border-radius: 8px;
+      /* Both of these fill exactly the chamber hole in the artwork, which is
+         negative space, so the SVG frames them rather than covering them.
+         The inset comes from the art itself because it moves with ACE count. */
+      /* The chamber is a hole in the artwork, so whatever sits behind it must
+         be clipped to that hole. The stream is the reason: its <video> is in a
+         shadow root we cannot reach and sizes itself, so without clipping here
+         it renders at its own aspect ratio and spills out past the chassis. */
+      .ac-apr-camera,
+      .ac-apr-imgprev {
         position: absolute;
-        background-color: #333333;
-        height: 8px;
+        inset: var(--ac-apr-chamber, 0);
+        z-index: 0;
+        overflow: hidden;
+        /* The camera is a custom element whose own :host sets width and height
+           to 100%. An explicit size beats the four inset edges, so without
+           these the stream filled the whole wrapper instead of the chamber
+           hole -- measured on the live card as 115x165 against a chamber that
+           should be about 71x105. Styles from here outrank :host, so auto
+           hands sizing back to the insets. */
+        width: auto;
+        height: auto;
       }
 
-      .ac-apr-xaxis {
-        position: absolute;
-        border-radius: 8px;
-        background-color: #aaaaaa;
-      }
-
-      .ac-apr-animprint {
-        background-color: var(--primary-text-color);
-        width: 100%;
-      }
-
-      /* Fills the build volume so the frame, gantry and nozzle sit over the
-         picture -- it reads as looking into the machine. */
+      /* The stream is 16:9 and the chamber hole is nearly square, so filling
+         the hole meant object-fit: cover cropping away about 46% of the
+         width -- you saw a narrow centre slice of the bed, heavily zoomed in.
+         The <video> lives in ha-camera-stream's shadow root and cannot be
+         restyled from here, so the BOX is matched to the stream instead: at
+         16:9 inside the hole, cover and contain agree and nothing is cropped.
+         Centred with margin:auto against the four inset edges. */
       .ac-apr-camera {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
         background-color: #000;
+        aspect-ratio: 16 / 9;
+        max-width: 100%;
+        max-height: 100%;
+        margin: auto;
       }
 
       .ac-apr-imgprev {
-        height: 100%;
-        width: 100%;
-        background-size: 100%;
+        background-size: contain;
         background-repeat: no-repeat;
-        background-position-y: 100%;
+        background-position: center bottom;
       }
 
-      .ac-apr-gantry {
-        background-color: #333333;
-        border-radius: 4px;
-        box-sizing: border-box;
-        position: absolute;
+      /* Sits over the stream, and must never swallow clicks meant for the
+         card underneath. */
+      .ac-apr-svg {
+        position: relative;
+        z-index: 1;
+        pointer-events: none;
+        display: block;
+        width: 100%;
+        height: 100%;
+        color: var(--primary-text-color);
+        --ac-printer-accent: var(
+          --state-icon-active-color,
+          var(--primary-color)
+        );
+        --ac-printer-rail: var(--secondary-text-color);
+        --ac-printer-plate: var(--divider-color);
+        --ac-printer-card-bg: var(
+          --ha-card-background,
+          var(--card-background-color, #fff)
+        );
+        --ac-printer-light: #ffd88a;
       }
 
-      .ac-apr-nozzle {
-        background-color: #aaaaaa;
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        clip-path: polygon(100% 0, 100% 50%, 50% 75%, 0 50%, 0 0);
+      /* The head sweeps only while a job is running. Driven from CSS rather
+         than axis data, which the printer does not report often enough to
+         animate from -- when it is wired, replace this with nozzleTransform.
+
+         Targeted by CLASS, not id. It was an id, and an unrelated cleanup that
+         removed the artwork's document-global ids silently killed the sweep:
+         the rule kept matching nothing and the head simply stopped moving. A
+         class cannot collide between two cards, so it satisfies both. */
+      .ac-apr-svg .ac-apr-nozzle {
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      :host([printing]) .ac-apr-svg .ac-apr-nozzle {
+        animation: ac-apr-sweep 4.4s ease-in-out infinite;
+      }
+
+      @keyframes ac-apr-sweep {
+        0%,
+        100% {
+          transform: translateX(-46px);
+        }
+        50% {
+          transform: translateX(46px);
+        }
+      }
+
+      .ac-apr-svg .ac-apr-fan {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: ac-apr-spin 1.1s linear infinite;
+      }
+
+      @keyframes ac-apr-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Motion is the whole point of both of these, so under reduced-motion
+         they stop rather than slow: the fan still reads as running from its
+         opacity, and the head from its position. */
+      @media (prefers-reduced-motion: reduce) {
+        :host([printing]) .ac-apr-svg .ac-apr-nozzle,
+        .ac-apr-svg .ac-apr-fan {
+          animation: none;
+        }
       }
     `;
     }
+    updated(t) {
+      super.updated(t), this.toggleAttribute("printing", this._isPrinting);
+    }
   };
-  n([wt(".ac-printercard-animatedprinter")], ws.prototype, "_rootElement", void 0), n([wt(".ac-apr-scalable")], ws.prototype, "_elAcAPr_scalable", void 0), n([wt(".ac-apr-frame")], ws.prototype, "_elAcAPr_frame", void 0), n([wt(".ac-apr-hole")], ws.prototype, "_elAcAPr_hole", void 0), n([wt(".ac-apr-buildarea")], ws.prototype, "_elAcAPr_buildarea", void 0), n([wt(".ac-apr-animprint")], ws.prototype, "_elAcAPr_animprint", void 0), n([wt(".ac-apr-buildplate")], ws.prototype, "_elAcAPr_buildplate", void 0), n([wt(".ac-apr-xaxis")], ws.prototype, "_elAcAPr_xaxis", void 0), n([wt(".ac-apr-gantry")], ws.prototype, "_elAcAPr_gantry", void 0), n([wt(".ac-apr-nozzle")], ws.prototype, "_elAcAPr_nozzle", void 0), n([vt()], ws.prototype, "hass", void 0), n([vt({
+  n([_t()], ms.prototype, "hass", void 0), n([_t({
     attribute: "scale-factor"
-  })], ws.prototype, "scaleFactor", void 0), n([vt({
+  })], ms.prototype, "scaleFactor", void 0), n([_t({
     attribute: "printer-config"
-  })], ws.prototype, "printerConfig", void 0), n([vt({
+  })], ms.prototype, "printerConfig", void 0), n([_t({
     attribute: "printer-entities"
-  })], ws.prototype, "printerEntities", void 0), n([vt({
+  })], ms.prototype, "printerEntities", void 0), n([_t({
     attribute: "printer-entity-id-part"
-  })], ws.prototype, "printerEntityIdPart", void 0), n([vt({
+  })], ms.prototype, "printerEntityIdPart", void 0), n([_t({
     attribute: "camera-entity-id"
-  })], ws.prototype, "cameraEntityId", void 0), n([yt()], ws.prototype, "dimensions", void 0), n([yt()], ws.prototype, "resizeObserver", void 0), n([yt()], ws.prototype, "_progressNum", void 0), n([yt()], ws.prototype, "animKeyframeGantry", void 0), n([yt()], ws.prototype, "_isPrinting", void 0), n([yt()], ws.prototype, "imagePreviewUrl", void 0), n([yt()], ws.prototype, "imagePreviewBgUrl", void 0), ws = n([Rn("anycubic-printercard-animated_printer")], ws);
-  let xs = class extends ut {
+  })], ms.prototype, "cameraEntityId", void 0), n([_t({
+    attribute: "printer-art"
+  })], ms.prototype, "printerArt", void 0), n([wt()], ms.prototype, "_progressNum", void 0), n([wt()], ms.prototype, "_isPrinting", void 0), n([wt()], ms.prototype, "_lightOn", void 0), n([wt()], ms.prototype, "imagePreviewUrl", void 0), n([wt()], ms.prototype, "imagePreviewBgUrl", void 0), ms = n([Gn("anycubic-printercard-animated_printer")], ms);
+  let bs = class extends mt {
     constructor() {
       super(...arguments), this._viewClick = () => {
         this.toggleVideo && this.toggleVideo();
@@ -5710,8 +6059,9 @@
           .scaleFactor=${this.scaleFactor}
           .printerEntities=${this.printerEntities}
           .printerEntityIdPart=${this.printerEntityIdPart}
-          .printerConfig=${Vn}
+          .printerConfig=${Zn}
           .cameraEntityId=${this.cameraEntityId}
+          .printerArt=${this.printerArt === je.Auto ? void 0 : this.printerArt}
         ></anycubic-printercard-animated_printer>
       </div>
     `;
@@ -5730,64 +6080,70 @@
     `;
     }
   };
-  n([vt()], xs.prototype, "hass", void 0), n([vt({
+  n([_t()], bs.prototype, "hass", void 0), n([_t({
     attribute: "toggle-video",
     type: Function
-  })], xs.prototype, "toggleVideo", void 0), n([vt({
+  })], bs.prototype, "toggleVideo", void 0), n([_t({
     attribute: "printer-entities"
-  })], xs.prototype, "printerEntities", void 0), n([vt({
+  })], bs.prototype, "printerEntities", void 0), n([_t({
     attribute: "printer-entity-id-part"
-  })], xs.prototype, "printerEntityIdPart", void 0), n([vt({
+  })], bs.prototype, "printerEntityIdPart", void 0), n([_t({
     attribute: "scale-factor"
-  })], xs.prototype, "scaleFactor", void 0), n([vt({
+  })], bs.prototype, "scaleFactor", void 0), n([_t({
     attribute: "camera-entity-id"
-  })], xs.prototype, "cameraEntityId", void 0), xs = n([Rn("anycubic-printercard-printer_view")], xs);
-  let Es = class extends ut {
+  })], bs.prototype, "cameraEntityId", void 0), n([_t({
+    attribute: "printer-art"
+  })], bs.prototype, "printerArt", void 0), bs = n([Gn("anycubic-printercard-printer_view")], bs);
+  let vs = class extends mt {
     constructor() {
-      super(...arguments), this.mediaView = ze.Auto, this.isPrinting = !1, this._previewFailed = !1, this._previewLoadFailed = () => {
-        this._previewFailed = !0, this._selected === ze.Preview && (this._selected = void 0);
+      super(...arguments), this.mediaView = Re.Auto, this.noCamera = !1, this.language = "en", this.isPrinting = !1, this._previewFailed = !1, this._previewLoadFailed = () => {
+        this._previewFailed = !0, this._selected === Re.Preview && (this._selected = void 0);
       }, this._selectTab = t => {
         this._selected = t.currentTarget.tabKey;
       };
     }
     willUpdate(t) {
       if (super.willUpdate(t), t.has("hass") || t.has("printerEntityIdPart")) {
-        const t = ai(this.hass, this.printerEntities, this.printerEntityIdPart, "job_preview");
+        const t = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "job_preview");
         t !== this._previewUrl && (this._previewUrl = t, this._previewFailed = !1);
       }
     }
     _defaultTab() {
-      return this._usablePreview() ? ze.Preview : ze.Printer;
+      return this._usablePreview() ? Re.Preview : Re.Printer;
     }
     _usablePreview() {
       return !!this._previewUrl && !this._previewFailed;
     }
     _availableTabs() {
       const t = [];
-      return this.camera && t.push({
-        key: ze.Camera,
+      return this.camera && !this.noCamera && t.push({
+        key: Re.Camera,
         icon: "M6.03 12.03L8.03 15.5L5.5 18.68L2 12.62L6.03 12.03M17 18V15.29C17.88 14.9 18.5 14.03 18.5 13C18.5 12.43 18.3 11.9 17.97 11.5L19.94 10.35C20.95 9.76 21.3 8.47 20.71 7.46L19.33 5.06C18.74 4.05 17.45 3.7 16.44 4.28L8.31 9C7.36 9.53 7.03 10.75 7.58 11.71L9.08 14.31C9.63 15.26 10.86 15.59 11.81 15.04L13.69 13.96C13.94 14.55 14.41 15.03 15 15.29V18C15 19.1 15.9 20 17 20H22V18H17Z",
-        label: "Camera"
+        label: Mn("card.media_view.tabs.camera", this.language)
       }), this._usablePreview() && t.push({
-        key: ze.Preview,
+        key: Re.Preview,
         icon: "M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M13.96,12.29L11.21,15.83L9.25,13.47L6.5,17H17.5L13.96,12.29Z",
-        label: "Preview"
+        label: Mn("card.media_view.tabs.preview", this.language)
       }), t.push({
-        key: ze.Printer,
+        key: Re.Printer,
         icon: "M19,6A1,1 0 0,0 20,5A1,1 0 0,0 19,4A1,1 0 0,0 18,5A1,1 0 0,0 19,6M19,2A3,3 0 0,1 22,5V11H18V7H6V11H2V5A3,3 0 0,1 5,2H19M18,18.25C18,18.63 17.79,18.96 17.47,19.13L12.57,21.82C12.4,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L6.53,19.13C6.21,18.96 6,18.63 6,18.25V13C6,12.62 6.21,12.29 6.53,12.12L11.43,9.68C11.59,9.56 11.79,9.5 12,9.5C12.21,9.5 12.4,9.56 12.57,9.68L17.47,12.12C17.79,12.29 18,12.62 18,13V18.25M12,11.65L9.04,13L12,14.6L14.96,13L12,11.65M8,17.66L11,19.29V16.33L8,14.71V17.66M16,17.66V14.71L13,16.33V19.29L16,17.66Z",
-        label: "Printer"
+        label: Mn("card.media_view.tabs.printer", this.language)
+      }), this._usablePreview() && this.camera && t.push({
+        key: Re.PrinterModel,
+        icon: "M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L6.04,7.5L12,10.85L17.96,7.5L12,4.15Z",
+        label: Mn("card.media_view.tabs.printer_model", this.language)
       }), t;
     }
     _activeTab() {
       var t;
       const e = this._availableTabs(),
-        i = null !== (t = this._selected) && void 0 !== t ? t : this.mediaView === ze.Auto ? this._defaultTab() : this.mediaView;
-      return e.some(t => t.key === i) ? i : ze.Printer;
+        i = null !== (t = this._selected) && void 0 !== t ? t : this.mediaView === Re.Auto ? this._defaultTab() : this.mediaView;
+      return e.some(t => t.key === i) ? i : Re.Printer;
     }
     _renderTabs(t, e) {
       return t.map(t => W`
         <button
-          class="ac-media-tab ${Nn({
+          class="ac-media-tab ${Un({
         "ac-media-tab-active": t.key === e
       })}"
           title=${t.label}
@@ -5802,30 +6158,30 @@
     }
     render() {
       var t;
-      if (this.mediaView === ze.None) return K;
+      if (this.mediaView === Re.None) return J;
       const e = this._activeTab(),
         i = this._availableTabs();
       return W`
       <div
-        class="ac-media ${Nn({
-        "ac-media-tall": e === ze.Printer
+        class="ac-media ${Un({
+        "ac-media-tall": e === Re.Printer || e === Re.PrinterModel
       })}"
       >
         <div class="ac-media-surface">${this._renderSurface(e)}</div>
         ${i.length > 1 ? W`
               <div class="ac-media-tabs">${this._renderTabs(i, e)}</div>
-            ` : K}
-        ${e === ze.Camera && (null === (t = this.camera) || void 0 === t ? void 0 : t.isCloud) ? W`<div class="ac-media-badge">LIVE</div>` : K}
+            ` : J}
+        ${e === Re.Camera && (null === (t = this.camera) || void 0 === t ? void 0 : t.isCloud) ? W`<div class="ac-media-badge">LIVE</div>` : J}
       </div>
     `;
     }
     _renderSurface(t) {
-      return t === ze.Camera && this.camera ? W`
+      return t === Re.Camera && this.camera && !this.noCamera ? W`
         <anycubic-printercard-camera_stream
           .hass=${this.hass}
           .cameraEntityId=${this.camera.entity_id}
         ></anycubic-printercard-camera_stream>
-      ` : t === ze.Preview && this._usablePreview() ? W`
+      ` : t === Re.Preview && this._usablePreview() ? W`
         <img
           class="ac-media-preview"
           src=${this._previewUrl}
@@ -5839,12 +6195,14 @@
         .printerEntityIdPart=${this.printerEntityIdPart}
         .scaleFactor=${1}
         .cameraEntityId=${this._insetCameraEntityId()}
+        .printerArt=${this.printerArt}
       ></anycubic-printercard-printer_view>
     `;
     }
     _insetCameraEntityId() {
-      if (!this.camera) return;
-      return this._selected === ze.Printer || this.mediaView === ze.Printer ? this.camera.entity_id : void 0;
+      if (this.noCamera || !this.camera || !this.camera.available) return;
+      if (this._activeTab() === Re.PrinterModel) return;
+      return this._selected === Re.Printer || this.mediaView === Re.Printer ? this.camera.entity_id : void 0;
     }
     static get styles() {
       return p`
@@ -5955,39 +6313,45 @@
        * Copyright 2021 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  function* Ss(t, e) {
+  function* ys(t, e) {
     if (void 0 !== t) {
       let i = 0;
       for (const r of t) yield e(r, i++);
     }
   }
-  n([vt()], Es.prototype, "hass", void 0), n([vt({
+  n([_t()], vs.prototype, "hass", void 0), n([_t({
     attribute: "printer-entities"
-  })], Es.prototype, "printerEntities", void 0), n([vt({
+  })], vs.prototype, "printerEntities", void 0), n([_t({
     attribute: "printer-entity-id-part"
-  })], Es.prototype, "printerEntityIdPart", void 0), n([vt({
+  })], vs.prototype, "printerEntityIdPart", void 0), n([_t({
     attribute: "media-view"
-  })], Es.prototype, "mediaView", void 0), n([vt({
+  })], vs.prototype, "mediaView", void 0), n([_t({
+    attribute: "printer-art"
+  })], vs.prototype, "printerArt", void 0), n([_t({
+    attribute: "no-camera",
+    type: Boolean
+  })], vs.prototype, "noCamera", void 0), n([_t()], vs.prototype, "language", void 0), n([_t({
     attribute: !1
-  })], Es.prototype, "camera", void 0), n([vt({
+  })], vs.prototype, "camera", void 0), n([_t({
     attribute: "is-printing",
     type: Boolean
-  })], Es.prototype, "isPrinting", void 0), n([yt()], Es.prototype, "_selected", void 0), n([yt()], Es.prototype, "_previewUrl", void 0), n([yt()], Es.prototype, "_previewFailed", void 0), Es = n([Rn("anycubic-printercard-media_view")], Es);
-  const $s = "secondary_",
-    Ps = "ace_run_out_refill",
-    As = $s + Ps,
-    Ts = "ace_spools",
-    Cs = $s + Ts;
-  let ks = class extends ut {
+  })], vs.prototype, "isPrinting", void 0), n([wt()], vs.prototype, "_selected", void 0), n([wt()], vs.prototype, "_previewUrl", void 0), n([wt()], vs.prototype, "_previewFailed", void 0), vs = n([Gn("anycubic-printercard-media_view")], vs);
+  const fs = "secondary_",
+    _s = "ace_run_out_refill",
+    ws = fs + _s,
+    xs = "ace_spools",
+    $s = fs + xs;
+  let Es = class extends mt {
     constructor() {
-      super(...arguments), this.box_id = 0, this._runoutRefillId = Ps, this._spoolsEntityId = Ts, this.spoolList = [], this.selectedIndex = -1, this.selectedMaterialType = "", this.selectedColor = [0, 0, 0], this._changingRunout = !1, this._openDryingModal = () => {
-        De(this, "ac-mcbdry-modal", {
+      super(...arguments), this.box_id = 0, this._runoutRefillId = _s, this._spoolsEntityId = xs, this.spoolList = [], this.selectedIndex = -1, this.selectedMaterialType = "", this.selectedColor = [0, 0, 0], this._changingRunout = !1, this._openDryingModal = () => {
+        Fe(this, "ac-mcbdry-modal", {
           modalOpen: !0,
           box_id: this.box_id
         });
       }, this._handleRunoutRefillChanged = t => {
+        var e, i;
         this._changingRunout || (this._changingRunout = !0, this.hass.callService("switch", "toggle", {
-          entity_id: ii(this.printerEntityIdPart, "switch", this._runoutRefillId)
+          entity_id: null !== (i = null === (e = ai(this.printerEntities, this.printerEntityIdPart, "switch", this._runoutRefillId)) || void 0 === e ? void 0 : e.entity_id) && void 0 !== i ? i : si(this.printerEntityIdPart, "switch", this._runoutRefillId)
         }).then(() => {
           this._changingRunout = !1;
         }).catch(t => {
@@ -5997,7 +6361,7 @@
         const e = t.currentTarget.index,
           i = t.currentTarget.material_type,
           r = t.currentTarget.color;
-        De(this, "ac-mcb-modal", {
+        Fe(this, "ac-mcb-modal", {
           modalOpen: !0,
           box_id: this.box_id,
           spool_index: e,
@@ -6008,9 +6372,9 @@
     }
     willUpdate(t) {
       var e, i, r, n;
-      super.willUpdate(t), t.has("language") && (this._buttonRefill = Tn("card.buttons.runout_refill", this.language), this._buttonDry = Tn("card.buttons.dry", this.language)), t.has("box_id") && (1 === this.box_id ? (this._runoutRefillId = As, this._spoolsEntityId = Cs) : (this._runoutRefillId = Ps, this._spoolsEntityId = Ts)), (t.has("hass") || t.has("printerEntities") || t.has("printerEntityIdPart")) && (this.spoolList = li(this.hass, this.printerEntities, this.printerEntityIdPart, this._spoolsEntityId, "not loaded", {
+      super.willUpdate(t), t.has("language") && (this._buttonRefill = Mn("card.buttons.runout_refill", this.language), this._buttonDry = Mn("card.buttons.dry", this.language)), t.has("box_id") && (1 === this.box_id ? (this._runoutRefillId = ws, this._spoolsEntityId = $s) : (this._runoutRefillId = _s, this._spoolsEntityId = xs)), (t.has("hass") || t.has("printerEntities") || t.has("printerEntityIdPart")) && (this.spoolList = di(this.hass, this.printerEntities, this.printerEntityIdPart, this._spoolsEntityId, "not loaded", {
         spool_info: []
-      }).attributes.spool_info, this._runoutRefillState = (e = this.hass, i = this.printerEntities, r = this.printerEntityIdPart, n = this._runoutRefillId, qe(e, ri(i, r, "switch", n))));
+      }).attributes.spool_info, this._runoutRefillState = (e = this.hass, i = this.printerEntities, r = this.printerEntityIdPart, n = this._runoutRefillId, We(e, ai(i, r, "switch", n))));
     }
     render() {
       return W`
@@ -6035,7 +6399,7 @@
     `;
     }
     _renderSpools() {
-      return Ss(this.spoolList, (t, e) => {
+      return ys(this.spoolList, (t, e) => {
         const i = {
           "background-color": t.spool_loaded ? `rgb(${t.color[0]}, ${t.color[1]}, ${t.color[2]})` : "#aaa"
         };
@@ -6050,7 +6414,7 @@
             <div class="ac-spool-color-ring-cont">
               <div
                 class="ac-spool-color-ring-inner"
-                style=${Un(i)}
+                style=${Vn(i)}
               >
                 <div class="ac-spool-color-num">${e + 1}</div>
               </div>
@@ -6192,32 +6556,72 @@
     `;
     }
   };
-  n([vt()], ks.prototype, "hass", void 0), n([vt()], ks.prototype, "language", void 0), n([vt({
+  n([_t()], Es.prototype, "hass", void 0), n([_t()], Es.prototype, "language", void 0), n([_t({
     attribute: "printer-entities"
-  })], ks.prototype, "printerEntities", void 0), n([vt({
+  })], Es.prototype, "printerEntities", void 0), n([_t({
     attribute: "printer-entity-id-part"
-  })], ks.prototype, "printerEntityIdPart", void 0), n([vt()], ks.prototype, "box_id", void 0), n([yt()], ks.prototype, "_runoutRefillId", void 0), n([yt()], ks.prototype, "_spoolsEntityId", void 0), n([yt()], ks.prototype, "spoolList", void 0), n([yt()], ks.prototype, "selectedIndex", void 0), n([yt()], ks.prototype, "selectedMaterialType", void 0), n([yt()], ks.prototype, "selectedColor", void 0), n([yt()], ks.prototype, "_runoutRefillState", void 0), n([yt()], ks.prototype, "_buttonRefill", void 0), n([yt()], ks.prototype, "_buttonDry", void 0), n([yt()], ks.prototype, "_changingRunout", void 0), ks = n([Rn("anycubic-printercard-multicolorbox_view")], ks);
+  })], Es.prototype, "printerEntityIdPart", void 0), n([_t()], Es.prototype, "box_id", void 0), n([wt()], Es.prototype, "_runoutRefillId", void 0), n([wt()], Es.prototype, "_spoolsEntityId", void 0), n([wt()], Es.prototype, "spoolList", void 0), n([wt()], Es.prototype, "selectedIndex", void 0), n([wt()], Es.prototype, "selectedMaterialType", void 0), n([wt()], Es.prototype, "selectedColor", void 0), n([wt()], Es.prototype, "_runoutRefillState", void 0), n([wt()], Es.prototype, "_buttonRefill", void 0), n([wt()], Es.prototype, "_buttonDry", void 0), n([wt()], Es.prototype, "_changingRunout", void 0), Es = n([Gn("anycubic-printercard-multicolorbox_view")], Es);
   /**
        * @license
-       * Copyright 2017 Google LLC
+       * Copyright 2020 Google LLC
        * SPDX-License-Identifier: BSD-3-Clause
        */
-  const Hs = (t, e, i) => {
+  const {
+      I: Ss
+    } = ut,
+    Ps = () => document.createComment(""),
+    Cs = (t, e, i) => {
+      const r = t._$AA.parentNode,
+        n = void 0 === e ? t._$AB : e._$AA;
+      if (void 0 === i) {
+        const e = r.insertBefore(Ps(), n),
+          s = r.insertBefore(Ps(), n);
+        i = new Ss(e, s, t, t.options);
+      } else {
+        const e = i._$AB.nextSibling,
+          s = i._$AM,
+          a = s !== t;
+        if (a) {
+          let e;
+          i._$AQ?.(t), i._$AM = t, void 0 !== i._$AP && (e = t._$AU) !== s._$AU && i._$AP(e);
+        }
+        if (e !== n || a) {
+          let t = i._$AA;
+          for (; t !== e;) {
+            const e = t.nextSibling;
+            r.insertBefore(t, n), t = e;
+          }
+        }
+      }
+      return i;
+    },
+    As = (t, e, i = t) => (t._$AI(e, i), t),
+    Ts = {},
+    ks = t => {
+      t._$AP?.(!1, !0);
+      let e = t._$AA;
+      const i = t._$AB.nextSibling;
+      for (; e !== i;) {
+        const t = e.nextSibling;
+        e.remove(), e = t;
+      }
+    },
+    Ms = (t, e, i) => {
       const r = new Map();
       for (let n = e; n <= i; n++) r.set(t[n], n);
       return r;
     },
-    Ds = In(class extends Ln {
+    Hs = On(class extends zn {
       constructor(t) {
-        if (super(t), t.type !== Fn) throw Error("repeat() can only be used in text expressions");
+        if (super(t), t.type !== Nn) throw Error("repeat() can only be used in text expressions");
       }
       dt(t, e, i) {
         let r;
         void 0 === i ? i = e : void 0 !== e && (r = e);
         const n = [],
           s = [];
-        let o = 0;
-        for (const e of t) n[o] = r ? r(e, o) : o, s[o] = i(e, o), o++;
+        let a = 0;
+        for (const e of t) n[a] = r ? r(e, a) : a, s[a] = i(e, a), a++;
         return {
           values: s,
           keys: n
@@ -6230,10 +6634,10 @@
         const n = (t => t._$AH)(t),
           {
             values: s,
-            keys: o
+            keys: a
           } = this.dt(e, i, r);
-        if (!Array.isArray(n)) return this.ut = o, s;
-        const a = this.ut ??= [],
+        if (!Array.isArray(n)) return this.ut = a, s;
+        const o = this.ut ??= [],
           l = [];
         let c,
           h,
@@ -6241,31 +6645,36 @@
           p = n.length - 1,
           u = 0,
           g = s.length - 1;
-        for (; d <= p && u <= g;) if (null === n[d]) d++;else if (null === n[p]) p--;else if (a[d] === o[u]) l[u] = Wn(n[d], s[u]), d++, u++;else if (a[p] === o[g]) l[g] = Wn(n[p], s[g]), p--, g--;else if (a[d] === o[g]) l[g] = Wn(n[d], s[g]), qn(t, l[g + 1], n[d]), d++, g--;else if (a[p] === o[u]) l[u] = Wn(n[p], s[u]), qn(t, n[d], n[p]), p--, u++;else if (void 0 === c && (c = Hs(o, u, g), h = Hs(a, d, p)), c.has(a[d])) {
-          if (c.has(a[p])) {
-            const e = h.get(o[u]),
+        for (; d <= p && u <= g;) if (null === n[d]) d++;else if (null === n[p]) p--;else if (o[d] === a[u]) l[u] = As(n[d], s[u]), d++, u++;else if (o[p] === a[g]) l[g] = As(n[p], s[g]), p--, g--;else if (o[d] === a[g]) l[g] = As(n[d], s[g]), Cs(t, l[g + 1], n[d]), d++, g--;else if (o[p] === a[u]) l[u] = As(n[p], s[u]), Cs(t, n[d], n[p]), p--, u++;else if (void 0 === c && (c = Ms(a, u, g), h = Ms(o, d, p)), c.has(o[d])) {
+          if (c.has(o[p])) {
+            const e = h.get(a[u]),
               i = void 0 !== e ? n[e] : null;
             if (null === i) {
-              const e = qn(t, n[d]);
-              Wn(e, s[u]), l[u] = e;
-            } else l[u] = Wn(i, s[u]), qn(t, n[d], i), n[e] = null;
+              const e = Cs(t, n[d]);
+              As(e, s[u]), l[u] = e;
+            } else l[u] = As(i, s[u]), Cs(t, n[d], i), n[e] = null;
             u++;
-          } else Kn(n[p]), p--;
-        } else Kn(n[d]), d++;
+          } else ks(n[p]), p--;
+        } else ks(n[d]), d++;
         for (; u <= g;) {
-          const e = qn(t, l[g + 1]);
-          Wn(e, s[u]), l[u++] = e;
+          const e = Cs(t, l[g + 1]);
+          As(e, s[u]), l[u++] = e;
         }
         for (; d <= p;) {
           const t = n[d++];
-          null !== t && Kn(t);
+          null !== t && ks(t);
         }
-        return this.ut = o, ((t, e = Xn) => {
+        return this.ut = a, ((t, e = Ts) => {
           t._$AH = e;
-        })(t, l), X;
+        })(t, l), Q;
       }
     });
-  let Ms = class extends ut {
+  /**
+       * @license
+       * Copyright 2017 Google LLC
+       * SPDX-License-Identifier: BSD-3-Clause
+       */
+  let Ds = class extends mt {
     render() {
       const t = {
         width: String(this.progress) + "%"
@@ -6278,7 +6687,7 @@
             <div class="ac-stat-text">${this.value}</div>
             <div
               class="ac-progress-line"
-              style=${Un(t)}
+              style=${Vn(t)}
             ></div>
           </div>
         </div>
@@ -6349,14 +6758,14 @@
     `;
     }
   };
-  n([vt({
+  n([_t({
     type: String
-  })], Ms.prototype, "name", void 0), n([vt({
+  })], Ds.prototype, "name", void 0), n([_t({
     type: Number
-  })], Ms.prototype, "value", void 0), n([vt({
+  })], Ds.prototype, "value", void 0), n([_t({
     type: Number
-  })], Ms.prototype, "progress", void 0), Ms = n([Rn("anycubic-printercard-progress-line")], Ms);
-  let Bs = class extends ut {
+  })], Ds.prototype, "progress", void 0), Ds = n([Gn("anycubic-printercard-progress-line")], Ds);
+  let Fs = class extends mt {
     constructor() {
       super(...arguments), this.unit = "";
     }
@@ -6402,18 +6811,18 @@
     `;
     }
   };
-  n([vt({
+  n([_t({
     type: String
-  })], Bs.prototype, "name", void 0), n([vt({
+  })], Fs.prototype, "name", void 0), n([_t({
     type: String
-  })], Bs.prototype, "value", void 0), n([vt({
+  })], Fs.prototype, "value", void 0), n([_t({
     type: String
-  })], Bs.prototype, "unit", void 0), Bs = n([Rn("anycubic-printercard-stat-line")], Bs);
-  let Fs = class extends ut {
+  })], Fs.prototype, "unit", void 0), Fs = n([Gn("anycubic-printercard-stat-line")], Fs);
+  let Bs = class extends mt {
     render() {
       return W`<anycubic-printercard-stat-line
       .name=${this.name}
-      .value=${fi(this.temperatureEntity, this.temperatureUnit, this.round)}
+      .value=${$i(this.temperatureEntity, this.temperatureUnit, this.round)}
     ></anycubic-printercard-stat-line>`;
     }
     static get styles() {
@@ -6425,17 +6834,17 @@
     `;
     }
   };
-  n([vt({
+  n([_t({
     type: String
-  })], Fs.prototype, "name", void 0), n([vt({
+  })], Bs.prototype, "name", void 0), n([_t({
     attribute: "temperature-entity"
-  })], Fs.prototype, "temperatureEntity", void 0), n([vt({
+  })], Bs.prototype, "temperatureEntity", void 0), n([_t({
     type: Boolean
-  })], Fs.prototype, "round", void 0), n([vt({
+  })], Bs.prototype, "round", void 0), n([_t({
     attribute: "temperature-unit",
     type: String
-  })], Fs.prototype, "temperatureUnit", void 0), Fs = n([Rn("anycubic-printercard-stat-temperature")], Fs);
-  let Is = class extends ut {
+  })], Bs.prototype, "temperatureUnit", void 0), Bs = n([Gn("anycubic-printercard-stat-temperature")], Bs);
+  let Is = class extends mt {
     constructor() {
       super(...arguments), this.running = !1, this.currentTime = 0, this.lastIntervalId = -1;
     }
@@ -6445,9 +6854,9 @@
         if (t.state) {
           if (t.state.includes(", ")) {
             const [e, r] = t.state.split(", "),
-              [n, s, o] = r.split(":"),
-              a = e.match(/\d+/);
-            i = 60 * +(a ? a[0] : 0) * 60 * 24 + 60 * +n * 60 + 60 * +s + +o;
+              [n, s, a] = r.split(":"),
+              o = e.match(/\d+/);
+            i = 60 * +(o ? o[0] : 0) * 60 * 24 + 60 * +n * 60 + 60 * +s + +a;
           } else if (t.state.includes(":")) {
             const [e, r, n] = t.state.split(":");
             i = 60 * +e * 60 + 60 * +r + +n;
@@ -6469,7 +6878,7 @@
     render() {
       return W`<anycubic-printercard-stat-line
       .name=${this.name}
-      .value=${vi(this.currentTime, this.timeType, this.round, this.use_24hr)}
+      .value=${wi(this.currentTime, this.timeType, this.round, this.use_24hr)}
     ></anycubic-printercard-stat-line>`;
     }
     _incTime() {
@@ -6487,45 +6896,45 @@
     `;
     }
   };
-  n([vt({
+  n([_t({
     attribute: "time-entity"
-  })], Is.prototype, "timeEntity", void 0), n([vt({
+  })], Is.prototype, "timeEntity", void 0), n([_t({
     attribute: "time-type"
-  })], Is.prototype, "timeType", void 0), n([vt({
+  })], Is.prototype, "timeType", void 0), n([_t({
     type: String
-  })], Is.prototype, "name", void 0), n([vt({
+  })], Is.prototype, "name", void 0), n([_t({
     type: Number
-  })], Is.prototype, "direction", void 0), n([vt({
+  })], Is.prototype, "direction", void 0), n([_t({
     type: Boolean
-  })], Is.prototype, "round", void 0), n([vt({
+  })], Is.prototype, "round", void 0), n([_t({
     type: Boolean
-  })], Is.prototype, "use_24hr", void 0), n([vt({
+  })], Is.prototype, "use_24hr", void 0), n([_t({
     attribute: "is-seconds",
     type: Boolean
-  })], Is.prototype, "isSeconds", void 0), n([vt({
+  })], Is.prototype, "isSeconds", void 0), n([_t({
     type: Boolean
-  })], Is.prototype, "running", void 0), n([yt()], Is.prototype, "currentTime", void 0), n([yt()], Is.prototype, "lastIntervalId", void 0), Is = n([Rn("anycubic-printercard-stat-time")], Is);
-  let Ls = class extends ut {
+  })], Is.prototype, "running", void 0), n([wt()], Is.prototype, "currentTime", void 0), n([wt()], Is.prototype, "lastIntervalId", void 0), Is = n([Gn("anycubic-printercard-stat-time")], Is);
+  let Ls = class extends mt {
     constructor() {
-      super(...arguments), this.round = !0, this.temperatureUnit = Be.C, this.progressPercent = 0, this._jobRunning = !1, this._valDryProgress = 0;
+      super(...arguments), this.round = !0, this.temperatureUnit = Ie.C, this.progressPercent = 0, this._jobRunning = !1, this._valDryProgress = 0;
     }
     willUpdate(t) {
       var e;
       if (super.willUpdate(t), t.has("hass") || t.has("printerEntities") || t.has("printerEntityIdPart")) {
-        const t = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state", "unknown").state.toLowerCase();
-        this._jobRunning = mi(t) && "paused" !== t, this._entETA = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_time_remaining"), this._entElapsed = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_time_elapsed"), this._entRemaining = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_time_remaining"), this._entBedCurrent = li(this.hass, this.printerEntities, this.printerEntityIdPart, "hotbed_temperature"), this._entHotendCurrent = li(this.hass, this.printerEntities, this.printerEntityIdPart, "nozzle_temperature"), this._entBedTarget = li(this.hass, this.printerEntities, this.printerEntityIdPart, "target_hotbed_temperature"), this._entHotendTarget = li(this.hass, this.printerEntities, this.printerEntityIdPart, "target_nozzle_temperature"), this._valStatus = Ze("unavailable" === t || "unknown" === t ? li(this.hass, this.printerEntities, this.printerEntityIdPart, "current_status", "unknown").state : t), this._valOnline = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_online", "Online", "Offline", "unknown"), this._valAvailability = Ze(li(this.hass, this.printerEntities, this.printerEntityIdPart, "current_status").state), this._valJobName = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_name").state, this._valCurrentLayer = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_current_layer").state;
-        const i = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_speed_mode", "", {
+        const t = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state", "unknown").state.toLowerCase();
+        this._jobRunning = yi(t) && "paused" !== t, this._entETA = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_time_remaining"), this._entElapsed = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_time_elapsed"), this._entRemaining = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_time_remaining"), this._entBedCurrent = di(this.hass, this.printerEntities, this.printerEntityIdPart, "hotbed_temperature"), this._entHotendCurrent = di(this.hass, this.printerEntities, this.printerEntityIdPart, "nozzle_temperature"), this._entBedTarget = di(this.hass, this.printerEntities, this.printerEntityIdPart, "target_hotbed_temperature"), this._entHotendTarget = di(this.hass, this.printerEntities, this.printerEntityIdPart, "target_nozzle_temperature"), this._valStatus = qe("unavailable" === t || "unknown" === t ? di(this.hass, this.printerEntities, this.printerEntityIdPart, "current_status", "unknown").state : t), this._valOnline = ui(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_online", "Online", "Offline", "unknown"), this._valAvailability = qe(di(this.hass, this.printerEntities, this.printerEntityIdPart, "current_status").state), this._valJobName = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_name").state, this._valCurrentLayer = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_current_layer").state;
+        const i = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_speed_mode", "", {
             available_modes: [],
             print_speed_mode_code: -1
           }),
-          r = Ei(i),
+          r = Pi(i),
           n = null !== (e = i.attributes.print_speed_mode_code) && void 0 !== e ? e : 0;
-        this._valSpeedMode = n >= 0 && n in r ? r[n] : "Unknown", this._valFanSpeed = li(this.hass, this.printerEntities, this.printerEntityIdPart, "fan_speed", 0).state, this._valDryStatus = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_active", "Drying", "Not Drying", "unknown");
-        const s = Number(li(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_total_duration", 0).state),
-          o = Number(li(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_remaining_time", 0).state);
-        this._valDryRemain = isNaN(o) ? "" : `${o} Mins`, this._valDryProgress = !isNaN(s) && s > 0 ? o / s * 100 : 0, this._valOnTime = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_on_time", 0).state, this._valOffTime = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_off_time", 0).state, this._valBottomTime = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_bottom_time", 0).state, this._valModelHeight = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_model_height", 0).state, this._valBottomLayers = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_bottom_layers", 0).state, this._valZUpHeight = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_z_up_height", 0).state, this._valZUpSpeed = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_z_up_speed", 0).state, this._valZDownSpeed = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_z_down_speed", 0).state;
+        this._valSpeedMode = n >= 0 && n in r ? r[n] : "Unknown", this._valFanSpeed = di(this.hass, this.printerEntities, this.printerEntityIdPart, "fan_speed", 0).state, this._valDryStatus = ui(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_active", "Drying", "Not Drying", "unknown");
+        const s = Number(di(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_total_duration", 0).state),
+          a = Number(di(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_remaining_time", 0).state);
+        this._valDryRemain = isNaN(a) ? "" : `${a} Mins`, this._valDryProgress = !isNaN(s) && s > 0 ? a / s * 100 : 0, this._valOnTime = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_on_time", 0).state, this._valOffTime = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_off_time", 0).state, this._valBottomTime = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_bottom_time", 0).state, this._valModelHeight = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_model_height", 0).state, this._valBottomLayers = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_bottom_layers", 0).state, this._valZUpHeight = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_z_up_height", 0).state, this._valZUpSpeed = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_z_up_speed", 0).state, this._valZDownSpeed = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_z_down_speed", 0).state;
       }
-      (t.has("language") || t.has("monitoredStats")) && (this._statTranslations = this.monitoredStats.reduce((t, e) => (t[e] = Tn(`card.monitored_stats.${e}`, this.language), t), {}));
+      (t.has("language") || t.has("monitoredStats")) && (this._statTranslations = this.monitoredStats.reduce((t, e) => (t[e] = Mn(`card.monitored_stats.${e}`, this.language), t), {}));
     }
     render() {
       return W`
@@ -6542,16 +6951,16 @@
     `;
     }
     _renderStats() {
-      return Ds(this.monitoredStats, t => t, (t, e) => {
+      return Hs(this.monitoredStats, t => t, (t, e) => {
         switch (t) {
-          case Oe.Status:
+          case Ue.Status:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valStatus}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.ETA:
+          case Ue.ETA:
             return W`
               <anycubic-printercard-stat-time
                 .timeEntity=${this._entETA}
@@ -6563,7 +6972,7 @@
                 .use_24hr=${this.use_24hr}
               ></anycubic-printercard-stat-time>
             `;
-          case Oe.Elapsed:
+          case Ue.Elapsed:
             return W`
               <anycubic-printercard-stat-time
                 .timeEntity=${this._entElapsed}
@@ -6575,7 +6984,7 @@
                 .use_24hr=${this.use_24hr}
               ></anycubic-printercard-stat-time>
             `;
-          case Oe.Remaining:
+          case Ue.Remaining:
             return W`
               <anycubic-printercard-stat-time
                 .timeEntity=${this._entRemaining}
@@ -6587,7 +6996,7 @@
                 .use_24hr=${this.use_24hr}
               ></anycubic-printercard-stat-time>
             `;
-          case Oe.BedCurrent:
+          case Ue.BedCurrent:
             return W`
               <anycubic-printercard-stat-temperature
                 .name=${this._statTranslations[t]}
@@ -6596,7 +7005,7 @@
                 .temperatureUnit=${this.temperatureUnit}
               ></anycubic-printercard-stat-temperature>
             `;
-          case Oe.HotendCurrent:
+          case Ue.HotendCurrent:
             return W`
               <anycubic-printercard-stat-temperature
                 .name=${this._statTranslations[t]}
@@ -6605,7 +7014,7 @@
                 .temperatureUnit=${this.temperatureUnit}
               ></anycubic-printercard-stat-temperature>
             `;
-          case Oe.BedTarget:
+          case Ue.BedTarget:
             return W`
               <anycubic-printercard-stat-temperature
                 .name=${this._statTranslations[t]}
@@ -6614,7 +7023,7 @@
                 .temperatureUnit=${this.temperatureUnit}
               ></anycubic-printercard-stat-temperature>
             `;
-          case Oe.HotendTarget:
+          case Ue.HotendTarget:
             return W`
               <anycubic-printercard-stat-temperature
                 .name=${this._statTranslations[t]}
@@ -6623,42 +7032,42 @@
                 .temperatureUnit=${this.temperatureUnit}
               ></anycubic-printercard-stat-temperature>
             `;
-          case Oe.PrinterOnline:
+          case Ue.PrinterOnline:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valOnline}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.Availability:
+          case Ue.Availability:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valAvailability}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.ProjectName:
+          case Ue.ProjectName:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valJobName}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.CurrentLayer:
+          case Ue.CurrentLayer:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valCurrentLayer}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.SpeedMode:
+          case Ue.SpeedMode:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valSpeedMode}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.FanSpeed:
+          case Ue.FanSpeed:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6666,14 +7075,14 @@
                 .unit=${"%"}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.DryingStatus:
+          case Ue.DryingStatus:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valDryStatus}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.DryingTime:
+          case Ue.DryingTime:
             return W`
               <anycubic-printercard-progress-line
                 .name=${this._statTranslations[t]}
@@ -6681,7 +7090,7 @@
                 .progress=${this._valDryProgress}
               ></anycubic-printercard-progress-line>
             `;
-          case Oe.OnTime:
+          case Ue.OnTime:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6689,7 +7098,7 @@
                 .unit=${"s"}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.OffTime:
+          case Ue.OffTime:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6697,7 +7106,7 @@
                 .unit=${"s"}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.BottomTime:
+          case Ue.BottomTime:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6705,7 +7114,7 @@
                 .unit=${"s"}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.ModelHeight:
+          case Ue.ModelHeight:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6713,7 +7122,7 @@
                 .unit=${"mm"}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.BottomLayers:
+          case Ue.BottomLayers:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6721,7 +7130,7 @@
                 .unit=${"layers"}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.ZUpHeight:
+          case Ue.ZUpHeight:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6729,14 +7138,14 @@
                 .unit=${"mm"}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.ZUpSpeed:
+          case Ue.ZUpSpeed:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
                 .value=${this._valZUpSpeed}
               ></anycubic-printercard-stat-line>
             `;
-          case Oe.ZDownSpeed:
+          case Ue.ZDownSpeed:
             return W`
               <anycubic-printercard-stat-line
                 .name=${this._statTranslations[t]}
@@ -6787,26 +7196,337 @@
     `;
     }
   };
-  n([vt()], Ls.prototype, "hass", void 0), n([vt()], Ls.prototype, "language", void 0), n([vt({
+  n([_t()], Ls.prototype, "hass", void 0), n([_t()], Ls.prototype, "language", void 0), n([_t({
     attribute: "monitored-stats"
-  })], Ls.prototype, "monitoredStats", void 0), n([vt({
+  })], Ls.prototype, "monitoredStats", void 0), n([_t({
     attribute: "show-percent",
     type: Boolean
-  })], Ls.prototype, "showPercent", void 0), n([vt({
+  })], Ls.prototype, "showPercent", void 0), n([_t({
     type: Boolean
-  })], Ls.prototype, "round", void 0), n([vt({
+  })], Ls.prototype, "round", void 0), n([_t({
     type: Boolean
-  })], Ls.prototype, "use_24hr", void 0), n([vt({
+  })], Ls.prototype, "use_24hr", void 0), n([_t({
     attribute: "temperature-unit",
     type: String
-  })], Ls.prototype, "temperatureUnit", void 0), n([vt({
+  })], Ls.prototype, "temperatureUnit", void 0), n([_t({
     attribute: "printer-entities"
-  })], Ls.prototype, "printerEntities", void 0), n([vt({
+  })], Ls.prototype, "printerEntities", void 0), n([_t({
     attribute: "printer-entity-id-part"
-  })], Ls.prototype, "printerEntityIdPart", void 0), n([vt({
+  })], Ls.prototype, "printerEntityIdPart", void 0), n([_t({
     attribute: "progress-percent"
-  })], Ls.prototype, "progressPercent", void 0), n([yt()], Ls.prototype, "_statTranslations", void 0), n([yt()], Ls.prototype, "_jobRunning", void 0), n([yt()], Ls.prototype, "_entETA", void 0), n([yt()], Ls.prototype, "_entElapsed", void 0), n([yt()], Ls.prototype, "_entRemaining", void 0), n([yt()], Ls.prototype, "_entBedCurrent", void 0), n([yt()], Ls.prototype, "_entHotendCurrent", void 0), n([yt()], Ls.prototype, "_entBedTarget", void 0), n([yt()], Ls.prototype, "_entHotendTarget", void 0), n([yt()], Ls.prototype, "_valStatus", void 0), n([yt()], Ls.prototype, "_valOnline", void 0), n([yt()], Ls.prototype, "_valAvailability", void 0), n([yt()], Ls.prototype, "_valJobName", void 0), n([yt()], Ls.prototype, "_valCurrentLayer", void 0), n([yt()], Ls.prototype, "_valSpeedMode", void 0), n([yt()], Ls.prototype, "_valFanSpeed", void 0), n([yt()], Ls.prototype, "_valDryStatus", void 0), n([yt()], Ls.prototype, "_valDryRemain", void 0), n([yt()], Ls.prototype, "_valDryProgress", void 0), n([yt()], Ls.prototype, "_valOnTime", void 0), n([yt()], Ls.prototype, "_valOffTime", void 0), n([yt()], Ls.prototype, "_valBottomTime", void 0), n([yt()], Ls.prototype, "_valModelHeight", void 0), n([yt()], Ls.prototype, "_valBottomLayers", void 0), n([yt()], Ls.prototype, "_valZUpHeight", void 0), n([yt()], Ls.prototype, "_valZUpSpeed", void 0), n([yt()], Ls.prototype, "_valZDownSpeed", void 0), Ls = n([Rn("anycubic-printercard-stats-component")], Ls);
-  const Ns = p`
+  })], Ls.prototype, "progressPercent", void 0), n([wt()], Ls.prototype, "_statTranslations", void 0), n([wt()], Ls.prototype, "_jobRunning", void 0), n([wt()], Ls.prototype, "_entETA", void 0), n([wt()], Ls.prototype, "_entElapsed", void 0), n([wt()], Ls.prototype, "_entRemaining", void 0), n([wt()], Ls.prototype, "_entBedCurrent", void 0), n([wt()], Ls.prototype, "_entHotendCurrent", void 0), n([wt()], Ls.prototype, "_entBedTarget", void 0), n([wt()], Ls.prototype, "_entHotendTarget", void 0), n([wt()], Ls.prototype, "_valStatus", void 0), n([wt()], Ls.prototype, "_valOnline", void 0), n([wt()], Ls.prototype, "_valAvailability", void 0), n([wt()], Ls.prototype, "_valJobName", void 0), n([wt()], Ls.prototype, "_valCurrentLayer", void 0), n([wt()], Ls.prototype, "_valSpeedMode", void 0), n([wt()], Ls.prototype, "_valFanSpeed", void 0), n([wt()], Ls.prototype, "_valDryStatus", void 0), n([wt()], Ls.prototype, "_valDryRemain", void 0), n([wt()], Ls.prototype, "_valDryProgress", void 0), n([wt()], Ls.prototype, "_valOnTime", void 0), n([wt()], Ls.prototype, "_valOffTime", void 0), n([wt()], Ls.prototype, "_valBottomTime", void 0), n([wt()], Ls.prototype, "_valModelHeight", void 0), n([wt()], Ls.prototype, "_valBottomLayers", void 0), n([wt()], Ls.prototype, "_valZUpHeight", void 0), n([wt()], Ls.prototype, "_valZUpSpeed", void 0), n([wt()], Ls.prototype, "_valZDownSpeed", void 0), Ls = n([Gn("anycubic-printercard-stats-component")], Ls);
+  /**
+       * @license
+       * Copyright 2017 Google LLC
+       * SPDX-License-Identifier: BSD-3-Clause
+       */
+  const Ns = (t, e) => {
+      const i = t._$AN;
+      if (void 0 === i) return !1;
+      for (const t of i) t._$AO?.(e, !1), Ns(t, e);
+      return !0;
+    },
+    Os = t => {
+      let e, i;
+      do {
+        if (void 0 === (e = t._$AM)) break;
+        i = e._$AN, i.delete(t), t = e;
+      } while (0 === i?.size);
+    },
+    zs = t => {
+      for (let e; e = t._$AM; t = e) {
+        let i = e._$AN;
+        if (void 0 === i) e._$AN = i = new Set();else if (i.has(t)) break;
+        i.add(t), js(e);
+      }
+    };
+  function Us(t) {
+    void 0 !== this._$AN ? (Os(this), this._$AM = t, zs(this)) : this._$AM = t;
+  }
+  function Rs(t, e = !1, i = 0) {
+    const r = this._$AH,
+      n = this._$AN;
+    if (void 0 !== n && 0 !== n.size) if (e) {
+      if (Array.isArray(r)) for (let t = i; t < r.length; t++) Ns(r[t], !1), Os(r[t]);else null != r && (Ns(r, !1), Os(r));
+    } else Ns(this, t);
+  }
+  const js = t => {
+    t.type == Nn && (t._$AP ??= Rs, t._$AQ ??= Us);
+  };
+  class Vs extends zn {
+    constructor() {
+      super(...arguments), this._$AN = void 0;
+    }
+    _$AT(t, e, i) {
+      super._$AT(t, e, i), zs(this), this.isConnected = t._$AU;
+    }
+    _$AO(t, e = !0) {
+      t !== this.isConnected && (this.isConnected = t, t ? this.reconnected?.() : this.disconnected?.()), e && (Ns(this, t), Os(this));
+    }
+    setValue(t) {
+      if ((t => void 0 === t.strings)(this._$Ct)) this._$Ct._$AI(t, this);else {
+        const e = [...this._$Ct._$AH];
+        e[this._$Ci] = t, this._$Ct._$AI(e, this, 0);
+      }
+    }
+    disconnected() {}
+    reconnected() {}
+  }
+  const Gs = new WeakMap();
+  let Zs = 0;
+  const Ys = new Map(),
+    Ks = new WeakSet(),
+    qs = () => new Promise(t => requestAnimationFrame(t)),
+    Ws = (t, e) => {
+      const i = t - e;
+      return 0 === i ? void 0 : i;
+    },
+    Xs = (t, e) => {
+      const i = t / e;
+      return 1 === i ? void 0 : i;
+    },
+    Qs = {
+      left: (t, e) => {
+        const i = Ws(t, e);
+        return {
+          value: i,
+          transform: null == i || isNaN(i) ? void 0 : `translateX(${i}px)`
+        };
+      },
+      top: (t, e) => {
+        const i = Ws(t, e);
+        return {
+          value: i,
+          transform: null == i || isNaN(i) ? void 0 : `translateY(${i}px)`
+        };
+      },
+      width: (t, e) => {
+        let i;
+        0 === e && (e = 1, i = {
+          width: "1px"
+        });
+        const r = Xs(t, e);
+        return {
+          value: r,
+          overrideFrom: i,
+          transform: null == r || isNaN(r) ? void 0 : `scaleX(${r})`
+        };
+      },
+      height: (t, e) => {
+        let i;
+        0 === e && (e = 1, i = {
+          height: "1px"
+        });
+        const r = Xs(t, e);
+        return {
+          value: r,
+          overrideFrom: i,
+          transform: null == r || isNaN(r) ? void 0 : `scaleY(${r})`
+        };
+      }
+    },
+    Js = {
+      duration: 333,
+      easing: "ease-in-out"
+    },
+    ta = ["left", "top", "width", "height", "opacity", "color", "background"],
+    ea = new WeakMap();
+  const ia = On(class extends Vs {
+      constructor(t) {
+        if (super(t), this.t = !1, this.i = null, this.o = null, this.h = !0, this.shouldLog = !1, t.type === Nn) throw Error("The `animate` directive must be used in attribute position.");
+        this.createFinished();
+      }
+      createFinished() {
+        this.resolveFinished?.(), this.finished = new Promise(t => {
+          this.l = t;
+        });
+      }
+      async resolveFinished() {
+        this.l?.(), this.l = void 0;
+      }
+      render(t) {
+        return J;
+      }
+      getController() {
+        return Gs.get(this.u);
+      }
+      isDisabled() {
+        return this.options.disabled || this.getController()?.disabled;
+      }
+      update(t, [e]) {
+        const i = void 0 === this.u;
+        return i && (this.u = t.options?.host, this.u.addController(this), this.u.updateComplete.then(t => this.t = !0), this.element = t.element, ea.set(this.element, this)), this.optionsOrCallback = e, (i || "function" != typeof e) && this.p(e), this.render(e);
+      }
+      p(t) {
+        t = t ?? {};
+        const e = this.getController();
+        void 0 !== e && ((t = {
+          ...e.defaultOptions,
+          ...t
+        }).keyframeOptions = {
+          ...e.defaultOptions.keyframeOptions,
+          ...t.keyframeOptions
+        }), t.properties ??= ta, this.options = t;
+      }
+      m() {
+        const t = {},
+          e = this.element.getBoundingClientRect(),
+          i = getComputedStyle(this.element);
+        return this.options.properties.forEach(r => {
+          const n = e[r] ?? (Qs[r] ? void 0 : i[r]),
+            s = Number(n);
+          t[r] = isNaN(s) ? n + "" : s;
+        }), t;
+      }
+      v() {
+        let t,
+          e = !0;
+        return this.options.guard && (t = this.options.guard(), e = ((t, e) => {
+          if (Array.isArray(t)) {
+            if (Array.isArray(e) && e.length === t.length && t.every((t, i) => t === e[i])) return !1;
+          } else if (e === t) return !1;
+          return !0;
+        })(t, this._)), this.h = this.t && !this.isDisabled() && !this.isAnimating() && e && this.element.isConnected, this.h && (this._ = Array.isArray(t) ? Array.from(t) : t), this.h;
+      }
+      hostUpdate() {
+        "function" == typeof this.optionsOrCallback && this.p(this.optionsOrCallback()), this.v() && (this.A = this.m(), this.i = this.i ?? this.element.parentNode, this.o = this.element.nextSibling);
+      }
+      async hostUpdated() {
+        if (!this.h || !this.element.isConnected || this.options.skipInitial && !this.isHostRendered) return;
+        let t;
+        this.prepare(), await qs;
+        const e = this.O(),
+          i = this.j(this.options.keyframeOptions, e),
+          r = this.m();
+        if (void 0 !== this.A) {
+          const {
+            from: i,
+            to: n
+          } = this.N(this.A, r, e);
+          this.log("measured", [this.A, r, i, n]), t = this.calculateKeyframes(i, n);
+        } else {
+          const i = Ys.get(this.options.inId);
+          if (i) {
+            Ys.delete(this.options.inId);
+            const {
+              from: n,
+              to: s
+            } = this.N(i, r, e);
+            t = this.calculateKeyframes(n, s), t = this.options.in ? [{
+              ...this.options.in[0],
+              ...t[0]
+            }, ...this.options.in.slice(1), t[1]] : t, Zs++, t.forEach(t => t.zIndex = Zs);
+          } else this.options.in && (t = [...this.options.in, {}]);
+        }
+        this.animate(t, i);
+      }
+      resetStyles() {
+        void 0 !== this.P && (this.element.setAttribute("style", this.P ?? ""), this.P = void 0);
+      }
+      commitStyles() {
+        this.P = this.element.getAttribute("style"), this.webAnimation?.commitStyles(), this.webAnimation?.cancel();
+      }
+      reconnected() {}
+      async disconnected() {
+        if (!this.h) return;
+        if (void 0 !== this.options.id && Ys.set(this.options.id, this.A), void 0 === this.options.out) return;
+        if (this.prepare(), await qs(), this.i?.isConnected) {
+          const t = this.o && this.o.parentNode === this.i ? this.o : null;
+          if (this.i.insertBefore(this.element, t), this.options.stabilizeOut) {
+            const t = this.m();
+            this.log("stabilizing out");
+            const e = this.A.left - t.left,
+              i = this.A.top - t.top;
+            !("static" === getComputedStyle(this.element).position) || 0 === e && 0 === i || (this.element.style.position = "relative"), 0 !== e && (this.element.style.left = e + "px"), 0 !== i && (this.element.style.top = i + "px");
+          }
+        }
+        const t = this.j(this.options.keyframeOptions);
+        await this.animate(this.options.out, t), this.element.remove();
+      }
+      prepare() {
+        this.createFinished();
+      }
+      start() {
+        this.options.onStart?.(this);
+      }
+      didFinish(t) {
+        t && this.options.onComplete?.(this), this.A = void 0, this.animatingProperties = void 0, this.frames = void 0, this.resolveFinished();
+      }
+      O() {
+        const t = [];
+        for (let e = this.element.parentNode; e; e = e?.parentNode) {
+          const i = ea.get(e);
+          i && !i.isDisabled() && i && t.push(i);
+        }
+        return t;
+      }
+      get isHostRendered() {
+        const t = Ks.has(this.u);
+        return t || this.u.updateComplete.then(() => {
+          Ks.add(this.u);
+        }), t;
+      }
+      j(t, e = this.O()) {
+        const i = {
+          ...Js
+        };
+        return e.forEach(t => Object.assign(i, t.options.keyframeOptions)), Object.assign(i, t), i;
+      }
+      N(t, e, i) {
+        t = {
+          ...t
+        }, e = {
+          ...e
+        };
+        const r = i.map(t => t.animatingProperties).filter(t => void 0 !== t);
+        let n = 1,
+          s = 1;
+        return r.length > 0 && (r.forEach(t => {
+          t.width && (n /= t.width), t.height && (s /= t.height);
+        }), void 0 !== t.left && void 0 !== e.left && (t.left = n * t.left, e.left = n * e.left), void 0 !== t.top && void 0 !== e.top && (t.top = s * t.top, e.top = s * e.top)), {
+          from: t,
+          to: e
+        };
+      }
+      calculateKeyframes(t, e, i = !1) {
+        const r = {},
+          n = {};
+        let s = !1;
+        const a = {};
+        for (const i in e) {
+          const o = t[i],
+            l = e[i];
+          if (i in Qs) {
+            const t = Qs[i];
+            if (void 0 === o || void 0 === l) continue;
+            const e = t(o, l);
+            void 0 !== e.transform && (a[i] = e.value, s = !0, r.transform = `${r.transform ?? ""} ${e.transform}`, void 0 !== e.overrideFrom && Object.assign(r, e.overrideFrom));
+          } else o !== l && void 0 !== o && void 0 !== l && (s = !0, r[i] = o, n[i] = l);
+        }
+        return r.transformOrigin = n.transformOrigin = i ? "center center" : "top left", this.animatingProperties = a, s ? [r, n] : void 0;
+      }
+      async animate(t, e = this.options.keyframeOptions) {
+        this.start(), this.frames = t;
+        let i = !1;
+        if (!this.isAnimating() && !this.isDisabled() && (this.options.onFrames && (this.frames = t = this.options.onFrames(this), this.log("modified frames", t)), void 0 !== t)) {
+          this.log("animate", [t, e]), i = !0, this.webAnimation = this.element.animate(t, e);
+          const r = this.getController();
+          r?.add(this);
+          try {
+            await this.webAnimation.finished;
+          } catch (t) {}
+          r?.remove(this);
+        }
+        return this.didFinish(i), i;
+      }
+      isAnimating() {
+        return "running" === this.webAnimation?.playState || this.webAnimation?.pending;
+      }
+      log(t, e) {
+        this.shouldLog && !this.isDisabled() && console.log(t, this.options.id, e);
+      }
+    }),
+    ra = p`
   :host {
     display: none;
     position: fixed;
@@ -6860,7 +7580,7 @@
     }
   }
 `;
-  let Os = class extends ut {
+  let na = class extends mt {
     constructor() {
       super(...arguments), this._isActive = !1, this._setActive = () => {
         this._isActive = !0;
@@ -6875,7 +7595,7 @@
       return W`
       <button
         class="ac-ui-seld-select"
-        style=${Un(t)}
+        style=${Vn(t)}
         @mouseenter=${this._setActive}
         @mousedown=${this._setActive}
         @mouseup=${this._setInactive}
@@ -6912,8 +7632,8 @@
     `;
     }
   };
-  n([vt()], Os.prototype, "item", void 0), n([yt()], Os.prototype, "_isActive", void 0), Os = n([Rn("anycubic-ui-select-dropdown-item")], Os);
-  let zs = class extends ut {
+  n([_t()], na.prototype, "item", void 0), n([wt()], na.prototype, "_isActive", void 0), na = n([Gn("anycubic-ui-select-dropdown-item")], na);
+  let sa = class extends mt {
     constructor() {
       super(...arguments), this._active = !1, this._hidden = !1, this._showOptions = () => {
         this._hidden = !1;
@@ -6926,7 +7646,7 @@
       }, this._selectItem = t => {
         if (!this.availableOptions) return;
         const e = t.currentTarget.item_key;
-        this._selectedItem = this.availableOptions[e], De(this, "ac-select-dropdown", {
+        this._selectedItem = this.availableOptions[e], Fe(this, "ac-select-dropdown", {
           key: e,
           value: this.availableOptions[e]
         }), this._hidden = !0;
@@ -6946,21 +7666,21 @@
       return this.availableOptions ? W`
           <button
             class="ac-ui-select-button"
-            style=${Un(t)}
+            style=${Vn(t)}
             @click=${this._showOptions}
             @mouseenter=${this._setActive}
             @mouseleave=${this._setInactive}
           >
             ${this._selectedItem ? this._selectedItem : this.placeholder}
-            <ha-svg-icon .path=${Cn}></ha-svg-icon>
+            <ha-svg-icon .path=${Hn}></ha-svg-icon>
           </button>
-          <div class="ac-ui-select-options" style=${Un(e)}>
+          <div class="ac-ui-select-options" style=${Vn(e)}>
             ${this._renderOptions()}
           </div>
-        ` : K;
+        ` : J;
     }
     _renderOptions() {
-      return Ss(Object.keys(this.availableOptions), (t, e) => W`
+      return ys(Object.keys(this.availableOptions), (t, e) => W`
           <anycubic-ui-select-dropdown-item
             .item=${this.availableOptions[t]}
             .item_key=${t}
@@ -7022,12 +7742,12 @@
     `;
     }
   };
-  n([vt({
+  n([_t({
     attribute: "available-options"
-  })], zs.prototype, "availableOptions", void 0), n([vt()], zs.prototype, "placeholder", void 0), n([vt({
+  })], sa.prototype, "availableOptions", void 0), n([_t()], sa.prototype, "placeholder", void 0), n([_t({
     attribute: "initial-item"
-  })], zs.prototype, "initialItem", void 0), n([yt()], zs.prototype, "_selectedItem", void 0), n([yt()], zs.prototype, "_active", void 0), n([yt()], zs.prototype, "_hidden", void 0), zs = n([Rn("anycubic-ui-select-dropdown")], zs);
-  const Us = {
+  })], sa.prototype, "initialItem", void 0), n([wt()], sa.prototype, "_selectedItem", void 0), n([wt()], sa.prototype, "_active", void 0), n([wt()], sa.prototype, "_hidden", void 0), sa = n([Gn("anycubic-ui-select-dropdown")], sa);
+  const aa = {
       keyframeOptions: {
         duration: 250,
         direction: "alternate",
@@ -7035,20 +7755,20 @@
       },
       properties: ["height", "opacity", "scale"]
     },
-    Rs = "drying_preset_1",
-    js = "drying_preset_2",
-    Vs = "drying_preset_3",
-    Gs = "drying_preset_4",
-    Ys = "drying_stop",
-    Zs = "secondary_",
-    qs = Zs + Rs,
-    Ws = Zs + js,
-    Xs = Zs + Vs,
-    Ks = Zs + Gs,
-    Qs = Zs + Ys;
-  let Js = class extends ut {
+    oa = "drying_preset_1",
+    la = "drying_preset_2",
+    ca = "drying_preset_3",
+    ha = "drying_preset_4",
+    da = "drying_stop",
+    pa = "secondary_",
+    ua = pa + oa,
+    ga = pa + la,
+    ma = pa + ca,
+    ba = pa + ha,
+    va = pa + da;
+  let ya = class extends mt {
     constructor() {
-      super(...arguments), this.box_id = 0, this._dryingPresetId1 = Rs, this._dryingPresetId2 = js, this._dryingPresetId3 = Vs, this._dryingPresetId4 = Gs, this._dryingStopId = Ys, this._hasDryingPreset1 = !1, this._hasDryingPreset2 = !1, this._hasDryingPreset3 = !1, this._hasDryingPreset4 = !1, this._hasDryingStop = !1, this._dryingPresetTemp1 = "", this._dryingPresetDur1 = "", this._dryingPresetTemp2 = "", this._dryingPresetDur2 = "", this._dryingPresetTemp3 = "", this._dryingPresetDur3 = "", this._dryingPresetTemp4 = "", this._dryingPresetDur4 = "", this._isOpen = !1, this._handleDryingPreset1 = () => {
+      super(...arguments), this.box_id = 0, this._dryingPresetId1 = oa, this._dryingPresetId2 = la, this._dryingPresetId3 = ca, this._dryingPresetId4 = ha, this._dryingStopId = da, this._hasDryingPreset1 = !1, this._hasDryingPreset2 = !1, this._hasDryingPreset3 = !1, this._hasDryingPreset4 = !1, this._hasDryingStop = !1, this._dryingPresetTemp1 = "", this._dryingPresetDur1 = "", this._dryingPresetTemp2 = "", this._dryingPresetDur2 = "", this._dryingPresetTemp3 = "", this._dryingPresetDur3 = "", this._dryingPresetTemp4 = "", this._dryingPresetDur4 = "", this._isOpen = !1, this._handleDryingPreset1 = () => {
         this._pressHassButton(this._dryingPresetId1), this._closeModal();
       }, this._handleDryingPreset2 = () => {
         this._pressHassButton(this._dryingPresetId2), this._closeModal();
@@ -7081,17 +7801,17 @@
       null === (t = this.parentElement) || void 0 === t || t.removeEventListener("ac-mcbdry-modal", this._handleModalEvent), super.disconnectedCallback();
     }
     willUpdate(t) {
-      if (super.willUpdate(t), t.has("language") && (this._heading = Tn("card.drying_settings.heading", this.language), this._buttonTextPreset = Tn("card.drying_settings.button_preset", this.language), this._buttonTextMinutes = Tn("card.drying_settings.button_minutes", this.language), this._buttonStopDrying = Tn("card.drying_settings.button_stop_drying", this.language)), t.has("box_id") && (1 === this.box_id ? (this._dryingPresetId1 = qs, this._dryingPresetId2 = Ws, this._dryingPresetId3 = Xs, this._dryingPresetId4 = Ks, this._dryingStopId = Qs) : (this._dryingPresetId1 = Rs, this._dryingPresetId2 = js, this._dryingPresetId3 = Vs, this._dryingPresetId4 = Gs, this._dryingStopId = Ys)), t.has("hass") || t.has("selectedPrinterDevice")) {
-        const t = si(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId1);
-        this._hasDryingPreset1 = oi(t), this._dryingPresetTemp1 = String(t.attributes.temperature), this._dryingPresetDur1 = String(t.attributes.duration);
-        const e = si(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId2);
-        this._hasDryingPreset2 = oi(e), this._dryingPresetTemp2 = String(e.attributes.temperature), this._dryingPresetDur2 = String(e.attributes.duration);
-        const i = si(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId3);
-        this._hasDryingPreset3 = oi(i), this._dryingPresetTemp3 = String(i.attributes.temperature), this._dryingPresetDur3 = String(i.attributes.duration);
-        const r = si(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId4);
-        this._hasDryingPreset4 = oi(r), this._dryingPresetTemp4 = String(r.attributes.temperature), this._dryingPresetDur4 = String(r.attributes.duration);
-        const n = si(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingStopId);
-        this._hasDryingStop = oi(n);
+      if (super.willUpdate(t), t.has("language") && (this._heading = Mn("card.drying_settings.heading", this.language), this._buttonTextPreset = Mn("card.drying_settings.button_preset", this.language), this._buttonTextMinutes = Mn("card.drying_settings.button_minutes", this.language), this._buttonStopDrying = Mn("card.drying_settings.button_stop_drying", this.language)), t.has("box_id") && (1 === this.box_id ? (this._dryingPresetId1 = ua, this._dryingPresetId2 = ga, this._dryingPresetId3 = ma, this._dryingPresetId4 = ba, this._dryingStopId = va) : (this._dryingPresetId1 = oa, this._dryingPresetId2 = la, this._dryingPresetId3 = ca, this._dryingPresetId4 = ha, this._dryingStopId = da)), t.has("hass") || t.has("selectedPrinterDevice") || t.has("box_id")) {
+        const t = li(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId1);
+        this._hasDryingPreset1 = ci(t), this._dryingPresetTemp1 = String(t.attributes.temperature), this._dryingPresetDur1 = String(t.attributes.duration);
+        const e = li(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId2);
+        this._hasDryingPreset2 = ci(e), this._dryingPresetTemp2 = String(e.attributes.temperature), this._dryingPresetDur2 = String(e.attributes.duration);
+        const i = li(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId3);
+        this._hasDryingPreset3 = ci(i), this._dryingPresetTemp3 = String(i.attributes.temperature), this._dryingPresetDur3 = String(i.attributes.duration);
+        const r = li(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingPresetId4);
+        this._hasDryingPreset4 = ci(r), this._dryingPresetTemp4 = String(r.attributes.temperature), this._dryingPresetDur4 = String(r.attributes.duration);
+        const n = li(this.hass, this.printerEntities, this.printerEntityIdPart, this._dryingStopId);
+        this._hasDryingStop = ci(n);
       }
     }
     update(t) {
@@ -7101,12 +7821,12 @@
       return W`
       <div
         class="ac-modal-container"
-        style=${Un({
+        style=${Vn({
         height: "auto",
         opacity: 1,
         scale: 1
       })}
-        ${bs(Object.assign({}, Us))}
+        ${ia(Object.assign({}, aa))}
       >
         <span class="ac-modal-close" @click=${this._closeModal}>&times;</span>
         <div class="ac-modal-card" @click=${this._cardClick}>
@@ -7128,7 +7848,7 @@
                     ${this._dryingPresetTemp1}°C
                   </ha-control-button>
                 </div>
-              ` : K}
+              ` : J}
           ${this._hasDryingPreset2 ? W`
                 <div class="ac-drying-buttoncont">
                   <ha-control-button @click=${this._handleDryingPreset2}>
@@ -7137,7 +7857,7 @@
                     ${this._dryingPresetTemp2}°C
                   </ha-control-button>
                 </div>
-              ` : K}
+              ` : J}
           ${this._hasDryingPreset3 ? W`
                 <div class="ac-drying-buttoncont">
                   <ha-control-button @click=${this._handleDryingPreset3}>
@@ -7146,7 +7866,7 @@
                     ${this._dryingPresetTemp3}°C
                   </ha-control-button>
                 </div>
-              ` : K}
+              ` : J}
           ${this._hasDryingPreset4 ? W`
                 <div class="ac-drying-buttoncont">
                   <ha-control-button @click=${this._handleDryingPreset4}>
@@ -7155,7 +7875,7 @@
                     ${this._dryingPresetTemp4}°C
                   </ha-control-button>
                 </div>
-              ` : K}
+              ` : J}
           ${this._hasDryingStop ? W`
                 <div class="ac-flex-break"></div>
                 <div class="ac-drying-buttoncont">
@@ -7163,19 +7883,20 @@
                     ${this._buttonStopDrying}
                   </ha-control-button>
                 </div>
-              ` : K}
+              ` : J}
         </div>
       </div>
     `;
     }
     _pressHassButton(t) {
+      var e, i;
       this.printerEntityIdPart && this.hass.callService("button", "press", {
-        entity_id: ii(this.printerEntityIdPart, "button", t)
+        entity_id: null !== (i = null === (e = ai(this.printerEntities, this.printerEntityIdPart, "button", t)) || void 0 === e ? void 0 : e.entity_id) && void 0 !== i ? i : si(this.printerEntityIdPart, "button", t)
       }).then().catch(t => {});
     }
     static get styles() {
       return p`
-      ${Ns}
+      ${ra}
 
       .ac-drying-header {
         font-size: 24px;
@@ -7214,19 +7935,19 @@
     `;
     }
   };
-  n([vt()], Js.prototype, "hass", void 0), n([vt()], Js.prototype, "language", void 0), n([vt({
+  n([_t()], ya.prototype, "hass", void 0), n([_t()], ya.prototype, "language", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], Js.prototype, "selectedPrinterDevice", void 0), n([vt({
+  })], ya.prototype, "selectedPrinterDevice", void 0), n([_t({
     attribute: "printer-entities"
-  })], Js.prototype, "printerEntities", void 0), n([vt({
+  })], ya.prototype, "printerEntities", void 0), n([_t({
     attribute: "printer-entity-id-part"
-  })], Js.prototype, "printerEntityIdPart", void 0), n([yt()], Js.prototype, "box_id", void 0), n([yt()], Js.prototype, "_dryingPresetId1", void 0), n([yt()], Js.prototype, "_dryingPresetId2", void 0), n([yt()], Js.prototype, "_dryingPresetId3", void 0), n([yt()], Js.prototype, "_dryingPresetId4", void 0), n([yt()], Js.prototype, "_dryingStopId", void 0), n([yt()], Js.prototype, "_hasDryingPreset1", void 0), n([yt()], Js.prototype, "_hasDryingPreset2", void 0), n([yt()], Js.prototype, "_hasDryingPreset3", void 0), n([yt()], Js.prototype, "_hasDryingPreset4", void 0), n([yt()], Js.prototype, "_hasDryingStop", void 0), n([yt()], Js.prototype, "_dryingPresetTemp1", void 0), n([yt()], Js.prototype, "_dryingPresetDur1", void 0), n([yt()], Js.prototype, "_dryingPresetTemp2", void 0), n([yt()], Js.prototype, "_dryingPresetDur2", void 0), n([yt()], Js.prototype, "_dryingPresetTemp3", void 0), n([yt()], Js.prototype, "_dryingPresetDur3", void 0), n([yt()], Js.prototype, "_dryingPresetTemp4", void 0), n([yt()], Js.prototype, "_dryingPresetDur4", void 0), n([yt()], Js.prototype, "_isOpen", void 0), n([yt()], Js.prototype, "_heading", void 0), n([yt()], Js.prototype, "_buttonTextPreset", void 0), n([yt()], Js.prototype, "_buttonTextMinutes", void 0), n([yt()], Js.prototype, "_buttonStopDrying", void 0), Js = n([Rn("anycubic-printercard-multicolorbox_modal_drying")], Js);
-  const to = t => ro(255, Math.round(Number(t))),
-    eo = t => to(255 * t),
-    io = t => ro(1, t / 255),
-    ro = (t, e) => Math.max(0, Math.min(t, e)),
-    no = t => void 0 === t ? 1 : ("string" == typeof t && t.indexOf("%") > 0 && (t = Number(t.split("%")[0]) / 100), t = Number(Number(t).toFixed(3)), isNaN(t) ? 1 : ro(1, t)),
-    so = {
+  })], ya.prototype, "printerEntityIdPart", void 0), n([wt()], ya.prototype, "box_id", void 0), n([wt()], ya.prototype, "_dryingPresetId1", void 0), n([wt()], ya.prototype, "_dryingPresetId2", void 0), n([wt()], ya.prototype, "_dryingPresetId3", void 0), n([wt()], ya.prototype, "_dryingPresetId4", void 0), n([wt()], ya.prototype, "_dryingStopId", void 0), n([wt()], ya.prototype, "_hasDryingPreset1", void 0), n([wt()], ya.prototype, "_hasDryingPreset2", void 0), n([wt()], ya.prototype, "_hasDryingPreset3", void 0), n([wt()], ya.prototype, "_hasDryingPreset4", void 0), n([wt()], ya.prototype, "_hasDryingStop", void 0), n([wt()], ya.prototype, "_dryingPresetTemp1", void 0), n([wt()], ya.prototype, "_dryingPresetDur1", void 0), n([wt()], ya.prototype, "_dryingPresetTemp2", void 0), n([wt()], ya.prototype, "_dryingPresetDur2", void 0), n([wt()], ya.prototype, "_dryingPresetTemp3", void 0), n([wt()], ya.prototype, "_dryingPresetDur3", void 0), n([wt()], ya.prototype, "_dryingPresetTemp4", void 0), n([wt()], ya.prototype, "_dryingPresetDur4", void 0), n([wt()], ya.prototype, "_isOpen", void 0), n([wt()], ya.prototype, "_heading", void 0), n([wt()], ya.prototype, "_buttonTextPreset", void 0), n([wt()], ya.prototype, "_buttonTextMinutes", void 0), n([wt()], ya.prototype, "_buttonStopDrying", void 0), ya = n([Gn("anycubic-printercard-multicolorbox_modal_drying")], ya);
+  const fa = t => xa(255, Math.round(Number(t))),
+    _a = t => fa(255 * t),
+    wa = t => xa(1, t / 255),
+    xa = (t, e) => Math.max(0, Math.min(t, e)),
+    $a = t => void 0 === t ? 1 : ("string" == typeof t && t.indexOf("%") > 0 && (t = Number(t.split("%")[0]) / 100), t = Number(Number(t).toFixed(3)), isNaN(t) ? 1 : xa(1, t)),
+    Ea = {
       aliceblue: "#F0F8FF",
       antiquewhite: "#FAEBD7",
       aqua: "#00FFFF",
@@ -7376,30 +8097,30 @@
       yellow: "#FFFF00",
       yellowgreen: "#9ACD32"
     };
-  class oo {
+  class Sa {
     constructor(t, e, i, r) {
-      return oo.isBaseConstructor(t) ? (this.r = to(t.r), this.g = to(t.g), this.b = to(t.b), void 0 !== t.a && (this.a = no(t.a)), this) : oo.parse(t, e, i, r);
+      return Sa.isBaseConstructor(t) ? (this.r = fa(t.r), this.g = fa(t.g), this.b = fa(t.b), void 0 !== t.a && (this.a = $a(t.a)), this) : Sa.parse(t, e, i, r);
     }
     static parse(t, e, i, r) {
-      if (oo.isBaseConstructor(t)) return new oo(t);
+      if (Sa.isBaseConstructor(t)) return new Sa(t);
       if (void 0 !== e && void 0 !== i) {
-        let n = to(t);
-        return e = to(e), i = to(i), void 0 !== r && (r = no(r)), new oo({
+        let n = fa(t);
+        return e = fa(e), i = fa(i), void 0 !== r && (r = $a(r)), new Sa({
           r: n,
           g: e,
           b: i,
           a: r
         });
       }
-      if (Array.isArray(t)) return oo.fromArray(t);
+      if (Array.isArray(t)) return Sa.fromArray(t);
       if ("string" == typeof t) {
         let i;
-        if (void 0 !== e && Number(e) <= 1 && Number(e) >= 0 && (i = Number(e)), t.startsWith("#")) return oo.fromHex(t, i);
-        if (so[t.toLowerCase()]) return oo.fromNamed(t, i);
-        if (t.startsWith("rgb")) return oo.fromRgbString(t);
+        if (void 0 !== e && Number(e) <= 1 && Number(e) >= 0 && (i = Number(e)), t.startsWith("#")) return Sa.fromHex(t, i);
+        if (Ea[t.toLowerCase()]) return Sa.fromNamed(t, i);
+        if (t.startsWith("rgb")) return Sa.fromRgbString(t);
         if ("transparent" === t) {
           let t, e, i, r;
-          return t = e = i = r = 0, new oo({
+          return t = e = i = r = 0, new Sa({
             r: t,
             g: e,
             b: i,
@@ -7409,42 +8130,42 @@
         return null;
       }
       if ("object" == typeof t) {
-        if (void 0 !== t.a && (this.a = no(t.a)), void 0 !== t.h) {
+        if (void 0 !== t.a && (this.a = $a(t.a)), void 0 !== t.h) {
           let e = {};
-          if (void 0 !== t.v) e = oo.fromHsv(t);else {
-            if (void 0 === t.l) return oo.fromArray([0, 0, 0]);
-            e = oo.fromHsl(t);
+          if (void 0 !== t.v) e = Sa.fromHsv(t);else {
+            if (void 0 === t.l) return Sa.fromArray([0, 0, 0]);
+            e = Sa.fromHsl(t);
           }
-          return e.a = void 0 !== t.a ? no(t.a) : void 0, new oo(e);
+          return e.a = void 0 !== t.a ? $a(t.a) : void 0, new Sa(e);
         }
-        return void 0 !== t.c ? oo.fromCMYK(t) : this;
+        return void 0 !== t.c ? Sa.fromCMYK(t) : this;
       }
-      return oo.fromArray([0, 0, 0]);
+      return Sa.fromArray([0, 0, 0]);
     }
     static isBaseConstructor(t) {
       return "object" == typeof t && void 0 !== t.r && void 0 !== t.g && void 0 !== t.b;
     }
     static fromNamed(t, e) {
-      return oo.fromHex(so[t.toLowerCase()], e);
+      return Sa.fromHex(Ea[t.toLowerCase()], e);
     }
     static fromArray(t) {
       t = t.filter(t => "" !== t && isFinite(t));
       const e = {
-        r: to(t[0]),
-        g: to(t[1]),
-        b: to(t[2])
+        r: fa(t[0]),
+        g: fa(t[1]),
+        b: fa(t[2])
       };
-      return void 0 !== t[3] && (e.a = no(t[3])), new oo(e);
+      return void 0 !== t[3] && (e.a = $a(t[3])), new Sa(e);
     }
     static fromHex(t, e) {
       3 !== (t = t.replace("#", "")).length && 4 !== t.length || (t = t.split("").map(t => t + t).join(""));
       let i = t.match(/[A-Za-z0-9]{2}/g).map(t => parseInt(t, 16));
-      return 4 === i.length ? i[3] /= 255 : void 0 !== e && (i[3] = e), oo.fromArray(i);
+      return 4 === i.length ? i[3] /= 255 : void 0 !== e && (i[3] = e), Sa.fromArray(i);
     }
     static fromRgbString(t) {
-      if (t.includes(",")) return oo.fromArray(t.split("(")[1].split(")")[0].split(","));
+      if (t.includes(",")) return Sa.fromArray(t.split("(")[1].split(")")[0].split(","));
       const e = t.replace("/", " ").split("(")[1].replace(")", "").split(" ").filter(t => "" !== t && isFinite(Number(t)));
-      return oo.fromArray(e);
+      return Sa.fromArray(e);
     }
     static fromHsv({
       h: t,
@@ -7455,13 +8176,13 @@
       const r = Math.floor(t / 60 % 6),
         n = t / 60 - r,
         s = i * (1 - e),
-        o = i * (1 - n * e),
-        a = i * (1 - (1 - n) * e),
-        l = [[i, a, s], [o, i, s], [s, i, a], [s, o, i], [a, s, i], [i, s, o]][r].map(t => Math.round(256 * t));
-      return new oo({
-        r: to(l[0]),
-        g: to(l[1]),
-        b: to(l[2])
+        a = i * (1 - n * e),
+        o = i * (1 - (1 - n) * e),
+        l = [[i, o, s], [a, i, s], [s, i, o], [s, a, i], [o, s, i], [i, s, a]][r].map(t => Math.round(256 * t));
+      return new Sa({
+        r: fa(l[0]),
+        g: fa(l[1]),
+        b: fa(l[2])
       });
     }
     static fromHsl({
@@ -7473,13 +8194,13 @@
       const r = (1 - Math.abs(2 * i - 1)) * e,
         n = r * (1 - Math.abs(t / 60 % 2 - 1)),
         s = i - r / 2;
-      let o = 0,
-        a = 0,
+      let a = 0,
+        o = 0,
         l = 0;
-      return 0 <= t && t < 60 ? (o = r, a = n, l = 0) : 60 <= t && t < 120 ? (o = n, a = r, l = 0) : 120 <= t && t < 180 ? (o = 0, a = r, l = n) : 180 <= t && t < 240 ? (o = 0, a = n, l = r) : 240 <= t && t < 300 ? (o = n, a = 0, l = r) : 300 <= t && t < 360 && (o = r, a = 0, l = n), new oo({
-        r: eo(s + o),
-        g: eo(s + a),
-        b: eo(s + l)
+      return 0 <= t && t < 60 ? (a = r, o = n, l = 0) : 60 <= t && t < 120 ? (a = n, o = r, l = 0) : 120 <= t && t < 180 ? (a = 0, o = r, l = n) : 180 <= t && t < 240 ? (a = 0, o = n, l = r) : 240 <= t && t < 300 ? (a = n, o = 0, l = r) : 300 <= t && t < 360 && (a = r, o = 0, l = n), new Sa({
+        r: _a(s + a),
+        g: _a(s + o),
+        b: _a(s + l)
       });
     }
     static fromCMYK({
@@ -7489,8 +8210,8 @@
       k: r,
       a: n
     }) {
-      const s = t => eo(1 - Math.min(1, t / 100 * (1 - r) + r));
-      return new oo({
+      const s = t => _a(1 - Math.min(1, t / 100 * (1 - r) + r));
+      return new Sa({
         r: s(t),
         b: s(e),
         g: s(i),
@@ -7536,37 +8257,37 @@
     }
     get rgbaHex() {
       let t = this.rgba;
-      return t[3] = eo(t[3]), `#${t.map(t => t.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+      return t[3] = _a(t[3]), `#${t.map(t => t.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
     }
     get hsv() {
-      const t = io(this.r),
-        e = io(this.g),
-        i = io(this.b),
+      const t = wa(this.r),
+        e = wa(this.g),
+        i = wa(this.b),
         r = Math.min(t, e, i),
         n = Math.max(t, e, i);
       let s;
-      const o = n,
-        a = n - r;
-      s = 0 === a ? 0 : n === t ? (e - i) / a * 60 % 360 : n === e ? (i - t) / a * 60 + 120 : n === i ? (t - e) / a * 60 + 240 : 0, s < 0 && (s += 360);
+      const a = n,
+        o = n - r;
+      s = 0 === o ? 0 : n === t ? (e - i) / o * 60 % 360 : n === e ? (i - t) / o * 60 + 120 : n === i ? (t - e) / o * 60 + 240 : 0, s < 0 && (s += 360);
       const l = 0 === n ? 0 : 1 - r / n;
       return {
         h: Math.round(s),
         s: Math.round(100 * l),
-        v: Math.round(100 * o),
+        v: Math.round(100 * a),
         a: this.alpha
       };
     }
     get hsl() {
-      const t = io(this.r),
-        e = io(this.g),
-        i = io(this.b),
+      const t = wa(this.r),
+        e = wa(this.g),
+        i = wa(this.b),
         r = Math.max(t, e, i),
         n = Math.min(t, e, i);
-      let s, o;
-      const a = (r + n) / 2;
-      if (r === n) s = o = 0;else {
+      let s, a;
+      const o = (r + n) / 2;
+      if (r === n) s = a = 0;else {
         const l = r - n;
-        switch (o = a > .5 ? l / (2 - r - n) : l / (r + n), r) {
+        switch (a = o > .5 ? l / (2 - r - n) : l / (r + n), r) {
           case t:
             s = (e - i) / l + (e < i ? 6 : 0);
             break;
@@ -7580,8 +8301,8 @@
       }
       return {
         h: Math.round(360 * s),
-        s: Math.round(100 * o),
-        l: Math.round(100 * a),
+        s: Math.round(100 * a),
+        l: Math.round(100 * o),
         a: this.alpha
       };
     }
@@ -7589,8 +8310,8 @@
       let t, e, i, r;
       const n = parseFloat(this.r) / 255,
         s = parseFloat(this.g) / 255,
-        o = parseFloat(this.b) / 255;
-      return r = 1 - Math.max(n, s, o), 1 === r ? t = e = i = 0 : (t = (1 - n - r) / (1 - r), e = (1 - s - r) / (1 - r), i = (1 - o - r) / (1 - r)), t = Math.round(100 * t), e = Math.round(100 * e), i = Math.round(100 * i), r = Math.round(100 * r), this.alpha ? {
+        a = parseFloat(this.b) / 255;
+      return r = 1 - Math.max(n, s, a), 1 === r ? t = e = i = 0 : (t = (1 - n - r) / (1 - r), e = (1 - s - r) / (1 - r), i = (1 - a - r) / (1 - r)), t = Math.round(100 * t), e = Math.round(100 * e), i = Math.round(100 * i), r = Math.round(100 * r), this.alpha ? {
         c: t,
         m: e,
         y: i,
@@ -7648,23 +8369,23 @@
     }
     mix(t, e = .5) {
       const i = this.rgba;
-      i[3] = eo(i[3]);
-      const r = new oo(t).rgba;
-      r[3] = eo(r[3]), e = no(e);
+      i[3] = _a(i[3]);
+      const r = new Sa(t).rgba;
+      r[3] = _a(r[3]), e = $a(e);
       const n = i.map((t, i) => {
         const n = r[i],
           s = n < t,
-          o = s ? t - n : n - t,
-          a = Math.round(o * e);
-        return s ? t - a : a + t;
+          a = s ? t - n : n - t,
+          o = Math.round(a * e);
+        return s ? t - o : o + t;
       });
-      return n[3] = io(n[3]), oo.fromArray(n);
+      return n[3] = wa(n[3]), Sa.fromArray(n);
     }
     adjustSatLum(t, e, i) {
       const r = this.hsl;
       let n = r[t],
         s = (i ? n : 100 - n) * e;
-      return r[t] = ro(100, i ? n - s : n + s), r.a = this.a, new oo(r);
+      return r[t] = xa(100, i ? n - s : n + s), r.a = this.a, new Sa(r);
     }
     lighten(t, e = !1) {
       return this.adjustSatLum("l", t, e);
@@ -7686,7 +8407,7 @@
     }
     hue(t) {
       const e = this.hsl;
-      return e.h = Math.round(e.h + t) % 360, e.a = this.a, new oo(e);
+      return e.h = Math.round(e.h + t) % 360, e.a = this.a, new Sa(e);
     }
     fadeIn(t, e) {
       let i = this.alpha;
@@ -7695,8 +8416,8 @@
         g: n,
         b: s
       } = this;
-      let o = (1 - i) * t;
-      return i = e ? i - o : i + o, oo({
+      let a = (1 - i) * t;
+      return i = e ? i - a : i + a, Sa({
         r,
         g: n,
         b: s,
@@ -7708,10 +8429,10 @@
     }
     negate() {
       let t = this.rgb.map(t => 255 - t);
-      return void 0 !== this.a && t.push(this.alpha), oo.fromArray(t);
+      return void 0 !== this.a && t.push(this.alpha), Sa.fromArray(t);
     }
   }
-  const ao = (t, e, i = "color-update") => {
+  const Pa = (t, e, i = "color-update") => {
       const r = i.includes("color") ? {
           color: e
         } : e,
@@ -7722,17 +8443,17 @@
         });
       t.dispatchEvent(n);
     },
-    lo = (t = 3, e) => {
+    Ca = (t = 3, e) => {
       let i = 0,
         r = 100,
         n = 50,
         s = null,
-        o = !1;
-      e && (r = e.s, e.hasOwnProperty("v") ? (s = e.v, n = null, o = !0) : n = e.l);
-      const a = [];
+        a = !1;
+      e && (r = e.s, e.hasOwnProperty("v") ? (s = e.v, n = null, a = !0) : n = e.l);
+      const o = [];
       let l, c;
       const h = (t, e) => `${t.css} ${(100 * e).toFixed(1)}%`;
-      for (; i < 360;) l = oo.parse(o ? {
+      for (; i < 360;) l = Sa.parse(a ? {
         h: i,
         s: r,
         v: s
@@ -7740,8 +8461,8 @@
         h: i,
         s: r,
         l: n
-      }), c = i / 360, a.push(h(l, c)), i += t;
-      return i = 359, l = oo.parse(o ? {
+      }), c = i / 360, o.push(h(l, c)), i += t;
+      return i = 359, l = Sa.parse(a ? {
         h: i,
         s: r,
         v: s
@@ -7749,9 +8470,9 @@
         h: i,
         s: r,
         l: n
-      }), c = 1, a.push(h(l, c)), a.join(", ");
+      }), c = 1, o.push(h(l, c)), o.join(", ");
     },
-    co = W`<svg
+    Aa = W`<svg
   stroke="currentColor"
   fill="none"
   stroke-width="0"
@@ -7767,7 +8488,7 @@
     fill="currentColor"
   ></path>
 </svg>`;
-  class ho extends ut {
+  class Ta extends mt {
     static properties = {
       hue: {
         type: Number
@@ -7813,7 +8534,7 @@
   `;
     constructor() {
       super(), this.gradient = {
-        backgroundImage: `linear-gradient(90deg, ${lo(24)})`
+        backgroundImage: `linear-gradient(90deg, ${Ca(24)})`
       }, this.width = 400, this.sliderStyle = {
         display: "none"
       };
@@ -7821,11 +8542,11 @@
     firstUpdated() {
       const t = this.renderRoot.querySelector("lit-movable");
       t.onmovestart = () => {
-        ao(this.renderRoot, {
+        Pa(this.renderRoot, {
           sliding: !0
         }, "sliding-hue");
       }, t.onmoveend = () => {
-        ao(this.renderRoot, {
+        Pa(this.renderRoot, {
           sliding: !1
         }, "sliding-hue");
       }, t.onmove = ({
@@ -7847,7 +8568,7 @@
       return t => {
         this.color.hsx && (t = this.color.hsx.h), void 0 === t && (t = this.color.hsl.h);
         return {
-          backgroundColor: oo.parse({
+          backgroundColor: Sa.parse({
             h: t,
             s: 100,
             l: 50
@@ -7878,7 +8599,7 @@
     }
     render() {
       return W` <div
-      style=${Un(this.gradient)}
+      style=${Vn(this.gradient)}
       class="bar"
       @click="${this.selectHue}"
     >
@@ -7886,13 +8607,13 @@
         horizontal="${this.sliderBounds.min}, ${this.sliderBounds.max}"
         posLeft="${this.sliderBounds.posLeft}"
       >
-        <a class="slider" style=${Un(this.sliderCss(this.h))}></a>
+        <a class="slider" style=${Vn(this.sliderCss(this.h))}></a>
       </lit-movable>
     </div>`;
     }
   }
-  customElements.get("hue-bar") || customElements.define("hue-bar", ho);
-  const po = p`
+  customElements.get("hue-bar") || customElements.define("hue-bar", Ta);
+  const ka = p`
   height: 100%;
   width: 100%;
   position: absolute;
@@ -7922,7 +8643,7 @@
     12px 12px,
     12px 12px;
 `,
-    uo = p`
+    Ma = p`
   display: inline-block;
   width: 69px;
   padding: 0.325rem 0.5rem;
@@ -7939,14 +8660,14 @@
     border-color 0.15s ease-in-out,
     box-shadow 0.15s ease-in-out;
 `,
-    go = p`
+    Ha = p`
   color: var(--input-active-color);
   background-color: var(--input-active-bg);
   border-color: var(--input-active-border-color);
   outline: 0;
   box-shadow: var(--input-active-box-shadow);
 `,
-    mo = p`
+    Da = p`
   :host {
     --font-fam: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
       "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji",
@@ -7988,10 +8709,10 @@
     height: 210px;
   }
   :host .form-control {
-    ${uo}
+    ${Ma}
   }
   :host .form-control:focus {
-    ${go}
+    ${Ha}
   }
   :host label {
     width: 12px;
@@ -8149,11 +8870,11 @@
     width: 100%;
   }
   :host .swatch span.checky {
-    ${po}
+    ${ka}
     z-index: 0;
   }
 `,
-    bo = p`
+    Fa = p`
   :host > div {
     margin-bottom: 8px;
     display: block;
@@ -8168,11 +8889,11 @@
   }
 
   :host .form-control {
-    ${uo}
+    ${Ma}
   }
 
   :host .form-control:focus {
-    ${go}
+    ${Ha}
   }
 
   :host .preview-bar {
@@ -8243,7 +8964,7 @@
     top: -1px;
   }
   :host .transparent-checks {
-    ${po}
+    ${ka}
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;
   }
@@ -8252,7 +8973,7 @@
     border-bottom-right-radius: 0px;
   }
 `,
-    _o = {
+    Ba = {
       r: "R (red) channel",
       g: "G (green) channel",
       b: "B (blue) channel",
@@ -8262,7 +8983,7 @@
       l: "L (luminosity) channel",
       a: "A (alpha / opacity) channel"
     };
-  class vo extends ut {
+  class Ia extends mt {
     static properties = {
       group: {
         type: String
@@ -8302,7 +9023,7 @@
         attribute: !1
       }
     };
-    static styles = bo;
+    static styles = Fa;
     clickPreview(t) {
       const e = Math.max(0, Math.min(t.offsetX, 128));
       let i = Math.round(e / 128 * this.max);
@@ -8310,8 +9031,8 @@
     }
     valueChange = (t, e = null) => {
       e = e ?? Number(this.renderRoot.querySelector("input").value), "a" === this.channel && (e /= 100), this.c[this.channel] = e;
-      const i = oo.parse(this.c);
-      "rgb" !== this.group && (i.hsx = this.c), this.c = "rgb" === this.group ? this.color.rgbObj : this.isHsl ? this.color.hsl : this.color.hsv, ao(this.renderRoot, i);
+      const i = Sa.parse(this.c);
+      "rgb" !== this.group && (i.hsx = this.c), this.c = "rgb" === this.group ? this.color.rgbObj : this.isHsl ? this.color.hsl : this.color.hsv, Pa(this.renderRoot, i);
     };
     setActive(t) {
       this.active = t, t && this.renderRoot.querySelector("input").select();
@@ -8328,27 +9049,27 @@
       this.v = t[i], r && (this.v *= 100);
       let n,
         s,
-        o = 255;
+        a = 255;
       if ("rgb" !== e || "a" === i) {
-        if ("h" === i) return o = this.max = 359, void (this.previewGradient = {
-          "--preview": `linear-gradient(90deg, ${lo(24, t)})`,
-          "--pct": t.h / o * 100 + "%"
+        if ("h" === i) return a = this.max = 359, void (this.previewGradient = {
+          "--preview": `linear-gradient(90deg, ${Ca(24, t)})`,
+          "--pct": t.h / a * 100 + "%"
         });
-        o = r ? 1 : 100;
+        a = r ? 1 : 100;
       }
-      if (this.max = o, n = {
+      if (this.max = a, n = {
         ...t
-      }, s = n, n[this.channel] = 0, n = oo.parse(n), s[this.channel] = o, s = oo.parse(s), "l" === this.channel) {
+      }, s = n, n[this.channel] = 0, n = Sa.parse(n), s[this.channel] = a, s = Sa.parse(s), "l" === this.channel) {
         const e = {
           ...t
         };
         e.l = 50, this.previewGradient = {
-          "--preview": `linear-gradient(90deg, ${n.hex}, ${oo.parse(e).hex}, ${s.hex})`,
-          "--pct": t[this.channel] / o * 100 + "%"
+          "--preview": `linear-gradient(90deg, ${n.hex}, ${Sa.parse(e).hex}, ${s.hex})`,
+          "--pct": t[this.channel] / a * 100 + "%"
         };
       } else this.previewGradient = {
         "--preview": `linear-gradient(90deg, ${r ? n.css : n.hex}, ${r ? s.css : s.hex})`,
-        "--pct": t[this.channel] / o * 100 + "%"
+        "--pct": t[this.channel] / a * 100 + "%"
       };
     }
     willUpdate(t) {
@@ -8357,13 +9078,13 @@
     render() {
       const t = "a" === this.channel ? W`<div class="transparent-checks"></div>` : null,
         e = "a" === this.channel ? 100 : this.max;
-      return W` <div class="${Nn({
+      return W` <div class="${Un({
         active: this.active
       })}">
       <label for="channel_${this.ch}">${this.channel.toUpperCase()}</label>
       <input
         id="channel_${this.ch}"
-        aria-label="${_o[this.channel]}"
+        aria-label="${Ba[this.channel]}"
         class="form-control"
         .value="${Math.round(this.v)}"
         type="number"
@@ -8375,7 +9096,7 @@
       />
       <div
         class="preview-bar"
-        style="${Un(this.previewGradient)}"
+        style="${Vn(this.previewGradient)}"
         @mousedown="${this.clickPreview}"
       >
         <div class="pct"></div>
@@ -8384,8 +9105,8 @@
     </div>`;
     }
   }
-  customElements.get("color-input-channel") || customElements.define("color-input-channel", vo);
-  class yo extends ut {
+  customElements.get("color-input-channel") || customElements.define("color-input-channel", Ia);
+  class La extends mt {
     static properties = {
       color: {
         type: Object
@@ -8452,7 +9173,7 @@
       }, this.size = 160;
     }
     setColor(t) {
-      ao(this.renderRoot, t);
+      Pa(this.renderRoot, t);
     }
     setCircleCss(t, e) {
       const i = `${t}`,
@@ -8476,8 +9197,8 @@
         {
           size: n,
           hsw: s,
-          isHsl: o,
-          color: a
+          isHsl: a,
+          color: o
         } = this;
       let l = (n - r) / n;
       l = Math.round(100 * l);
@@ -8485,10 +9206,10 @@
         h = {
           h: s.h,
           s: c,
-          [o ? "l" : "v"]: l
+          [a ? "l" : "v"]: l
         },
-        d = o ? oo.fromHsl(h) : oo.fromHsv(h);
-      this.setCircleCss(i, r), d.a = a.alpha, d.hsx = h, d.fromHSLCanvas = !0, this.setColor(d);
+        d = a ? Sa.fromHsl(h) : Sa.fromHsv(h);
+      this.setCircleCss(i, r), d.a = o.alpha, d.hsx = h, d.fromHSLCanvas = !0, this.setColor(d);
     }
     debouncePaintDetail(t) {
       clearTimeout(this.bouncer), this.bouncer = setTimeout(() => this.paintHSL(t, !0), 50), this.paintHSL(t, !1);
@@ -8502,26 +9223,26 @@
         size: s
       } = this;
       if (!i) return;
-      const o = r;
-      (t = t ?? n ? o.hsl : o.hsv).w = n ? t.l : t.v;
+      const a = r;
+      (t = t ?? n ? a.hsl : a.hsv).w = n ? t.l : t.v;
       const {
-          h: a,
+          h: o,
           s: l,
           w: c
         } = t,
         h = this.hsw = {
-          h: a,
+          h: o,
           s: l,
           w: c
         },
         d = s / 100,
-        p = n ? (t, e, i) => `hsl(${t}, ${e}%, ${100 - i}%)` : (t, e, i) => oo.fromHsv({
+        p = n ? (t, e, i) => `hsl(${t}, ${e}%, ${100 - i}%)` : (t, e, i) => Sa.fromHsv({
           h: t,
           s: e,
           v: 100 - i
         }).hex,
         u = !1 === e ? 4 : 1;
-      for (let t = 0; t < 100; t += u) for (let e = 0; e < 100; e += u) i.fillStyle = p(a, t, e), i.fillRect(t, e, t + u, e + u);
+      for (let t = 0; t < 100; t += u) for (let e = 0; e < 100; e += u) i.fillStyle = p(o, t, e), i.fillRect(t, e, t + u, e + u);
       this.setCircleCss(h.s * d, s - t.w * d);
     }
     willUpdate(t) {
@@ -8556,7 +9277,7 @@
       return W` <div
       class="outer"
       @click="${this.pickCoord}"
-      style="${Un(t)}"
+      style="${Vn(t)}"
     >
       <canvas height="100" width="100"></canvas>
       <lit-movable
@@ -8571,30 +9292,30 @@
     </div>`;
     }
   }
-  customElements.get("hsl-canvas") || customElements.define("hsl-canvas", yo);
-  const fo = t => isFinite(t) ? Number(t) : Number(t.replace(/[^0-9.\-]/g, "")),
-    wo = t => (t = Number(t), (isNaN(t) || [void 0, null].includes(t)) && (t = 0), t);
-  class xo {
+  customElements.get("hsl-canvas") || customElements.define("hsl-canvas", La);
+  const Na = t => isFinite(t) ? Number(t) : Number(t.replace(/[^0-9.\-]/g, "")),
+    Oa = t => (t = Number(t), (isNaN(t) || [void 0, null].includes(t)) && (t = 0), t);
+  class za {
     constructor(t, e) {
-      this.x = wo(t), this.y = wo(e);
+      this.x = Oa(t), this.y = Oa(e);
     }
     static fromPointerEvent(t) {
       const {
         pageX: e,
         pageY: i
       } = t;
-      return new xo(e, i);
+      return new za(e, i);
     }
     static fromElementStyle(t) {
-      const e = fo(t.style.left ?? 0),
-        i = fo(t.style.top ?? 0);
-      return new xo(e, i);
+      const e = Na(t.style.left ?? 0),
+        i = Na(t.style.top ?? 0);
+      return new za(e, i);
     }
     static fromObject({
       x: t,
       y: e
     }) {
-      return new xo(t, e);
+      return new za(t, e);
     }
     get top() {
       return this.y;
@@ -8609,7 +9330,7 @@
       this.x = t;
     }
   }
-  class Eo {
+  class Ua {
     constructor(t = -1 / 0, e = 1 / 0) {
       this.min = t, this.max = e, this.attr = "";
     }
@@ -8620,18 +9341,18 @@
       return this.min === -1 / 0 && this.max === 1 / 0;
     }
     static fromString(t = null, e = 0) {
-      if (!t) return new Eo();
-      if ("null" === t) return new Eo(0, 0);
+      if (!t) return new Ua();
+      if ("null" === t) return new Ua(0, 0);
       const [i, r] = t.split(",").map(t => Number(t.trim()) + e),
-        n = new Eo(i, r);
+        n = new Ua(i, r);
       return n.attr = t, n;
     }
   }
-  class So extends ut {
+  class Ra extends mt {
     _target;
     _targetSelector = null;
-    _boundsX = new Eo();
-    _boundsY = new Eo();
+    _boundsX = new Ua();
+    _boundsY = new Ua();
     isMoving = !1;
     moveState = {};
     _vertical = null;
@@ -8695,13 +9416,13 @@
       return this._boundsX;
     }
     set boundsX(t) {
-      this._boundsX = Eo.fromString(t, fo(this.target?.style.left ?? 0)), this.bounds.left = this._boundsX;
+      this._boundsX = Ua.fromString(t, Na(this.target?.style.left ?? 0)), this.bounds.left = this._boundsX;
     }
     get boundsY() {
       return this._boundsY;
     }
     set boundsY(t) {
-      this._boundsY = Eo.fromString(t, fo(this.target?.style.top ?? 0)), this.bounds.top = this._boundsY;
+      this._boundsY = Ua.fromString(t, Na(this.target?.style.top ?? 0)), this.bounds.top = this._boundsY;
     }
     static properties = {
       posLeft: {
@@ -8770,13 +9491,13 @@
         } = this,
         {
           offsetLeft: s,
-          offsetTop: o,
+          offsetTop: a,
           style: {
-            left: a,
+            left: o,
             top: l
           }
         } = this.target;
-      i.classList.add("--movable-base"), this.renderRoot.addEventListener("pointerdown", t => this.pointerdown(t)), i.style.position = "absolute", i.style.cursor = "pointer", n ? i.style.left = n + "px" : !a && s && (i.style.left = s + "px", e.left.constrained && (e.left.min = e.left.max = s)), r ? i.style.top = r + "px" : !l && o && (i.style.top = o + "px", e.top.constrained && (e.top.min = e.top.max = o));
+      i.classList.add("--movable-base"), this.renderRoot.addEventListener("pointerdown", t => this.pointerdown(t)), i.style.position = "absolute", i.style.cursor = "pointer", n ? i.style.left = n + "px" : !o && s && (i.style.left = s + "px", e.left.constrained && (e.left.min = e.left.max = s)), r ? i.style.top = r + "px" : !l && a && (i.style.top = a + "px", e.top.constrained && (e.top.min = e.top.max = a));
     }
     reposition(t) {
       if ("object" == typeof t) {
@@ -8793,13 +9514,13 @@
           target: i,
           bounds: r
         } = this;
-      e.mouseCoord = xo.fromPointerEvent(t), e.startCoord = xo.fromElementStyle(i), e.moveDist = new xo(0, 0), e.totalDist = new xo(0, 0), e.clickOffset = (t => {
-        const e = xo.fromPointerEvent(t),
+      e.mouseCoord = za.fromPointerEvent(t), e.startCoord = za.fromElementStyle(i), e.moveDist = new za(0, 0), e.totalDist = new za(0, 0), e.clickOffset = (t => {
+        const e = za.fromPointerEvent(t),
           i = t.target.getBoundingClientRect(),
           r = e.x - (i.left + document.body.scrollLeft),
           n = e.y - (i.top + document.body.scrollTop);
-        return new xo(r, n);
-      })(t), e.coords = xo.fromObject(e.startCoord), e.maxX = isFinite(r.left.min) && isFinite(r.left.max) ? r.left.min + r.left.max : 1 / 0, e.maxY = isFinite(r.top.min) && isFinite(r.top.max) ? r.top.min + r.top.max : 1 / 0, this.isMoving = !0, this.reposition(!0), this.eventBroker("movestart", t);
+        return new za(r, n);
+      })(t), e.coords = za.fromObject(e.startCoord), e.maxX = isFinite(r.left.min) && isFinite(r.left.max) ? r.left.min + r.left.max : 1 / 0, e.maxY = isFinite(r.top.min) && isFinite(r.top.max) ? r.top.min + r.top.max : 1 / 0, this.isMoving = !0, this.reposition(!0), this.eventBroker("movestart", t);
     }
     eventBroker(t, e) {
       this.moveState.posTop = this.posTop, this.moveState.posLeft = this.posLeft;
@@ -8828,25 +9549,25 @@
     }
     motionHandler(t) {
       t.stopPropagation();
-      const e = xo.fromPointerEvent(t),
+      const e = za.fromPointerEvent(t),
         i = this.moveState,
         {
           grid: r,
           bounds: n,
           shiftBehavior: s,
-          boundsX: o,
-          boundsY: a
+          boundsX: a,
+          boundsY: o
         } = this;
-      if (i.moveDist = xo.fromObject({
+      if (i.moveDist = za.fromObject({
         x: e.x - i.mouseCoord.x,
         y: e.y - i.mouseCoord.y
-      }), i.mouseCoord = e, i.totalDist = xo.fromObject({
+      }), i.mouseCoord = e, i.totalDist = za.fromObject({
         x: i.totalDist.x + i.moveDist.x,
         y: i.totalDist.y + i.moveDist.y
-      }), i.coords = xo.fromObject({
+      }), i.coords = za.fromObject({
         x: Math.round(i.totalDist.x / r) * r + i.startCoord.x,
         y: Math.round(i.totalDist.y / r) * r + i.startCoord.y
-      }), s && t.shiftKey && o.unconstrained && a.unconstrained) {
+      }), s && t.shiftKey && a.unconstrained && o.unconstrained) {
         const {
           x: t,
           y: e
@@ -8866,8 +9587,8 @@
       return W`<slot></slot>`;
     }
   }
-  window.customElements.get("lit-movable") || window.customElements.define("lit-movable", So);
-  class $o extends ut {
+  window.customElements.get("lit-movable") || window.customElements.define("lit-movable", Ra);
+  class ja extends mt {
     static properties = {
       color: {
         type: Object,
@@ -8898,19 +9619,19 @@
         type: Boolean
       }
     };
-    static styles = mo;
+    static styles = Da;
     _color;
     constructor() {
-      super(), this._color = oo.parse(so.slateblue), this.isHsl = !0, this.buttonDisabled = !1;
+      super(), this._color = Sa.parse(Ea.slateblue), this.isHsl = !0, this.buttonDisabled = !1;
     }
     firstUpdated(t) {
-      this.debounceMode = !1, t.has("value") && (this.color = oo.parse(this.value));
+      this.debounceMode = !1, t.has("value") && (this.color = Sa.parse(this.value));
     }
     get color() {
       return this._color;
     }
     set color(t) {
-      (t = t.hsx ? t : t.rgba ? oo.parse(...t.rgba) : oo.parse(t)) && (this.hex = t.hex, this._color = t, ao(this.renderRoot, t, "colorchanged"));
+      (t = t.hsx ? t : t.rgba ? Sa.parse(...t.rgba) : Sa.parse(t)) && (this.hex = t.hex, this._color = t, Pa(this.renderRoot, t, "colorchanged"));
     }
     updateColor({
       detail: {
@@ -8921,7 +9642,7 @@
     }
     setColor(t) {
       const e = this.renderRoot.querySelector("input#hex").value,
-        i = oo.parse(e);
+        i = Sa.parse(e);
       i ? this.color = i : console.log(`ignored unparsable input: ${e}`);
     }
     setHue({
@@ -8945,17 +9666,16 @@
       this.isHsl = t;
     }
     okColor() {
-      ao(this.renderRoot, this.color, "colorpicked");
+      Pa(this.renderRoot, this.color, "colorpicked");
     }
     showCopyDialog() {
       if (this.copied = null, this.dlg = this.dlg ?? this.renderRoot.querySelector("dialog"), this.dlg.open) return this.dlg.classList.remove("open"), this.dlg.close();
       this.dlg.show(), this.dlg.classList.add("open");
     }
     clipboard(t) {
-      const e = this.color.toString(t);
-      window.navigator.clipboard.writeText(e).then(() => {
-        this.hideCopyDialog(e);
-      });
+      const e = this.color.toString(t),
+        i = window.navigator.clipboard;
+      i && i.writeText ? i.writeText(e).then(() => this.hideCopyDialog(e), () => this.hideCopyDialog(e)) : this.hideCopyDialog(e);
     }
     hideCopyDialog(t) {
       if (t) return this.copied = t, setTimeout(() => this.dlg.classList.remove("open"), 400), void setTimeout(() => this.hideCopyDialog(), 1200);
@@ -9008,7 +9728,7 @@
             `)}
           <div class="hex">
             <dialog @blur="${() => this.hideCopyDialog()}" tabindex="0">
-              <sub class="copied" style="${Un(n)}"
+              <sub class="copied" style="${Vn(n)}"
                 >copied <em>${this.copied}</em></sub
               >
               ${this.copied ? W`` : W`
@@ -9027,7 +9747,7 @@
                         class="button"
                         tabindex="0"
                       >
-                        ${co}
+                        ${Aa}
                       </button>
                     </a>
                     <a
@@ -9045,7 +9765,7 @@
                         class="button"
                         tabindex="0"
                       >
-                        ${co}
+                        ${Aa}
                       </button>
                     </a>
                     <a
@@ -9063,7 +9783,7 @@
                         class="button"
                         tabindex="0"
                       >
-                        ${co}
+                        ${Aa}
                       </button>
                     </a>
                   `}
@@ -9081,7 +9801,7 @@
               @click="${this.showCopyDialog}"
               class="button copy"
             >
-              ${co}
+              ${Aa}
               <span>&#11205;</span>
             </a>
           </div>
@@ -9099,12 +9819,12 @@
           <div class="hsl-mode">
             <a
               title="Use hue / saturation / value (brightness) mode"
-              class="${Nn(e)}"
+              class="${Un(e)}"
               @click="${() => this.setHsl(!1)}"
               >HSV</a
             ><a
               title="Use hue / saturation / luminosity mode"
-              class="${Nn(i)}"
+              class="${Un(i)}"
               @click="${() => this.setHsl(!0)}"
               >HSL</a
             >
@@ -9125,7 +9845,7 @@
               @click="${this.okColor}"
               >OK
               <span class="swatch">
-                <span style="${Un(r)}"></span>
+                <span style="${Vn(r)}"></span>
                 <span class="checky"></span>
               </span>
             </a>
@@ -9135,8 +9855,8 @@
     </div>`;
     }
   }
-  window.customElements.get("color-picker") || window.customElements.define("color-picker", $o);
-  const Po = {
+  window.customElements.get("color-picker") || window.customElements.define("color-picker", ja);
+  const Va = {
     keyframeOptions: {
       duration: 250,
       direction: "alternate",
@@ -9144,16 +9864,16 @@
     },
     properties: ["height", "opacity", "scale"]
   };
-  let Ao = class extends ut {
+  let Ga = class extends mt {
     constructor() {
       super(...arguments), this.box_id = 0, this.spoolList = [], this.spool_index = -1, this._isOpen = !1, this._changingSlot = !1, this._colourPresetChange = t => {
         this.color = t.currentTarget.preset, this._elColorPicker && (this._elColorPicker.color = this.color);
       }, this._handleModalEvent = t => {
         const e = t;
-        e.stopPropagation(), e.detail.modalOpen && (this._isOpen = !0, this.box_id = Number(e.detail.box_id), this.spool_index = Number(e.detail.spool_index), this.material_type = Si(e.detail.material_type), this.color = e.detail.color);
+        e.stopPropagation(), e.detail.modalOpen && (this._isOpen = !0, this.box_id = Number(e.detail.box_id), this.spool_index = Number(e.detail.spool_index), this.material_type = Ci(e.detail.material_type), this.color = e.detail.color);
       }, this._handleDropdownEvent = t => {
         const e = t;
-        e.stopPropagation(), e.detail.value && (this.material_type = Si(e.detail.value));
+        e.stopPropagation(), e.detail.value && (this.material_type = Ci(e.detail.value));
       }, this._handleColourEvent = t => {
         const e = t;
         e.stopPropagation(), e.detail.color && (this.color = e.detail.color.rgb);
@@ -9181,7 +9901,7 @@
       null === (t = this.parentElement) || void 0 === t || t.removeEventListener("ac-mcb-modal", this._handleModalEvent), super.disconnectedCallback();
     }
     willUpdate(t) {
-      super.willUpdate(t), t.has("language") && (this._heading = Tn("card.spool_settings.heading", this.language), this._labelSelectMaterial = Tn("card.spool_settings.label_select_material", this.language), this._labelSelectColour = Tn("card.spool_settings.label_select_colour", this.language), this._buttonSave = Tn("common.actions.save", this.language));
+      super.willUpdate(t), t.has("language") && (this._heading = Mn("card.spool_settings.heading", this.language), this._labelSelectMaterial = Mn("card.spool_settings.label_select_material", this.language), this._labelSelectColour = Mn("card.spool_settings.label_select_colour", this.language), this._buttonSave = Mn("common.actions.save", this.language));
     }
     update(t) {
       super.update(t), this._isOpen ? this.style.display = "block" : this.style.display = "none";
@@ -9190,16 +9910,16 @@
       return W`
       <div
         class="ac-modal-container"
-        style=${Un({
+        style=${Vn({
         height: "auto",
         opacity: 1,
         scale: 1
       })}
-        ${bs(Object.assign({}, Po))}
+        ${ia(Object.assign({}, Va))}
       >
         <span class="ac-modal-close" @click=${this._closeModal}>&times;</span>
         <div class="ac-modal-card" @click=${this._cardClick}>
-          ${this.color ? this._renderCard() : K}
+          ${this.color ? this._renderCard() : J}
         </div>
       </div>
     `;
@@ -9214,8 +9934,8 @@
               <div>
                 <p class="ac-modal-label">${this._labelSelectMaterial}:</p>
                 <anycubic-ui-select-dropdown
-                  .availableOptions=${Re}
-                  .placeholder=${Re.PLA}
+                  .availableOptions=${Ge}
+                  .placeholder=${Ge.PLA}
                   .initialItem=${this.material_type}
                 ></anycubic-ui-select-dropdown>
               </div>
@@ -9234,17 +9954,17 @@
               </ha-control-button>
             </div>
           </div>
-        ` : K;
+        ` : J;
     }
     _renderPresets() {
       return W`
       <div>
         <p class="ac-modal-label">Choose Preset Colour:</p>
         <div class="ac-mcb-presets">
-          ${this.slotColors ? Ss(this.slotColors, (t, e) => W`
+          ${this.slotColors ? ys(this.slotColors, (t, e) => W`
                   <div
                     class="ac-mcb-preset-color"
-                    style=${Un({
+                    style=${Vn({
         "background-color": t
       })}
                     .preset=${t}
@@ -9252,7 +9972,7 @@
                   >
                     &nbsp;
                   </div>
-                `) : K}
+                `) : J}
         </div>
       </div>
     `;
@@ -9260,7 +9980,7 @@
     _submitSlotChanges() {
       if (this.selectedPrinterDevice && this.material_type && this.spool_index >= 0 && this.color && this.color.length >= 3) {
         const t = `multi_color_box_set_slot_${this.material_type.toLowerCase()}`;
-        this._changingSlot = !0, this.hass.callService(He, t, {
+        this._changingSlot = !0, this.hass.callService(De, t, {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           box_id: this.box_id,
@@ -9277,7 +9997,7 @@
     }
     static get styles() {
       return p`
-      ${Ns}
+      ${ra}
 
       .ac-slot-title {
         font-size: 24px;
@@ -9324,12 +10044,12 @@
     `;
     }
   };
-  n([wt("color-picker")], Ao.prototype, "_elColorPicker", void 0), n([vt()], Ao.prototype, "hass", void 0), n([vt()], Ao.prototype, "language", void 0), n([vt({
+  n([$t("color-picker")], Ga.prototype, "_elColorPicker", void 0), n([_t()], Ga.prototype, "hass", void 0), n([_t()], Ga.prototype, "language", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], Ao.prototype, "selectedPrinterDevice", void 0), n([vt({
+  })], Ga.prototype, "selectedPrinterDevice", void 0), n([_t({
     attribute: "slot-colors"
-  })], Ao.prototype, "slotColors", void 0), n([yt()], Ao.prototype, "box_id", void 0), n([yt()], Ao.prototype, "spoolList", void 0), n([yt()], Ao.prototype, "spool_index", void 0), n([yt()], Ao.prototype, "material_type", void 0), n([yt()], Ao.prototype, "color", void 0), n([yt()], Ao.prototype, "_isOpen", void 0), n([yt()], Ao.prototype, "_heading", void 0), n([yt()], Ao.prototype, "_labelSelectMaterial", void 0), n([yt()], Ao.prototype, "_labelSelectColour", void 0), n([yt()], Ao.prototype, "_buttonSave", void 0), n([yt()], Ao.prototype, "_changingSlot", void 0), Ao = n([Rn("anycubic-printercard-multicolorbox_modal_spool")], Ao);
-  const To = {
+  })], Ga.prototype, "slotColors", void 0), n([wt()], Ga.prototype, "box_id", void 0), n([wt()], Ga.prototype, "spoolList", void 0), n([wt()], Ga.prototype, "spool_index", void 0), n([wt()], Ga.prototype, "material_type", void 0), n([wt()], Ga.prototype, "color", void 0), n([wt()], Ga.prototype, "_isOpen", void 0), n([wt()], Ga.prototype, "_heading", void 0), n([wt()], Ga.prototype, "_labelSelectMaterial", void 0), n([wt()], Ga.prototype, "_labelSelectColour", void 0), n([wt()], Ga.prototype, "_buttonSave", void 0), n([wt()], Ga.prototype, "_changingSlot", void 0), Ga = n([Gn("anycubic-printercard-multicolorbox_modal_spool")], Ga);
+  const Za = {
     keyframeOptions: {
       duration: 250,
       direction: "alternate",
@@ -9337,19 +10057,19 @@
     },
     properties: ["height", "opacity", "scale"]
   };
-  let Co = class extends ut {
+  let Ya = class extends mt {
     constructor() {
       super(...arguments), this.availableSpeedModes = {}, this.isFDM = !1, this.currentSpeedModeKey = 0, this.currentSpeedModeDescr = void 0, this._userEditSpeedMode = !1, this.currentFanSpeed = 0, this._userEditFanSpeed = !1, this.currentAuxFanSpeed = 0, this._userEditAuxFanSpeed = !1, this.currentBoxFanSpeed = 0, this._userEditBoxFanSpeed = !1, this.currentTargetTempNozzle = 0, this.minTargetTempNozzle = 0, this.maxTargetTempNozzle = 0, this._userEditTargetTempNozzle = !1, this.currentTargetTempHotbed = 0, this.minTargetTempHotbed = 0, this.maxTargetTempHotbed = 0, this._userEditTargetTempHotbed = !1, this._isOpen = !1, this._changingSettings = !1, this._setConfirmationMode = t => {
-        this._confirmationType = t.currentTarget.confirmation_type, this._confirmMessage = Tn("card.print_settings.confirm_message", this.language, "action", Tn("common.actions." + this._confirmationType, this.language));
+        this._confirmationType = t.currentTarget.confirmation_type, this._confirmMessage = Mn("card.print_settings.confirm_message", this.language, "action", Mn("common.actions." + this._confirmationType, this.language));
       }, this._handleConfirmApprove = () => {
         switch (this._confirmationType) {
-          case je.PAUSE:
+          case Ze.PAUSE:
             this._pressHassButton("pause_print");
             break;
-          case je.RESUME:
+          case Ze.RESUME:
             this._pressHassButton("resume_print");
             break;
-          case je.CANCEL:
+          case Ze.CANCEL:
             this._pressHassButton("cancel_print");
         }
         this._confirmationType = void 0, this._closeModal();
@@ -9418,27 +10138,27 @@
       null === (t = this.parentElement) || void 0 === t || t.removeEventListener("ac-printset-modal", this._handleModalEvent), super.disconnectedCallback();
     }
     willUpdate(t) {
-      if (super.willUpdate(t), t.has("language") && (this._labelNozzleTemperature = Tn("card.print_settings.label_nozzle_temp", this.language), this._labelHotbedTemperature = Tn("card.print_settings.label_hotbed_temp", this.language), this._labelFanSpeed = Tn("card.print_settings.label_fan_speed", this.language), this._labelAuxFanSpeed = Tn("card.print_settings.label_aux_fan_speed", this.language), this._labelBoxFanSpeed = Tn("card.print_settings.label_box_fan_speed", this.language), this._buttonYes = Tn("common.actions.yes", this.language), this._buttonNo = Tn("common.actions.no", this.language), this._buttonPrintPause = Tn("card.print_settings.print_pause", this.language), this._buttonPrintResume = Tn("card.print_settings.print_resume", this.language), this._buttonPrintCancel = Tn("card.print_settings.print_cancel", this.language), this._buttonSaveSpeedMode = Tn("card.print_settings.save_speed_mode", this.language), this._buttonSaveTargetNozzle = Tn("card.print_settings.save_target_nozzle", this.language), this._buttonSaveTargetHotbed = Tn("card.print_settings.save_target_hotbed", this.language), this._buttonSaveFanSpeed = Tn("card.print_settings.save_fan_speed", this.language), this._buttonSaveAuxFanSpeed = Tn("card.print_settings.save_aux_fan_speed", this.language), this._buttonSaveBoxFanSpeed = Tn("card.print_settings.save_box_fan_speed", this.language)), t.has("hass") || t.has("printerEntities") || t.has("printerEntityIdPart")) {
-        if (this.isFDM = pi(this.hass, this.printerEntities, this.printerEntityIdPart), this._userEditFanSpeed || (this.currentFanSpeed = Number(li(this.hass, this.printerEntities, this.printerEntityIdPart, "fan_speed", 0).state)), !this._userEditTargetTempNozzle) {
-          const t = li(this.hass, this.printerEntities, this.printerEntityIdPart, "target_nozzle_temperature", 0, {
+      if (super.willUpdate(t), t.has("language") && (this._labelNozzleTemperature = Mn("card.print_settings.label_nozzle_temp", this.language), this._labelHotbedTemperature = Mn("card.print_settings.label_hotbed_temp", this.language), this._labelFanSpeed = Mn("card.print_settings.label_fan_speed", this.language), this._labelAuxFanSpeed = Mn("card.print_settings.label_aux_fan_speed", this.language), this._labelBoxFanSpeed = Mn("card.print_settings.label_box_fan_speed", this.language), this._buttonYes = Mn("common.actions.yes", this.language), this._buttonNo = Mn("common.actions.no", this.language), this._buttonPrintPause = Mn("card.print_settings.print_pause", this.language), this._buttonPrintResume = Mn("card.print_settings.print_resume", this.language), this._buttonPrintCancel = Mn("card.print_settings.print_cancel", this.language), this._buttonSaveSpeedMode = Mn("card.print_settings.save_speed_mode", this.language), this._buttonSaveTargetNozzle = Mn("card.print_settings.save_target_nozzle", this.language), this._buttonSaveTargetHotbed = Mn("card.print_settings.save_target_hotbed", this.language), this._buttonSaveFanSpeed = Mn("card.print_settings.save_fan_speed", this.language), this._buttonSaveAuxFanSpeed = Mn("card.print_settings.save_aux_fan_speed", this.language), this._buttonSaveBoxFanSpeed = Mn("card.print_settings.save_box_fan_speed", this.language)), t.has("hass") || t.has("printerEntities") || t.has("printerEntityIdPart")) {
+        if (this.isFDM = mi(this.hass, this.printerEntities, this.printerEntityIdPart), this._userEditFanSpeed || (this.currentFanSpeed = Number(di(this.hass, this.printerEntities, this.printerEntityIdPart, "fan_speed", 0).state)), !this._userEditTargetTempNozzle) {
+          const t = di(this.hass, this.printerEntities, this.printerEntityIdPart, "target_nozzle_temperature", 0, {
             limit_min: 0,
             limit_max: 0
           });
           this.currentTargetTempNozzle = Number(t.state), this.minTargetTempNozzle = t.attributes.limit_min, this.maxTargetTempNozzle = t.attributes.limit_max;
         }
         if (!this._userEditTargetTempHotbed) {
-          const t = li(this.hass, this.printerEntities, this.printerEntityIdPart, "target_hotbed_temperature", 0, {
+          const t = di(this.hass, this.printerEntities, this.printerEntityIdPart, "target_hotbed_temperature", 0, {
             limit_min: 0,
             limit_max: 0
           });
           this.currentTargetTempHotbed = Number(t.state), this.minTargetTempHotbed = t.attributes.limit_min, this.maxTargetTempHotbed = t.attributes.limit_max;
         }
         if (!this._userEditSpeedMode) {
-          const t = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_speed_mode", "", {
+          const t = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_speed_mode", "", {
             available_modes: [],
             job_speed_mode_code: -1
           });
-          this.availableSpeedModes = Ei(t), this.currentSpeedModeKey = t.attributes.print_speed_mode_code, this.currentSpeedModeDescr = this.currentSpeedModeKey >= 0 && this.currentSpeedModeKey in this.availableSpeedModes ? this.availableSpeedModes[this.currentSpeedModeKey] : void 0;
+          this.availableSpeedModes = Pi(t), this.currentSpeedModeKey = t.attributes.print_speed_mode_code, this.currentSpeedModeDescr = this.currentSpeedModeKey >= 0 && this.currentSpeedModeKey in this.availableSpeedModes ? this.availableSpeedModes[this.currentSpeedModeKey] : void 0;
         }
       }
     }
@@ -9449,12 +10169,12 @@
       return W`
       <div
         class="ac-modal-container"
-        style=${Un({
+        style=${Vn({
         height: "auto",
         opacity: 1,
         scale: 1
       })}
-        ${bs(Object.assign({}, To))}
+        ${ia(Object.assign({}, Za))}
       >
         <span class="ac-modal-close" @click=${this._closeModal}>&times;</span>
         <div class="ac-modal-card" @click=${this._cardClick}>
@@ -9494,7 +10214,7 @@
         <div>
           <div class="ac-settings-row ac-settings-buttonrow">
             <ha-control-button
-              .confirmation_type=${je.PAUSE}
+              .confirmation_type=${Ze.PAUSE}
               @click=${this._setConfirmationMode}
             >
               ${this._buttonPrintPause}
@@ -9502,7 +10222,7 @@
           </div>
           <div class="ac-settings-row ac-settings-buttonrow">
             <ha-control-button
-              .confirmation_type=${je.RESUME}
+              .confirmation_type=${Ze.RESUME}
               @click=${this._setConfirmationMode}
             >
               ${this._buttonPrintResume}
@@ -9510,7 +10230,7 @@
           </div>
           <div class="ac-settings-row ac-settings-buttonrow">
             <ha-control-button
-              .confirmation_type=${je.CANCEL}
+              .confirmation_type=${Ze.CANCEL}
               @click=${this._setConfirmationMode}
             >
               ${this._buttonPrintCancel}
@@ -9620,14 +10340,14 @@
                     ${this._buttonSaveBoxFanSpeed}
                   </ha-control-button>
                 </div>
-              ` : K}
+              ` : J}
         </div>
       </div>
     `;
     }
     _pressHassButton(t) {
       this._changingSettings = !0, this.hass.callService("button", "press", {
-        entity_id: ii(this.printerEntityIdPart, "button", t)
+        entity_id: si(this.printerEntityIdPart, "button", t)
       }).then(() => {
         this._changingSettings = !1;
       }).catch(t => {
@@ -9640,7 +10360,7 @@
     _submitChangedSpeedMode() {
       if (this._userEditSpeedMode && this.selectedPrinterDevice) {
         const t = "change_print_speed_mode";
-        this._changingSettings = !0, this.hass.callService(He, t, {
+        this._changingSettings = !0, this.hass.callService(De, t, {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           speed_mode: this.currentSpeedModeKey
@@ -9654,7 +10374,7 @@
     _submitChangedFanSpeed() {
       if (this._userEditFanSpeed && this.selectedPrinterDevice) {
         const t = "change_print_fan_speed";
-        this._changingSettings = !0, this.hass.callService(He, t, {
+        this._changingSettings = !0, this.hass.callService(De, t, {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           speed: this.currentFanSpeed
@@ -9668,7 +10388,7 @@
     _submitChangedAuxFanSpeed() {
       if (this._userEditAuxFanSpeed && this.selectedPrinterDevice) {
         const t = "change_print_aux_fan_speed";
-        this._changingSettings = !0, this.hass.callService(He, t, {
+        this._changingSettings = !0, this.hass.callService(De, t, {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           speed: this.currentAuxFanSpeed
@@ -9682,7 +10402,7 @@
     _submitChangedBoxFanSpeed() {
       if (this._userEditBoxFanSpeed && this.selectedPrinterDevice) {
         const t = "change_print_box_fan_speed";
-        this._changingSettings = !0, this.hass.callService(He, t, {
+        this._changingSettings = !0, this.hass.callService(De, t, {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           speed: this.currentBoxFanSpeed
@@ -9696,7 +10416,7 @@
     _submitChangedTargetTempNozzle() {
       if (this._userEditTargetTempNozzle && this.selectedPrinterDevice) {
         const t = "change_print_target_nozzle_temperature";
-        this._changingSettings = !0, this.hass.callService(He, t, {
+        this._changingSettings = !0, this.hass.callService(De, t, {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           temperature: this.currentTargetTempNozzle
@@ -9710,7 +10430,7 @@
     _submitChangedTargetTempHotbed() {
       if (this._userEditTargetTempHotbed && this.selectedPrinterDevice) {
         const t = "change_print_target_hotbed_temperature";
-        this._changingSettings = !0, this.hass.callService(He, t, {
+        this._changingSettings = !0, this.hass.callService(De, t, {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           temperature: this.currentTargetTempHotbed
@@ -9723,7 +10443,7 @@
     }
     static get styles() {
       return p`
-      ${Ns}
+      ${ra}
 
       .ac-settings-header {
         font-size: 24px;
@@ -9775,17 +10495,17 @@
     `;
     }
   };
-  n([vt()], Co.prototype, "hass", void 0), n([vt()], Co.prototype, "language", void 0), n([vt({
+  n([_t()], Ya.prototype, "hass", void 0), n([_t()], Ya.prototype, "language", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], Co.prototype, "selectedPrinterDevice", void 0), n([vt({
+  })], Ya.prototype, "selectedPrinterDevice", void 0), n([_t({
     attribute: "printer-entities"
-  })], Co.prototype, "printerEntities", void 0), n([vt({
+  })], Ya.prototype, "printerEntities", void 0), n([_t({
     attribute: "printer-entity-id-part"
-  })], Co.prototype, "printerEntityIdPart", void 0), n([yt()], Co.prototype, "availableSpeedModes", void 0), n([yt()], Co.prototype, "isFDM", void 0), n([yt()], Co.prototype, "currentSpeedModeKey", void 0), n([yt()], Co.prototype, "currentSpeedModeDescr", void 0), n([yt()], Co.prototype, "_userEditSpeedMode", void 0), n([yt()], Co.prototype, "currentFanSpeed", void 0), n([yt()], Co.prototype, "_userEditFanSpeed", void 0), n([yt()], Co.prototype, "currentAuxFanSpeed", void 0), n([yt()], Co.prototype, "_userEditAuxFanSpeed", void 0), n([yt()], Co.prototype, "currentBoxFanSpeed", void 0), n([yt()], Co.prototype, "_userEditBoxFanSpeed", void 0), n([yt()], Co.prototype, "currentTargetTempNozzle", void 0), n([yt()], Co.prototype, "minTargetTempNozzle", void 0), n([yt()], Co.prototype, "maxTargetTempNozzle", void 0), n([yt()], Co.prototype, "_userEditTargetTempNozzle", void 0), n([yt()], Co.prototype, "currentTargetTempHotbed", void 0), n([yt()], Co.prototype, "minTargetTempHotbed", void 0), n([yt()], Co.prototype, "maxTargetTempHotbed", void 0), n([yt()], Co.prototype, "_userEditTargetTempHotbed", void 0), n([yt()], Co.prototype, "_confirmationType", void 0), n([yt()], Co.prototype, "_isOpen", void 0), n([yt()], Co.prototype, "_confirmMessage", void 0), n([yt()], Co.prototype, "_labelNozzleTemperature", void 0), n([yt()], Co.prototype, "_labelHotbedTemperature", void 0), n([yt()], Co.prototype, "_labelFanSpeed", void 0), n([yt()], Co.prototype, "_labelAuxFanSpeed", void 0), n([yt()], Co.prototype, "_labelBoxFanSpeed", void 0), n([yt()], Co.prototype, "_buttonYes", void 0), n([yt()], Co.prototype, "_buttonNo", void 0), n([yt()], Co.prototype, "_buttonPrintPause", void 0), n([yt()], Co.prototype, "_buttonPrintResume", void 0), n([yt()], Co.prototype, "_buttonPrintCancel", void 0), n([yt()], Co.prototype, "_buttonSaveSpeedMode", void 0), n([yt()], Co.prototype, "_buttonSaveTargetNozzle", void 0), n([yt()], Co.prototype, "_buttonSaveTargetHotbed", void 0), n([yt()], Co.prototype, "_buttonSaveFanSpeed", void 0), n([yt()], Co.prototype, "_buttonSaveAuxFanSpeed", void 0), n([yt()], Co.prototype, "_buttonSaveBoxFanSpeed", void 0), n([yt()], Co.prototype, "_changingSettings", void 0), Co = n([Rn("anycubic-printercard-printsettings_modal")], Co);
-  const ko = wi();
-  let Ho = class extends ut {
+  })], Ya.prototype, "printerEntityIdPart", void 0), n([wt()], Ya.prototype, "availableSpeedModes", void 0), n([wt()], Ya.prototype, "isFDM", void 0), n([wt()], Ya.prototype, "currentSpeedModeKey", void 0), n([wt()], Ya.prototype, "currentSpeedModeDescr", void 0), n([wt()], Ya.prototype, "_userEditSpeedMode", void 0), n([wt()], Ya.prototype, "currentFanSpeed", void 0), n([wt()], Ya.prototype, "_userEditFanSpeed", void 0), n([wt()], Ya.prototype, "currentAuxFanSpeed", void 0), n([wt()], Ya.prototype, "_userEditAuxFanSpeed", void 0), n([wt()], Ya.prototype, "currentBoxFanSpeed", void 0), n([wt()], Ya.prototype, "_userEditBoxFanSpeed", void 0), n([wt()], Ya.prototype, "currentTargetTempNozzle", void 0), n([wt()], Ya.prototype, "minTargetTempNozzle", void 0), n([wt()], Ya.prototype, "maxTargetTempNozzle", void 0), n([wt()], Ya.prototype, "_userEditTargetTempNozzle", void 0), n([wt()], Ya.prototype, "currentTargetTempHotbed", void 0), n([wt()], Ya.prototype, "minTargetTempHotbed", void 0), n([wt()], Ya.prototype, "maxTargetTempHotbed", void 0), n([wt()], Ya.prototype, "_userEditTargetTempHotbed", void 0), n([wt()], Ya.prototype, "_confirmationType", void 0), n([wt()], Ya.prototype, "_isOpen", void 0), n([wt()], Ya.prototype, "_confirmMessage", void 0), n([wt()], Ya.prototype, "_labelNozzleTemperature", void 0), n([wt()], Ya.prototype, "_labelHotbedTemperature", void 0), n([wt()], Ya.prototype, "_labelFanSpeed", void 0), n([wt()], Ya.prototype, "_labelAuxFanSpeed", void 0), n([wt()], Ya.prototype, "_labelBoxFanSpeed", void 0), n([wt()], Ya.prototype, "_buttonYes", void 0), n([wt()], Ya.prototype, "_buttonNo", void 0), n([wt()], Ya.prototype, "_buttonPrintPause", void 0), n([wt()], Ya.prototype, "_buttonPrintResume", void 0), n([wt()], Ya.prototype, "_buttonPrintCancel", void 0), n([wt()], Ya.prototype, "_buttonSaveSpeedMode", void 0), n([wt()], Ya.prototype, "_buttonSaveTargetNozzle", void 0), n([wt()], Ya.prototype, "_buttonSaveTargetHotbed", void 0), n([wt()], Ya.prototype, "_buttonSaveFanSpeed", void 0), n([wt()], Ya.prototype, "_buttonSaveAuxFanSpeed", void 0), n([wt()], Ya.prototype, "_buttonSaveBoxFanSpeed", void 0), n([wt()], Ya.prototype, "_changingSettings", void 0), Ya = n([Gn("anycubic-printercard-printsettings_modal")], Ya);
+  const Ka = Ei();
+  let qa = class extends mt {
     constructor() {
-      super(...arguments), this.monitoredStats = ko, this.round = !0, this.temperatureUnit = Be.C, this.mediaView = ze.Auto, this.showControls = !0, this.isHidden = !1, this.isPrinting = !1, this.isPaused = !1, this.hiddenOverride = !1, this.hasColorbox = !1, this.hasSecondaryColorbox = !1, this.lightIsOn = !1, this.statusColor = "#ffc107", this.printStateString = "unknown", this.progressPercent = 0, this._togglingLight = !1, this._togglingPower = !1, this._pressButtonEvent = t => {
+      super(...arguments), this.monitoredStats = Ka, this.round = !0, this.temperatureUnit = Ie.C, this.mediaView = Re.Auto, this.printerArt = je.Auto, this.noCamera = !1, this.showControls = !0, this.showMoveButtons = !1, this.isHidden = !1, this.isPrinting = !1, this.isPaused = !1, this.hiddenOverride = !1, this.hasColorbox = !1, this.hasSecondaryColorbox = !1, this.lightIsOn = !1, this.statusColor = "#ffc107", this.printStateString = "unknown", this.progressPercent = 0, this._togglingLight = !1, this._togglingPower = !1, this._pressButtonEvent = t => {
         const e = t.currentTarget.entityId;
         e && this.hass.callService("button", "press", {
           entity_id: e
@@ -9800,7 +10520,7 @@
         const e = t.currentTarget.sectionKey;
         this._openSection = this._openSection === e ? void 0 : e;
       }, this._openPrintSettingsModal = () => {
-        De(this._printerCardContainer, "ac-printset-modal", {
+        Fe(this._printerCardContainer, "ac-printset-modal", {
           modalOpen: !0
         });
       }, this._toggleLightEntity = () => {
@@ -9825,8 +10545,8 @@
     }
     willUpdate(t) {
       var e, i, r, n;
-      if (super.willUpdate(t), t.has("language") && (this._buttonPrintSettings = Tn("card.buttons.print_settings", this.language)), t.has("monitoredStats") && (this.monitoredStats = (i = this.monitoredStats, r = ko, void 0 === i ? r : i)), t.has("selectedPrinterID") && (this.printerEntities = ti(this.hass, this.selectedPrinterID), this.printerEntityIdPart = ni(this.printerEntities)), t.has("hass") || t.has("alwaysShow") || t.has("hiddenOverride") || t.has("cameraEntityId") || t.has("selectedPrinterID")) {
-        this.progressPercent = this._percentComplete(), this.hasColorbox = "active" === li(this.hass, this.printerEntities, this.printerEntityIdPart, "ace_spools", "inactive").state, this.hasSecondaryColorbox = "active" === li(this.hass, this.printerEntities, this.printerEntityIdPart, "secondary_multi_color_box_spools", "inactive").state, this.camera = function (t, e) {
+      if (super.willUpdate(t), t.has("language") && (this._buttonPrintSettings = Mn("card.buttons.print_settings", this.language)), t.has("monitoredStats") && (this.monitoredStats = (i = this.monitoredStats, r = Ka, void 0 === i ? r : i)), t.has("selectedPrinterID") && (this.printerEntities = ii(this.hass, this.selectedPrinterID), this.printerEntityIdPart = oi(this.printerEntities)), t.has("hass") || t.has("alwaysShow") || t.has("hiddenOverride") || t.has("cameraEntityId") || t.has("selectedPrinterID")) {
+        this.progressPercent = this._percentComplete(), this.hasColorbox = "active" === di(this.hass, this.printerEntities, this.printerEntityIdPart, "ace_spools", "inactive").state, this.hasSecondaryColorbox = "active" === di(this.hass, this.printerEntities, this.printerEntityIdPart, "secondary_ace_spools", "inactive").state, this.camera = function (t, e) {
           var i, r;
           return e ? null !== (i = t.find(t => t.entity_id === e)) && void 0 !== i ? i : {
             entity_id: e,
@@ -9845,12 +10565,12 @@
             });
           }
           return i.sort((t, e) => Number(t.isCloud) - Number(e.isCloud));
-        }(this.hass, this.printerEntities), this.cameraEntityId), this.lightIsOn = Xe(this.hass, {
+        }(this.hass, this.printerEntities), this.cameraEntityId), this.lightIsOn = Qe(this.hass, {
           entity_id: null !== (e = this.lightEntityId) && void 0 !== e ? e : ""
         }, !0, !1);
-        const t = li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state", "unknown").state.toLowerCase(),
+        const t = di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state", "unknown").state.toLowerCase(),
           i = "unavailable" !== t && "unknown" !== t;
-        this.printStateString = i ? t : this._printerAvailability(), this.isPrinting = i && mi(t), this.isPaused = "paused" === t, this.isHidden = !this.alwaysShow && !this.hiddenOverride && !this.isPrinting, this.statusColor = "preheating" === (n = this.printStateString) || "busy" === n ? "#ffc107" : mi(n) ? "#4caf50" : "unknown" === n ? "#f44336" : "operational" === n || "finished" === n || "available" === n || "idle" === n || "free" === n ? "#00bcd4" : "#f44336";
+        this.printStateString = i ? t : this._printerAvailability(), this.isPrinting = i && yi(t), this.isPaused = "paused" === t, this.isHidden = !this.alwaysShow && !this.hiddenOverride && !this.isPrinting, this.statusColor = "preheating" === (n = this.printStateString) || "busy" === n ? "#ffc107" : yi(n) ? "#4caf50" : "unknown" === n ? "#f44336" : "operational" === n || "finished" === n || "available" === n || "idle" === n || "free" === n ? "#00bcd4" : "#f44336";
       }
     }
     render() {
@@ -9858,23 +10578,24 @@
       <ha-card class="ac-printer-card">
         ${this._renderHeader()}
         <div
-          class="ac-body ${Nn({
+          class="ac-body ${Un({
         "ac-body-hidden": this.isHidden
       })}"
           aria-hidden=${this.isHidden ? "true" : "false"}
         >
           <div
-            class="ac-main ${Nn({
+            class="ac-main ${Un({
         "ac-main-stacked": !!this.vertical
       })}"
-            style=${Un(this._mainColumnStyles())}
+            style=${Vn(this._mainColumnStyles())}
           >
             ${this._renderMedia()}
             <div class="ac-summary">
               ${this._renderProgress()} ${this._renderStats()}
             </div>
           </div>
-          ${this._renderControls()} ${this._renderSections()}
+          ${this._renderControls()} ${this._renderMove()}
+          ${this._renderSections()}
         </div>
         <anycubic-printercard-multicolorbox_modal_spool
           .hass=${this.hass}
@@ -9911,20 +10632,20 @@
           @click=${this._toggleHiddenOveride}
           title=${this.alwaysShow ? "" : "Show or hide the card body"}
         >
-          <span class="ac-status-dot" style=${Un(i)}></span>
+          <span class="ac-status-dot" style=${Vn(i)}></span>
           <span class="ac-header-text">
             <span class="ac-header-name"
               >${null !== (e = null === (t = this.selectedPrinterDevice) || void 0 === t ? void 0 : t.name) && void 0 !== e ? e : "Anycubic printer"}</span
             >
             <span class="ac-header-state"
-              >${Ze(this.printStateString)}</span
+              >${qe(this.printStateString)}</span
             >
           </span>
         </button>
         <div class="ac-header-actions">
           ${this.lightEntityId ? W`
                 <button
-                  class="ac-icon-button ${Nn({
+                  class="ac-icon-button ${Un({
         "ac-icon-button-on": this.lightIsOn
       })}"
                   .disabled=${this._togglingLight}
@@ -9936,7 +10657,7 @@
                     .path=${this.lightIsOn ? "M12,6A6,6 0 0,1 18,12C18,14.22 16.79,16.16 15,17.2V19A1,1 0 0,1 14,20H10A1,1 0 0,1 9,19V17.2C7.21,16.16 6,14.22 6,12A6,6 0 0,1 12,6M14,21V22A1,1 0 0,1 13,23H11A1,1 0 0,1 10,22V21H14M20,11H23V13H20V11M1,11H4V13H1V11M13,1V4H11V1H13M4.92,3.5L7.05,5.64L5.63,7.05L3.5,4.93L4.92,3.5M16.95,5.63L19.07,3.5L20.5,4.93L18.37,7.05L16.95,5.63Z" : "M12,2C9.76,2 7.78,3.05 6.5,4.68L16.31,14.5C17.94,13.21 19,11.24 19,9A7,7 0 0,0 12,2M3.28,4L2,5.27L5.04,8.3C5,8.53 5,8.76 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H14.73L18.73,22L20,20.72L3.28,4M9,20V21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9Z"}
                   ></ha-svg-icon>
                 </button>
-              ` : K}
+              ` : J}
           ${this.powerEntityId ? W`
                 <button
                   class="ac-icon-button"
@@ -9947,7 +10668,7 @@
                 >
                   <ha-svg-icon .path=${"M16.56,5.44L15.11,6.89C16.84,7.94 18,9.83 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12C6,9.83 7.16,7.94 8.88,6.88L7.44,5.44C5.36,6.88 4,9.28 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12C20,9.28 18.64,6.88 16.56,5.44M13,3H11V13H13"}></ha-svg-icon>
                 </button>
-              ` : K}
+              ` : J}
         </div>
       </div>
     `;
@@ -9958,22 +10679,25 @@
       };
     }
     _renderMedia() {
-      return this.mediaView === ze.None ? K : W`
+      return this.mediaView === Re.None ? J : W`
       <anycubic-printercard-media_view
         .hass=${this.hass}
+        .language=${this.language}
         .printerEntities=${this.printerEntities}
         .printerEntityIdPart=${this.printerEntityIdPart}
         .mediaView=${this.mediaView}
+        .printerArt=${this.printerArt}
+        .noCamera=${this.noCamera}
         .camera=${this.camera}
         .isPrinting=${this.isPrinting}
       ></anycubic-printercard-media_view>
     `;
     }
     _renderProgress() {
-      if (!isFinite(this.progressPercent) || this.progressPercent < 0) return K;
+      if (!isFinite(this.progressPercent) || this.progressPercent < 0) return J;
       const t = Math.max(0, Math.min(100, this.progressPercent)),
-        e = Je(this.hass, this.printerEntities, "job_current_layer"),
-        i = Je(this.hass, this.printerEntities, "job_total_layers");
+        e = ei(this.hass, this.printerEntities, "job_current_layer"),
+        i = ei(this.hass, this.printerEntities, "job_total_layers");
       return W`
       <div class="ac-progress">
         <div class="ac-progress-head">
@@ -9982,12 +10706,12 @@
           >
           ${void 0 !== e && void 0 !== i ? W`<span class="ac-progress-layers"
                 >Layer ${e} / ${i}</span
-              >` : K}
+              >` : J}
         </div>
         <div class="ac-progress-track">
           <div
             class="ac-progress-fill"
-            style=${Un({
+            style=${Vn({
         width: `${t}%`,
         "background-color": this.statusColor
       })}
@@ -10013,25 +10737,25 @@
     `;
     }
     _renderControls() {
-      if (!this.showControls) return K;
+      if (!this.showControls) return J;
       const t = [];
-      return this.isPrinting && (t.push(this.isPaused ? this._renderActionButton("Resume", Mn, "resume_print") : this._renderActionButton("Pause", "M14,19H18V5H14M6,19H10V5H6V19Z", "pause_print")), t.push(this._renderActionButton("Cancel", "M18,18H6V6H18V18Z", "cancel_print", !0))), (this.showSettingsButton || this.isPrinting) && t.push(W`
+      return this.isPrinting && (t.push(this.isPaused ? this._renderActionButton("Resume", In, "resume_print") : this._renderActionButton("Pause", "M14,19H18V5H14M6,19H10V5H6V19Z", "pause_print")), t.push(this._renderActionButton("Cancel", "M18,18H6V6H18V18Z", "cancel_print", !0))), (this.showSettingsButton || this.isPrinting) && t.push(W`
         <button class="ac-button" @click=${this._openPrintSettingsModal}>
           <ha-svg-icon .path=${"M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"}></ha-svg-icon>
           <span>${this._buttonPrintSettings}</span>
         </button>
-      `), t.length ? W`<div class="ac-controls">${t}</div>` : K;
+      `), t.length ? W`<div class="ac-controls">${t}</div>` : J;
     }
     _renderActionButton(t, e, i, r = !1) {
-      const n = Ke(this.printerEntities, i),
+      const n = Je(this.printerEntities, i),
         s = n ? this.hass.states[n] : void 0,
-        o = !n || "unavailable" === (null == s ? void 0 : s.state);
+        a = !n || "unavailable" === (null == s ? void 0 : s.state);
       return W`
       <button
-        class="ac-button ${Nn({
+        class="ac-button ${Un({
         "ac-button-danger": r
       })}"
-        .disabled=${o}
+        .disabled=${a}
         .entityId=${n}
         @click=${this._pressButtonEvent}
       >
@@ -10040,11 +10764,14 @@
       </button>
     `;
     }
+    _renderMove() {
+      return this.showMoveButtons ? W`<div class="ac-move-panel">${this._renderMoveSection()}</div>` : J;
+    }
     _renderSections() {
       var t;
-      const e = null !== (t = this.sections) && void 0 !== t ? t : [Ue.Filament],
+      const e = null !== (t = this.sections) && void 0 !== t ? t : [Ve.Filament],
         i = [];
-      return e.includes(Ue.Filament) && this.hasColorbox && i.push(this._renderSection(Ue.Filament, "Filament", this._renderFilamentSection())), e.includes(Ue.Move) && i.push(this._renderSection(Ue.Move, "Move", this._renderMoveSection())), e.includes(Ue.Insights) && i.push(this._renderSection(Ue.Insights, "Insights", this._renderInsightsSection())), i.length ? W`${i}` : K;
+      return e.includes(Ve.Filament) && this.hasColorbox && i.push(this._renderSection(Ve.Filament, "Filament", this._renderFilamentSection())), e.includes(Ve.Insights) && i.push(this._renderSection(Ve.Insights, "Insights", this._renderInsightsSection())), i.length ? W`${i}` : J;
     }
     _renderSection(t, e, i) {
       const r = this._openSection === t;
@@ -10058,13 +10785,13 @@
         >
           <span>${e}</span>
           <ha-svg-icon
-            class="ac-section-chevron ${Nn({
+            class="ac-section-chevron ${Un({
         "ac-section-chevron-open": r
       })}"
-            .path=${Cn}
+            .path=${Hn}
           ></ha-svg-icon>
         </button>
-        ${r ? W`<div class="ac-section-body">${i}</div>` : K}
+        ${r ? W`<div class="ac-section-body">${i}</div>` : J}
       </div>
     `;
     }
@@ -10085,55 +10812,55 @@
               .printerEntityIdPart=${this.printerEntityIdPart}
               .box_id=${1}
             ></anycubic-printercard-multicolorbox_view>
-          ` : K}
+          ` : J}
     `;
     }
     _renderMoveSection() {
       var t, e;
-      const i = Ke(this.printerEntities, "axis_step"),
+      const i = Je(this.printerEntities, "axis_step"),
         r = i ? this.hass.states[i] : void 0,
-        n = "on" === (null === (t = Qe(this.hass, this.printerEntities, "axis_moving")) || void 0 === t ? void 0 : t.state),
-        s = "on" === (null === (e = Qe(this.hass, this.printerEntities, "axis_move_failed")) || void 0 === e ? void 0 : e.state);
+        n = "on" === (null === (t = ti(this.hass, this.printerEntities, "axis_moving")) || void 0 === t ? void 0 : t.state),
+        s = "on" === (null === (e = ti(this.hass, this.printerEntities, "axis_move_failed")) || void 0 === e ? void 0 : e.state);
       return W`
       ${r ? W`
             <div class="ac-step-segmented">
               ${this._renderStepOptions(i, r)}
             </div>
-          ` : K}
+          ` : J}
       <div class="ac-move">
         <div class="ac-move-col">
-          ${this._renderSquareButton("axis_home_all", kn, "Home all axes")}
+          ${this._renderSquareButton("axis_home_all", Dn, "Home all axes")}
           ${this._renderSquareButton("axis_motors_off", "M2.5,3.77L6.87,8.14L5,10V13H3V10H1V18H3V15H5V18H8L10,20H18V19.27L21.23,22.5L22.5,21.22L3.78,2.5L2.5,3.77M16,18H11L9,16H7V11L8,10H8.73L16,17.27V18M23,9V19H22.82L16,12.18V10H13.82L7.82,4H15V6H12V8H18V12H20V9H23Z", "Release motors")}
         </div>
 
         <div class="ac-dial">
-          ${this._renderWedge("axis_move_y_plus", Dn, "Y+", "up")}
+          ${this._renderWedge("axis_move_y_plus", Bn, "Y+", "up")}
           ${this._renderWedge("axis_move_x_minus", "M14,7L9,12L14,17V7Z", "X-", "left")}
           ${this._renderWedge("axis_move_x_plus", "M10,17L15,12L10,7V17Z", "X+", "right")}
-          ${this._renderWedge("axis_move_y_minus", Hn, "Y-", "down")}
+          ${this._renderWedge("axis_move_y_minus", Fn, "Y-", "down")}
           ${this._renderDialCentre()}
         </div>
 
         <div class="ac-move-col">
-          ${this._renderSquareButton("axis_move_z_plus", Dn, "Z up", "Z+")}
-          ${this._renderSquareButton("axis_home_z", kn, "Home Z", "", !0)}
-          ${this._renderSquareButton("axis_move_z_minus", Hn, "Z down", "Z-")}
+          ${this._renderSquareButton("axis_move_z_plus", Bn, "Z up", "Z+")}
+          ${this._renderSquareButton("axis_home_z", Dn, "Home Z", "", !0)}
+          ${this._renderSquareButton("axis_move_z_minus", Fn, "Z down", "Z-")}
         </div>
       </div>
       ${n ? W`<p class="ac-note">Moving…</p>` : s ? W`<p class="ac-note ac-note-warn">
               Last move was refused. Z has to be homed on its own before it will
               move.
-            </p>` : K}
+            </p>` : J}
     `;
     }
     _renderWedge(t, e, i, r) {
-      const n = Ke(this.printerEntities, t),
+      const n = Je(this.printerEntities, t),
         s = n ? this.hass.states[n] : void 0,
-        o = !n || "unavailable" === (null == s ? void 0 : s.state);
+        a = !n || "unavailable" === (null == s ? void 0 : s.state);
       return W`
       <button
         class="ac-wedge ac-wedge-${r}"
-        .disabled=${o}
+        .disabled=${a}
         title=${i}
         aria-label=${i}
         .entityId=${n}
@@ -10147,7 +10874,7 @@
     `;
     }
     _renderDialCentre() {
-      const t = Ke(this.printerEntities, "axis_home_xy"),
+      const t = Je(this.printerEntities, "axis_home_xy"),
         e = t ? this.hass.states[t] : void 0,
         i = !t || "unavailable" === (null == e ? void 0 : e.state);
       return W`
@@ -10159,26 +10886,26 @@
         .entityId=${t}
         @click=${this._pressButtonEvent}
       >
-        <ha-svg-icon .path=${kn}></ha-svg-icon>
+        <ha-svg-icon .path=${Dn}></ha-svg-icon>
       </button>
     `;
     }
     _renderSquareButton(t, e, i, r = "", n = !1) {
-      const s = Ke(this.printerEntities, t),
-        o = s ? this.hass.states[s] : void 0,
-        a = !s || "unavailable" === (null == o ? void 0 : o.state);
+      const s = Je(this.printerEntities, t),
+        a = s ? this.hass.states[s] : void 0,
+        o = !s || "unavailable" === (null == a ? void 0 : a.state);
       return W`
       <button
-        class="ac-square ${Nn({
+        class="ac-square ${Un({
         "ac-square-accent": n
       })}"
-        .disabled=${a}
+        .disabled=${o}
         title=${i}
         aria-label=${i}
         .entityId=${s}
         @click=${this._pressButtonEvent}
       >
-        ${r ? W`<span class="ac-square-label">${r}</span>` : K}
+        ${r ? W`<span class="ac-square-label">${r}</span>` : J}
         <ha-svg-icon .path=${e}></ha-svg-icon>
       </button>
     `;
@@ -10187,7 +10914,7 @@
       var i;
       return (null !== (i = e.attributes.options) && void 0 !== i ? i : []).map(i => W`
         <button
-          class="ac-chip-button ${Nn({
+          class="ac-chip-button ${Un({
         "ac-chip-button-active": e.state === i
       })}"
           .entityId=${t}
@@ -10209,7 +10936,7 @@
           });
         },
         n = t => {
-          const i = Je(this.hass, this.printerEntities, t);
+          const i = ei(this.hass, this.printerEntities, t);
           if (void 0 !== i) {
             if (!e) return i.toFixed(2);
             try {
@@ -10223,17 +10950,17 @@
           }
         },
         s = t => {
-          const e = Je(this.hass, this.printerEntities, t);
+          const e = ei(this.hass, this.printerEntities, t);
           return void 0 === e ? void 0 : `${Math.round(e)} g`;
         };
       r("This job", n("job_cost")), r("Last job", n("last_job_cost")), r("Filament spend", n("filament_cost_total")), r("Job needs", s("job_filament_required")), r("Shortfall", s("job_filament_shortfall"));
-      const o = Je(this.hass, this.printerEntities, "nozzle_wear_percent");
-      r("Nozzle wear", void 0 === o ? void 0 : `${o.toFixed(1)}%`), r("Spools left", s("spool_inventory_remaining"));
-      const a = Qe(this.hass, this.printerEntities, "job_filament_insufficient");
+      const a = ei(this.hass, this.printerEntities, "nozzle_wear_percent");
+      r("Nozzle wear", void 0 === a ? void 0 : `${a.toFixed(1)}%`), r("Spools left", s("spool_inventory_remaining"));
+      const o = ti(this.hass, this.printerEntities, "job_filament_insufficient");
       return i.length ? W`
-      ${"on" === (null == a ? void 0 : a.state) ? W`<p class="ac-note ac-note-warn">
+      ${"on" === (null == o ? void 0 : o.state) ? W`<p class="ac-note ac-note-warn">
             Not enough filament loaded to finish this job.
-          </p>` : K}
+          </p>` : J}
       <div class="ac-insights">${this._renderInsightRows(i)}</div>
     ` : W`<p class="ac-note">
         Nothing to report yet. Cost and forecast figures appear once a job has
@@ -10249,12 +10976,12 @@
       `);
     }
     _printerAvailability() {
-      const t = Qe(this.hass, this.printerEntities, "printer_online");
+      const t = ti(this.hass, this.printerEntities, "printer_online");
       if ("off" === (null == t ? void 0 : t.state)) return "offline";
-      return li(this.hass, this.printerEntities, this.printerEntityIdPart, "current_status", "unknown").state.toLowerCase();
+      return di(this.hass, this.printerEntities, this.printerEntityIdPart, "current_status", "unknown").state.toLowerCase();
     }
     _percentComplete() {
-      return Number(li(this.hass, this.printerEntities, this.printerEntityIdPart, "job_progress", -1).state);
+      return Number(di(this.hass, this.printerEntities, this.printerEntityIdPart, "job_progress", -1).state);
     }
     static get styles() {
       return p`
@@ -10564,6 +11291,12 @@
         padding: 4px 0 12px 0;
       }
 
+      /* Same breathing room the move pad had as a section body, so promoting
+         it out of the accordion does not change its spacing. */
+      .ac-move-panel {
+        padding: 4px 0 12px 0;
+      }
+
       /* Move -------------------------------------------------------------- */
 
       .ac-chip-button {
@@ -10838,70 +11571,116 @@
     `;
     }
   };
-  n([wt(".ac-printer-card")], Ho.prototype, "_printerCardContainer", void 0), n([vt()], Ho.prototype, "hass", void 0), n([vt()], Ho.prototype, "language", void 0), n([vt({
+  n([$t(".ac-printer-card")], qa.prototype, "_printerCardContainer", void 0), n([_t()], qa.prototype, "hass", void 0), n([_t()], qa.prototype, "language", void 0), n([_t({
     attribute: "monitored-stats"
-  })], Ho.prototype, "monitoredStats", void 0), n([vt({
+  })], qa.prototype, "monitoredStats", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], Ho.prototype, "selectedPrinterID", void 0), n([vt({
+  })], qa.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], Ho.prototype, "selectedPrinterDevice", void 0), n([vt({
+  })], qa.prototype, "selectedPrinterDevice", void 0), n([_t({
     type: Boolean
-  })], Ho.prototype, "round", void 0), n([vt({
+  })], qa.prototype, "round", void 0), n([_t({
     type: Boolean
-  })], Ho.prototype, "use_24hr", void 0), n([vt({
+  })], qa.prototype, "use_24hr", void 0), n([_t({
     attribute: "show-settings-button",
     type: Boolean
-  })], Ho.prototype, "showSettingsButton", void 0), n([vt({
+  })], qa.prototype, "showSettingsButton", void 0), n([_t({
     attribute: "always-show",
     type: Boolean
-  })], Ho.prototype, "alwaysShow", void 0), n([vt({
+  })], qa.prototype, "alwaysShow", void 0), n([_t({
     attribute: "temperature-unit",
     type: String
-  })], Ho.prototype, "temperatureUnit", void 0), n([vt({
+  })], qa.prototype, "temperatureUnit", void 0), n([_t({
     attribute: "light-entity-id",
     type: String
-  })], Ho.prototype, "lightEntityId", void 0), n([vt({
+  })], qa.prototype, "lightEntityId", void 0), n([_t({
     attribute: "power-entity-id",
     type: String
-  })], Ho.prototype, "powerEntityId", void 0), n([vt({
+  })], qa.prototype, "powerEntityId", void 0), n([_t({
     attribute: "camera-entity-id",
     type: String
-  })], Ho.prototype, "cameraEntityId", void 0), n([vt({
+  })], qa.prototype, "cameraEntityId", void 0), n([_t({
     type: Boolean
-  })], Ho.prototype, "vertical", void 0), n([vt({
+  })], qa.prototype, "vertical", void 0), n([_t({
     attribute: "scale-factor"
-  })], Ho.prototype, "scaleFactor", void 0), n([vt({
+  })], qa.prototype, "scaleFactor", void 0), n([_t({
     attribute: "slot-colors"
-  })], Ho.prototype, "slotColors", void 0), n([vt({
+  })], qa.prototype, "slotColors", void 0), n([_t({
     attribute: "media-view"
-  })], Ho.prototype, "mediaView", void 0), n([vt({
+  })], qa.prototype, "mediaView", void 0), n([_t({
+    attribute: "printer-art"
+  })], qa.prototype, "printerArt", void 0), n([_t({
+    attribute: "no-camera",
+    type: Boolean
+  })], qa.prototype, "noCamera", void 0), n([_t({
     attribute: "show-controls",
     type: Boolean
-  })], Ho.prototype, "showControls", void 0), n([vt({
+  })], qa.prototype, "showControls", void 0), n([_t({
+    attribute: "show-move-buttons",
+    type: Boolean
+  })], qa.prototype, "showMoveButtons", void 0), n([_t({
     attribute: !1
-  })], Ho.prototype, "sections", void 0), n([yt()], Ho.prototype, "isHidden", void 0), n([yt()], Ho.prototype, "isPrinting", void 0), n([yt()], Ho.prototype, "isPaused", void 0), n([yt()], Ho.prototype, "hiddenOverride", void 0), n([yt()], Ho.prototype, "hasColorbox", void 0), n([yt()], Ho.prototype, "hasSecondaryColorbox", void 0), n([yt()], Ho.prototype, "lightIsOn", void 0), n([yt()], Ho.prototype, "statusColor", void 0), n([yt()], Ho.prototype, "printStateString", void 0), n([yt()], Ho.prototype, "printerEntities", void 0), n([yt()], Ho.prototype, "printerEntityIdPart", void 0), n([yt()], Ho.prototype, "progressPercent", void 0), n([yt()], Ho.prototype, "camera", void 0), n([yt()], Ho.prototype, "_buttonPrintSettings", void 0), n([yt()], Ho.prototype, "_togglingLight", void 0), n([yt()], Ho.prototype, "_togglingPower", void 0), n([yt()], Ho.prototype, "_openSection", void 0), Ho = n([Rn("anycubic-printercard-card")], Ho);
-  const Do = [...xi(), Oe.DryingStatus, Oe.DryingTime],
-    Mo = [...wi(), Oe.PrinterOnline, Oe.Availability, Oe.ProjectName, Oe.CurrentLayer],
-    Bo = xi(),
-    Fo = ["printer_name", "printer_id", "printer_mac", "printer_model", "printer_fw_version", "printer_fw_update_available", "printer_online", "printer_available", "curr_nozzle_temp", "curr_hotbed_temp", "target_nozzle_temp", "target_hotbed_temp", "job_state", "job_progress", "ace_fw_version", "ace_fw_update_available", "drying_active", "drying_progress"];
-  let Io = class extends ut {
+  })], qa.prototype, "sections", void 0), n([wt()], qa.prototype, "isHidden", void 0), n([wt()], qa.prototype, "isPrinting", void 0), n([wt()], qa.prototype, "isPaused", void 0), n([wt()], qa.prototype, "hiddenOverride", void 0), n([wt()], qa.prototype, "hasColorbox", void 0), n([wt()], qa.prototype, "hasSecondaryColorbox", void 0), n([wt()], qa.prototype, "lightIsOn", void 0), n([wt()], qa.prototype, "statusColor", void 0), n([wt()], qa.prototype, "printStateString", void 0), n([wt()], qa.prototype, "printerEntities", void 0), n([wt()], qa.prototype, "printerEntityIdPart", void 0), n([wt()], qa.prototype, "progressPercent", void 0), n([wt()], qa.prototype, "camera", void 0), n([wt()], qa.prototype, "_buttonPrintSettings", void 0), n([wt()], qa.prototype, "_togglingLight", void 0), n([wt()], qa.prototype, "_togglingPower", void 0), n([wt()], qa.prototype, "_openSection", void 0), qa = n([Gn("anycubic-printercard-card")], qa);
+  const Wa = [...Si(), Ue.DryingStatus, Ue.DryingTime],
+    Xa = [...Ei(), Ue.PrinterOnline, Ue.Availability, Ue.ProjectName, Ue.CurrentLayer],
+    Qa = Si(),
+    Ja = [Ve.Filament],
+    to = {
+      vertical: !1,
+      round: !0,
+      use_24hr: !0,
+      temperatureUnit: Ie.C,
+      monitoredStats: Ei(),
+      scaleFactor: 1,
+      slotColors: [],
+      showSettingsButton: !1,
+      alwaysShow: !1,
+      mediaView: Re.Auto,
+      printerArt: je.Auto,
+      showMoveButtons: !1,
+      showControls: !0,
+      sections: [Ve.Filament]
+    },
+    eo = ["printer_name", "printer_id", "printer_mac", "printer_model", "printer_fw_version", "printer_fw_update_available", "printer_online", "printer_available", "curr_nozzle_temp", "curr_hotbed_temp", "target_nozzle_temp", "target_hotbed_temp", "job_state", "job_progress", "ace_fw_version", "ace_fw_update_available", "drying_active", "drying_progress"];
+  let io = class extends mt {
     constructor() {
-      super(...arguments), this.isFDM = !1, this.monitoredStats = Mo;
+      super(...arguments), this.isFDM = !1, this.monitoredStats = Xa, this._copyPreset = t => {
+        const e = t.currentTarget,
+          i = () => {
+            const t = e.textContent;
+            e.textContent = Mn("panels.main.presets.copied", this.language), setTimeout(() => {
+              e.textContent = t;
+            }, 1500);
+          },
+          r = () => {
+            const t = document.createElement("textarea");
+            t.value = e.yaml, t.style.position = "fixed", t.style.opacity = "0", document.body.appendChild(t), t.select();
+            let r = !1;
+            try {
+              r = document.execCommand("copy");
+            } catch (t) {
+              r = !1;
+            }
+            t.remove(), r && i();
+          },
+          n = window.navigator.clipboard;
+        (null == n ? void 0 : n.writeText) ? n.writeText(e.yaml).then(i, r) : r();
+      };
     }
     willUpdate(t) {
       var e;
-      if (super.willUpdate(t), t.has("language") && (this._statTranslations = Fo.reduce((t, e) => (t[e] = Tn(`panels.main.cards.main.fields.${e}`, this.language), t), {})), t.has("selectedPrinterDevice") && (this.printerID = (e = this.selectedPrinterDevice) ? e.serial_number : void 0, this.printerMAC = function (t) {
+      if (super.willUpdate(t), t.has("language") && (this._statTranslations = eo.reduce((t, e) => (t[e] = Mn(`panels.main.cards.main.fields.${e}`, this.language), t), {})), t.has("selectedPrinterDevice") && (this.printerID = (e = this.selectedPrinterDevice) ? e.serial_number : void 0, this.printerMAC = function (t) {
         return t && t.connections.length > 0 && t.connections[0].length > 1 ? t.connections[0][1] : null;
-      }(this.selectedPrinterDevice)), t.has("selectedPrinterID") && (this.printerEntities = ti(this.hass, this.selectedPrinterID), this.printerEntityIdPart = ni(this.printerEntities)), t.has("hass") || t.has("selectedPrinterID")) {
-        this.isFDM = pi(this.hass, this.printerEntities, this.printerEntityIdPart), this.printerStateFwUpdateAvailable = di(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_firmware"), this.printerStateAvailable = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "is_available", "Available", "Busy"), this.printerStateOnline = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_online", "Online", "Offline"), this.printerStateCurrNozzleTemp = ci(this.hass, this.printerEntities, this.printerEntityIdPart, "nozzle_temperature"), this.printerStateCurrHotbedTemp = ci(this.hass, this.printerEntities, this.printerEntityIdPart, "hotbed_temperature"), this.printerStateTargetNozzleTemp = ci(this.hass, this.printerEntities, this.printerEntityIdPart, "target_nozzle_temperature"), this.printerStateTargetHotbedTemp = ci(this.hass, this.printerEntities, this.printerEntityIdPart, "target_hotbed_temperature");
-        const t = ci(this.hass, this.printerEntities, this.printerEntityIdPart, "job_progress");
+      }(this.selectedPrinterDevice)), t.has("selectedPrinterID") && (this.printerEntities = ii(this.hass, this.selectedPrinterID), this.printerEntityIdPart = oi(this.printerEntities)), t.has("hass") || t.has("selectedPrinterID")) {
+        this.isFDM = mi(this.hass, this.printerEntities, this.printerEntityIdPart), this.printerStateFwUpdateAvailable = gi(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_firmware"), this.printerStateAvailable = ui(this.hass, this.printerEntities, this.printerEntityIdPart, "is_available", "Available", "Busy"), this.printerStateOnline = ui(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_online", "Online", "Offline"), this.printerStateCurrNozzleTemp = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "nozzle_temperature"), this.printerStateCurrHotbedTemp = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "hotbed_temperature"), this.printerStateTargetNozzleTemp = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "target_nozzle_temperature"), this.printerStateTargetHotbedTemp = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "target_hotbed_temperature");
+        const t = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "job_progress");
         this.jobStateProgress = void 0 !== t ? `${t}%` : "0%", this.jobStatePrintState = function (t, e, i, r, n = !1) {
-          const s = ri(e, i, "sensor", r);
+          const s = ai(e, i, "sensor", r);
           if (s) {
-            const e = We(t, s);
-            return n ? Ze(e) : e;
+            const e = Xe(t, s);
+            return n ? qe(e) : e;
           }
-        }(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state", !0), this.aceStateFwUpdateAvailable = di(this.hass, this.printerEntities, this.printerEntityIdPart, "ace_firmware"), this.aceStateDryingActive = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_active", "Drying", "Not Drying"), this.aceStateDryingRemaining = ci(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_remaining_time"), this.aceStateDryingTotal = ci(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_total_duration"), this.aceDryingProgress = void 0 !== this.aceStateDryingRemaining && void 0 !== this.aceStateDryingTotal ? String((this.aceStateDryingTotal > 0 ? Math.round(1e4 * (1 - this.aceStateDryingRemaining / this.aceStateDryingTotal)) / 100 : 0).toFixed(2)) + "%" : void 0, this.aceStateFwUpdateAvailable ? this.monitoredStats = Do : this.isFDM ? this.monitoredStats = Bo : this.monitoredStats = Mo;
+        }(this.hass, this.printerEntities, this.printerEntityIdPart, "job_state", !0), this.aceStateFwUpdateAvailable = gi(this.hass, this.printerEntities, this.printerEntityIdPart, "ace_firmware"), this.aceStateDryingActive = ui(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_active", "Drying", "Not Drying"), this.aceStateDryingRemaining = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_remaining_time"), this.aceStateDryingTotal = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "drying_total_duration"), this.aceDryingProgress = void 0 !== this.aceStateDryingRemaining && void 0 !== this.aceStateDryingTotal ? String((this.aceStateDryingTotal > 0 ? Math.round(1e4 * (1 - this.aceStateDryingRemaining / this.aceStateDryingTotal)) / 100 : 0).toFixed(2)) + "%" : void 0, this.aceStateFwUpdateAvailable ? this.monitoredStats = Wa : this.isFDM ? this.monitoredStats = Qa : this.monitoredStats = Xa;
       }
     }
     _renderInfoRow(t, e) {
@@ -10915,50 +11694,155 @@
     _renderOptionalInfoRow(t, e) {
       return void 0 !== e ? this._renderInfoRow(t, e) : null;
     }
-    render() {
-      var t, e, i, r, n, s;
+    _renderGroup(t, e) {
+      const i = e.filter(([, t]) => null != t && "" !== t);
+      if (!i.length) return J;
+      const r = i.map(([t, e]) => this._renderInfoRow(t, e));
       return W`
-      <printer-card elevation="2">
-        <anycubic-printercard-card
-          .hass=${this.hass}
-          .language=${this.language}
-          .selectedPrinterID=${this.selectedPrinterID}
-          .selectedPrinterDevice=${this.selectedPrinterDevice}
-          .vertical=${null !== (t = this.panel.config.vertical) && void 0 !== t && t}
-          .round=${null !== (e = this.panel.config.round) && void 0 !== e && e}
-          .use_24hr=${null === (i = this.panel.config.use_24hr) || void 0 === i || i}
-          .temperatureUnit=${this.panel.config.temperatureUnit}
-          .lightEntityId=${this.panel.config.lightEntityId}
-          .powerEntityId=${this.panel.config.powerEntityId}
-          .cameraEntityId=${this.panel.config.cameraEntityId}
-          .monitoredStats=${null !== (r = this.panel.config.monitoredStats) && void 0 !== r ? r : this.monitoredStats}
-          .scaleFactor=${this.panel.config.scaleFactor}
-          .slotColors=${this.panel.config.slotColors}
-          .showSettingsButton=${null === (n = this.panel.config.showSettingsButton) || void 0 === n || n}
-          .alwaysShow=${null === (s = this.panel.config.alwaysShow) || void 0 === s || s}
-        ></anycubic-printercard-card>
-        <div class="ac-extra-printer-info">
-          ${this._renderInfoRow("printer_name", this.selectedPrinterDevice ? this.selectedPrinterDevice.name : null)}
-          ${this._renderInfoRow("printer_id", this.printerID)}
-          ${this._renderInfoRow("printer_mac", this.printerMAC)}
-          ${this._renderInfoRow("printer_model", this.selectedPrinterDevice ? this.selectedPrinterDevice.model : null)}
-          ${this._renderInfoRow("printer_fw_version", this.selectedPrinterDevice ? this.selectedPrinterDevice.sw_version : null)}
-          ${this._renderInfoRow("printer_fw_update_available", this.printerStateFwUpdateAvailable)}
-          ${this._renderInfoRow("printer_online", this.printerStateOnline)}
-          ${this._renderInfoRow("printer_available", this.printerStateAvailable)}
-          ${this.isFDM ? W`
-                ${this._renderInfoRow("curr_nozzle_temp", this.printerStateCurrNozzleTemp)}
-                ${this._renderInfoRow("curr_hotbed_temp", this.printerStateCurrHotbedTemp)}
-                ${this._renderInfoRow("target_nozzle_temp", this.printerStateTargetNozzleTemp)}
-                ${this._renderInfoRow("target_hotbed_temp", this.printerStateTargetHotbedTemp)}
-              ` : K}
-          ${this._renderInfoRow("job_state", this.jobStatePrintState)}
-          ${this._renderInfoRow("job_progress", this.jobStateProgress)}
-          ${this._renderOptionalInfoRow("ace_fw_update_available", this.aceStateFwUpdateAvailable)}
-          ${this._renderOptionalInfoRow("drying_active", this.aceStateDryingActive)}
-          ${this._renderOptionalInfoRow("drying_progress", this.aceDryingProgress)}
+      <div class="ac-tile">
+        <h3 class="ac-tile-title">
+          ${Mn(`panels.main.groups.${t}`, this.language)}
+        </h3>
+        ${r}
+      </div>
+    `;
+    }
+    _renderDiagnostics() {
+      return W`
+      <details class="ac-diag">
+        <summary>
+          ${Mn("panels.main.groups.diagnostics", this.language)}
+        </summary>
+        ${this._renderInfoRow("printer_name", this.selectedPrinterDevice ? this.selectedPrinterDevice.name : null)}
+        ${this._renderInfoRow("printer_id", this.printerID)}
+        ${this._renderInfoRow("printer_mac", this.printerMAC)}
+      </details>
+    `;
+    }
+    _renderPresets() {
+      var t, e;
+      const i = null !== (e = null === (t = this.selectedPrinterDevice) || void 0 === t ? void 0 : t.id) && void 0 !== e ? e : "YOUR_PRINTER_DEVICE_ID",
+        r = [["full", {
+          printer_id: i,
+          mediaView: Re.Printer,
+          showControls: !0,
+          showMoveButtons: !0,
+          sections: [Ve.Filament],
+          alwaysShow: !0
+        }], ["model", {
+          printer_id: i,
+          mediaView: Re.PrinterModel,
+          showControls: !0,
+          showMoveButtons: !1,
+          alwaysShow: !0
+        }], ["compact", {
+          printer_id: i,
+          mediaView: Re.Printer,
+          showControls: !1,
+          showMoveButtons: !1,
+          alwaysShow: !0,
+          monitoredStats: [Ue.Status, Ue.ETA]
+        }], ["vertical", {
+          printer_id: i,
+          vertical: !0,
+          mediaView: Re.Printer,
+          showControls: !0,
+          showMoveButtons: !1,
+          alwaysShow: !0
+        }]].map(([t, e]) => this._presetCard(t, e));
+      return W`
+      <div class="ac-presets">
+        <h3 class="ac-tile-title">
+          ${Mn("panels.main.presets.title", this.language)}
+        </h3>
+        <p class="ac-presets-lede">
+          ${Mn("panels.main.presets.lede", this.language)}
+        </p>
+        <div class="ac-preset-grid">${r}</div>
+      </div>
+    `;
+    }
+    _presetYaml(t) {
+      const e = ["type: custom:anycubic-card"];
+      for (const [i, r] of Object.entries(t)) if (Array.isArray(r)) {
+        e.push(`${i}:`);
+        for (const t of r) e.push(`  - ${String(t)}`);
+      } else e.push(`${i}: ${String(r)}`);
+      return e.join("\n");
+    }
+    _presetCard(t, e) {
+      var i, r, n, s, a, o, l, c;
+      const h = this._presetYaml(e);
+      return W`
+      <div class="ac-preset">
+        <div class="ac-preset-head">
+          <span>${Mn(`panels.main.presets.${t}`, this.language)}</span>
+          <button class="ac-copy" .yaml=${h} @click=${this._copyPreset}>
+            ${Mn("panels.main.presets.copy", this.language)}
+          </button>
         </div>
-      </printer-card>
+        <div class="ac-preset-frame">
+          <anycubic-printercard-card
+            .hass=${this.hass}
+            .language=${this.language}
+            .selectedPrinterID=${this.selectedPrinterID}
+            .selectedPrinterDevice=${this.selectedPrinterDevice}
+            .vertical=${null !== (i = e.vertical) && void 0 !== i && i}
+            .round=${!0}
+            .use_24hr=${null === (r = this.panel.config.use_24hr) || void 0 === r || r}
+            .temperatureUnit=${this.panel.config.temperatureUnit}
+            .monitoredStats=${null !== (n = e.monitoredStats) && void 0 !== n ? n : to.monitoredStats}
+            .mediaView=${null !== (s = e.mediaView) && void 0 !== s ? s : to.mediaView}
+            .showControls=${null !== (a = e.showControls) && void 0 !== a ? a : to.showControls}
+            .showMoveButtons=${null !== (o = e.showMoveButtons) && void 0 !== o ? o : to.showMoveButtons}
+            .sections=${null !== (l = e.sections) && void 0 !== l ? l : to.sections}
+            .showSettingsButton=${to.showSettingsButton}
+            .alwaysShow=${null !== (c = e.alwaysShow) && void 0 !== c ? c : to.alwaysShow}
+            .noCamera=${!0}
+          ></anycubic-printercard-card>
+        </div>
+        <pre>${h}</pre>
+      </div>
+    `;
+    }
+    render() {
+      var t, e, i, r, n, s, a, o, l, c, h, d, p;
+      return W`
+      <div class="ac-panel">
+        <printer-card elevation="2" class="ac-hero">
+          <anycubic-printercard-card
+            .hass=${this.hass}
+            .language=${this.language}
+            .selectedPrinterID=${this.selectedPrinterID}
+            .selectedPrinterDevice=${this.selectedPrinterDevice}
+            .vertical=${null !== (t = this.panel.config.vertical) && void 0 !== t && t}
+            .round=${null === (e = this.panel.config.round) || void 0 === e || e}
+            .use_24hr=${null === (i = this.panel.config.use_24hr) || void 0 === i || i}
+            .temperatureUnit=${this.panel.config.temperatureUnit}
+            .lightEntityId=${this.panel.config.lightEntityId}
+            .powerEntityId=${this.panel.config.powerEntityId}
+            .cameraEntityId=${this.panel.config.cameraEntityId}
+            .monitoredStats=${null !== (r = this.panel.config.monitoredStats) && void 0 !== r ? r : this.monitoredStats}
+            .scaleFactor=${this.panel.config.scaleFactor}
+            .slotColors=${this.panel.config.slotColors}
+            .showSettingsButton=${null === (n = this.panel.config.showSettingsButton) || void 0 === n || n}
+            .alwaysShow=${null === (s = this.panel.config.alwaysShow) || void 0 === s || s}
+            .mediaView=${null !== (a = this.panel.config.mediaView) && void 0 !== a ? a : Re.Auto}
+            .printerArt=${null !== (o = this.panel.config.printerArt) && void 0 !== o ? o : je.Auto}
+            .showControls=${null === (l = this.panel.config.showControls) || void 0 === l || l}
+            .showMoveButtons=${null === (c = this.panel.config.showMoveButtons) || void 0 === c || c}
+            .sections=${null !== (h = this.panel.config.sections) && void 0 !== h ? h : Ja}
+          ></anycubic-printercard-card>
+        </printer-card>
+
+        <div class="ac-rail">
+          ${this._renderGroup("machine", [["printer_model", null === (d = this.selectedPrinterDevice) || void 0 === d ? void 0 : d.model], ["printer_fw_version", null === (p = this.selectedPrinterDevice) || void 0 === p ? void 0 : p.sw_version], ["printer_fw_update_available", this.printerStateFwUpdateAvailable], ["printer_online", this.printerStateOnline], ["printer_available", this.printerStateAvailable]])}
+          ${this._renderGroup("ace", [["ace_fw_update_available", this.aceStateFwUpdateAvailable], ["drying_active", this.aceStateDryingActive], ["drying_progress", this.aceDryingProgress]])}
+          ${this._renderDiagnostics()}
+        </div>
+
+        ${this._renderPresets()}
+      </div>
     `;
     }
     static get styles() {
@@ -10967,20 +11851,157 @@
         padding: 16px;
         display: block;
       }
+
+      /* The old layout capped the whole page at 600px and centred it, so on a
+         1920px screen roughly 69% of the width was empty and the page still
+         scrolled. The hero and its rail now sit side by side once there is
+         room for both, and stack below that. */
+      .ac-panel {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        max-width: 1600px;
+        margin: 0 auto;
+        align-items: start;
+      }
+
+      @media (min-width: 1100px) {
+        .ac-panel {
+          grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.8fr);
+        }
+        .ac-presets {
+          grid-column: 1 / -1;
+        }
+      }
+
       printer-card {
         padding: 16px;
         display: block;
         font-size: 18px;
-        max-width: 600px;
-        margin: 0 auto;
       }
 
       anycubic-printercard-card {
-        margin: 24px;
+        margin: 8px;
       }
 
-      .ac-extra-printer-info {
-        padding: 20px 40px;
+      .ac-rail {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .ac-tile,
+      .ac-diag,
+      .ac-presets {
+        background: var(--ha-card-background, var(--card-background-color));
+        border-radius: var(--ha-card-border-radius, 12px);
+        border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.2));
+        padding: 12px 16px;
+        box-sizing: border-box;
+      }
+
+      .ac-tile-title {
+        margin: 0 0 8px 0;
+        font-size: 0.8em;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+      }
+
+      /* Identifiers are reference material, not a readout. Folded away, and
+         in a smaller monospace so a MAC address stops competing with the
+         machine's actual state. */
+      .ac-diag summary {
+        cursor: pointer;
+        font-size: 0.8em;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--secondary-text-color);
+      }
+
+      .ac-diag[open] summary {
+        margin-bottom: 8px;
+      }
+
+      .ac-diag .info-detail {
+        font-family: var(--code-font-family, monospace);
+        font-size: 0.85em;
+        font-weight: 400;
+      }
+
+      .ac-presets-lede {
+        margin: 0 0 12px 0;
+        font-size: 0.9em;
+        color: var(--secondary-text-color);
+      }
+
+      .ac-preset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 380px));
+        gap: 12px;
+      }
+
+      .ac-preset {
+        border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.2));
+        border-radius: 8px;
+        overflow: hidden;
+        min-width: 0;
+      }
+
+      .ac-preset-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 10px;
+        font-size: 0.9em;
+        font-weight: 600;
+        background: var(--secondary-background-color);
+      }
+
+      .ac-copy {
+        border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3));
+        background: transparent;
+        color: var(--primary-text-color);
+        border-radius: 999px;
+        padding: 2px 10px;
+        font: inherit;
+        font-size: 0.85em;
+        cursor: pointer;
+      }
+
+      .ac-copy:hover {
+        background: var(--divider-color, rgba(127, 127, 127, 0.2));
+      }
+
+      /* Deliberately narrower than the card's own 480px container breakpoint,
+         so each tile shows the STACKED form a dashboard column actually gives
+         it -- not the wide panel form, which would flatter the preset and then
+         look different once pasted. */
+      .ac-preset-frame {
+        padding: 8px;
+        background: var(--primary-background-color);
+        border-bottom: 1px solid var(--divider-color, rgba(127, 127, 127, 0.2));
+        container-type: inline-size;
+      }
+
+      /* Previews are a shop window: looking is fine, operating a printer by
+         accident from a gallery is not. */
+      .ac-preset-frame anycubic-printercard-card {
+        pointer-events: none;
+      }
+
+      /* YAML must never widen the page; it scrolls inside its own box. */
+      .ac-preset pre {
+        margin: 0;
+        padding: 10px;
+        overflow-x: auto;
+        font-family: var(--code-font-family, monospace);
+        font-size: 0.8em;
+        line-height: 1.5;
       }
 
       .info-row {
@@ -11004,15 +12025,15 @@
     `;
     }
   };
-  n([vt()], Io.prototype, "hass", void 0), n([vt()], Io.prototype, "language", void 0), n([vt({
+  n([_t()], io.prototype, "hass", void 0), n([_t()], io.prototype, "language", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], Io.prototype, "narrow", void 0), n([vt()], Io.prototype, "route", void 0), n([vt()], Io.prototype, "panel", void 0), n([vt({
+  })], io.prototype, "narrow", void 0), n([_t()], io.prototype, "route", void 0), n([_t()], io.prototype, "panel", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], Io.prototype, "selectedPrinterID", void 0), n([vt({
+  })], io.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], Io.prototype, "selectedPrinterDevice", void 0), n([yt()], Io.prototype, "printerEntities", void 0), n([yt()], Io.prototype, "printerEntityIdPart", void 0), n([yt()], Io.prototype, "printerID", void 0), n([yt()], Io.prototype, "printerMAC", void 0), n([yt()], Io.prototype, "printerStateFwUpdateAvailable", void 0), n([yt()], Io.prototype, "printerStateAvailable", void 0), n([yt()], Io.prototype, "printerStateOnline", void 0), n([yt()], Io.prototype, "printerStateCurrNozzleTemp", void 0), n([yt()], Io.prototype, "printerStateCurrHotbedTemp", void 0), n([yt()], Io.prototype, "printerStateTargetNozzleTemp", void 0), n([yt()], Io.prototype, "printerStateTargetHotbedTemp", void 0), n([yt()], Io.prototype, "jobStateProgress", void 0), n([yt()], Io.prototype, "jobStatePrintState", void 0), n([yt()], Io.prototype, "aceStateFwUpdateAvailable", void 0), n([yt()], Io.prototype, "aceStateDryingActive", void 0), n([yt()], Io.prototype, "aceStateDryingRemaining", void 0), n([yt()], Io.prototype, "aceStateDryingTotal", void 0), n([yt()], Io.prototype, "aceDryingProgress", void 0), n([yt()], Io.prototype, "isFDM", void 0), n([yt()], Io.prototype, "monitoredStats", void 0), n([yt()], Io.prototype, "_statTranslations", void 0), Io = n([mt("anycubic-view-main")], Io);
-  const Lo = p`
+  })], io.prototype, "selectedPrinterDevice", void 0), n([wt()], io.prototype, "printerEntities", void 0), n([wt()], io.prototype, "printerEntityIdPart", void 0), n([wt()], io.prototype, "printerID", void 0), n([wt()], io.prototype, "printerMAC", void 0), n([wt()], io.prototype, "printerStateFwUpdateAvailable", void 0), n([wt()], io.prototype, "printerStateAvailable", void 0), n([wt()], io.prototype, "printerStateOnline", void 0), n([wt()], io.prototype, "printerStateCurrNozzleTemp", void 0), n([wt()], io.prototype, "printerStateCurrHotbedTemp", void 0), n([wt()], io.prototype, "printerStateTargetNozzleTemp", void 0), n([wt()], io.prototype, "printerStateTargetHotbedTemp", void 0), n([wt()], io.prototype, "jobStateProgress", void 0), n([wt()], io.prototype, "jobStatePrintState", void 0), n([wt()], io.prototype, "aceStateFwUpdateAvailable", void 0), n([wt()], io.prototype, "aceStateDryingActive", void 0), n([wt()], io.prototype, "aceStateDryingRemaining", void 0), n([wt()], io.prototype, "aceStateDryingTotal", void 0), n([wt()], io.prototype, "aceDryingProgress", void 0), n([wt()], io.prototype, "isFDM", void 0), n([wt()], io.prototype, "monitoredStats", void 0), n([wt()], io.prototype, "_statTranslations", void 0), io = n([vt("anycubic-view-main")], io);
+  const ro = p`
   :host {
     padding: 16px;
     display: block;
@@ -11101,7 +12122,7 @@
     }
   }
 `;
-  class No extends ut {
+  class no extends mt {
     constructor() {
       super(...arguments), this._isRefreshing = !1, this._supportsMQTT = !1, this._httpResponse = !1, this.refreshList = () => {
         this._listRefreshEntity && (this._isRefreshing = !0, this.hass.callService("button", "press", {
@@ -11114,8 +12135,8 @@
       }, this.deleteFile = t => {};
     }
     willUpdate(t) {
-      super.willUpdate(t), t.has("language") && (this._noMqttMessage = Tn("common.messages.mqtt_unsupported", this.language)), (t.has("hass") || t.has("selectedPrinterID")) && (this.printerEntities = ti(this.hass, this.selectedPrinterID), this.printerEntityIdPart = ni(this.printerEntities), this._supportsMQTT = function (t, e, i) {
-        const r = qe(t, ri(e, i, "binary_sensor", "mqtt_connection_active"));
+      super.willUpdate(t), t.has("language") && (this._noMqttMessage = Mn("common.messages.mqtt_unsupported", this.language)), (t.has("hass") || t.has("selectedPrinterID")) && (this.printerEntities = ii(this.hass, this.selectedPrinterID), this.printerEntityIdPart = oi(this.printerEntities), this._supportsMQTT = function (t, e, i) {
+        const r = We(t, ai(e, i, "binary_sensor", "mqtt_connection_active"));
         return !!r && !!r.attributes.supports_mqtt_login;
       }(this.hass, this.printerEntities, this.printerEntityIdPart));
     }
@@ -11133,7 +12154,7 @@
           >
           </ha-icon>
         </button>
-        ${this._httpResponse || this._supportsMQTT ? K : W` <div class="no-mqtt-msg">${this._noMqttMessage}</div> `}
+        ${this._httpResponse || this._supportsMQTT ? J : W` <div class="no-mqtt-msg">${this._noMqttMessage}</div> `}
         <ul class="files-container">
         ${this._fileArray ? this._fileArray.map(t => W`
                   <li class="file-info">
@@ -11156,23 +12177,23 @@
     }
     static get styles() {
       return p`
-      ${Lo}
+      ${ro}
     `;
     }
   }
-  n([vt()], No.prototype, "hass", void 0), n([vt()], No.prototype, "language", void 0), n([vt({
+  n([_t()], no.prototype, "hass", void 0), n([_t()], no.prototype, "language", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], No.prototype, "narrow", void 0), n([vt()], No.prototype, "route", void 0), n([vt()], No.prototype, "panel", void 0), n([vt({
+  })], no.prototype, "narrow", void 0), n([_t()], no.prototype, "route", void 0), n([_t()], no.prototype, "panel", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], No.prototype, "selectedPrinterID", void 0), n([vt({
+  })], no.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], No.prototype, "selectedPrinterDevice", void 0), n([yt()], No.prototype, "printerEntities", void 0), n([yt()], No.prototype, "printerEntityIdPart", void 0), n([yt()], No.prototype, "_fileArray", void 0), n([yt()], No.prototype, "_listRefreshEntity", void 0), n([yt()], No.prototype, "_isRefreshing", void 0), n([yt()], No.prototype, "_isDeleting", void 0), n([yt()], No.prototype, "_noMqttMessage", void 0), n([yt()], No.prototype, "_supportsMQTT", void 0), n([yt()], No.prototype, "_httpResponse", void 0);
-  let Oo = class extends No {
+  })], no.prototype, "selectedPrinterDevice", void 0), n([wt()], no.prototype, "printerEntities", void 0), n([wt()], no.prototype, "printerEntityIdPart", void 0), n([wt()], no.prototype, "_fileArray", void 0), n([wt()], no.prototype, "_listRefreshEntity", void 0), n([wt()], no.prototype, "_isRefreshing", void 0), n([wt()], no.prototype, "_isDeleting", void 0), n([wt()], no.prototype, "_noMqttMessage", void 0), n([wt()], no.prototype, "_supportsMQTT", void 0), n([wt()], no.prototype, "_httpResponse", void 0);
+  let so = class extends no {
     constructor() {
       super(...arguments), this._httpResponse = !0, this.deleteFile = t => {
         const e = t.currentTarget.file_info;
-        this.selectedPrinterDevice && e.id && (this._isDeleting = !0, this.hass.callService(He, "delete_file_cloud", {
+        this.selectedPrinterDevice && e.id && (this._isDeleting = !0, this.hass.callService(De, "delete_file_cloud", {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           file_id: e.id
@@ -11185,19 +12206,19 @@
     }
     willUpdate(t) {
       if (super.willUpdate(t), t.has("hass") || t.has("selectedPrinterID")) {
-        const t = qe(this.hass, ei(this.printerEntities, "sensor", "file_list_cloud"));
+        const t = We(this.hass, ni(this.printerEntities, "sensor", "file_list_cloud"));
         this._fileArray = t ? t.attributes.file_info : void 0, this._listRefreshEntity = function (t) {
-          return ei(t, "button", "request_file_list_cloud");
+          return ni(t, "button", "request_file_list_cloud");
         }(this.printerEntities);
       }
     }
   };
-  n([yt()], Oo.prototype, "_fileArray", void 0), n([yt()], Oo.prototype, "_httpResponse", void 0), Oo = n([mt("anycubic-view-files_cloud")], Oo);
-  let zo = class extends No {
+  n([wt()], so.prototype, "_fileArray", void 0), n([wt()], so.prototype, "_httpResponse", void 0), so = n([vt("anycubic-view-files_cloud")], so);
+  let ao = class extends no {
     constructor() {
       super(...arguments), this.deleteFile = t => {
         const e = t.currentTarget.file_info;
-        this.selectedPrinterDevice && e.name && (this._isDeleting = !0, this.hass.callService(He, "delete_file_local", {
+        this.selectedPrinterDevice && e.name && (this._isDeleting = !0, this.hass.callService(De, "delete_file_local", {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           filename: e.name
@@ -11210,19 +12231,19 @@
     }
     willUpdate(t) {
       if (super.willUpdate(t), t.has("hass") || t.has("selectedPrinterID")) {
-        const t = qe(this.hass, ei(this.printerEntities, "sensor", "file_list_local"));
+        const t = We(this.hass, ni(this.printerEntities, "sensor", "file_list_local"));
         this._fileArray = t ? t.attributes.file_info : void 0, this._listRefreshEntity = function (t) {
-          return ei(t, "button", "request_file_list_local");
+          return ni(t, "button", "request_file_list_local");
         }(this.printerEntities);
       }
     }
   };
-  zo = n([mt("anycubic-view-files_local")], zo);
-  let Uo = class extends No {
+  ao = n([vt("anycubic-view-files_local")], ao);
+  let oo = class extends no {
     constructor() {
       super(...arguments), this.deleteFile = t => {
         const e = t.currentTarget.file_info;
-        this.selectedPrinterDevice && e.name && (this._isDeleting = !0, this.hass.callService(He, "delete_file_udisk", {
+        this.selectedPrinterDevice && e.name && (this._isDeleting = !0, this.hass.callService(De, "delete_file_udisk", {
           config_entry: this.selectedPrinterDevice.primary_config_entry,
           device_id: this.selectedPrinterDevice.id,
           filename: e.name
@@ -11235,15 +12256,15 @@
     }
     willUpdate(t) {
       if (super.willUpdate(t), t.has("hass") || t.has("selectedPrinterID")) {
-        const t = qe(this.hass, ei(this.printerEntities, "sensor", "file_list_udisk"));
+        const t = We(this.hass, ni(this.printerEntities, "sensor", "file_list_udisk"));
         this._fileArray = t ? t.attributes.file_info : void 0, this._listRefreshEntity = function (t) {
-          return ei(t, "button", "request_file_list_udisk");
+          return ni(t, "button", "request_file_list_udisk");
         }(this.printerEntities);
       }
     }
   };
-  Uo = n([mt("anycubic-view-files_udisk")], Uo);
-  const Ro = p`
+  oo = n([vt("anycubic-view-files_udisk")], oo);
+  const lo = p`
   :host {
     padding: 16px;
     display: block;
@@ -11269,20 +12290,20 @@
     margin-top: 20px;
   }
 `;
-  var jo;
+  var co;
   !function (t) {
     t.Light = "light", t.Medium = "medium", t.Heavy = "heavy";
-  }(jo || (jo = {}));
-  class Vo extends ut {
+  }(co || (co = {}));
+  class ho extends mt {
     constructor() {
       super(...arguments), this._scriptData = {}, this._serviceName = "", this._buttonProgress = !1, this._scriptDataChanged = t => {
         this._scriptData = Object.assign(Object.assign({}, this._scriptData), t.detail.value), this._error = void 0;
       }, this._runScript = t => {
         const e = t.currentTarget;
-        this._error = void 0, t.stopPropagation(), this._buttonProgress = !0, ((t = jo.Medium) => {
+        this._error = void 0, t.stopPropagation(), this._buttonProgress = !0, ((t = co.Medium) => {
           const e = new Event("haptic");
           e.detail = t, window && window.dispatchEvent(e);
-        })(), this.hass.callService(He, this._serviceName, this._scriptData.data).then(() => {
+        })(), this.hass.callService(De, this._serviceName, this._scriptData.data).then(() => {
           e.actionSuccess(), this._buttonProgress = !1;
         }).catch(t => {
           this._error = t.message, e.actionError(), this._buttonProgress = !1;
@@ -11291,7 +12312,7 @@
     }
     async firstUpdated() {
       await (async () => {
-        var t, e, i, r, n, s, o, a;
+        var t, e, i, r, n, s, a, o;
         if (customElements.get("ha-service-control")) return;
         const l = document.createElement("partial-panel-resolver").getRoutes([{
           component_name: "developer-tools",
@@ -11300,12 +12321,12 @@
         await (null === (i = null === (e = null === (t = null == l ? void 0 : l.routes) || void 0 === t ? void 0 : t.a) || void 0 === e ? void 0 : e.load) || void 0 === i ? void 0 : i.call(e));
         const c = document.createElement("developer-tools-router"),
           h = null === (r = null == c ? void 0 : c.routerOptions) || void 0 === r ? void 0 : r.routes;
-        (null == h ? void 0 : h.service) && (await (null === (s = null === (n = null == h ? void 0 : h.service) || void 0 === n ? void 0 : n.load) || void 0 === s ? void 0 : s.call(n))), (null == h ? void 0 : h.action) && (await (null === (a = null === (o = null == h ? void 0 : h.action) || void 0 === o ? void 0 : o.load) || void 0 === a ? void 0 : a.call(o)));
+        (null == h ? void 0 : h.service) && (await (null === (s = null === (n = null == h ? void 0 : h.service) || void 0 === n ? void 0 : n.load) || void 0 === s ? void 0 : s.call(n))), (null == h ? void 0 : h.action) && (await (null === (o = null === (a = null == h ? void 0 : h.action) || void 0 === a ? void 0 : a.load) || void 0 === o ? void 0 : o.call(a)));
       })();
     }
     willUpdate(t) {
-      if (super.willUpdate(t), t.has("language") && (this._buttonPrint = Tn("common.actions.print", this.language)), t.has("selectedPrinterDevice") && this.selectedPrinterDevice) {
-        const t = `${He}.${this._serviceName}`;
+      if (super.willUpdate(t), t.has("language") && (this._buttonPrint = Mn("common.actions.print", this.language)), t.has("selectedPrinterDevice") && this.selectedPrinterDevice) {
+        const t = `${De}.${this._serviceName}`;
         this._scriptData = Object.assign(Object.assign({}, this._scriptData), {
           action: t,
           service: t,
@@ -11327,14 +12348,14 @@
           .narrow=${this.narrow}
           @value-changed=${this._scriptDataChanged}
         ></ha-service-control>
-        ${void 0 !== this._error ? W`<ha-alert alert-type="error">${this._error}</ha-alert>` : K}
+        ${void 0 !== this._error ? W`<ha-alert alert-type="error">${this._error}</ha-alert>` : J}
         <ha-progress-button
           class="print-button"
           raised
           @click=${this._runScript}
           .progress=${this._buttonProgress}
         >
-          <ha-svg-icon .path=${Mn}></ha-svg-icon>
+          <ha-svg-icon .path=${In}></ha-svg-icon>
           ${this._buttonPrint}
         </ha-progress-button>
       </ac-print-view>
@@ -11342,51 +12363,51 @@
     }
     static get styles() {
       return p`
-      ${Ro}
+      ${lo}
     `;
     }
   }
-  n([vt({
+  n([_t({
     attribute: !1
-  })], Vo.prototype, "hass", void 0), n([vt()], Vo.prototype, "language", void 0), n([vt({
+  })], ho.prototype, "hass", void 0), n([_t()], ho.prototype, "language", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], Vo.prototype, "narrow", void 0), n([vt()], Vo.prototype, "route", void 0), n([vt()], Vo.prototype, "panel", void 0), n([vt({
+  })], ho.prototype, "narrow", void 0), n([_t()], ho.prototype, "route", void 0), n([_t()], ho.prototype, "panel", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], Vo.prototype, "selectedPrinterID", void 0), n([vt({
+  })], ho.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], Vo.prototype, "selectedPrinterDevice", void 0), n([yt()], Vo.prototype, "_scriptData", void 0), n([yt()], Vo.prototype, "_error", void 0), n([yt()], Vo.prototype, "_serviceName", void 0), n([yt()], Vo.prototype, "_buttonPrint", void 0), n([yt()], Vo.prototype, "_buttonProgress", void 0);
-  let Go = class extends Vo {
+  })], ho.prototype, "selectedPrinterDevice", void 0), n([wt()], ho.prototype, "_scriptData", void 0), n([wt()], ho.prototype, "_error", void 0), n([wt()], ho.prototype, "_serviceName", void 0), n([wt()], ho.prototype, "_buttonPrint", void 0), n([wt()], ho.prototype, "_buttonProgress", void 0);
+  let po = class extends ho {
     constructor() {
       super(...arguments), this._serviceName = "print_and_upload_no_cloud_save";
     }
   };
-  n([yt()], Go.prototype, "_serviceName", void 0), Go = n([mt("anycubic-view-print-no_cloud_save")], Go);
-  let Yo = class extends Vo {
+  n([wt()], po.prototype, "_serviceName", void 0), po = n([vt("anycubic-view-print-no_cloud_save")], po);
+  let uo = class extends ho {
     constructor() {
       super(...arguments), this._serviceName = "print_and_upload_save_in_cloud";
     }
   };
-  n([yt()], Yo.prototype, "_serviceName", void 0), Yo = n([mt("anycubic-view-print-save_in_cloud")], Yo);
-  var Zo = "0.2.2";
-  window.console.info(`%c ANYCUBIC-PANEL %c v${Zo} `, "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray"), t.AnycubicCloudPanel = class extends ut {
+  n([wt()], uo.prototype, "_serviceName", void 0), uo = n([vt("anycubic-view-print-save_in_cloud")], uo);
+  var go = "0.2.2";
+  window.console.info(`%c ANYCUBIC-PANEL %c v${go} `, "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray"), t.AnycubicCloudPanel = class extends mt {
     constructor() {
       super(...arguments), this.selectedPage = "main", this._handleLocationChange = () => {
         window.location.pathname.includes("anycubic-cloud") && this.requestUpdate();
       }, this._handlePrinterClick = t => {
         ((t, e, i = !1) => {
           const r = `${t.route.prefix}/${e ? `${e}/main` : ""}`;
-          i ? history.replaceState(null, "", r) : history.pushState(null, "", r), De(window, "location-changed", {
+          i ? history.replaceState(null, "", r) : history.pushState(null, "", r), Fe(window, "location-changed", {
             replace: i
           });
         })(this, t.currentTarget.printer_id), this.requestUpdate();
       }, this.handlePageSelected = t => {
         const e = t.detail.item.getAttribute("page-name");
-        e !== gi(this.route) ? (((t, e, i = !1) => {
+        e !== vi(this.route) ? (((t, e, i = !1) => {
           const r = t.route.prefix,
-            n = ui(t.route),
+            n = bi(t.route),
             s = `${r}/${n ? `${n}/${e}` : ""}`;
-          i ? history.replaceState(null, "", s) : history.pushState(null, "", s), De(window, "location-changed", {
+          i ? history.replaceState(null, "", s) : history.pushState(null, "", s), Fe(window, "location-changed", {
             replace: i
           });
         })(this, e), this.requestUpdate()) : scrollTo(0, 0);
@@ -11400,11 +12421,11 @@
     }
     willUpdate(t) {
       var e, i;
-      super.willUpdate(t), t.has("hass") && this.hass.language !== this.language && (this.language = this.hass.language, this._tabMain = Tn("panels.main.title", this.language), this._tabFilesLocal = Tn("panels.files_local.title", this.language), this._tabFilesUdisk = Tn("panels.files_udisk.title", this.language), this._tabFilesCloud = Tn("panels.files_cloud.title", this.language), this._tabPrintNoSave = Tn("panels.print_no_cloud_save.title", this.language), this._tabPrintSave = Tn("panels.print_save_in_cloud.title", this.language), this._tabDebug = Tn("panels.debug.title", this.language), this._mainTitle = Tn("title", this.language), this._selectPrinter = Tn("panels.initial.printer_select", this.language)), t.has("route") && (this.printers = function (t) {
+      super.willUpdate(t), t.has("hass") && this.hass.language !== this.language && (this.language = this.hass.language, this._tabMain = Mn("panels.main.title", this.language), this._tabFilesLocal = Mn("panels.files_local.title", this.language), this._tabFilesUdisk = Mn("panels.files_udisk.title", this.language), this._tabFilesCloud = Mn("panels.files_cloud.title", this.language), this._tabPrintNoSave = Mn("panels.print_no_cloud_save.title", this.language), this._tabPrintSave = Mn("panels.print_save_in_cloud.title", this.language), this._tabDebug = Mn("panels.debug.title", this.language), this._mainTitle = Mn("title", this.language), this._selectPrinter = Mn("panels.initial.printer_select", this.language)), t.has("route") && (this.printers = function (t) {
         const e = new Set();
         for (const i in t.entities) {
           const r = t.entities[i];
-          r.platform === He && r.device_id && e.add(r.device_id);
+          r.platform === De && r.device_id && e.add(r.device_id);
         }
         const i = {};
         for (const r in t.devices) {
@@ -11412,7 +12433,7 @@
           "Anycubic" === n.manufacturer && !n.via_device_id && e.has(n.id) && (i[n.id] = n);
         }
         return i;
-      }(this.hass), this.selectedPage = gi(this.route), this.selectedPrinterID = ui(this.route), this.selectedPrinterDevice = (e = this.printers, i = this.selectedPrinterID, e && i ? e[i] : void 0));
+      }(this.hass), this.selectedPage = vi(this.route), this.selectedPrinterID = bi(this.route), this.selectedPrinterDevice = (e = this.printers, i = this.selectedPrinterID, e && i ? e[i] : void 0));
     }
     render() {
       return this.getInitialView();
@@ -11457,7 +12478,7 @@
           .narrow=${this.narrow}
         ></ha-menu-button>
         <div class="main-title">${this._mainTitle}</div>
-        <div class="version">v${Zo}</div>
+        <div class="version">v${go}</div>
       </div>
     `;
     }
@@ -11548,6 +12569,7 @@
         case "main":
           return W`
           <anycubic-view-main
+            class="ac_wide_view"
             .hass=${this.hass}
             .language=${this.language}
             .narrow=${this.narrow}
@@ -11649,6 +12671,13 @@
         width: 100%;
       }
 
+      /* The main view lays itself out in columns and is the first thing a new
+         user sees, so it gets the whole screen rather than the 1024px lane the
+         file lists and forms use -- those get harder to read when stretched. */
+      anycubic-view-main.ac_wide_view {
+        max-width: 1600px;
+      }
+
       .printers-container {
         display: flex;
         flex-direction: row;
@@ -11681,10 +12710,10 @@
       }
     `;
     }
-  }, n([vt()], t.AnycubicCloudPanel.prototype, "hass", void 0), n([vt({
+  }, n([_t()], t.AnycubicCloudPanel.prototype, "hass", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], t.AnycubicCloudPanel.prototype, "narrow", void 0), n([vt()], t.AnycubicCloudPanel.prototype, "route", void 0), n([vt()], t.AnycubicCloudPanel.prototype, "panel", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "printers", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "selectedPage", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "selectedPrinterID", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "selectedPrinterDevice", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "language", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_tabMain", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_tabFilesLocal", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_tabFilesUdisk", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_tabFilesCloud", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_tabPrintNoSave", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_tabPrintSave", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_tabDebug", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_mainTitle", void 0), n([yt()], t.AnycubicCloudPanel.prototype, "_selectPrinter", void 0), t.AnycubicCloudPanel = n([mt("anycubic-cloud-panel")], t.AnycubicCloudPanel), Object.defineProperty(t, "__esModule", {
+  })], t.AnycubicCloudPanel.prototype, "narrow", void 0), n([_t()], t.AnycubicCloudPanel.prototype, "route", void 0), n([_t()], t.AnycubicCloudPanel.prototype, "panel", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "printers", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "selectedPage", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "selectedPrinterID", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "selectedPrinterDevice", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "language", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_tabMain", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_tabFilesLocal", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_tabFilesUdisk", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_tabFilesCloud", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_tabPrintNoSave", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_tabPrintSave", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_tabDebug", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_mainTitle", void 0), n([wt()], t.AnycubicCloudPanel.prototype, "_selectPrinter", void 0), t.AnycubicCloudPanel = n([vt("anycubic-cloud-panel")], t.AnycubicCloudPanel), Object.defineProperty(t, "__esModule", {
     value: !0
   });
 }({});

@@ -1,79 +1,66 @@
 import { CSSResult, LitElement, PropertyValues, css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { query } from "lit/decorators/query.js";
-import { ResizeController } from "@lit-labs/observers/resize-controller.js";
-import { animate, Options as motionOptions } from "@lit-labs/motion";
-
-import { getDimensions } from "./utils";
-import { customElementIfUndef } from "../../../internal/register-custom-element";
 
 import "../media_view/camera_stream.ts";
 
 import {
+  PrinterArt,
+  PrinterArtKind,
+  artAspect,
+  cameraInset,
+  filamentColor,
+  renderPrinter,
+  selectPrinterArt,
+} from "./printer_art";
+import {
   getPrinterImageStateUrl,
   getPrinterSensorStateObj,
+  getStateObjByKey,
   isPrintStatePrinting,
-  updateElementStyleWithObject,
 } from "../../../helpers";
+
+import { customElementIfUndef } from "../../../internal/register-custom-element";
 
 import {
   AnimatedPrinterConfig,
-  AnimatedPrinterDimensions,
+  HassDevice,
   HassEntityInfos,
   HomeAssistant,
   LitTemplateResult,
 } from "../../../types";
 
-const animOptionsGantry: motionOptions = {
-  keyframeOptions: {
-    duration: 2000,
-    direction: "alternate",
-    composite: "add",
-  },
-  properties: ["left"],
-};
+/**
+ * A slot as the ace_spools sensor actually reports it.
+ *
+ * The attribute is `spool_info`, not `spools`, and each entry carries both an
+ * [r,g,b] `color` and a `color_hex`. Confirmed against a live Kobra S1 rather
+ * than assumed -- the first pass read the wrong attribute and silently found
+ * nothing, which looks identical to a printer with no ACE attached.
+ */
+interface AceSpool {
+  color?: number[] | null;
+  color_hex?: string | null;
+  spool_loaded?: boolean;
+  consumables_percent?: number | null;
+  slot?: number;
+}
 
-const animOptionsAxis: motionOptions = {
-  keyframeOptions: {
-    duration: 100,
-    composite: "add",
-  },
-  properties: ["top"],
-};
+const rgbToHex = (rgb?: number[] | null): string | undefined =>
+  Array.isArray(rgb) && rgb.length >= 3
+    ? "#" +
+      rgb
+        .slice(0, 3)
+        .map((c) =>
+          Math.max(0, Math.min(255, Math.round(c)))
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join("")
+    : undefined;
 
 @customElementIfUndef("anycubic-printercard-animated_printer")
 export class AnycubicPrintercardAnimatedPrinter extends LitElement {
-  @query(".ac-printercard-animatedprinter")
-  private _rootElement: HTMLElement | undefined;
-
-  @query(".ac-apr-scalable")
-  private _elAcAPr_scalable: HTMLElement | undefined;
-
-  @query(".ac-apr-frame")
-  private _elAcAPr_frame: HTMLElement | undefined;
-
-  @query(".ac-apr-hole")
-  private _elAcAPr_hole: HTMLElement | undefined;
-
-  @query(".ac-apr-buildarea")
-  private _elAcAPr_buildarea: HTMLElement | undefined;
-
-  @query(".ac-apr-animprint")
-  private _elAcAPr_animprint: HTMLElement | undefined;
-
-  @query(".ac-apr-buildplate")
-  private _elAcAPr_buildplate: HTMLElement | undefined;
-
-  @query(".ac-apr-xaxis")
-  private _elAcAPr_xaxis: HTMLElement | undefined;
-
-  @query(".ac-apr-gantry")
-  private _elAcAPr_gantry: HTMLElement | undefined;
-
-  @query(".ac-apr-nozzle")
-  private _elAcAPr_nozzle: HTMLElement | undefined;
-
   @property()
   public hass!: HomeAssistant;
 
@@ -94,20 +81,24 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   @property({ attribute: "camera-entity-id" })
   public cameraEntityId?: string;
 
-  @state()
-  private dimensions: AnimatedPrinterDimensions | undefined;
-
-  @state()
-  private resizeObserver: ResizeController | undefined;
+  /** Overrides model detection when the reported name matches nothing.
+   *
+   *  kobra_s1_combo IS selectable, and means more than the others: a Combo is
+   *  an S1 with ACE units wrapped around it rather than a drawing of its own,
+   *  so choosing it asserts the hardware. That is deliberate -- a Combo whose
+   *  ACE sensors report nothing yet has no other way to be drawn correctly,
+   *  and being drawn as a bare S1 is the worse failure. */
+  @property({ attribute: "printer-art" })
+  public printerArt?: PrinterArtKind;
 
   @state()
   private _progressNum: number = 0;
 
   @state()
-  private animKeyframeGantry: number = 0;
+  private _isPrinting: boolean = false;
 
   @state()
-  private _isPrinting: boolean = false;
+  private _lightOn: boolean = false;
 
   @state()
   private imagePreviewUrl: string | undefined;
@@ -115,314 +106,404 @@ export class AnycubicPrintercardAnimatedPrinter extends LitElement {
   @state()
   private imagePreviewBgUrl: string | undefined;
 
-  public connectedCallback(): void {
-    super.connectedCallback();
-
-    this.resizeObserver = new ResizeController(this, {
-      callback: this._onResizeEvent,
-    });
-
-    if (this.dimensions && this._isPrinting) {
-      this._moveGantry();
-    }
-  }
-
-  public disconnectedCallback(): void {
-    super.disconnectedCallback();
-  }
-
   protected willUpdate(changedProperties: PropertyValues<this>): void {
     super.willUpdate(changedProperties);
 
-    if (changedProperties.has("scaleFactor")) {
-      this._onResizeEvent();
+    if (
+      !changedProperties.has("hass") &&
+      !changedProperties.has("printerEntities") &&
+      !changedProperties.has("printerEntityIdPart")
+    ) {
+      return;
     }
 
-    if (
-      changedProperties.has("hass") ||
-      changedProperties.has("printerEntities") ||
-      changedProperties.has("printerEntityIdPart")
-    ) {
-      const prevUrl = getPrinterImageStateUrl(
+    const prevUrl = getPrinterImageStateUrl(
+      this.hass,
+      this.printerEntities,
+      this.printerEntityIdPart,
+      "job_preview",
+    );
+    if (this.imagePreviewUrl !== prevUrl) {
+      this.imagePreviewUrl = prevUrl;
+      this.imagePreviewBgUrl = prevUrl ? `url('${prevUrl}')` : undefined;
+    }
+
+    // The default only applies when the entity is MISSING; an offline
+    // printer's sensor exists with state "unavailable", and NaN would ride
+    // into every transform the artwork derives from progress.
+    const rawProgress = Number(
+      getPrinterSensorStateObj(
         this.hass,
         this.printerEntities,
         this.printerEntityIdPart,
-        "job_preview",
-      );
-      if (this.imagePreviewUrl !== prevUrl) {
-        this.imagePreviewUrl = prevUrl;
-        this.imagePreviewBgUrl = this.imagePreviewUrl
-          ? `url('${prevUrl}')`
-          : undefined;
-      }
-      this._progressNum =
-        Number(
-          getPrinterSensorStateObj(
-            this.hass,
-            this.printerEntities,
-            this.printerEntityIdPart,
-            "job_progress",
-            0,
-          ).state,
-        ) / 100;
-      const printingState = getPrinterSensorStateObj(
+        "job_progress",
+        0,
+      ).state,
+    );
+    this._progressNum = Number.isFinite(rawProgress) ? rawProgress / 100 : 0;
+
+    this._isPrinting = isPrintStatePrinting(
+      getPrinterSensorStateObj(
         this.hass,
         this.printerEntities,
         this.printerEntityIdPart,
         "job_state",
-      ).state.toLowerCase();
+      ).state.toLowerCase(),
+    );
 
-      const newIsPrinting = isPrintStatePrinting(printingState);
-
-      if (this.dimensions && !this._isPrinting && newIsPrinting) {
-        this._moveGantry();
-      }
-
-      this._isPrinting = newIsPrinting;
-    }
+    // The printer's own chamber light, so the artwork agrees with the machine
+    // rather than decorating it. Anything that is not a clear "on" reads as
+    // off: unknown and unavailable must not look illuminated.
+    this._lightOn =
+      getStateObjByKey(this.hass, this.printerEntities, "printer_light")
+        ?.state === "on";
   }
 
-  protected update(changedProperties: PropertyValues): void {
-    super.update(changedProperties);
-
-    if (
-      (changedProperties.has("dimensions") ||
-        changedProperties.has("animKeyframeGantry") ||
-        changedProperties.has("hass")) &&
-      this.dimensions
-    ) {
-      // Riding up with progress would drag the gantry across the picture and
-      // hide the very thing you opened the camera to see, so with the camera
-      // in the build volume it stays parked clear of it and only sweeps.
-      const progY = this.cameraEntityId
-        ? -this.dimensions.BuildArea.height
-        : this._progressNum * -1 * this.dimensions.BuildArea.height;
-      updateElementStyleWithObject(this._elAcAPr_xaxis, {
-        ...this.dimensions.XAxis,
-        top: this.dimensions.XAxis.top + progY,
-      });
-      updateElementStyleWithObject(this._elAcAPr_gantry, {
-        ...this.dimensions.Gantry,
-        left:
-          this.animKeyframeGantry !== 0
-            ? this.dimensions.Gantry.left + this.dimensions.BuildPlate.width
-            : this.dimensions.Gantry.left,
-        top: this.dimensions.Gantry.top + progY,
-      });
-      updateElementStyleWithObject(this._elAcAPr_animprint, {
-        height: `${this._progressNum * 100}%`,
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (changedProperties.has("dimensions") && this.dimensions) {
-        updateElementStyleWithObject(this._elAcAPr_scalable, {
-          ...this.dimensions.Scalable,
-        });
-        updateElementStyleWithObject(this._elAcAPr_frame, {
-          ...this.dimensions.Frame,
-        });
-        updateElementStyleWithObject(this._elAcAPr_hole, {
-          ...this.dimensions.Hole,
-        });
-        updateElementStyleWithObject(this._elAcAPr_buildarea, {
-          ...this.dimensions.BuildArea,
-        });
-        updateElementStyleWithObject(this._elAcAPr_buildplate, {
-          ...this.dimensions.BuildPlate,
-        });
-        updateElementStyleWithObject(this._elAcAPr_nozzle, {
-          ...this.dimensions.Nozzle,
-        });
+  /**
+   * The model, from the device registry rather than a sensor.
+   *
+   * machine_name is not exposed as an entity, but the integration writes it to
+   * the device's model field, and every printer entity carries device_id.
+   */
+  private _machineName(): string | undefined {
+    for (const key in this.printerEntities) {
+      const deviceId = this.printerEntities[key].device_id;
+      // hass.devices is typed as a total record, so TS thinks the lookup
+      // always succeeds; at runtime a stale entity can name a device that is
+      // gone, so the check stays and the type is narrowed by hand.
+      const device = deviceId
+        ? (this.hass.devices[deviceId] as HassDevice | undefined)
+        : undefined;
+      if (device) {
+        return device.model ?? device.name;
       }
     }
+    return undefined;
+  }
+
+  /** Slot colours and remaining filament from the ACE sensors. */
+  private _spoolState(): {
+    spools: string[];
+    active: number;
+    units: 0 | 1 | 2;
+    remaining: (number | undefined)[];
+  } {
+    const read = (key: string): AceSpool[] => {
+      const stateObj = getStateObjByKey(this.hass, this.printerEntities, key);
+      // Attributes are an `any` bag by definition -- this is the boundary
+      // where that becomes a typed array, so the cast belongs here.
+      const spools: unknown = stateObj?.attributes.spool_info;
+      return Array.isArray(spools) ? (spools as AceSpool[]) : [];
+    };
+
+    const primary = read("ace_spools");
+    const secondary = read("secondary_ace_spools");
+    const units = secondary.length ? 2 : primary.length ? 1 : 0;
+
+    const all = [...primary, ...secondary];
+    const colours = all.map((s) =>
+      filamentColor(s.color_hex ?? rgbToHex(s.color)),
+    );
+    // consumables_percent is 0-100 when the printer reports it at all.
+    // Undefined stays undefined: the artwork draws an unknown reel full,
+    // because a reel we know nothing about must not look nearly empty.
+    const remaining = all.map((s) =>
+      typeof s.consumables_percent === "number"
+        ? Math.max(0, Math.min(1, s.consumables_percent / 100))
+        : undefined,
+    );
+
+    // The feeding slot lives on the box, not on a sensor of its own, and is
+    // null whenever the printer is drawing from the external spool instead.
+    const boxInfo = getStateObjByKey(
+      this.hass,
+      this.printerEntities,
+      "ace_spools",
+    )?.attributes.box_info as { loaded_slot?: number | null } | undefined;
+    const loaded = boxInfo?.loaded_slot;
+
+    return {
+      spools: colours,
+      active: typeof loaded === "number" && loaded > 0 ? loaded - 1 : 0,
+      units,
+      remaining,
+    };
+  }
+
+  /** How far a heater is toward its OWN target, 0-1. No target = not heating. */
+  private _heat(currentKey: string, targetKey: string): number {
+    const num = (key: string): number =>
+      Number(
+        getPrinterSensorStateObj(
+          this.hass,
+          this.printerEntities,
+          this.printerEntityIdPart,
+          key,
+          0,
+        ).state,
+      );
+    const target = num(targetKey);
+    if (!Number.isFinite(target) || target <= 0) {
+      return 0;
+    }
+    const current = num(currentKey);
+    if (!Number.isFinite(current)) {
+      return 0;
+    }
+    // Ambient is roughly 20C; below that there is nothing to show.
+    return Math.max(0, Math.min(1, (current - 20) / Math.max(1, target - 20)));
+  }
+
+  private _status(): "idle" | "printing" | "paused" | "error" {
+    // getStateObjByKey matches on translation_key, which is "job_is_paused".
+    // The ENTITY ID ends in "job_paused", so the wrong key here looked right
+    // in every log and search while never matching, and the artwork could
+    // never enter its paused state.
+    const paused = getStateObjByKey(
+      this.hass,
+      this.printerEntities,
+      "job_is_paused",
+    )?.state;
+    if (paused === "on") {
+      return "paused";
+    }
+    const job = getPrinterSensorStateObj(
+      this.hass,
+      this.printerEntities,
+      this.printerEntityIdPart,
+      "job_state",
+    ).state.toLowerCase();
+    if (job.includes("fail") || job.includes("error")) {
+      return "error";
+    }
+    return this._isPrinting ? "printing" : "idle";
+  }
+
+  private _art(): PrinterArt {
+    const { spools, active, units, remaining } = this._spoolState();
+    return selectPrinterArt(
+      this._machineName(),
+      units,
+      this.printerArt ?? null,
+      spools,
+      active,
+      remaining,
+    );
   }
 
   render(): LitTemplateResult {
-    const stylesPreview = {
-      "background-image": this.imagePreviewBgUrl,
-    };
+    const art = this._art();
+    const { spools, active } = this._spoolState();
+    const tip = spools[active] ?? undefined;
+    const cameraLive = Boolean(this.cameraEntityId);
 
     return html`
-      <div class="ac-printercard-animatedprinter">
-        ${this.dimensions
-          ? html` <div class="ac-apr-scalable">
-              <div class="ac-apr-frame">
-                <div class="ac-apr-hole"></div>
-              </div>
-              <div class="ac-apr-buildarea">
-                ${this.cameraEntityId
-                  ? html`
-                      <anycubic-printercard-camera_stream
-                        class="ac-apr-camera"
-                        .hass=${this.hass}
-                        .cameraEntityId=${this.cameraEntityId}
-                      ></anycubic-printercard-camera_stream>
-                    `
-                  : html`
-                      <div class="ac-apr-animprint">
-                        ${this.imagePreviewBgUrl
-                          ? html`
-                              <div
-                                class="ac-apr-imgprev"
-                                style=${styleMap(stylesPreview)}
-                              ></div>
-                            `
-                          : nothing}
-                      </div>
-                    `}
-              </div>
-              <div class="ac-apr-buildplate"></div>
-              <div
-                class="ac-apr-xaxis"
-                ${animate({ ...animOptionsAxis })}
-              ></div>
-              <div
-                class="ac-apr-gantry"
-                ${animate({ ...animOptionsAxis })}
-                ${animate(this._gantryAnimOptions)}
-              >
-                <div class="ac-apr-nozzle"></div>
-              </div>
-            </div>`
+      <div
+        class="ac-printercard-animatedprinter"
+        style=${styleMap({
+          "--ac-apr-chamber": cameraInset(art),
+          "--ac-apr-aspect": artAspect(art),
+        })}
+      >
+        ${cameraLive
+          ? html`
+              <anycubic-printercard-camera_stream
+                class="ac-apr-camera"
+                .hass=${this.hass}
+                .cameraEntityId=${this.cameraEntityId}
+              ></anycubic-printercard-camera_stream>
+            `
           : nothing}
+        ${renderPrinter(art, {
+          progress: this._progressNum,
+          cameraLive,
+          // The part on the plate takes the model's own SHAPE whenever a
+          // stream is not using the chamber. Filling the chamber with the
+          // render instead only duplicates the Preview tab, where the same
+          // image is already shown larger and unclipped.
+          previewUrl: cameraLive ? undefined : this.imagePreviewUrl,
+          tip,
+          lightOn: this._lightOn,
+          nozzleHeat: this._heat(
+            "nozzle_temperature",
+            "target_nozzle_temperature",
+          ),
+          bedHeat: this._heat(
+            "hotbed_temperature",
+            "target_hotbed_temperature",
+          ),
+          fanOn:
+            Number(
+              getPrinterSensorStateObj(
+                this.hass,
+                this.printerEntities,
+                this.printerEntityIdPart,
+                "fan_speed",
+                0,
+              ).state,
+            ) > 0,
+          status: this._status(),
+        })}
       </div>
     `;
   }
 
-  private _gantryAnimOptions = (): motionOptions => {
-    return {
-      ...animOptionsGantry,
-      onComplete: this._moveGantry,
-      disabled: !(this.dimensions && this._isPrinting),
-    };
-  };
-
-  private _onResizeEvent = (): void => {
-    if (this._rootElement) {
-      const height: number = this._rootElement.clientHeight;
-      const width: number = this._rootElement.clientWidth;
-      this._setDimensions(width, height);
-    }
-  };
-
-  private _setDimensions(width: number, height: number): void {
-    this.dimensions = getDimensions(
-      this.printerConfig,
-      { width, height },
-      this.scaleFactor || 1.0,
-    );
-  }
-
-  private _moveGantry = (): void => {
-    this.animKeyframeGantry = this._isPrinting
-      ? Number(!this.animKeyframeGantry)
-      : 0;
-  };
-
   static get styles(): CSSResult {
     return css`
       :host {
-        display: block;
-        width: 100%;
-        height: 100%;
-        box-sizing: border-box;
-      }
-
-      .ac-printercard-animatedprinter {
-        width: 100%;
-        height: 100%;
-        box-sizing: border-box;
         display: flex;
+        align-items: center;
         justify-content: center;
-        align-items: center;
-      }
-
-      .ac-apr-scalable {
-        position: relative;
-      }
-
-      .ac-apr-frame {
-        top: 0px;
-        left: 0px;
-        border-radius: 8px;
-        background-color: #bbbbbb;
-        position: absolute;
-      }
-
-      .ac-apr-hole {
-        position: absolute;
-        top: 0px;
-        left: 0px;
-        background-color: var(
-          --ha-card-background,
-          var(--card-background-color, white)
-        );
-        border-radius: 8px;
-      }
-
-      .ac-apr-buildarea {
-        background-color: rgba(0, 0, 0, 0.075);
+        width: 100%;
+        height: 100%;
         box-sizing: border-box;
-        position: absolute;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        align-items: center;
-        border-radius: 8px;
+        /* Without this the host has no definite height for max-height to
+           resolve against, and the cap silently does nothing. */
+        min-height: 0;
+      }
+
+      /* The wrapper carries the drawing's own aspect ratio, and is capped by
+         BOTH dimensions of whatever box the card gives it.
+
+         This is what stops the printer rendering enormous. width:100% on the
+         SVG alone means its height just follows the aspect ratio with nothing
+         to cap it, and a Combo with two ACE units is nearly twice as tall as
+         it is wide. Constraining the wrapper rather than letting the SVG
+         letterbox inside it also keeps the camera aligned: the stream is
+         positioned by percentage inset OF THIS BOX, so if the drawing did not
+         fill it exactly, the chamber hole would stop lining up with the video
+         behind it. */
+      .ac-printercard-animatedprinter {
+        position: relative;
+        aspect-ratio: var(--ac-apr-aspect, 1 / 1);
+        max-width: 100%;
+        max-height: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
         overflow: hidden;
       }
 
-      .ac-apr-buildplate {
-        box-sizing: border-box;
-        border-radius: 8px;
+      /* Both of these fill exactly the chamber hole in the artwork, which is
+         negative space, so the SVG frames them rather than covering them.
+         The inset comes from the art itself because it moves with ACE count. */
+      /* The chamber is a hole in the artwork, so whatever sits behind it must
+         be clipped to that hole. The stream is the reason: its <video> is in a
+         shadow root we cannot reach and sizes itself, so without clipping here
+         it renders at its own aspect ratio and spills out past the chassis. */
+      .ac-apr-camera,
+      .ac-apr-imgprev {
         position: absolute;
-        background-color: #333333;
-        height: 8px;
+        inset: var(--ac-apr-chamber, 0);
+        z-index: 0;
+        overflow: hidden;
+        /* The camera is a custom element whose own :host sets width and height
+           to 100%. An explicit size beats the four inset edges, so without
+           these the stream filled the whole wrapper instead of the chamber
+           hole -- measured on the live card as 115x165 against a chamber that
+           should be about 71x105. Styles from here outrank :host, so auto
+           hands sizing back to the insets. */
+        width: auto;
+        height: auto;
       }
 
-      .ac-apr-xaxis {
-        position: absolute;
-        border-radius: 8px;
-        background-color: #aaaaaa;
-      }
-
-      .ac-apr-animprint {
-        background-color: var(--primary-text-color);
-        width: 100%;
-      }
-
-      /* Fills the build volume so the frame, gantry and nozzle sit over the
-         picture -- it reads as looking into the machine. */
+      /* The stream is 16:9 and the chamber hole is nearly square, so filling
+         the hole meant object-fit: cover cropping away about 46% of the
+         width -- you saw a narrow centre slice of the bed, heavily zoomed in.
+         The <video> lives in ha-camera-stream's shadow root and cannot be
+         restyled from here, so the BOX is matched to the stream instead: at
+         16:9 inside the hole, cover and contain agree and nothing is cropped.
+         Centred with margin:auto against the four inset edges. */
       .ac-apr-camera {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
         background-color: #000;
+        aspect-ratio: 16 / 9;
+        max-width: 100%;
+        max-height: 100%;
+        margin: auto;
       }
 
       .ac-apr-imgprev {
-        height: 100%;
-        width: 100%;
-        background-size: 100%;
+        background-size: contain;
         background-repeat: no-repeat;
-        background-position-y: 100%;
+        background-position: center bottom;
       }
 
-      .ac-apr-gantry {
-        background-color: #333333;
-        border-radius: 4px;
-        box-sizing: border-box;
-        position: absolute;
+      /* Sits over the stream, and must never swallow clicks meant for the
+         card underneath. */
+      .ac-apr-svg {
+        position: relative;
+        z-index: 1;
+        pointer-events: none;
+        display: block;
+        width: 100%;
+        height: 100%;
+        color: var(--primary-text-color);
+        --ac-printer-accent: var(
+          --state-icon-active-color,
+          var(--primary-color)
+        );
+        --ac-printer-rail: var(--secondary-text-color);
+        --ac-printer-plate: var(--divider-color);
+        --ac-printer-card-bg: var(
+          --ha-card-background,
+          var(--card-background-color, #fff)
+        );
+        --ac-printer-light: #ffd88a;
       }
 
-      .ac-apr-nozzle {
-        background-color: #aaaaaa;
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        clip-path: polygon(100% 0, 100% 50%, 50% 75%, 0 50%, 0 0);
+      /* The head sweeps only while a job is running. Driven from CSS rather
+         than axis data, which the printer does not report often enough to
+         animate from -- when it is wired, replace this with nozzleTransform.
+
+         Targeted by CLASS, not id. It was an id, and an unrelated cleanup that
+         removed the artwork's document-global ids silently killed the sweep:
+         the rule kept matching nothing and the head simply stopped moving. A
+         class cannot collide between two cards, so it satisfies both. */
+      .ac-apr-svg .ac-apr-nozzle {
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      :host([printing]) .ac-apr-svg .ac-apr-nozzle {
+        animation: ac-apr-sweep 4.4s ease-in-out infinite;
+      }
+
+      @keyframes ac-apr-sweep {
+        0%,
+        100% {
+          transform: translateX(-46px);
+        }
+        50% {
+          transform: translateX(46px);
+        }
+      }
+
+      .ac-apr-svg .ac-apr-fan {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: ac-apr-spin 1.1s linear infinite;
+      }
+
+      @keyframes ac-apr-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Motion is the whole point of both of these, so under reduced-motion
+         they stop rather than slow: the fan still reads as running from its
+         opacity, and the head from its position. */
+      @media (prefers-reduced-motion: reduce) {
+        :host([printing]) .ac-apr-svg .ac-apr-nozzle,
+        .ac-apr-svg .ac-apr-fan {
+          animation: none;
+        }
       }
     `;
+  }
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    // Reflected so the sweep keyframe can be scoped to an actual print.
+    this.toggleAttribute("printing", this._isPrinting);
   }
 }

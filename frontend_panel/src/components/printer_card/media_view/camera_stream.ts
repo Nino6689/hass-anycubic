@@ -112,12 +112,19 @@ export class AnycubicPrintercardCameraStream extends LitElement {
         display: block;
         width: 100%;
         height: 100%;
+        /* ha-camera-stream has its own shadow root, so its internal <video>
+           cannot be styled from here and sizes itself to the stream's own
+           aspect ratio. Without this it escapes the box entirely -- in the
+           printer card that meant the video spilling out past the chassis
+           instead of sitting inside the build chamber. */
+        overflow: hidden;
       }
 
       ha-camera-stream {
         display: block;
         width: 100%;
         height: 100%;
+        object-fit: cover;
       }
 
       .ac-cam-message {

@@ -874,22 +874,29 @@ three fan numbers and `select.*_print_speed_mode` — do the same jobs and are e
 the integration offers the card to your dashboards itself, and the URL it registers carries the
 build hash so a browser never serves you a stale copy after an update.
 
-There is a sidebar panel too, showing the same card with the printer's details underneath. The
-card is the part meant for your own dashboards.
+There is a sidebar panel too — the same card as a full-width showcase, with the machine's
+details beside it and a gallery of ready-made card configs underneath. The card is the part
+meant for your own dashboards; the panel is where you go to see what it can do.
+
+![The sidebar panel with a print running](docs/images/panel.png)
 
 ### What it shows
 
 A hero area, the job, and whatever you want expanded underneath:
 
-- **Hero** — switch between the **camera**, the sliced job's **preview image**, and the animated
-  **printer**. Only the surfaces that actually have something to show get a tab. Pick the printer
-  and the live camera plays *inside the build volume*, with the gantry and nozzle drawn over it.
+- **Hero** — switch between the **camera**, the sliced job's **preview image**, the animated
+  **printer**, and **printer + model**. Only the surfaces that actually have something to show
+  get a tab. Pick the printer and the live camera plays *inside the build volume*; pick
+  printer + model and the part on the plate takes the **actual shape of what you are printing**,
+  in the colour of the loaded filament, growing as the job progresses.
 - **Progress** — percentage, layer count, and a bar that takes the status colour.
 - **Stats** — the rows you pick in *Monitored Stats*.
 - **Controls** — pause, resume and cancel appear while a job is running; print settings opens the
   temperature, fan and speed dialog.
+- **Move** — a jog dial for X and Y, a Z column, home buttons, motor release, and the step
+  size. Its own toggle (`showMoveButtons`), shown inline like the controls rather than folded
+  behind a chevron.
 - **Filament** — ACE spools, colours, run-out refill and drying.
-- **Move** — a jog dial for X and Y, a Z column, home buttons, motor release, and the step size.
 - **Insights** — print cost, filament forecast, nozzle wear and spool inventory.
 
 The layout goes two-column when the card is given the width for it, and stacks on a phone.
@@ -901,35 +908,78 @@ Everything is optional. `printer_id` is the device id, which the visual editor f
 ```yaml
 type: custom:anycubic-card
 printer_id: 0b63c1bf6e7d3a8e0df2134da50ce9d8
-mediaView: auto          # auto | camera | preview | printer | none
+mediaView: auto          # auto | camera | preview | printer | printer_model | none
+printerArt: auto         # auto | kobra_s1 | kobra_s1_combo | kobra_3 | resin | fdm
+showControls: true
+showMoveButtons: true    # the jog dial + Z column, inline under the controls
 sections:                # which expandable sections to offer
   - filament
-  - move
   - insights
-showControls: true
 alwaysShow: true         # false collapses the card unless a job is running
 lightEntityId: light.anycubic_kobra_s1_printer_light
 ```
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `mediaView` | `auto` | Which hero surface opens first |
-| `sections` | `[filament]` | Expandable sections to offer |
+| `mediaView` | `auto` | Which hero surface opens first. `printer_model` is the chassis with the sliced model growing on the plate |
+| `printerArt` | `auto` | Which chassis the printer graphic draws. `auto` detects it from the model name; pick one when the detection guesses wrong, or `kobra_s1_combo` to force the ACE stack |
 | `showControls` | `true` | Pause / resume / cancel / print settings row |
+| `showMoveButtons` | `false` | The jog dial, Z column, home and motor-release buttons, inline |
+| `sections` | `[filament]` | Expandable sections to offer: `filament`, `insights` |
 | `alwaysShow` | `false` | Keep the body open when the printer is idle |
 | `showSettingsButton` | `false` | Show print settings even when idle |
 | `vertical` | `false` | Force the stacked layout on a wide card |
 | `scaleFactor` | `1` | How much width the hero takes in the two-column layout |
 | `monitoredStats` | Status, ETA, Elapsed, Remaining | The stat rows |
-| `round` / `use_24hr` / `temperatureUnit` | `false` / `true` / `C` | Number and time formatting |
+| `round` / `use_24hr` / `temperatureUnit` | `true` / `true` / `C` | Number and time formatting. Rounded by default — set `round: false` for full precision |
 | `lightEntityId` / `powerEntityId` | — | Adds a toggle to the header |
 | `cameraEntityId` | auto | Override which camera the hero uses |
+| `noCamera` | `false` | Never acquire a camera, whatever the media view asks — for galleries, wallboards and second dashboards that must not steal the stream |
 | `slotColors` | `[]` | Colour presets in the spool editor |
+
+> **Upgrading?** Two defaults moved in 2.1: stats are **rounded** by default (`round: false`
+> brings back the decimals), and **Move is its own toggle** instead of a `sections` entry — a
+> saved config with `sections: [move]` still works, it simply switches `showMoveButtons` on
+> for you.
 
 > **`mediaView: auto` never opens the camera by itself.** A cloud-camera session spends a
 > single-use token, and Anycubic hands the camera to whichever session asked for it most
 > recently — so a dashboard loading in the background would quietly take the stream away from
 > your phone. Tap the camera tab, or set `mediaView: camera` if you want it live on load.
+
+### 🎨 The animated printer
+
+The printer graphic is drawn live from the machine's own state — it is telemetry, not
+decoration. The chamber light is your light entity, the reels are the colours and fill levels
+the ACE reports, the feed tube runs from whichever slot is loaded, the head sweeps while a job
+runs, and the screen shows idle / printing / paused / error as the printer does. Heat is drawn
+where heat lives: the hotend's melt zone glows and the heater element under the bed comes up to
+colour, both ramping amber to orange-red as each heater approaches its own target — so a glance
+tells you *warming*, *at temperature* or *still cooling* without reading a number. The chamber
+light is a lit strip that actually casts into the chamber, and it is your light entity: off on
+the machine is off on the card.
+
+![Every printer body and state](docs/images/printer-artwork.png)
+
+Five bodies ship — Kobra S1, S1 Combo with one or two ACE units stacked on top, the Kobra 3 /
+Kobra 2 open-frame, a generic FDM fallback, and a Photon-style resin machine. `printerArt: auto`
+picks one from the model name; the option exists for the machines the name does not identify.
+
+**Printer + model** goes one further: the printer publishes a render of the sliced job, and the
+card uses its silhouette as the part on the plate — your actual model, in the loaded filament's
+colour, revealed from the bed up as the percentage climbs. No render published? It falls back
+to a generic part.
+
+![The part takes the model's real shape](docs/images/model-print.png)
+
+### 🧱 Build this on your own dashboard
+
+The sidebar panel ends with a preset gallery: the same card rendered live in four different
+set-ups — full, printer + model, compact tile, vertical — each above the exact YAML that
+produces it, with a copy button, your `printer_id` already filled in. The previews render at
+dashboard-column width so what you paste is what you saw. Previews never open the camera.
+
+![The preset gallery on the panel](docs/images/panel-presets.png)
 
 ---
 

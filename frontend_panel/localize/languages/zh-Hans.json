@@ -40,8 +40,32 @@
         "scale_factor": "缩放比例",
         "slot_colors": "槽位颜色预设",
         "media_view": "主视图",
+        "printer_art": "打印机图形",
         "show_controls": "显示控制按钮",
+        "show_move_buttons": "显示移动按钮",
         "sections": "可展开区块"
+      },
+      "options": {
+        "printer_art": {
+          "auto": "自动（检测）",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon（树脂）",
+          "fdm": "通用 FDM"
+        },
+        "media_view": {
+          "auto": "自动",
+          "camera": "摄像头",
+          "preview": "打印预览",
+          "printer": "打印机图形",
+          "printer_model": "打印机图形 + 模型",
+          "none": "隐藏"
+        },
+        "sections": {
+          "filament": "耗材",
+          "insights": "洞察"
+        }
       }
     },
     "print_settings": {
@@ -97,6 +121,14 @@
       "Z Up Height": "Z 抬升高度",
       "Z Up Speed": "Z 抬升速度",
       "Z Down Speed": "Z 下降速度"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "摄像头",
+        "preview": "预览",
+        "printer": "打印机",
+        "printer_model": "打印机 + 模型"
+      }
     }
   },
   "panels": {
@@ -129,6 +161,21 @@
             "drying_progress": "ACE 烘干进度"
           }
         }
+      },
+      "groups": {
+        "machine": "设备",
+        "ace": "ACE",
+        "diagnostics": "标识信息"
+      },
+      "presets": {
+        "title": "在你自己的仪表板上搭建",
+        "lede": "下面每一张都是上方的同一张卡片，只是设置不同，并按仪表板栏位的宽度显示。预览不会打开摄像头，此处以打印机图形代替。复制一段并粘贴到手动卡片中。",
+        "full": "完整",
+        "compact": "紧凑磁贴",
+        "copy": "复制",
+        "copied": "已复制",
+        "model": "打印机 + 模型",
+        "vertical": "竖向"
       }
     },
     "files_cloud": {

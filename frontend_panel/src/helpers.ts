@@ -25,6 +25,7 @@ import {
   HassRoute,
   HomeAssistant,
   MediaViewType,
+  PrinterArtType,
   PrinterCardStatType,
   TemperatureUnit,
 } from "./types";
@@ -294,22 +295,51 @@ export function getPrinterEntities(
   return entities;
 }
 
+/**
+ * Entity-id text is the WRONG identity and it bit twice before this landed:
+ * ids slugify from the entity's display name in the server's language at
+ * registration time, so a German install never matches an English suffix; and
+ * when the ACE moved onto its own device, fresh installs gained an "_ace_pro_"
+ * infix that no suffix ever matched -- while every dev machine kept its old
+ * ids and kept working. The integration-owned `translation_key` is stable
+ * across languages, devices and renames, so it is consulted first; the suffix
+ * remains as a fallback for the few lookups whose suffix never matched a key.
+ */
+function matchByKeyOrSuffix(
+  entities: HassEntityInfos,
+  match_domain: string,
+  match_suffix: string,
+  strictPrefix?: string,
+): HassEntityInfo | undefined {
+  let suffixHit: HassEntityInfo | undefined;
+  for (const key in entities) {
+    const ent = entities[key];
+    const splitID = key.split(".");
+    if (splitID[0] !== match_domain) {
+      continue;
+    }
+    if (ent.translation_key === match_suffix) {
+      return ent;
+    }
+    if (!suffixHit) {
+      const idPart = splitID[1];
+      const matched = strictPrefix
+        ? idPart.split(strictPrefix)[1] === match_suffix
+        : idPart.endsWith(match_suffix);
+      if (matched) {
+        suffixHit = ent;
+      }
+    }
+  }
+  return suffixHit;
+}
+
 export function getMatchingEntity(
   entities: HassEntityInfos,
   match_domain: string,
   match_suffix: string,
 ): HassEntityInfo | undefined {
-  for (const key in entities) {
-    const ent = entities[key];
-    const splitID = key.split(".");
-    const domain: string = splitID[0];
-    const entity_id: string = splitID[1];
-
-    if (domain === match_domain && entity_id.endsWith(match_suffix)) {
-      return ent;
-    }
-  }
-  return undefined;
+  return matchByKeyOrSuffix(entities, match_domain, match_suffix);
 }
 
 export function getPrinterEntityId(
@@ -329,17 +359,12 @@ export function getStrictMatchingEntity(
   if (!printerEntityIdPart) {
     return undefined;
   }
-  for (const key in entities) {
-    const ent = entities[key];
-    const splitID = key.split(".");
-    const domain: string = splitID[0];
-    const entityIdPart: string = splitID[1].split(printerEntityIdPart)[1];
-
-    if (domain === match_domain && entityIdPart === match_suffix) {
-      return ent;
-    }
-  }
-  return undefined;
+  return matchByKeyOrSuffix(
+    entities,
+    match_domain,
+    match_suffix,
+    printerEntityIdPart,
+  );
 }
 
 export function getPrinterEntityIdPart(
@@ -772,14 +797,30 @@ export const formatDuration = (
     round ? Math.ceil(Number(time) / 60) * 60 : Number(time),
   );
 
-  const days: string = dur.days && dur.days > 0 ? `${dur.days}d` : "";
-  const hours: string = dur.hours && dur.hours > 0 ? `${dur.hours}h` : "";
-  const minutes: string =
-    dur.minutes && dur.minutes > 0 ? `${dur.minutes}m` : "";
-  const seconds: string =
-    dur.seconds && dur.seconds > 0 ? `${dur.seconds}s` : round ? "" : "0s";
+  // Show the two most significant units and stop. Concatenating every
+  // non-zero unit produced "1h0s" for exactly one hour -- the minutes dropped
+  // out because they were zero, leaving something that reads as 1 hour and 0
+  // seconds -- and "5h50m26s", which offers seconds of precision on a
+  // six-hour estimate. Dropping every zero unit also meant a duration of zero
+  // rendered as the empty string, so a finished print showed a blank stat.
+  const parts: string[] = [];
+  if (dur.days) {
+    parts.push(`${dur.days}d`);
+  }
+  if (dur.hours && parts.length < 2) {
+    parts.push(`${dur.hours}h`);
+  }
+  if (dur.minutes && parts.length < 2 && !dur.days) {
+    parts.push(`${dur.minutes}m`);
+  }
+  if (dur.seconds && parts.length < 2 && !dur.days && !dur.hours && !round) {
+    parts.push(`${dur.seconds}s`);
+  }
+  if (!parts.length) {
+    return round ? "0m" : "0s";
+  }
 
-  return `${days}${hours}${minutes}${seconds}`;
+  return parts.join(" ");
 };
 
 export const formatFutureTime = (
@@ -893,6 +934,12 @@ export const getEntityTemperature = (
   round: boolean = false,
 ): string => {
   const t: number = parseFloat(temperatureEntity.state);
+  // "unavailable" parses to NaN and NaN survives the unit conversion, so an
+  // offline printer read "NaN°C" -- worse than no reading, because it looks
+  // like a measurement.
+  if (isNaN(t)) {
+    return UNKNOWN_VALUE;
+  }
   const u: TemperatureUnit = temperatureUnitFromEntity(temperatureEntity);
   const tc: number = convertTemperature(t, u, temperatureUnit || u);
 
@@ -949,7 +996,11 @@ export function getPanelACEMonitoredStats(): PrinterCardStatType[] {
 export function getDefaultCardConfig(): AnycubicCardConfig {
   return {
     vertical: false,
-    round: false,
+    // Rounded by default. Unrounded renders a nozzle as "215.00°C" -- two
+    // decimals the printer never reported, it sends one -- and a six-hour
+    // estimate as "5h50m26s". Both are noise on the first screen a new user
+    // sees, and anyone who wants the raw precision can switch it back on.
+    round: true,
     use_24hr: true,
     temperatureUnit: TemperatureUnit.C,
     monitoredStats: getDefaultMonitoredStats(),
@@ -958,6 +1009,8 @@ export function getDefaultCardConfig(): AnycubicCardConfig {
     showSettingsButton: false,
     alwaysShow: false,
     mediaView: MediaViewType.Auto,
+    printerArt: PrinterArtType.Auto,
+    showMoveButtons: false,
     showControls: true,
     sections: [CardSectionType.Filament],
   };

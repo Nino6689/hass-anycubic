@@ -106,9 +106,18 @@ export class ColorPicker extends LitElement {
 
   clipboard(f) {
     const s = this.color.toString(f);
-    window.navigator.clipboard.writeText(s).then(() => {
+    // navigator.clipboard is undefined outside secure contexts (plain-http
+    // Home Assistant). Close the dialog either way; a copy button that
+    // throws is worse than one that quietly cannot.
+    const clip = window.navigator.clipboard;
+    if (clip && clip.writeText) {
+      clip.writeText(s).then(
+        () => this.hideCopyDialog(s),
+        () => this.hideCopyDialog(s),
+      );
+    } else {
       this.hideCopyDialog(s);
-    });
+    }
   }
 
   hideCopyDialog(copyText) {

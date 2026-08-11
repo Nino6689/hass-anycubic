@@ -299,6 +299,7 @@ export class AnycubicCloudPanel extends LitElement {
       case "main":
         return html`
           <anycubic-view-main
+            class="ac_wide_view"
             .hass=${this.hass}
             .language=${this.language}
             .narrow=${this.narrow}
@@ -414,6 +415,13 @@ export class AnycubicCloudPanel extends LitElement {
 
       .ac_wide_view {
         width: 100%;
+      }
+
+      /* The main view lays itself out in columns and is the first thing a new
+         user sees, so it gets the whole screen rather than the 1024px lane the
+         file lists and forms use -- those get harder to read when stretched. */
+      anycubic-view-main.ac_wide_view {
+        max-width: 1600px;
       }
 
       .printers-container {
