@@ -952,8 +952,12 @@ lightEntityId: light.anycubic_kobra_s1_printer_light
 The printer graphic is drawn live from the machine's own state — it is telemetry, not
 decoration. The chamber light is your light entity, the reels are the colours and fill levels
 the ACE reports, the feed tube runs from whichever slot is loaded, the head sweeps while a job
-runs, heat washes over the nozzle and bed as they approach their targets, and the screen shows
-idle / printing / paused / error as the printer does.
+runs, and the screen shows idle / printing / paused / error as the printer does. Heat is drawn
+where heat lives: the hotend's melt zone glows and the heater element under the bed comes up to
+colour, both ramping amber to orange-red as each heater approaches its own target — so a glance
+tells you *warming*, *at temperature* or *still cooling* without reading a number. The chamber
+light is a lit strip that actually casts into the chamber, and it is your light entity: off on
+the machine is off on the card.
 
 ![Every printer body and state](docs/images/printer-artwork.png)
 
