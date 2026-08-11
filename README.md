@@ -907,7 +907,7 @@ Everything is optional. `printer_id` is the device id, which the visual editor f
 
 ```yaml
 type: custom:anycubic-card
-printer_id: 0b63c1bf6e7d3a8e0df2134da50ce9d8
+printer_id: YOUR_PRINTER_DEVICE_ID
 mediaView: auto          # auto | camera | preview | printer | printer_model | none
 printerArt: auto         # auto | kobra_s1 | kobra_s1_combo | kobra_3 | resin | fdm
 showControls: true
