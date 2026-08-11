@@ -44,7 +44,11 @@ for (const [label, name, units, state, active = 0] of cases) {
   const colours = spoolColors(Array.from({ length: Math.max(1, units) * 4 }, (_, i) => ({ color_hex: COLOURS[i] })), Math.max(1, units));
   const remaining = [0.15, 0.9, undefined, 0.45, 0.7, 0.05, 0.6, 1];
   const art = selectPrinterArt(name, units, null, colours, active, remaining);
-  const svg = flatten(renderPrinter(art, { ...state, tip: colours[active] }));
+  // Lit quotes attribute bindings at runtime; a naive flatten does not, and
+  // an unquoted viewBox is silently IGNORED by the parser -- the drawing then
+  // renders at unit scale. Quote it here so the harness shows what Lit shows.
+  const svg = flatten(renderPrinter(art, { ...state, tip: colours[active] }))
+    .replace(/viewBox=(\d+ \d+ \d+ \d+)/, 'viewBox="$1"');
   html += `<figure><figcaption>${label}</figcaption>
     <div class="card">
       <div class="stage" style="--cam:${art.chamber.map((v) => v + '%').join(' ')}; --aspect:${artAspect(art)}">

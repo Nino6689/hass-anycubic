@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { localize } from "../../../localize/localize";
 
 import {
+  getDefaultCardConfig,
   getPanelACEMonitoredStats,
   getPanelBasicMonitoredStats,
   getPanelFDMMonitoredStats,
@@ -42,6 +43,12 @@ const monitoredStatsFDM: PrinterCardStatType[] = getPanelFDMMonitoredStats();
 /** The panel is the showcase, so it opens the filament tray rather than
  *  leaving the hero on component defaults with everything folded away. */
 const PANEL_SECTIONS: CardSectionType[] = [CardSectionType.Filament];
+
+/** The preview must behave EXACTLY as the emitted YAML would once pasted, so
+ *  any key the preset omits falls back to the card's own default -- not to a
+ *  panel-flavoured one. The gallery drifting from its code is the one failure
+ *  this section cannot afford. */
+const presetDefaults = getDefaultCardConfig();
 
 const infoFields: string[] = [
   "printer_name",
@@ -380,6 +387,7 @@ export class AnycubicViewMain extends LitElement {
           showControls: true,
           showMoveButtons: true,
           sections: [CardSectionType.Filament],
+          alwaysShow: true,
         },
       ],
       [
@@ -389,6 +397,7 @@ export class AnycubicViewMain extends LitElement {
           mediaView: MediaViewType.PrinterModel,
           showControls: true,
           showMoveButtons: false,
+          alwaysShow: true,
         },
       ],
       [
@@ -398,6 +407,7 @@ export class AnycubicViewMain extends LitElement {
           mediaView: MediaViewType.Printer,
           showControls: false,
           showMoveButtons: false,
+          alwaysShow: true,
           monitoredStats: [PrinterCardStatType.Status, PrinterCardStatType.ETA],
         },
       ],
@@ -409,6 +419,7 @@ export class AnycubicViewMain extends LitElement {
           mediaView: MediaViewType.Printer,
           showControls: true,
           showMoveButtons: false,
+          alwaysShow: true,
         },
       ],
     ];
@@ -468,13 +479,15 @@ export class AnycubicViewMain extends LitElement {
             .round=${true}
             .use_24hr=${this.panel.config.use_24hr ?? true}
             .temperatureUnit=${this.panel.config.temperatureUnit}
-            .monitoredStats=${config.monitoredStats ?? this.monitoredStats}
-            .mediaView=${config.mediaView ?? MediaViewType.Printer}
-            .showControls=${config.showControls ?? false}
-            .showMoveButtons=${config.showMoveButtons ?? false}
-            .sections=${config.sections ?? []}
-            .showSettingsButton=${false}
-            .alwaysShow=${true}
+            .monitoredStats=${config.monitoredStats ??
+            presetDefaults.monitoredStats}
+            .mediaView=${config.mediaView ?? presetDefaults.mediaView}
+            .showControls=${config.showControls ?? presetDefaults.showControls}
+            .showMoveButtons=${config.showMoveButtons ??
+            presetDefaults.showMoveButtons}
+            .sections=${config.sections ?? presetDefaults.sections}
+            .showSettingsButton=${presetDefaults.showSettingsButton}
+            .alwaysShow=${config.alwaysShow ?? presetDefaults.alwaysShow}
             .noCamera=${true}
           ></anycubic-printercard-card>
         </div>

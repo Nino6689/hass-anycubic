@@ -129,16 +129,29 @@ const chamberLight = (
   x: number,
   y: number,
   w: number,
+  /** False while the camera owns the chamber: the strip stays lit on the
+   *  chassis, but no wash may be painted over live video. */
+  wash = true,
 ): SVGTemplateResult => svg`
   ${
-    on
-      ? svg`<rect x="${x - 2}" y="${y}" width="${w + 4}" height="26" rx="6"
-              fill="var(--ac-printer-light, #ffd88a)" opacity="0.13"></rect>`
+    on && wash
+      ? svg`
+        <g class="ac-apr-wash" fill="var(--ac-printer-light, #ffd88a)">
+          <rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="34" opacity="0.055"></rect>
+          <rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="18" opacity="0.075"></rect>
+          <rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="8" opacity="0.1"></rect>
+        </g>`
       : nothing
   }
   <rect x="${x}" y="${y}" width="${w}" height="3" rx="1.5"
         fill="${on ? "var(--ac-printer-light, #ffd88a)" : "currentColor"}"
-        opacity="${on ? 0.95 : 0.3}"></rect>`;
+        opacity="${on ? 0.95 : 0.3}"></rect>
+  ${
+    on
+      ? svg`<rect x="${(x + w * 0.18).toFixed(1)}" y="${y + 0.7}" width="${(w * 0.64).toFixed(1)}" height="1.2" rx="0.6"
+              fill="#ffffff" opacity="0.6"></rect>`
+      : nothing
+  }`;
 
 /**
  * The object being printed, rising off the plate with progress.
@@ -305,7 +318,44 @@ const printedMass = (
  * with a 60C target is fully warm while one at 60C with no target is not
  * warming at all -- which is what the machine actually means.
  */
-const heatGlow = (
+/** Amber at warming, orange-red at target. Heat has a colour ramp in real
+ *  life; a fixed orange at varying opacity just reads as a smudge. */
+const heatColour = (heat: number): string => {
+  const t = Math.max(0, Math.min(1, heat));
+  const mix = (a: number, b: number): number => Math.round(a + (b - a) * t);
+  return `rgb(${mix(255, 255)},${mix(180, 79)},${mix(84, 33)})`;
+};
+
+/**
+ * The melt zone: a glowing seam where the heater block meets the cone, plus a
+ * faint halo tinting the cone itself. Replaces a plain orange rectangle over
+ * the whole hotend, which looked like a highlighter accident rather than heat.
+ * Drawn after the block so the seam sits ON the join, the way a hotend
+ * actually glows.
+ */
+const nozzleHeatMark = (
+  heat: number,
+  cx: number,
+  /** Y of the block/cone join in this body's geometry. */
+  seamY: number,
+): SVGOrNothing =>
+  heat <= 0.02
+    ? nothing
+    : svg`
+      <g class="ac-apr-ember">
+        <rect x="${cx - 11}" y="${seamY}" width="22" height="10" rx="5"
+              fill="${heatColour(heat)}" opacity="${(0.18 * heat).toFixed(2)}"></rect>
+        <rect x="${cx - 15}" y="${seamY - 1.5}" width="30" height="3" rx="1.5"
+              fill="${heatColour(heat)}" opacity="${(0.3 + heat * 0.6).toFixed(2)}"></rect>
+      </g>`;
+
+/**
+ * The heater element under the glass, drawn exactly over the plate's own
+ * shadow bar so cold and hot share a silhouette: at zero it is the shadow, at
+ * temperature it is an element coming up to colour. Callers pass 0 while the
+ * camera owns the chamber -- this sits inside the video hole.
+ */
+const bedHeatMark = (
   heat: number,
   x: number,
   y: number,
@@ -314,9 +364,9 @@ const heatGlow = (
 ): SVGOrNothing =>
   heat <= 0.02
     ? nothing
-    : svg`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"
-            fill="var(--ac-printer-heat, #ff7a3d)"
-            opacity="${(0.12 + heat * 0.45).toFixed(2)}"></rect>`;
+    : svg`
+      <rect class="ac-apr-bedember" x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}"
+            fill="${heatColour(heat)}" opacity="${(0.25 + heat * 0.6).toFixed(2)}"></rect>`;
 
 /**
  * One reel of filament, seen edge-on, shrinking toward its hub as it empties.
@@ -448,7 +498,7 @@ const s1Body = ({
     ${screenFace(status, 172, 13, 7.5)}
   </g>
   <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
-  ${chamberLight(lightOn, 56, 42, 127)}
+  ${chamberLight(lightOn, 56, 42, 127, !chamberBusy)}
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -462,9 +512,9 @@ const s1Body = ({
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  ${heatGlow(bedHeat, 54, 176, 132, 12)}
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  ${bedHeatMark(chamberBusy ? 0 : bedHeat, 64, 186, 112, 3)}
   ${printedMass(!chamberBusy, progress, 56, 128, 178, 66, tip, previewUrl)}
   <g transform="${gantry}"
      style="${chamberBusy ? "display:none" : ""}">
@@ -475,7 +525,6 @@ const s1Body = ({
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
     <g class="ac-apr-nozzle" transform="${nozzle}">
-      ${heatGlow(nozzleHeat, 108, 60, 24, 18)}
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -485,6 +534,7 @@ const s1Body = ({
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="${tip}"></path>
+      ${nozzleHeatMark(nozzleHeat, 119.5, 65)}
     </g>
   </g>`;
 
@@ -594,11 +644,11 @@ export const PRINTER_ART: Record<
       <rect x="146" y="29" width="50" height="15" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="150" y="32" width="42" height="9" rx="2" fill="#101216"></rect>
       ${screenFace(status, 171, 36.5, 5)}
-      ${chamberLight(lightOn, 52, 47, 136)}
+      ${chamberLight(lightOn, 52, 47, 136, !chamberBusy)}
       <rect x="54" y="177" width="132" height="3" rx="1.5" fill="var(--ac-printer-rail, currentColor)" opacity="0.5"></rect>
-      ${heatGlow(bedHeat, 60, 164, 120, 12)}
       <rect x="62" y="166" width="116" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="70" y="174" width="100" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      ${bedHeatMark(chamberBusy ? 0 : bedHeat, 70, 174, 100, 4)}
       ${printedMass(!chamberBusy, progress, 62, 116, 166, 58, tip, previewUrl)}
       ${fanMark(fanOn, 30, 196, 7)}
       <g transform="${gantry}"
@@ -610,7 +660,6 @@ export const PRINTER_ART: Record<
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
         <g class="ac-apr-nozzle" transform="${nozzle}">
-          ${heatGlow(nozzleHeat, 108, 66, 24, 18)}
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
             <rect x="107" y="51" width="20" height="2" rx="1"></rect>
@@ -620,6 +669,7 @@ export const PRINTER_ART: Record<
           <rect x="130" y="50" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
           <path d="M113 71 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
           <path d="M115.9 79 h7.2 l-0.6 3 h-6 Z" fill="${tip}"></path>
+          ${nozzleHeatMark(nozzleHeat, 119.5, 71)}
         </g>
       </g>`,
   },
@@ -656,15 +706,15 @@ export const PRINTER_ART: Record<
         <rect x="35" y="52" width="6" height="120" rx="3"></rect>
         <rect x="199" y="52" width="6" height="120" rx="3"></rect>
       </g>
-      ${heatGlow(bedHeat, 58, 168, 124, 12)}
       <rect x="60" y="170" width="120" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="68" y="178" width="104" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      ${bedHeatMark(chamberBusy ? 0 : bedHeat, 68, 178, 104, 4)}
       ${printedMass(!chamberBusy, progress, 60, 120, 170, 60, tip, previewUrl)}
       ${fanMark(fanOn, 34, 200, 6.5)}
       <rect x="154" y="33" width="50" height="16" rx="3" fill="currentColor" opacity="0.9"></rect>
       <rect x="158" y="36" width="42" height="10" rx="2" fill="#101216"></rect>
       ${screenFace(status, 179, 41, 5)}
-      ${chamberLight(lightOn, 46, 52, 148)}
+      ${chamberLight(lightOn, 46, 52, 148, !chamberBusy)}
       <g fill="currentColor" opacity="0.2">
         <rect x="36" y="188" width="40" height="2.5" rx="1"></rect>
         <rect x="36" y="194" width="40" height="2.5" rx="1"></rect>
@@ -677,7 +727,6 @@ export const PRINTER_ART: Record<
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
         <g class="ac-apr-nozzle" transform="${nozzle}">
-          ${heatGlow(nozzleHeat, 109, 67, 22, 17)}
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
             <rect x="109" y="53" width="18" height="2" rx="1"></rect>
@@ -686,6 +735,7 @@ export const PRINTER_ART: Record<
           </g>
           <path d="M113 72 h13 l-3 7.5 h-7 Z" fill="currentColor"></path>
           <path d="M116 79.5 h7 l-0.5 2.5 h-6 Z" fill="${tip}"></path>
+          ${nozzleHeatMark(nozzleHeat, 119.5, 72)}
         </g>
       </g>`,
   },

@@ -19,6 +19,10 @@
   .stage { position:relative; aspect-ratio:var(--aspect); height:100%; width:auto; max-width:100%; margin:0 auto;
     --primary-text-color:#c9d3dc; --secondary-text-color:#8b98a4; --divider-color:#5d6a76;
     --primary-color:#4a9fd8; --ha-card-background:#1b2229; }
+  /* Standing in for the camera. It is inset from the STAGE, and the stage is
+     not always exactly the SVG's rendered box here, so treat its alignment as
+     indicative only -- the real card's camera fit is verified by measurement
+     against the live DOM, not by this. */
   .cam { position:absolute; inset:var(--cam); z-index:0;
     background:repeating-linear-gradient(135deg,#2c3d4a 0 10px,#223140 10px 20px); }
   .ac-apr-svg { position:relative; z-index:1; display:block; width:100%; height:100%;
@@ -31,14 +35,14 @@
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
     
           
-  <g id="sidespool">
+  <g>
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -66,7 +70,7 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     
@@ -85,6 +89,7 @@
   <rect x="56" y="42" width="127" height="3" rx="1.5"
         fill="currentColor"
         opacity="0.3"></rect>
+  Symbol(lit-nothing)
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -106,20 +111,19 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  Symbol(lit-nothing)
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
   Symbol(lit-nothing)
-  <g id="gantry" transform="translate(0 104.0)"
+  Symbol(lit-nothing)
+  <g transform="translate(0 104.0)"
      style="">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="translate(0.0 0)">
-      Symbol(lit-nothing)
+    <g class="ac-apr-nozzle" transform="translate(0.0 0)">
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -129,6 +133,7 @@
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="#d94a3d"></path>
+      Symbol(lit-nothing)
     </g>
   </g>
   </svg>
@@ -139,14 +144,14 @@
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
     
           
-  <g id="sidespool">
+  <g>
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -174,7 +179,7 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     
@@ -189,11 +194,17 @@
   </g>
   <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
   
-  <rect x="54" y="42" width="131" height="26" rx="6"
-              fill="var(--ac-printer-light, #ffd88a)" opacity="0.13"></rect>
+  
+        <g class="ac-apr-wash" fill="var(--ac-printer-light, #ffd88a)">
+          <rect x="59" y="45" width="121" height="34" opacity="0.055"></rect>
+          <rect x="59" y="45" width="121" height="18" opacity="0.075"></rect>
+          <rect x="59" y="45" width="121" height="8" opacity="0.1"></rect>
+        </g>
   <rect x="56" y="42" width="127" height="3" rx="1.5"
         fill="var(--ac-printer-light, #ffd88a)"
         opacity="0.95"></rect>
+  <rect x="78.9" y="42.7" width="81.3" height="1.2" rx="0.6"
+              fill="#ffffff" opacity="0.6"></rect>
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -215,11 +226,11 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  <rect x="54" y="176" width="132" height="12" rx="3"
-            fill="var(--ac-printer-heat, #ff7a3d)"
-            opacity="0.43"></rect>
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  
+      <rect class="ac-apr-bedember" x="64" y="186" width="112" height="3" rx="1.5"
+            fill="rgb(255,109,48)" opacity="0.67"></rect>
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L90.16 148.3 L149.84 148.3 L155.84 178 Z"
@@ -251,18 +262,15 @@
       <rect x="90.16" y="148.3" width="59.7" height="1.6"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
-  <g id="gantry" transform="translate(0 57.2)"
+  <g transform="translate(0 57.2)"
      style="">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="translate(0.0 0)">
-      <rect x="108" y="60" width="24" height="18" rx="3"
-            fill="var(--ac-printer-heat, #ff7a3d)"
-            opacity="0.53"></rect>
+    <g class="ac-apr-nozzle" transform="translate(0.0 0)">
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -272,6 +280,13 @@
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="#d94a3d"></path>
+      
+      <g class="ac-apr-ember">
+        <rect x="108.5" y="65" width="22" height="10" rx="5"
+              fill="rgb(255,89,38)" opacity="0.16"></rect>
+        <rect x="104.5" y="63.5" width="30" height="3" rx="1.5"
+              fill="rgb(255,89,38)" opacity="0.84"></rect>
+      </g>
     </g>
   </g>
   </svg>
@@ -282,14 +297,14 @@
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
     
           
-  <g id="sidespool">
+  <g>
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -317,7 +332,7 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     
@@ -332,11 +347,12 @@
   </g>
   <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
   
-  <rect x="54" y="42" width="131" height="26" rx="6"
-              fill="var(--ac-printer-light, #ffd88a)" opacity="0.13"></rect>
+  Symbol(lit-nothing)
   <rect x="56" y="42" width="127" height="3" rx="1.5"
         fill="var(--ac-printer-light, #ffd88a)"
         opacity="0.95"></rect>
+  <rect x="78.9" y="42.7" width="81.3" height="1.2" rx="0.6"
+              fill="#ffffff" opacity="0.6"></rect>
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -358,22 +374,19 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  Symbol(lit-nothing)
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
   Symbol(lit-nothing)
-  <g id="gantry" transform="translate(0 -36)"
+  Symbol(lit-nothing)
+  <g transform="translate(0 -36)"
      style="display:none">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="translate(0.0 0)">
-      <rect x="108" y="60" width="24" height="18" rx="3"
-            fill="var(--ac-printer-heat, #ff7a3d)"
-            opacity="0.53"></rect>
+    <g class="ac-apr-nozzle" transform="translate(0.0 0)">
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -383,6 +396,13 @@
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="#d94a3d"></path>
+      
+      <g class="ac-apr-ember">
+        <rect x="108.5" y="65" width="22" height="10" rx="5"
+              fill="rgb(255,89,38)" opacity="0.16"></rect>
+        <rect x="104.5" y="63.5" width="30" height="3" rx="1.5"
+              fill="rgb(255,89,38)" opacity="0.84"></rect>
+      </g>
     </g>
   </g>
   </svg>
@@ -393,14 +413,14 @@
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
     
           
-  <g id="sidespool">
+  <g>
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -428,7 +448,7 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     <g>
@@ -442,6 +462,7 @@
   <rect x="56" y="42" width="127" height="3" rx="1.5"
         fill="currentColor"
         opacity="0.3"></rect>
+  Symbol(lit-nothing)
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -463,9 +484,9 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  Symbol(lit-nothing)
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  Symbol(lit-nothing)
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L90.16 138.4 L149.84 138.4 L155.84 178 Z"
@@ -503,18 +524,15 @@
       <rect x="90.16" y="138.4" width="59.7" height="1.6"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
-  <g id="gantry" transform="translate(0 41.6)"
+  <g transform="translate(0 41.6)"
      style="">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="translate(0.0 0)">
-      <rect x="108" y="60" width="24" height="18" rx="3"
-            fill="var(--ac-printer-heat, #ff7a3d)"
-            opacity="0.34"></rect>
+    <g class="ac-apr-nozzle" transform="translate(0.0 0)">
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -524,6 +542,13 @@
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="#d94a3d"></path>
+      
+      <g class="ac-apr-ember">
+        <rect x="108.5" y="65" width="22" height="10" rx="5"
+              fill="rgb(255,130,59)" opacity="0.09"></rect>
+        <rect x="104.5" y="63.5" width="30" height="3" rx="1.5"
+              fill="rgb(255,130,59)" opacity="0.60"></rect>
+      </g>
     </g>
   </g>
   </svg>
@@ -534,14 +559,14 @@
       <div class="stage" style="--cam:16.7% 19.6% 20% 19.2%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
     
           
-  <g id="sidespool">
+  <g>
     <path d="M212 58 C 212 44 206 36 188 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -569,7 +594,7 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     <g>
@@ -584,6 +609,7 @@
   <rect x="56" y="42" width="127" height="3" rx="1.5"
         fill="currentColor"
         opacity="0.3"></rect>
+  Symbol(lit-nothing)
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -605,9 +631,9 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  Symbol(lit-nothing)
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  Symbol(lit-nothing)
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L89.11 158.2 L150.89000000000001 158.2 L155.84 178 Z"
@@ -630,16 +656,15 @@
       <rect x="89.11" y="158.2" width="61.8" height="1.6"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
-  <g id="gantry" transform="translate(0 72.8)"
+  <g transform="translate(0 72.8)"
      style="">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="translate(0.0 0)">
-      Symbol(lit-nothing)
+    <g class="ac-apr-nozzle" transform="translate(0.0 0)">
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -649,6 +674,7 @@
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="#d94a3d"></path>
+      Symbol(lit-nothing)
     </g>
   </g>
   </svg>
@@ -659,7 +685,7 @@
       <div class="stage" style="--cam:45.08% 19.6% 10.76% 19.2%; --aspect:240 / 344">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 344
+    viewBox="0 0 240 344"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
@@ -719,7 +745,7 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     
@@ -734,11 +760,17 @@
   </g>
   <rect x="146" y="22" width="12" height="6" rx="2" fill="currentColor" opacity="0.85"></rect>
   
-  <rect x="54" y="42" width="131" height="26" rx="6"
-              fill="var(--ac-printer-light, #ffd88a)" opacity="0.13"></rect>
+  
+        <g class="ac-apr-wash" fill="var(--ac-printer-light, #ffd88a)">
+          <rect x="59" y="45" width="121" height="34" opacity="0.055"></rect>
+          <rect x="59" y="45" width="121" height="18" opacity="0.075"></rect>
+          <rect x="59" y="45" width="121" height="8" opacity="0.1"></rect>
+        </g>
   <rect x="56" y="42" width="127" height="3" rx="1.5"
         fill="var(--ac-printer-light, #ffd88a)"
         opacity="0.95"></rect>
+  <rect x="78.9" y="42.7" width="81.3" height="1.2" rx="0.6"
+              fill="#ffffff" opacity="0.6"></rect>
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -760,9 +792,9 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  Symbol(lit-nothing)
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  Symbol(lit-nothing)
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L90.16 131.8 L149.84 131.8 L155.84 178 Z"
@@ -806,16 +838,15 @@
       <rect x="90.16" y="131.8" width="59.7" height="1.6"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
-  <g id="gantry" transform="translate(0 31.2)"
+  <g transform="translate(0 31.2)"
      style="">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="translate(0.0 0)">
-      Symbol(lit-nothing)
+    <g class="ac-apr-nozzle" transform="translate(0.0 0)">
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -825,6 +856,7 @@
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="#2f7fd1"></path>
+      Symbol(lit-nothing)
     </g>
   </g></g>
   </svg>
@@ -835,7 +867,7 @@
       <div class="stage" style="--cam:57.55% 19.6% 8.31% 19.2%; --aspect:240 / 445">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 445
+    viewBox="0 0 240 445"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
@@ -937,7 +969,7 @@
     <rect x="172" y="214" width="20" height="7" rx="3" opacity="0.7"></rect>
   </g>
   <rect x="54" y="24" width="94" height="2" rx="1" fill="var(--ac-printer-card-bg, #fff)" opacity="0.3"></rect>
-  <g id="screen">
+  <g>
     <rect x="149" y="2" width="46" height="22" rx="3" fill="currentColor"></rect>
     <rect x="152.5" y="5" width="39" height="16" rx="2" fill="#101216"></rect>
     
@@ -956,6 +988,7 @@
   <rect x="56" y="42" width="127" height="3" rx="1.5"
         fill="currentColor"
         opacity="0.3"></rect>
+  Symbol(lit-nothing)
   <rect x="49" y="40" width="141" height="148" stroke="currentColor" stroke-opacity="0.32" stroke-width="1.6" fill="none"></rect>
   <g fill="currentColor" opacity="0.75">
     <rect x="46" y="56" width="5" height="15" rx="2"></rect>
@@ -977,9 +1010,9 @@
     <rect x="47" y="200" width="42" height="2.5" rx="1"></rect>
     <rect x="47" y="206" width="42" height="2.5" rx="1"></rect>
   </g>
-  Symbol(lit-nothing)
   <rect x="56" y="178" width="128" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
   <rect x="64" y="186" width="112" height="3" rx="1.5" fill="currentColor" opacity="0.35"></rect>
+  Symbol(lit-nothing)
   
     <g class="ac-apr-print">
       <path d="M84.16 178 L89.11 158.2 L150.89000000000001 158.2 L155.84 178 Z"
@@ -1002,16 +1035,15 @@
       <rect x="89.11" y="158.2" width="61.8" height="1.6"
             fill="var(--ac-printer-card-bg, #fff)" opacity="0.5"></rect>
     </g>
-  <g id="gantry" transform="translate(0 72.8)"
+  <g transform="translate(0 72.8)"
      style="">
     <rect x="49" y="48" width="141" height="1.6" fill="currentColor" opacity="0.2"></rect>
-    <rect id="xaxis" x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+    <rect x="49" y="52" width="141" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
     <g fill="currentColor" opacity="0.9">
       <rect x="49" y="44" width="13" height="20" rx="2"></rect>
       <rect x="177" y="44" width="13" height="20" rx="2"></rect>
     </g>
-    <g id="nozzle" transform="translate(0.0 0)">
-      Symbol(lit-nothing)
+    <g class="ac-apr-nozzle" transform="translate(0.0 0)">
       <rect x="102" y="40" width="36" height="25" rx="3" fill="currentColor"></rect>
       <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
         <rect x="107" y="45" width="20" height="2" rx="1"></rect>
@@ -1021,6 +1053,7 @@
       <rect x="130" y="44" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
       <path d="M113 65 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
       <path d="M115.9 73 h7.2 l-0.6 3 h-6 Z" fill="#e0752f"></path>
+      Symbol(lit-nothing)
     </g>
   </g></g>
   </svg>
@@ -1031,14 +1064,14 @@
       <div class="stage" style="--cam:19% 24% 30% 24%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
     
           
-  <g id="sidespool">
+  <g>
     <path d="M212 68 C 212 54 206 46 188 48" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="196" y="77" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -1095,12 +1128,13 @@
   <rect x="52" y="47" width="136" height="3" rx="1.5"
         fill="currentColor"
         opacity="0.3"></rect>
+  Symbol(lit-nothing)
       <rect x="54" y="177" width="132" height="3" rx="1.5" fill="var(--ac-printer-rail, currentColor)" opacity="0.5"></rect>
-      <rect x="60" y="164" width="120" height="12" rx="3"
-            fill="var(--ac-printer-heat, #ff7a3d)"
-            opacity="0.48"></rect>
       <rect x="62" y="166" width="116" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="70" y="174" width="100" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      
+      <rect class="ac-apr-bedember" x="70" y="174" width="100" height="4" rx="2"
+            fill="rgb(255,99,43)" opacity="0.73"></rect>
       
     <g class="ac-apr-print">
       <path d="M87.52 166 L93.52 134.1 L146.48000000000002 134.1 L152.48000000000002 166 Z"
@@ -1141,16 +1175,15 @@
       <path d="M25.73 198.45 A4.8999999999999995 4.8999999999999995 0 0 1 30 191.1 L30 196 Z" fill="currentColor" opacity="0.45"></path>
     </g>
   </g>
-      <g id="gantry" transform="translate(0 41.4)"
+      <g transform="translate(0 41.4)"
      style="">
         <rect x="42" y="54" width="156" height="1.6" fill="currentColor" opacity="0.2"></rect>
-        <rect id="xaxis" x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="42" y="58" width="156" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="42" y="50" width="12" height="20" rx="2"></rect>
           <rect x="186" y="50" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="translate(0.0 0)">
-          Symbol(lit-nothing)
+        <g class="ac-apr-nozzle" transform="translate(0.0 0)">
           <rect x="102" y="46" width="36" height="25" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.28">
             <rect x="107" y="51" width="20" height="2" rx="1"></rect>
@@ -1160,6 +1193,7 @@
           <rect x="130" y="50" width="5" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.7"></rect>
           <path d="M113 71 h13 l-2.9 8 h-7.2 Z" fill="currentColor"></path>
           <path d="M115.9 79 h7.2 l-0.6 3 h-6 Z" fill="#d94a3d"></path>
+          Symbol(lit-nothing)
         </g>
       </g>
   </svg>
@@ -1170,14 +1204,14 @@
       <div class="stage" style="--cam:20% 19.2% 29% 19.2%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
   >
     
           
-  <g id="sidespool">
+  <g>
     <path d="M214.5 58 C 214.5 44 208.5 36 190.5 38" stroke="#d94a3d"
           stroke-opacity="0.9" stroke-width="3.5" stroke-linecap="round" fill="none"></path>
     <rect x="198.5" y="67" width="16" height="6" rx="3" fill="currentColor" opacity="0.85"></rect>
@@ -1207,9 +1241,9 @@
         <rect x="35" y="52" width="6" height="120" rx="3"></rect>
         <rect x="199" y="52" width="6" height="120" rx="3"></rect>
       </g>
-      Symbol(lit-nothing)
       <rect x="60" y="170" width="120" height="8" rx="1.5" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
       <rect x="68" y="178" width="104" height="4" rx="2" fill="currentColor" opacity="0.35"></rect>
+      Symbol(lit-nothing)
       
     <g class="ac-apr-print">
       <path d="M86.4 170 L90.15 155 L149.85000000000002 155 L153.60000000000002 170 Z"
@@ -1254,19 +1288,19 @@
   <rect x="46" y="52" width="148" height="3" rx="1.5"
         fill="currentColor"
         opacity="0.3"></rect>
+  Symbol(lit-nothing)
       <g fill="currentColor" opacity="0.2">
         <rect x="36" y="188" width="40" height="2.5" rx="1"></rect>
         <rect x="36" y="194" width="40" height="2.5" rx="1"></rect>
       </g>
-      <g id="gantry" transform="translate(0 69.0)"
+      <g transform="translate(0 69.0)"
      style="">
-        <rect id="xaxis" x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
+        <rect x="32" y="60" width="176" height="6" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.65"></rect>
         <g fill="currentColor" opacity="0.9">
           <rect x="32" y="52" width="12" height="20" rx="2"></rect>
           <rect x="196" y="52" width="12" height="20" rx="2"></rect>
         </g>
-        <g id="nozzle" transform="translate(0.0 0)">
-          Symbol(lit-nothing)
+        <g class="ac-apr-nozzle" transform="translate(0.0 0)">
           <rect x="104" y="48" width="32" height="24" rx="3" fill="currentColor"></rect>
           <g fill="var(--ac-printer-card-bg, #fff)" opacity="0.26">
             <rect x="109" y="53" width="18" height="2" rx="1"></rect>
@@ -1275,6 +1309,7 @@
           </g>
           <path d="M113 72 h13 l-3 7.5 h-7 Z" fill="currentColor"></path>
           <path d="M116 79.5 h7 l-0.5 2.5 h-6 Z" fill="#d94a3d"></path>
+          Symbol(lit-nothing)
         </g>
       </g>
   </svg>
@@ -1285,7 +1320,7 @@
       <div class="stage" style="--cam:16% 26% 38% 26%; --aspect:240 / 240">
         <div class="cam"></div> <svg
     class="ac-apr-svg"
-    viewBox=0 0 240 240
+    viewBox="0 0 240 240"
     fill="none"
     preserveAspectRatio="xMidYMid meet"
     aria-hidden="true"
@@ -1319,9 +1354,9 @@
       <path d="M80 126 h84 l-6 24 h-72 Z" fill="currentColor" opacity="0.28"></path>
       <path d="M85 137 h74" stroke="#d94a3d" stroke-opacity="0.75" stroke-width="3"></path>
       <rect x="78" y="118" width="96" height="8" rx="2" fill="var(--ac-printer-plate, currentColor)" opacity="0.8"></rect>
-      <g id="gantry" transform="translate(0 30.4)">
-        <rect id="xaxis" x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
-        <g id="nozzle">
+      <g transform="translate(0 30.4)">
+        <rect x="70" y="46" width="14" height="10" rx="2" fill="var(--ac-printer-rail, currentColor)" opacity="0.7"></rect>
+        <g>
           <rect x="84" y="48" width="66" height="6" rx="2" fill="currentColor"></rect>
           <rect x="96" y="54" width="42" height="14" rx="2" fill="var(--ac-printer-accent, currentColor)" opacity="0.8"></rect>
         </g>

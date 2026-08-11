@@ -11498,8 +11498,24 @@
     Ko = [...xi(), Ue.PrinterOnline, Ue.Availability, Ue.ProjectName, Ue.CurrentLayer],
     qo = $i(),
     Wo = [Ve.Filament],
-    Xo = ["printer_name", "printer_id", "printer_mac", "printer_model", "printer_fw_version", "printer_fw_update_available", "printer_online", "printer_available", "curr_nozzle_temp", "curr_hotbed_temp", "target_nozzle_temp", "target_hotbed_temp", "job_state", "job_progress", "ace_fw_version", "ace_fw_update_available", "drying_active", "drying_progress"];
-  let Qo = class extends mt {
+    Xo = {
+      vertical: !1,
+      round: !0,
+      use_24hr: !0,
+      temperatureUnit: Ie.C,
+      monitoredStats: xi(),
+      scaleFactor: 1,
+      slotColors: [],
+      showSettingsButton: !1,
+      alwaysShow: !1,
+      mediaView: Re.Auto,
+      printerArt: je.Auto,
+      showMoveButtons: !1,
+      showControls: !0,
+      sections: [Ve.Filament]
+    },
+    Qo = ["printer_name", "printer_id", "printer_mac", "printer_model", "printer_fw_version", "printer_fw_update_available", "printer_online", "printer_available", "curr_nozzle_temp", "curr_hotbed_temp", "target_nozzle_temp", "target_hotbed_temp", "job_state", "job_progress", "ace_fw_version", "ace_fw_update_available", "drying_active", "drying_progress"];
+  let Jo = class extends mt {
     constructor() {
       super(...arguments), this.isFDM = !1, this.monitoredStats = Ko, this._copyPreset = t => {
         const e = t.currentTarget;
@@ -11513,7 +11529,7 @@
     }
     willUpdate(t) {
       var e;
-      if (super.willUpdate(t), t.has("language") && (this._statTranslations = Xo.reduce((t, e) => (t[e] = Tn(`panels.main.cards.main.fields.${e}`, this.language), t), {})), t.has("selectedPrinterDevice") && (this.printerID = (e = this.selectedPrinterDevice) ? e.serial_number : void 0, this.printerMAC = function (t) {
+      if (super.willUpdate(t), t.has("language") && (this._statTranslations = Qo.reduce((t, e) => (t[e] = Tn(`panels.main.cards.main.fields.${e}`, this.language), t), {})), t.has("selectedPrinterDevice") && (this.printerID = (e = this.selectedPrinterDevice) ? e.serial_number : void 0, this.printerMAC = function (t) {
         return t && t.connections.length > 0 && t.connections[0].length > 1 ? t.connections[0][1] : null;
       }(this.selectedPrinterDevice)), t.has("selectedPrinterID") && (this.printerEntities = ei(this.hass, this.selectedPrinterID), this.printerEntityIdPart = si(this.printerEntities)), t.has("hass") || t.has("selectedPrinterID")) {
         this.isFDM = ui(this.hass, this.printerEntities, this.printerEntityIdPart), this.printerStateFwUpdateAvailable = pi(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_firmware"), this.printerStateAvailable = di(this.hass, this.printerEntities, this.printerEntityIdPart, "is_available", "Available", "Busy"), this.printerStateOnline = di(this.hass, this.printerEntities, this.printerEntityIdPart, "printer_online", "Online", "Offline"), this.printerStateCurrNozzleTemp = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "nozzle_temperature"), this.printerStateCurrHotbedTemp = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "hotbed_temperature"), this.printerStateTargetNozzleTemp = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "target_nozzle_temperature"), this.printerStateTargetHotbedTemp = hi(this.hass, this.printerEntities, this.printerEntityIdPart, "target_hotbed_temperature");
@@ -11571,24 +11587,28 @@
           mediaView: Re.Printer,
           showControls: !0,
           showMoveButtons: !0,
-          sections: [Ve.Filament]
+          sections: [Ve.Filament],
+          alwaysShow: !0
         }], ["model", {
           printer_id: i,
           mediaView: Re.PrinterModel,
           showControls: !0,
-          showMoveButtons: !1
+          showMoveButtons: !1,
+          alwaysShow: !0
         }], ["compact", {
           printer_id: i,
           mediaView: Re.Printer,
           showControls: !1,
           showMoveButtons: !1,
+          alwaysShow: !0,
           monitoredStats: [Ue.Status, Ue.ETA]
         }], ["vertical", {
           printer_id: i,
           vertical: !0,
           mediaView: Re.Printer,
           showControls: !0,
-          showMoveButtons: !1
+          showMoveButtons: !1,
+          alwaysShow: !0
         }]].map(([t, e]) => this._presetCard(t, e));
       return W`
       <div class="ac-presets">
@@ -11611,13 +11631,13 @@
       return e.join("\n");
     }
     _presetCard(t, e) {
-      var i, r, n, s, o, a, l;
-      const c = this._presetYaml(e);
+      var i, r, n, s, o, a, l, c;
+      const h = this._presetYaml(e);
       return W`
       <div class="ac-preset">
         <div class="ac-preset-head">
           <span>${Tn(`panels.main.presets.${t}`, this.language)}</span>
-          <button class="ac-copy" .yaml=${c} @click=${this._copyPreset}>
+          <button class="ac-copy" .yaml=${h} @click=${this._copyPreset}>
             ${Tn("panels.main.presets.copy", this.language)}
           </button>
         </div>
@@ -11631,17 +11651,17 @@
             .round=${!0}
             .use_24hr=${null === (r = this.panel.config.use_24hr) || void 0 === r || r}
             .temperatureUnit=${this.panel.config.temperatureUnit}
-            .monitoredStats=${null !== (n = e.monitoredStats) && void 0 !== n ? n : this.monitoredStats}
-            .mediaView=${null !== (s = e.mediaView) && void 0 !== s ? s : Re.Printer}
-            .showControls=${null !== (o = e.showControls) && void 0 !== o && o}
-            .showMoveButtons=${null !== (a = e.showMoveButtons) && void 0 !== a && a}
-            .sections=${null !== (l = e.sections) && void 0 !== l ? l : []}
-            .showSettingsButton=${!1}
-            .alwaysShow=${!0}
+            .monitoredStats=${null !== (n = e.monitoredStats) && void 0 !== n ? n : Xo.monitoredStats}
+            .mediaView=${null !== (s = e.mediaView) && void 0 !== s ? s : Xo.mediaView}
+            .showControls=${null !== (o = e.showControls) && void 0 !== o ? o : Xo.showControls}
+            .showMoveButtons=${null !== (a = e.showMoveButtons) && void 0 !== a ? a : Xo.showMoveButtons}
+            .sections=${null !== (l = e.sections) && void 0 !== l ? l : Xo.sections}
+            .showSettingsButton=${Xo.showSettingsButton}
+            .alwaysShow=${null !== (c = e.alwaysShow) && void 0 !== c ? c : Xo.alwaysShow}
             .noCamera=${!0}
           ></anycubic-printercard-card>
         </div>
-        <pre>${c}</pre>
+        <pre>${h}</pre>
       </div>
     `;
     }
@@ -11865,15 +11885,15 @@
     `;
     }
   };
-  n([_t()], Qo.prototype, "hass", void 0), n([_t()], Qo.prototype, "language", void 0), n([_t({
+  n([_t()], Jo.prototype, "hass", void 0), n([_t()], Jo.prototype, "language", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], Qo.prototype, "narrow", void 0), n([_t()], Qo.prototype, "route", void 0), n([_t()], Qo.prototype, "panel", void 0), n([_t({
+  })], Jo.prototype, "narrow", void 0), n([_t()], Jo.prototype, "route", void 0), n([_t()], Jo.prototype, "panel", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], Qo.prototype, "selectedPrinterID", void 0), n([_t({
+  })], Jo.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], Qo.prototype, "selectedPrinterDevice", void 0), n([wt()], Qo.prototype, "printerEntities", void 0), n([wt()], Qo.prototype, "printerEntityIdPart", void 0), n([wt()], Qo.prototype, "printerID", void 0), n([wt()], Qo.prototype, "printerMAC", void 0), n([wt()], Qo.prototype, "printerStateFwUpdateAvailable", void 0), n([wt()], Qo.prototype, "printerStateAvailable", void 0), n([wt()], Qo.prototype, "printerStateOnline", void 0), n([wt()], Qo.prototype, "printerStateCurrNozzleTemp", void 0), n([wt()], Qo.prototype, "printerStateCurrHotbedTemp", void 0), n([wt()], Qo.prototype, "printerStateTargetNozzleTemp", void 0), n([wt()], Qo.prototype, "printerStateTargetHotbedTemp", void 0), n([wt()], Qo.prototype, "jobStateProgress", void 0), n([wt()], Qo.prototype, "jobStatePrintState", void 0), n([wt()], Qo.prototype, "aceStateFwUpdateAvailable", void 0), n([wt()], Qo.prototype, "aceStateDryingActive", void 0), n([wt()], Qo.prototype, "aceStateDryingRemaining", void 0), n([wt()], Qo.prototype, "aceStateDryingTotal", void 0), n([wt()], Qo.prototype, "aceDryingProgress", void 0), n([wt()], Qo.prototype, "isFDM", void 0), n([wt()], Qo.prototype, "monitoredStats", void 0), n([wt()], Qo.prototype, "_statTranslations", void 0), Qo = n([vt("anycubic-view-main")], Qo);
-  const Jo = p`
+  })], Jo.prototype, "selectedPrinterDevice", void 0), n([wt()], Jo.prototype, "printerEntities", void 0), n([wt()], Jo.prototype, "printerEntityIdPart", void 0), n([wt()], Jo.prototype, "printerID", void 0), n([wt()], Jo.prototype, "printerMAC", void 0), n([wt()], Jo.prototype, "printerStateFwUpdateAvailable", void 0), n([wt()], Jo.prototype, "printerStateAvailable", void 0), n([wt()], Jo.prototype, "printerStateOnline", void 0), n([wt()], Jo.prototype, "printerStateCurrNozzleTemp", void 0), n([wt()], Jo.prototype, "printerStateCurrHotbedTemp", void 0), n([wt()], Jo.prototype, "printerStateTargetNozzleTemp", void 0), n([wt()], Jo.prototype, "printerStateTargetHotbedTemp", void 0), n([wt()], Jo.prototype, "jobStateProgress", void 0), n([wt()], Jo.prototype, "jobStatePrintState", void 0), n([wt()], Jo.prototype, "aceStateFwUpdateAvailable", void 0), n([wt()], Jo.prototype, "aceStateDryingActive", void 0), n([wt()], Jo.prototype, "aceStateDryingRemaining", void 0), n([wt()], Jo.prototype, "aceStateDryingTotal", void 0), n([wt()], Jo.prototype, "aceDryingProgress", void 0), n([wt()], Jo.prototype, "isFDM", void 0), n([wt()], Jo.prototype, "monitoredStats", void 0), n([wt()], Jo.prototype, "_statTranslations", void 0), Jo = n([vt("anycubic-view-main")], Jo);
+  const ta = p`
   :host {
     padding: 16px;
     display: block;
@@ -11962,7 +11982,7 @@
     }
   }
 `;
-  class ta extends mt {
+  class ea extends mt {
     constructor() {
       super(...arguments), this._isRefreshing = !1, this._supportsMQTT = !1, this._httpResponse = !1, this.refreshList = () => {
         this._listRefreshEntity && (this._isRefreshing = !0, this.hass.callService("button", "press", {
@@ -12017,19 +12037,19 @@
     }
     static get styles() {
       return p`
-      ${Jo}
+      ${ta}
     `;
     }
   }
-  n([_t()], ta.prototype, "hass", void 0), n([_t()], ta.prototype, "language", void 0), n([_t({
+  n([_t()], ea.prototype, "hass", void 0), n([_t()], ea.prototype, "language", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], ta.prototype, "narrow", void 0), n([_t()], ta.prototype, "route", void 0), n([_t()], ta.prototype, "panel", void 0), n([_t({
+  })], ea.prototype, "narrow", void 0), n([_t()], ea.prototype, "route", void 0), n([_t()], ea.prototype, "panel", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], ta.prototype, "selectedPrinterID", void 0), n([_t({
+  })], ea.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], ta.prototype, "selectedPrinterDevice", void 0), n([wt()], ta.prototype, "printerEntities", void 0), n([wt()], ta.prototype, "printerEntityIdPart", void 0), n([wt()], ta.prototype, "_fileArray", void 0), n([wt()], ta.prototype, "_listRefreshEntity", void 0), n([wt()], ta.prototype, "_isRefreshing", void 0), n([wt()], ta.prototype, "_isDeleting", void 0), n([wt()], ta.prototype, "_noMqttMessage", void 0), n([wt()], ta.prototype, "_supportsMQTT", void 0), n([wt()], ta.prototype, "_httpResponse", void 0);
-  let ea = class extends ta {
+  })], ea.prototype, "selectedPrinterDevice", void 0), n([wt()], ea.prototype, "printerEntities", void 0), n([wt()], ea.prototype, "printerEntityIdPart", void 0), n([wt()], ea.prototype, "_fileArray", void 0), n([wt()], ea.prototype, "_listRefreshEntity", void 0), n([wt()], ea.prototype, "_isRefreshing", void 0), n([wt()], ea.prototype, "_isDeleting", void 0), n([wt()], ea.prototype, "_noMqttMessage", void 0), n([wt()], ea.prototype, "_supportsMQTT", void 0), n([wt()], ea.prototype, "_httpResponse", void 0);
+  let ia = class extends ea {
     constructor() {
       super(...arguments), this._httpResponse = !0, this.deleteFile = t => {
         const e = t.currentTarget.file_info;
@@ -12053,8 +12073,8 @@
       }
     }
   };
-  n([wt()], ea.prototype, "_fileArray", void 0), n([wt()], ea.prototype, "_httpResponse", void 0), ea = n([vt("anycubic-view-files_cloud")], ea);
-  let ia = class extends ta {
+  n([wt()], ia.prototype, "_fileArray", void 0), n([wt()], ia.prototype, "_httpResponse", void 0), ia = n([vt("anycubic-view-files_cloud")], ia);
+  let ra = class extends ea {
     constructor() {
       super(...arguments), this.deleteFile = t => {
         const e = t.currentTarget.file_info;
@@ -12078,8 +12098,8 @@
       }
     }
   };
-  ia = n([vt("anycubic-view-files_local")], ia);
-  let ra = class extends ta {
+  ra = n([vt("anycubic-view-files_local")], ra);
+  let na = class extends ea {
     constructor() {
       super(...arguments), this.deleteFile = t => {
         const e = t.currentTarget.file_info;
@@ -12103,8 +12123,8 @@
       }
     }
   };
-  ra = n([vt("anycubic-view-files_udisk")], ra);
-  const na = p`
+  na = n([vt("anycubic-view-files_udisk")], na);
+  const sa = p`
   :host {
     padding: 16px;
     display: block;
@@ -12130,17 +12150,17 @@
     margin-top: 20px;
   }
 `;
-  var sa;
+  var oa;
   !function (t) {
     t.Light = "light", t.Medium = "medium", t.Heavy = "heavy";
-  }(sa || (sa = {}));
-  class oa extends mt {
+  }(oa || (oa = {}));
+  class aa extends mt {
     constructor() {
       super(...arguments), this._scriptData = {}, this._serviceName = "", this._buttonProgress = !1, this._scriptDataChanged = t => {
         this._scriptData = Object.assign(Object.assign({}, this._scriptData), t.detail.value), this._error = void 0;
       }, this._runScript = t => {
         const e = t.currentTarget;
-        this._error = void 0, t.stopPropagation(), this._buttonProgress = !0, ((t = sa.Medium) => {
+        this._error = void 0, t.stopPropagation(), this._buttonProgress = !0, ((t = oa.Medium) => {
           const e = new Event("haptic");
           e.detail = t, window && window.dispatchEvent(e);
         })(), this.hass.callService(De, this._serviceName, this._scriptData.data).then(() => {
@@ -12203,34 +12223,34 @@
     }
     static get styles() {
       return p`
-      ${na}
+      ${sa}
     `;
     }
   }
   n([_t({
     attribute: !1
-  })], oa.prototype, "hass", void 0), n([_t()], oa.prototype, "language", void 0), n([_t({
+  })], aa.prototype, "hass", void 0), n([_t()], aa.prototype, "language", void 0), n([_t({
     type: Boolean,
     reflect: !0
-  })], oa.prototype, "narrow", void 0), n([_t()], oa.prototype, "route", void 0), n([_t()], oa.prototype, "panel", void 0), n([_t({
+  })], aa.prototype, "narrow", void 0), n([_t()], aa.prototype, "route", void 0), n([_t()], aa.prototype, "panel", void 0), n([_t({
     attribute: "selected-printer-id"
-  })], oa.prototype, "selectedPrinterID", void 0), n([_t({
+  })], aa.prototype, "selectedPrinterID", void 0), n([_t({
     attribute: "selected-printer-device"
-  })], oa.prototype, "selectedPrinterDevice", void 0), n([wt()], oa.prototype, "_scriptData", void 0), n([wt()], oa.prototype, "_error", void 0), n([wt()], oa.prototype, "_serviceName", void 0), n([wt()], oa.prototype, "_buttonPrint", void 0), n([wt()], oa.prototype, "_buttonProgress", void 0);
-  let aa = class extends oa {
+  })], aa.prototype, "selectedPrinterDevice", void 0), n([wt()], aa.prototype, "_scriptData", void 0), n([wt()], aa.prototype, "_error", void 0), n([wt()], aa.prototype, "_serviceName", void 0), n([wt()], aa.prototype, "_buttonPrint", void 0), n([wt()], aa.prototype, "_buttonProgress", void 0);
+  let la = class extends aa {
     constructor() {
       super(...arguments), this._serviceName = "print_and_upload_no_cloud_save";
     }
   };
-  n([wt()], aa.prototype, "_serviceName", void 0), aa = n([vt("anycubic-view-print-no_cloud_save")], aa);
-  let la = class extends oa {
+  n([wt()], la.prototype, "_serviceName", void 0), la = n([vt("anycubic-view-print-no_cloud_save")], la);
+  let ca = class extends aa {
     constructor() {
       super(...arguments), this._serviceName = "print_and_upload_save_in_cloud";
     }
   };
-  n([wt()], la.prototype, "_serviceName", void 0), la = n([vt("anycubic-view-print-save_in_cloud")], la);
-  var ca = "0.2.2";
-  window.console.info(`%c ANYCUBIC-PANEL %c v${ca} `, "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray"), t.AnycubicCloudPanel = class extends mt {
+  n([wt()], ca.prototype, "_serviceName", void 0), ca = n([vt("anycubic-view-print-save_in_cloud")], ca);
+  var ha = "0.2.2";
+  window.console.info(`%c ANYCUBIC-PANEL %c v${ha} `, "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray"), t.AnycubicCloudPanel = class extends mt {
     constructor() {
       super(...arguments), this.selectedPage = "main", this._handleLocationChange = () => {
         window.location.pathname.includes("anycubic-cloud") && this.requestUpdate();
@@ -12318,7 +12338,7 @@
           .narrow=${this.narrow}
         ></ha-menu-button>
         <div class="main-title">${this._mainTitle}</div>
-        <div class="version">v${ca}</div>
+        <div class="version">v${ha}</div>
       </div>
     `;
     }

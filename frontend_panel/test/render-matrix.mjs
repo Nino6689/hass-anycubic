@@ -222,6 +222,29 @@ for (const [name, expectedKind] of MODELS) {
             if (cameraLive && /ac-apr-print\b/.test(markup)) {
               problems.push(`${label}: printed mass drawn over the camera`);
             }
+            // The light wash and the bed ember live inside the video hole, so
+            // the same rule binds them. (The nozzle ember rides the gantry
+            // group, which is already display:none'd under a live camera.)
+            if (cameraLive && /ac-apr-wash\b/.test(markup)) {
+              problems.push(`${label}: light wash painted over the camera`);
+            }
+            if (cameraLive && /ac-apr-bedember\b/.test(markup)) {
+              problems.push(`${label}: bed ember painted over the camera`);
+            }
+            // And the converse, so "never draws them" cannot pass either.
+            // FDM bodies only: a resin machine has no hotend, no heated bed
+            // and no chamber strip, so silence is correct there.
+            if (art.kind !== 'resin') {
+              if (!cameraLive && status === 'printing' && !/ac-apr-wash\b/.test(markup)) {
+                problems.push(`${label}: light on but no wash drawn`);
+              }
+              if (!cameraLive && progress < 0.9 && !/ac-apr-bedember\b/.test(markup)) {
+                problems.push(`${label}: bed heating but no ember drawn`);
+              }
+              if (!cameraLive && progress > 0.1 && !/ac-apr-ember\b/.test(markup)) {
+                problems.push(`${label}: nozzle hot but no melt-zone mark drawn`);
+              }
+            }
             // The converse, or "never draws it" would also pass.
             if (!cameraLive && progress > 0.01 && !/ac-apr-print\b/.test(markup)) {
               problems.push(`${label}: printing but no printed mass drawn`);
