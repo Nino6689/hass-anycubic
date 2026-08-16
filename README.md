@@ -71,14 +71,15 @@ which did all the original work and deserves the credit for it. Upstream's last 
 December 2024 and the author
 [stepped back from the project](https://github.com/WaresWichall/hass-anycubic_cloud/issues/33).
 
-> ### Still on upstream v0.2.2?
+> ### 🚚 Still on upstream v0.2.2? You are in the majority — and it is broken.
 >
-> **It no longer works on current Home Assistant.** It fails at setup with
-> `HTTP 500 "Server got itself in trouble"` — a strict `paho-mqtt==1.6.1` pin against the 2.x
-> that Core now ships. Home Assistant's analytics still show most Anycubic Cloud installs on
-> that version, quietly broken.
->
-> Install this from HACS and set it up as normal. Your entity ids are preserved.
+> [Home Assistant's analytics](https://analytics.home-assistant.io/) show **around 80% of
+> Anycubic Cloud installs still on 0.2.2** (165 of 206 reporting, August 2026),
+> and that version **cannot start on current Home Assistant**: it fails at setup with
+> `HTTP 500 "Server got itself in trouble"` — a `paho-mqtt 1.6.1` dependency against the 2.x
+> that Core now ships. Upstream is archived, so it will never prompt you to update.
+> The fix is a two-minute swap, and **nothing you built on it is lost** — see
+> [Moving from v0.2.2](#-moving-from-v022) for exactly what carries over.
 
 What maintenance means here:
 
@@ -109,6 +110,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 ## Contents
 
 - [Quick start](#quick-start)
+- [🚚 Moving from v0.2.2](#-moving-from-v022)
 - [Supported printers](#supported-printers)
 - [1. Install](#1-install)
 - [2. Get an auth token](#2-get-an-auth-token) — [Slicer](#option-a--slicer-token-recommended) · [Web](#option-b--web-token-easiest) · [Android](#option-c--android-token-advanced)
@@ -157,6 +159,43 @@ Otherwise the step-by-step below explains everything.
 
 ---
 
+## 🚚 Moving from v0.2.2
+
+The upstream integration and this one share the **same domain** (`anycubic_cloud`) and the
+**same entity unique-id scheme**, so Home Assistant treats the upgrade as an update of the
+integration it already has, not a new one. Concretely:
+
+| | Carries over? | Why |
+|---|---|---|
+| **Entity ids** | ✅ Yes | Same `unique_id` derivation, so `sensor.anycubic_kobra_s1_job_progress` stays exactly that |
+| **History & statistics** | ✅ Yes | Follows the entity id |
+| **Automations & scripts** | ✅ Yes | They reference entity ids, which do not change |
+| **Dashboards** | ✅ Yes | Same reason; the [new card](#-the-anycubic-card) is extra, not a replacement |
+| **Your token** | ✅ Yes | The config entry loads as-is; region defaults to International |
+| **Custom entity names** | ✅ Yes | Registry overrides are keyed by unique id |
+
+**Steps**
+
+1. In HACS, remove the old **Anycubic Cloud** repository entry if it points at
+   `WaresWichall/hass-anycubic_cloud`, and add this one — it is in the **default catalog**, so
+   just search "Anycubic". Do **not** delete the integration from Settings → Devices; leave the
+   config entry alone.
+2. Download, restart Home Assistant.
+3. That's it. The entry loads, the entities repopulate under their old ids, and the sidebar
+   panel appears with the [showcase](#-build-this-on-your-own-dashboard).
+
+**New since 0.2.2 that is worth a look on day one:** the
+[animated printer card](#-the-anycubic-card), [filament tracking with weights and cost](#-filament-and-the-ace),
+[direct LAN connection](#5-optional-talk-to-the-printer-directly), the cloud camera, and
+[print controls](#-controlling-the-printer). The full list is in
+[Changes from upstream](#-changes-from-upstream).
+
+> **If you have a second ACE**, it was invisible on 0.2.2 (and on early 2.x for fresh installs).
+> It appears in the Filament section from 2.1.0. If it doesn't, please
+> [say so](https://github.com/Nino6689/hass-anycubic/issues) — that path has been fixed twice.
+
+---
+
 ## Supported printers
 
 **✅ Verified here** — the hardware I own and test against:
@@ -173,7 +212,9 @@ Otherwise the step-by-step below explains everything.
 **🧪 Confirmed by owners** — reports from people running the hardware, in their words:
 
 <!-- TESTED-PRINTERS:START -->
-_No reports yet. If you run one of these printers, [tell us how it went](https://github.com/Nino6689/hass-anycubic/discussions) — it is the only way this list rests on something firmer than inference._
+| Printer | Unit | Connection | Confirmed working | Report |
+| --- | --- | --- | --- | --- |
+| Kobra S1 | ACE Pro | Both | Temperatures and job progress, Every ACE slot, with material and colour, Filament remaining +5 more | [#16](https://github.com/Nino6689/hass-anycubic/discussions/16) |
 <!-- TESTED-PRINTERS:END -->
 
 **Ran it on your printer?** [Post a report](https://github.com/Nino6689/hass-anycubic/discussions)
@@ -996,7 +1037,7 @@ different streams and neither can stand in for the other:
 ### Putting it on a dashboard
 
 The **Anycubic card** shows the camera without any of this — pick the *Camera* tab on the card,
-or set `mediaView: camera` to have it open there. See [the card](#the-anycubic-card).
+or set `mediaView: camera` to have it open there. See [the card](#-the-anycubic-card).
 
 To use a plain Picture Entity card instead, pick the camera and set **camera view** to **Live**.
 
