@@ -34,12 +34,12 @@ This keeps coming up ([and did again in the original thread](https://community.h
 
 **Slicer Next 1.4.1.1 started AES-encrypting the token in the config file.** It isn't missing and you haven't broken anything — it's just not readable there any more.
 
-Two ways out, neither involving a terminal:
+Two routes, and which you want depends on what you need out of it:
 
-- **The `tools/` folder** has a browser **bookmarklet** plus double-click helpers for macOS and Windows that fetch the token for you — and each one explains, in plain English, exactly what it's about to do before it does it.
-- **Or grab a web token**: sign in at `cloud-universe.anycubic.com`, F12 → Console → `window.localStorage["XX-Token"]`.
+- **Just want it working in two minutes?** The `tools/` folder has a browser **bookmarklet**. Add it as a bookmark once, click it while signed in at `cloud-universe.anycubic.com`, and it copies a **web token** to your clipboard. No terminal, no downloads, nothing to install.
+- **Want live updates and the control buttons?** That needs a **slicer** token — and the slicer token is the one that got encrypted. The macOS and Windows helpers in `tools/` read it straight out of the slicer config, but only on versions before 1.4.1.1. For newer ones there's a one-time memory-snapshot recovery documented in the README, which runs entirely on your own machine.
 
-⚠️ Worth knowing the difference: **Anycubic blocks MQTT for web tokens.** A web token gives you polling every ~60 s and no control buttons — fine for *"is it printing?"*, useless for watching a temperature curve. Slicer tokens get sub-second push updates and the controls. The bookmarklet gets you a slicer token.
+⚠️ The difference matters more than it sounds: **Anycubic blocks MQTT for web tokens.** A web token polls roughly once a minute and the control buttons won't work — fine for *"is it printing?"*, useless for watching a temperature curve. Slicer tokens get sub-second push updates and full control.
 
 And a fingerprint that cost me a full day: **`"User does not exist"` is the server's reply to *any* invalid token.** I proved it by mutating a known-good token four ways — flipped signature, truncated signature, tampered payload, not-even-a-JWT — and all four came back with that exact message. It is never a statement about your account.
 
