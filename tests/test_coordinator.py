@@ -414,9 +414,7 @@ class TestMqttFailureIsVisible:
         coordinator._mqtt_last_refresh = None
         coordinator._mqtt_task = MagicMock()
 
-        with patch.object(
-            type(coordinator), "_check_anycubic_mqtt_connection", AsyncMock()
-        ) as check:
+        with patch.object(type(coordinator), "_check_anycubic_mqtt_connection", AsyncMock()) as check:
             await coordinator.refresh_anycubic_mqtt_connection()
 
         check.assert_awaited_once()
