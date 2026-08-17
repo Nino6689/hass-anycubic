@@ -511,7 +511,8 @@ class TestDiscovery:
         from pytest_homeassistant_custom_component.common import MockConfigEntry
 
         entry = MockConfigEntry(
-            domain=DOMAIN, unique_id="410236",
+            domain=DOMAIN,
+            unique_id="410236",
             data={"user_token": JWT, "printer_ids": [291342]},
         )
         entry.add_to_hass(hass)
@@ -553,15 +554,14 @@ class TestReauthRetiresTheOldTokens:
     error until the next restart.
     """
 
-    async def test_a_successful_paste_clears_the_store_and_reloads(
-        self, hass: HomeAssistant, hass_storage
-    ) -> None:
+    async def test_a_successful_paste_clears_the_store_and_reloads(self, hass: HomeAssistant, hass_storage) -> None:
         from pytest_homeassistant_custom_component.common import MockConfigEntry
 
         from custom_components.anycubic_cloud.const import STORAGE_KEY, STORAGE_VERSION
 
         entry = MockConfigEntry(
-            domain=DOMAIN, unique_id="410236",
+            domain=DOMAIN,
+            unique_id="410236",
             data={"user_token": "old-and-revoked", "printer_ids": [291342]},
         )
         entry.add_to_hass(hass)
@@ -573,9 +573,7 @@ class TestReauthRetiresTheOldTokens:
 
         with (
             patch(API_PATH, return_value=_mock_api()),
-            patch.object(
-                hass.config_entries, "async_schedule_reload"
-            ) as reload,
+            patch.object(hass.config_entries, "async_schedule_reload") as reload,
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -583,7 +581,8 @@ class TestReauthRetiresTheOldTokens:
                 data=entry.data,
             )
             result = await hass.config_entries.flow.async_configure(
-                result["flow_id"], {"user_token": JWT},
+                result["flow_id"],
+                {"user_token": JWT},
             )
             await hass.async_block_till_done()
 

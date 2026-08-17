@@ -448,7 +448,8 @@ class TestUnexpectedSetupErrorIsNotAnAuthFailure:
         assert mock_entry.state is ConfigEntryState.SETUP_RETRY, mock_entry.state
         # And crucially: no re-auth flow was opened for it.
         flows = [
-            f for f in hass.config_entries.flow.async_progress()
+            f
+            for f in hass.config_entries.flow.async_progress()
             if f["handler"] == "anycubic_cloud" and f["context"].get("source") == "reauth"
         ]
         assert flows == []
@@ -468,9 +469,7 @@ class TestRevokedStoredTokensDoNotBlockReauth:
     and losing every entity id.
     """
 
-    async def test_a_good_entry_token_rescues_a_dead_stored_one(
-        self, hass, mock_entry, mock_api, hass_storage
-    ) -> None:
+    async def test_a_good_entry_token_rescues_a_dead_stored_one(self, hass, mock_entry, mock_api, hass_storage) -> None:
         from homeassistant.config_entries import ConfigEntryState
 
         from custom_components.anycubic_cloud.const import STORAGE_KEY, STORAGE_VERSION
@@ -498,14 +497,9 @@ class TestRevokedStoredTokensDoNotBlockReauth:
         assert mock_entry.state is ConfigEntryState.LOADED, mock_entry.state
         # The retry re-armed the client from the entry, not from storage.
         assert api.set_authentication.call_count == 2
-        assert (
-            api.set_authentication.call_args.kwargs["auth_token"]
-            == mock_entry.data[CONF_USER_TOKEN]
-        )
+        assert api.set_authentication.call_args.kwargs["auth_token"] == mock_entry.data[CONF_USER_TOKEN]
 
-    async def test_a_bad_entry_token_still_fails(
-        self, hass, mock_entry, mock_api, hass_storage
-    ) -> None:
+    async def test_a_bad_entry_token_still_fails(self, hass, mock_entry, mock_api, hass_storage) -> None:
         """The retry must not turn a genuinely dead account into a success."""
         from homeassistant.config_entries import ConfigEntryState
 

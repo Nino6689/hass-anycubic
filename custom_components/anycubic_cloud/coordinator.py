@@ -1319,14 +1319,17 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         LOGGER.debug(
             "Saved tokens were rejected; retrying with the configured token."
         )
-        self._anycubic_api.set_authentication(
+        # The narrowing property, not the raw attribute: this is only ever
+        # called from inside setup, where the client exists.
+        api = self.anycubic_api
+        api.set_authentication(
             auth_token=self.entry.data[CONF_USER_TOKEN],
             auth_mode=self.entry.data.get(CONF_USER_AUTH_MODE),
             device_id=self.entry.data.get(CONF_USER_DEVICE_ID),
             auto_pick_token=region is not AnycubicRegion.CHINA,
         )
 
-        return await self._anycubic_api.check_api_tokens()
+        return bool(await api.check_api_tokens())
 
     async def _setup_anycubic_api_connection(self) -> None:
         LOGGER.debug("Coordinator setting up Anycubic Cloud API connection.")
