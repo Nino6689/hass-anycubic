@@ -498,6 +498,34 @@ class TestDiscovery:
             ),
         )
 
+    async def test_a_cloud_configured_printer_is_not_rediscovered(self, hass: HomeAssistant) -> None:
+        """The exact screenshot: a printer set up through the cloud for months,
+        loaded and healthy, offered again as "Discovered" every lease renewal.
+
+        The cloud entry is keyed by the account's user id, not the MAC, so
+        the unique_id check alone never matches. The device registry knows the
+        MAC as a connection on the printer's device -- that is the identity to
+        ask.
+        """
+        from homeassistant.helpers import device_registry as dr
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        entry = MockConfigEntry(
+            domain=DOMAIN, unique_id="410236",
+            data={"user_token": JWT, "printer_ids": [291342]},
+        )
+        entry.add_to_hass(hass)
+        dr.async_get(hass).async_get_or_create(
+            config_entry_id=entry.entry_id,
+            connections={(dr.CONNECTION_NETWORK_MAC, "a4:e8:8d:80:54:c8")},
+            identifiers={(DOMAIN, "410236-291342")},
+        )
+
+        result = await self._discover(hass)
+
+        assert result["type"] is FlowResultType.ABORT
+        assert result["reason"] == "already_configured"
+
     async def test_a_discovered_printer_offers_setup(self, hass: HomeAssistant) -> None:
         result = await self._discover(hass)
 

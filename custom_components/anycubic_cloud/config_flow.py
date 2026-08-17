@@ -30,6 +30,7 @@ from homeassistant.helpers.aiohttp_client import (
     async_create_clientsession,
     async_get_clientsession,
 )
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -678,10 +679,32 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         the path that needs nothing else from the user. Someone who wants the
         cloud can still pick it from the menu.
         """
-        await self.async_set_unique_id(format_mac(discovery_info.macaddress))
+        mac = format_mac(discovery_info.macaddress)
+        await self.async_set_unique_id(mac)
         self._abort_if_unique_id_configured(
             updates={CONF_LAN_HOST: discovery_info.ip}
         )
+
+        # The unique_id check above only catches an entry keyed by this MAC --
+        # a LAN-only one. A CLOUD entry is keyed by the account's user id, so
+        # a printer that has been set up through the cloud for months still
+        # gets rediscovered and offered as new every time its lease renews.
+        # The device registry already knows the MAC as a connection on that
+        # printer's device, so ask it: if any device carrying this MAC belongs
+        # to one of our entries, this printer is already configured.
+        dev_reg = dr.async_get(self.hass)
+        device = dev_reg.async_get_device(
+            connections={(dr.CONNECTION_NETWORK_MAC, mac)}
+        )
+        if device is not None and any(
+            entry.domain == DOMAIN
+            for entry in (
+                self.hass.config_entries.async_get_entry(entry_id)
+                for entry_id in device.config_entries
+            )
+            if entry is not None
+        ):
+            return self.async_abort(reason="already_configured")
 
         self._discovered_host = discovery_info.ip
         self.context["title_placeholders"] = {"name": f"Anycubic ({discovery_info.ip})"}

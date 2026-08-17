@@ -1384,8 +1384,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise
 
         except Exception as error:
-            raise ConfigEntryAuthFailed(
-                f"Coordinator authentication failed with unknown Error. Check credentials {error}"
+            # NOT an auth failure. Anything that lands here is unclassified --
+            # a DNS blip, a timeout, a KeyError in a parser -- and calling it
+            # one opened a re-auth flow that Home Assistant then kept showing
+            # even after the very next retry succeeded and the entry loaded:
+            # a healthy integration wearing a red "Reconfigure" badge, asking
+            # for a token it did not need. NotReady retries with backoff and
+            # clears itself when setup succeeds, which is the honest shape.
+            raise ConfigEntryNotReady(
+                f"Setup failed with an unexpected error: {error}"
             ) from error
 
 

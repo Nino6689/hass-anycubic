@@ -419,3 +419,36 @@ class TestMqttFailureIsVisible:
 
         check.assert_awaited_once()
         assert coordinator._mqtt_task is None
+
+
+class TestUnexpectedSetupErrorIsNotAnAuthFailure:
+    """A healthy integration wearing a red "Reconfigure" badge.
+
+    Any unclassified exception during setup -- a DNS blip, a timeout, a
+    KeyError in a parser -- used to be re-raised as ConfigEntryAuthFailed.
+    That opens a re-auth flow, and Home Assistant keeps showing it even after
+    the very next retry succeeds and the entry loads: the entry reads
+    `loaded`, the sensors update, and the Integrations page still nags for a
+    token nobody needs. NotReady retries with backoff and clears itself.
+    """
+
+    async def test_an_unknown_error_becomes_not_ready(self, hass, mock_entry, mock_api) -> None:
+        from homeassistant.config_entries import ConfigEntryState
+
+        api, _printer = mock_api
+        # Something the classifier has never heard of, thrown mid-setup from a
+        # call with no handler of its own -- printer_info_for_id already maps
+        # its failures to NotReady, so it would not reach the outer classifier.
+        api.check_api_tokens = AsyncMock(side_effect=KeyError("machine_type"))
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+
+        assert mock_entry.state is ConfigEntryState.SETUP_RETRY, mock_entry.state
+        # And crucially: no re-auth flow was opened for it.
+        flows = [
+            f for f in hass.config_entries.flow.async_progress()
+            if f["handler"] == "anycubic_cloud" and f["context"].get("source") == "reauth"
+        ]
+        assert flows == []
