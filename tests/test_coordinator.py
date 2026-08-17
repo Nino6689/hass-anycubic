@@ -452,3 +452,74 @@ class TestUnexpectedSetupErrorIsNotAnAuthFailure:
             if f["handler"] == "anycubic_cloud" and f["context"].get("source") == "reauth"
         ]
         assert flows == []
+
+
+class TestRevokedStoredTokensDoNotBlockReauth:
+    """Re-authentication that could never take effect.
+
+    Setup layers the refreshed tokens out of storage on top of the one held on
+    the config entry, so a restart keeps working after the cloud rotates them.
+    But Anycubic revokes a session whenever the account signs in elsewhere --
+    the slicer, the phone app -- and the stored pair is then dead. It was
+    loaded again on every retry, including immediately after a successful
+    re-auth, so a freshly pasted, provably good token was overwritten by the
+    dead one before it was ever used. The entry stayed "Authentication failed"
+    with working credentials inside it, and the only way out was deleting it
+    and losing every entity id.
+    """
+
+    async def test_a_good_entry_token_rescues_a_dead_stored_one(
+        self, hass, mock_entry, mock_api, hass_storage
+    ) -> None:
+        from homeassistant.config_entries import ConfigEntryState
+
+        from custom_components.anycubic_cloud.const import STORAGE_KEY, STORAGE_VERSION
+
+        api, _printer = mock_api
+        hass_storage[f"{STORAGE_KEY}.{mock_entry.entry_id}"] = {
+            "version": STORAGE_VERSION,
+            "data": {"auth_token": "revoked", "auth_access_token": "revoked-too"},
+        }
+        # Stored tokens refused; the entry's own token is still good. Written
+        # as a counter rather than a side_effect list because the coordinator
+        # goes on checking the tokens after setup, and a list runs out.
+        calls = {"n": 0}
+
+        async def _check():
+            calls["n"] += 1
+            return calls["n"] > 1
+
+        api.check_api_tokens = AsyncMock(side_effect=_check)
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+
+        assert mock_entry.state is ConfigEntryState.LOADED, mock_entry.state
+        # The retry re-armed the client from the entry, not from storage.
+        assert api.set_authentication.call_count == 2
+        assert (
+            api.set_authentication.call_args.kwargs["auth_token"]
+            == mock_entry.data[CONF_USER_TOKEN]
+        )
+
+    async def test_a_bad_entry_token_still_fails(
+        self, hass, mock_entry, mock_api, hass_storage
+    ) -> None:
+        """The retry must not turn a genuinely dead account into a success."""
+        from homeassistant.config_entries import ConfigEntryState
+
+        from custom_components.anycubic_cloud.const import STORAGE_KEY, STORAGE_VERSION
+
+        api, _printer = mock_api
+        hass_storage[f"{STORAGE_KEY}.{mock_entry.entry_id}"] = {
+            "version": STORAGE_VERSION,
+            "data": {"auth_token": "revoked", "auth_access_token": "revoked-too"},
+        }
+        api.check_api_tokens = AsyncMock(return_value=False)
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+
+        assert mock_entry.state is ConfigEntryState.SETUP_ERROR, mock_entry.state

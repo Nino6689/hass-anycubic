@@ -177,7 +177,7 @@ async def async_load_saved_tokens(
     hass: HomeAssistant,
     entry_id: str,
     anycubic_api: AnycubicAPI,
-) -> None:
+) -> dict[str, Any] | None:
     """Load previously saved tokens into the API client.
 
     The token the user pasted is only the starting point -- the cloud refreshes
@@ -185,6 +185,10 @@ async def async_load_saved_tokens(
     integration re-authenticates from the original token on every restart and
     demands re-auth once that one ages out, even though working credentials
     were sitting in storage.
+
+    Returns what was loaded, so the caller can tell whether the credentials it
+    is about to use came from storage or from the config entry -- which is the
+    difference between "these tokens are stale" and "the pasted token is bad".
     """
     config = await async_token_store(hass, entry_id).async_load()
 
@@ -197,6 +201,8 @@ async def async_load_saved_tokens(
 
     if config:
         anycubic_api.load_auth_config_from_dict(config, minimal=True)
+
+    return config
 
 
 def build_color_swatch_data_uri(colors_hex: list[str] | None) -> str | None:

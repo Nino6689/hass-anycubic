@@ -71,6 +71,7 @@ from .helpers import (
     AnycubicMQTTConnectMode,
     async_load_saved_tokens,
     async_repair_access_token,
+    async_token_store,
     describe_token,
     detect_auth_mode,
     extract_panel_card_config,
@@ -764,6 +765,19 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
                                 CONF_REGION: self._user_region.value,
                                 CONF_USER_DEVICE_ID: self._user_device_id,
                             },
+                        )
+                        # Setup loads the saved tokens on top of the entry's,
+                        # so leaving the old pair in place would have the
+                        # credentials just proved good overwritten by the ones
+                        # that failed. A new paste retires them.
+                        await async_token_store(
+                            self.hass, self.entry.entry_id
+                        ).async_remove()
+                        # And bring the entry back up now. Without this it sits
+                        # on its old error -- re-authenticated, still red --
+                        # until something else reloads it.
+                        self.hass.config_entries.async_schedule_reload(
+                            self.entry.entry_id
                         )
                         return self.async_abort(reason="reauth_successful")
 
