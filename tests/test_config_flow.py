@@ -498,6 +498,34 @@ class TestDiscovery:
             ),
         )
 
+    async def test_a_cloud_configured_printer_is_not_rediscovered(self, hass: HomeAssistant) -> None:
+        """The exact screenshot: a printer set up through the cloud for months,
+        loaded and healthy, offered again as "Discovered" every lease renewal.
+
+        The cloud entry is keyed by the account's user id, not the MAC, so
+        the unique_id check alone never matches. The device registry knows the
+        MAC as a connection on the printer's device -- that is the identity to
+        ask.
+        """
+        from homeassistant.helpers import device_registry as dr
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        entry = MockConfigEntry(
+            domain=DOMAIN, unique_id="410236",
+            data={"user_token": JWT, "printer_ids": [291342]},
+        )
+        entry.add_to_hass(hass)
+        dr.async_get(hass).async_get_or_create(
+            config_entry_id=entry.entry_id,
+            connections={(dr.CONNECTION_NETWORK_MAC, "a4:e8:8d:80:54:c8")},
+            identifiers={(DOMAIN, "410236-291342")},
+        )
+
+        result = await self._discover(hass)
+
+        assert result["type"] is FlowResultType.ABORT
+        assert result["reason"] == "already_configured"
+
     async def test_a_discovered_printer_offers_setup(self, hass: HomeAssistant) -> None:
         result = await self._discover(hass)
 
@@ -513,3 +541,56 @@ class TestDiscovery:
 
         assert result["step_id"] == "local"
         assert result["data_schema"]({})["lan_host"] == "10.0.66.28"
+
+
+class TestReauthRetiresTheOldTokens:
+    """A successful re-auth has to actually take effect.
+
+    Setup loads the saved tokens on top of the entry's own, so a paste that the
+    server just accepted was being overwritten by the revoked pair still sitting
+    in storage -- re-auth reported success and the entry stayed red. And nothing
+    reloaded the entry afterwards, so even a good paste left it on its old
+    error until the next restart.
+    """
+
+    async def test_a_successful_paste_clears_the_store_and_reloads(
+        self, hass: HomeAssistant, hass_storage
+    ) -> None:
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        from custom_components.anycubic_cloud.const import STORAGE_KEY, STORAGE_VERSION
+
+        entry = MockConfigEntry(
+            domain=DOMAIN, unique_id="410236",
+            data={"user_token": "old-and-revoked", "printer_ids": [291342]},
+        )
+        entry.add_to_hass(hass)
+        store_key = f"{STORAGE_KEY}.{entry.entry_id}"
+        hass_storage[store_key] = {
+            "version": STORAGE_VERSION,
+            "data": {"auth_token": "revoked", "auth_access_token": "revoked-too"},
+        }
+
+        with (
+            patch(API_PATH, return_value=_mock_api()),
+            patch.object(
+                hass.config_entries, "async_schedule_reload"
+            ) as reload,
+        ):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN,
+                context={"source": config_entries.SOURCE_REAUTH, "entry_id": entry.entry_id},
+                data=entry.data,
+            )
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], {"user_token": JWT},
+            )
+            await hass.async_block_till_done()
+
+        assert result["type"] is FlowResultType.ABORT
+        assert result["reason"] == "reauth_successful"
+        assert entry.data["user_token"] == JWT
+        # The dead pair is gone, so setup starts from the token just proved good.
+        assert hass_storage.get(store_key, {}).get("data") in (None, {})
+        # And the entry comes back up without waiting for a restart.
+        reload.assert_called_once_with(entry.entry_id)

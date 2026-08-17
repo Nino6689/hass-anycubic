@@ -1294,6 +1294,40 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._anycubic_api.set_lan_client(self._lan_client)
 
+    async def _async_retry_with_configured_token(
+        self,
+        region: AnycubicRegion,
+    ) -> bool:
+        """Log in again using only the token held on the config entry.
+
+        Setup layers the *refreshed* tokens out of storage on top of the pasted
+        one, because those are what survive a restart. When the cloud revokes a
+        session -- signing in with the slicer or the phone app displaces the
+        one Home Assistant holds, which Anycubic does routinely -- the stored
+        pair is dead, and it was loaded again on every retry.
+
+        That made re-authentication impossible to complete. The flow wrote a
+        good token onto the entry, setup immediately overwrote it from storage,
+        and the entry stayed on "Authentication failed" with working
+        credentials sitting inside it. The only way out was deleting the entry,
+        which takes every entity id and all of their history with it.
+
+        So when the stored tokens are refused, fall back to the one the user
+        actually gave us before calling the credentials bad. A success here
+        overwrites the dead pair in storage on the line that saves it.
+        """
+        LOGGER.debug(
+            "Saved tokens were rejected; retrying with the configured token."
+        )
+        self._anycubic_api.set_authentication(
+            auth_token=self.entry.data[CONF_USER_TOKEN],
+            auth_mode=self.entry.data.get(CONF_USER_AUTH_MODE),
+            device_id=self.entry.data.get(CONF_USER_DEVICE_ID),
+            auto_pick_token=region is not AnycubicRegion.CHINA,
+        )
+
+        return await self._anycubic_api.check_api_tokens()
+
     async def _setup_anycubic_api_connection(self) -> None:
         LOGGER.debug("Coordinator setting up Anycubic Cloud API connection.")
         store = async_token_store(self.hass, self.entry.entry_id)
@@ -1330,7 +1364,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # The pasted token is only the starting point; the cloud refreshes it
             # and the refreshed value is what stays valid. Loading it back means a
             # restart doesn't fall back to a token that may have since aged out.
-            await async_load_saved_tokens(
+            stored_tokens = await async_load_saved_tokens(
                 self.hass, self.entry.entry_id, self._anycubic_api
             )
 
@@ -1349,6 +1383,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._anycubic_api.set_lan_client(self._lan_client)
 
             success = await self._anycubic_api.check_api_tokens()
+
+            if not success and stored_tokens:
+                success = await self._async_retry_with_configured_token(region)
+
             if not success:
                 raise ConfigEntryAuthFailed("Authentication failed. Check credentials.")
 
@@ -1384,8 +1422,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise
 
         except Exception as error:
-            raise ConfigEntryAuthFailed(
-                f"Coordinator authentication failed with unknown Error. Check credentials {error}"
+            # NOT an auth failure. Anything that lands here is unclassified --
+            # a DNS blip, a timeout, a KeyError in a parser -- and calling it
+            # one opened a re-auth flow that Home Assistant then kept showing
+            # even after the very next retry succeeded and the entry loaded:
+            # a healthy integration wearing a red "Reconfigure" badge, asking
+            # for a token it did not need. NotReady retries with backoff and
+            # clears itself when setup succeeds, which is the honest shape.
+            raise ConfigEntryNotReady(
+                f"Setup failed with an unexpected error: {error}"
             ) from error
 
 
