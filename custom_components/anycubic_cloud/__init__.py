@@ -39,6 +39,19 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Anycubic Cloud from a config entry."""
 
+    # Before the first refresh, deliberately. The card and the panel are static
+    # files that have nothing to do with whether the cloud answers, but doing
+    # this afterwards tied them to it: a printer that was offline, an expired
+    # token, an Anycubic outage -- anything that stopped setup -- also meant the
+    # card's JavaScript was never handed to the browser, so every dashboard
+    # using it broke with "Custom element not found: anycubic-card" rather than
+    # showing an unavailable card. Registering first means the dashboard keeps
+    # its card and says what is wrong, which is the useful failure.
+    await async_register_panel(
+        hass,
+        entry.options.get(CONF_CARD_CONFIG)
+    )
+
     coordinator = AnycubicCloudDataUpdateCoordinator(hass, entry)
 
     await coordinator.async_config_entry_first_refresh()
@@ -48,12 +61,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))
-
-    # register panel
-    await async_register_panel(
-        hass,
-        entry.options.get(CONF_CARD_CONFIG)
-    )
 
     return True
 
