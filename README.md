@@ -973,7 +973,7 @@ lightEntityId: light.anycubic_kobra_s1_printer_light
 | `scaleFactor` | `1` | How much width the hero takes in the two-column layout |
 | `monitoredStats` | Status, ETA, Elapsed, Remaining | The stat rows |
 | `round` / `use_24hr` / `temperatureUnit` | `true` / `true` / `C` | Number and time formatting. Rounded by default — set `round: false` for full precision |
-| `lightEntityId` / `powerEntityId` | — | Adds a toggle to the header |
+| `lightEntityId` / `powerEntityId` | — | Adds a toggle to the header. `powerEntityId` is for a **smart plug of your own** — the printer has no power switch to offer, so an empty picker here is normal |
 | `cameraEntityId` | auto | Override which camera the hero uses |
 | `noCamera` | `false` | Never acquire a camera, whatever the media view asks — for galleries, wallboards and second dashboards that must not steal the stream |
 | `slotColors` | `[]` | Colour presets in the spool editor |

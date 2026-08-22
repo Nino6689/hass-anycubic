@@ -45,6 +45,11 @@
         "show_move_buttons": "Verplaatsknoppen tonen",
         "sections": "Uitklapbare secties"
       },
+      "helpers": {
+        "light_entity_id": "Optioneel. Voegt een lichtknop toe aan de kop van de kaart — meestal de entiteit ‘Printerlicht’ van de printer zelf.",
+        "power_entity_id": "Optioneel. Voegt een aan/uit-knop toe aan de kop van de kaart. De printer heeft zelf geen schakelaar, dus dit is voor een slimme stekker waarop hij is aangesloten. Laat leeg als je er geen gebruikt.",
+        "camera_entity_id": "Optioneel. Bepaalt welke camera de kaart toont. Laat leeg om de kaart te laten kiezen."
+      },
       "options": {
         "printer_art": {
           "auto": "Automatisch (detecteren)",

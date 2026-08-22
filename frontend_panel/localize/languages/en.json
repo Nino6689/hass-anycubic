@@ -45,6 +45,11 @@
         "show_move_buttons": "Show move buttons",
         "sections": "Expandable sections"
       },
+      "helpers": {
+        "light_entity_id": "Optional. Adds a light toggle to the card header — usually the printer's own Printer Light entity.",
+        "power_entity_id": "Optional. Adds a power toggle to the card header. The printer has no power switch of its own, so this is for a smart plug you have it plugged into. Leave it empty if you don't use one.",
+        "camera_entity_id": "Optional. Overrides which camera the card shows. Leave it empty to let the card choose."
+      },
       "options": {
         "printer_art": {
           "auto": "Automatic (detect)",
