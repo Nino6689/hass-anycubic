@@ -45,6 +45,11 @@
         "show_move_buttons": "Bewegungsschaltflächen anzeigen",
         "sections": "Ausklappbare Bereiche"
       },
+      "helpers": {
+        "light_entity_id": "Optional. Fügt der Kopfzeile der Karte einen Licht-Schalter hinzu — normalerweise die Entität „Druckerlicht“ des Druckers.",
+        "power_entity_id": "Optional. Fügt der Kopfzeile der Karte einen Ein/Aus-Schalter hinzu. Der Drucker hat keinen eigenen Netzschalter, hier gehört also eine smarte Steckdose hin, an der er hängt. Leer lassen, wenn du keine verwendest.",
+        "camera_entity_id": "Optional. Legt fest, welche Kamera die Karte zeigt. Leer lassen, damit die Karte selbst wählt."
+      },
       "options": {
         "printer_art": {
           "auto": "Automatisch (erkennen)",

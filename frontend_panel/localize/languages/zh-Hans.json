@@ -45,6 +45,11 @@
         "show_move_buttons": "显示移动按钮",
         "sections": "可展开区块"
       },
+      "helpers": {
+        "light_entity_id": "可选。在卡片顶部添加灯光开关，通常选择打印机自带的「打印机灯光」实体。",
+        "power_entity_id": "可选。在卡片顶部添加电源开关。打印机本身没有电源开关，这里应选择它所连接的智能插座。不使用可留空。",
+        "camera_entity_id": "可选。指定卡片显示哪个摄像头。留空则由卡片自动选择。"
+      },
       "options": {
         "printer_art": {
           "auto": "自动（检测）",

@@ -204,6 +204,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # How many times each printer has been asked what it has. Bounded so a
         # printer with neither a light nor peripherals isn't polled forever.
         self._capability_polls: dict[int, int] = {}
+        # Whether each printer was online last time we looked, so the budget
+        # above can be handed back when one comes on again.
+        self._printer_was_online: dict[int, bool] = {}
         self._mqtt_task: asyncio.Future[None] | None = None
         self._mqtt_manually_connected = False
         self._mqtt_last_error: str | None = None
@@ -1683,9 +1686,31 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as error:  # noqa: BLE001 - optional, retried later
             LOGGER.debug("Could not poll printer capabilities: %s", error)
 
+    def _restore_capability_budget_when_back_online(self) -> None:
+        """Hand a printer its poll budget back when it comes on again.
+
+        The budget stops a printer that genuinely has no light and no
+        peripherals from being asked about them forever. It was being spent on
+        printers that were simply switched off: three updates' worth of orders
+        into the void, after which the light entity stayed unavailable for the
+        life of the coordinator no matter how long the printer ran afterwards.
+
+        Coming online is the one moment there is something new to ask, so it is
+        the moment the count goes back to zero.
+        """
+        for printer_id, printer in self._anycubic_printers.items():
+            online = bool(printer.printer_online)
+            was_online = self._printer_was_online.get(printer_id)
+            self._printer_was_online[printer_id] = online
+
+            if online and was_online is False:
+                self._capability_polls.pop(printer_id, None)
+
     async def _poll_printer_capabilities(self) -> None:
         if not self.anycubic_api.mqtt_is_started:
             return
+
+        self._restore_capability_budget_when_back_online()
 
         pending = [
             (printer_id, printer)
@@ -1694,6 +1719,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 printer.has_peripheral_camera is None
                 or not printer.has_controllable_light
             )
+            # An offline printer answers nothing. Spending the budget shouting
+            # at one that is switched off is exactly how a printer that does
+            # have a light ends up with a light entity that never appears.
+            and printer.printer_online
             and self._capability_polls.get(printer_id, 0) < MAX_CAPABILITY_POLLS
         ]
 

@@ -121,6 +121,19 @@ export class AnycubicPrintercardConfigure extends LitElement {
   @state()
   private _labelCameraEntityId: string;
 
+  // The three accessory pickers are the only fields here that point at
+  // something other than the printer, which is not obvious from a label: a
+  // Kobra S1 Max owner read the empty Power Entity list as a missing feature
+  // rather than as a slot for their own smart plug (discussion #18).
+  @state()
+  private _helperLightEntityId: string;
+
+  @state()
+  private _helperPowerEntityId: string;
+
+  @state()
+  private _helperCameraEntityId: string;
+
   @state()
   private _labelScaleFactor: string;
 
@@ -184,6 +197,18 @@ export class AnycubicPrintercardConfigure extends LitElement {
       );
       this._labelCameraEntityId = localize(
         "card.configure.labels.camera_entity_id",
+        this.language,
+      );
+      this._helperLightEntityId = localize(
+        "card.configure.helpers.light_entity_id",
+        this.language,
+      );
+      this._helperPowerEntityId = localize(
+        "card.configure.helpers.power_entity_id",
+        this.language,
+      );
+      this._helperCameraEntityId = localize(
+        "card.configure.helpers.camera_entity_id",
         this.language,
       );
       this._labelScaleFactor = localize(
@@ -287,6 +312,7 @@ export class AnycubicPrintercardConfigure extends LitElement {
               .data=${this.cardConfig}
               .schema=${this.formSchemaMain}
               .computeLabel=${this._computeLabel}
+              .computeHelper=${this._computeHelper}
               @value-changed=${this._formValueChanged}
             ></ha-form>
           </div>
@@ -318,6 +344,7 @@ export class AnycubicPrintercardConfigure extends LitElement {
               .data=${this.cardConfig}
               .schema=${this.formSchemaColours}
               .computeLabel=${this._computeLabel}
+              .computeHelper=${this._computeHelper}
               @value-changed=${this._formValueChanged}
             ></ha-form>
           </div>
@@ -371,6 +398,19 @@ export class AnycubicPrintercardConfigure extends LitElement {
   private _formValueChanged = (ev: HASSDomEvent<FormChangeDetail>): void => {
     this.cardConfig = ev.detail.value;
     this._configChanged(this.cardConfig);
+  };
+
+  private _computeHelper = (schema: HaFormBaseSchema): string | undefined => {
+    switch (schema.name) {
+      case "lightEntityId":
+        return this._helperLightEntityId;
+      case "powerEntityId":
+        return this._helperPowerEntityId;
+      case "cameraEntityId":
+        return this._helperCameraEntityId;
+      default:
+        return undefined;
+    }
   };
 
   private _computeLabel = (schema: HaFormBaseSchema): string => {

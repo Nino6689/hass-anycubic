@@ -45,6 +45,11 @@
         "show_move_buttons": "Afficher les boutons de déplacement",
         "sections": "Sections dépliables"
       },
+      "helpers": {
+        "light_entity_id": "Facultatif. Ajoute un bouton d'éclairage à l'en-tête de la carte — en général l'entité « Lumière de l'imprimante ».",
+        "power_entity_id": "Facultatif. Ajoute un bouton d'alimentation à l'en-tête de la carte. L'imprimante n'a pas d'interrupteur propre : indiquez ici la prise connectée sur laquelle elle est branchée. Laissez vide si vous n'en utilisez pas.",
+        "camera_entity_id": "Facultatif. Choisit la caméra affichée par la carte. Laissez vide pour laisser la carte décider."
+      },
       "options": {
         "printer_art": {
           "auto": "Automatique (détection)",

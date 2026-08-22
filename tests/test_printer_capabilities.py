@@ -44,8 +44,10 @@ def loaded(hass: HomeAssistant, mock_entry, mock_api):
         printer = MagicMock()
         printer.has_peripheral_camera = None
         printer.has_controllable_light = False
+        printer.printer_online = True
         coordinator._anycubic_printers = {1: printer}
         coordinator._capability_polls = {}
+        coordinator._printer_was_online = {}
 
         return coordinator, api, printer
 
@@ -161,3 +163,59 @@ class TestTheModelFanReadsThePrinter:
         state = coordinator._build_printer_dict(printer)["states"]
 
         assert state["fan_speed_pct"] is None
+
+
+class TestAPrinterThatWasSwitchedOff:
+    """Reported against 2.1.1 on a Kobra S1 Max, discussion #18.
+
+    The chamber light entity never became available, on a printer that plainly
+    has one. The budget that stops a lightless printer being asked forever was
+    being spent on a printer that was merely switched off -- three updates of
+    orders into the void, and then the light entity was unavailable for the
+    life of the coordinator however long the printer ran afterwards.
+    """
+
+    async def test_an_offline_printer_is_not_asked(self, loaded) -> None:
+        coordinator, api, printer = await loaded()
+        printer.printer_online = False
+
+        await coordinator._async_poll_printer_capabilities()
+
+        api.send_order_query_peripherals.assert_not_awaited()
+        api.send_order_get_light_status.assert_not_awaited()
+
+    async def test_being_offline_costs_nothing(self, loaded) -> None:
+        """The budget is for silence, not for absence."""
+        coordinator, _, printer = await loaded()
+        printer.printer_online = False
+
+        for _ in range(MAX_CAPABILITY_POLLS + 3):
+            await coordinator._async_poll_printer_capabilities()
+
+        assert coordinator._capability_polls.get(1, 0) == 0
+
+    async def test_the_budget_comes_back_when_the_printer_does(self, loaded) -> None:
+        """Coming on is the one moment there is something new to ask."""
+        coordinator, api, printer = await loaded()
+
+        for _ in range(MAX_CAPABILITY_POLLS + 1):
+            await coordinator._async_poll_printer_capabilities()
+
+        assert api.send_order_get_light_status.await_count == MAX_CAPABILITY_POLLS
+
+        printer.printer_online = False
+        await coordinator._async_poll_printer_capabilities()
+
+        printer.printer_online = True
+        await coordinator._async_poll_printer_capabilities()
+
+        assert api.send_order_get_light_status.await_count == MAX_CAPABILITY_POLLS + 1
+
+    async def test_staying_on_does_not_restart_the_budget(self, loaded) -> None:
+        """Otherwise a lightless printer is asked forever after all."""
+        coordinator, api, _ = await loaded()
+
+        for _ in range(MAX_CAPABILITY_POLLS + 5):
+            await coordinator._async_poll_printer_capabilities()
+
+        assert api.send_order_get_light_status.await_count == MAX_CAPABILITY_POLLS
