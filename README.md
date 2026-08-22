@@ -215,6 +215,7 @@ integration it already has, not a new one. Concretely:
 | Printer | Unit | Connection | Confirmed working | Report |
 | --- | --- | --- | --- | --- |
 | Kobra S1 | ACE Pro | Both | Temperatures and job progress, Every ACE slot, with material and colour, Filament remaining +5 more | [#16](https://github.com/Nino6689/hass-anycubic/discussions/16) |
+| Kobra S1 Max | ACE 2 Pro | Cloud | Temperatures and job progress | [#18](https://github.com/Nino6689/hass-anycubic/discussions/18) |
 <!-- TESTED-PRINTERS:END -->
 
 **Ran it on your printer?** [Post a report](https://github.com/Nino6689/hass-anycubic/discussions)

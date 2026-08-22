@@ -10,6 +10,13 @@ deliberately ignored: they belong to the person who wrote them, and copying
 them into the README unread is how a project ends up publishing something it
 cannot stand behind. The workflow that calls this opens a pull request rather
 than pushing, so a human still sees every change.
+
+A report written as prose rather than through the form used to be skipped in
+silence, which is the worst of both worlds: the reporter hears nothing and the
+table quietly under-claims. Those can now be rescued by the maintainer posting
+the structured answers as a comment on the thread, which this reads in place of
+the body. That keeps the transcription visible to the reporter, in their own
+thread, where they can correct it -- rather than hidden in a commit.
 """
 
 from __future__ import annotations
@@ -39,6 +46,13 @@ query($owner:String!, $name:String!, $after:String) {
         category { name }
         body
         author { login }
+        comments(first:20) {
+          nodes {
+            body
+            author { login }
+            authorAssociation
+          }
+        }
       }
     }
   }
@@ -79,6 +93,26 @@ def ticked(body: str) -> list[str]:
     ]
 
 
+def transcription(node: dict) -> str:
+    """The maintainer's structured transcription of a free-text report.
+
+    Only a comment by the repository owner counts. Anyone can comment on a
+    discussion, and a table that says which hardware is supported should not be
+    writable by whoever passes through.
+    """
+    for comment in ((node.get("comments") or {}).get("nodes") or []):
+        by_owner = (
+            comment.get("authorAssociation") == "OWNER"
+            or ((comment.get("author") or {}).get("login") == OWNER)
+        )
+        comment_body = comment.get("body") or ""
+
+        if by_owner and answer(comment_body, "Printer model"):
+            return comment_body
+
+    return ""
+
+
 def clean(value: str, limit: int = 60) -> str:
     """One line, no markdown that could break out of a table cell."""
     value = value.replace("|", "/").replace("\n", " ").strip()
@@ -114,8 +148,20 @@ def main() -> int:
             if (node.get("category") or {}).get("name") != CATEGORY:
                 continue
             body = node.get("body") or ""
+            transcribed = False
+
+            if not answer(body, "Printer model"):
+                rescued = transcription(node)
+                if rescued:
+                    body = rescued
+                    transcribed = True
+
             model = clean(answer(body, "Printer model"), 40)
             if not model:
+                print(
+                    f"#{node['number']}: no structured answers, skipped",
+                    file=sys.stderr,
+                )
                 continue
             reports.append({
                 "model": model,
@@ -124,6 +170,7 @@ def main() -> int:
                 "works": ticked(body),
                 "url": node["url"],
                 "number": node["number"],
+                "transcribed": transcribed,
             })
         if not data["pageInfo"]["hasNextPage"]:
             break
@@ -133,7 +180,7 @@ def main() -> int:
     text = readme.read_text()
 
     if START not in text or END not in text:
-        print(f"markers not found in README.md; nothing to do", file=sys.stderr)
+        print("markers not found in README.md; nothing to do", file=sys.stderr)
         return 0
 
     if reports:
@@ -146,6 +193,10 @@ def main() -> int:
             )
         table = "\n".join(rows)
         summary = f"{len(reports)} report{'s' if len(reports) != 1 else ''}"
+        rescued = sum(1 for r in reports if r["transcribed"])
+
+        if rescued:
+            summary += f", {rescued} transcribed"
     else:
         table = (
             "_No reports yet. If you run one of these printers, "

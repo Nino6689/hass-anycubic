@@ -45,5 +45,10 @@ jobs:
             "what works" tick-boxes) are read. Free-text fields are never copied into the
             README — read the discussions themselves for those.
 
+            A title saying **transcribed** means a report was written as prose rather than
+            through the form, and its answers were read from a maintainer comment on the
+            thread instead. Those rows deserve the closest look: check the comment says
+            only what the reporter actually said.
+
             Check the claims look reasonable before merging: this table is what tells
             someone their printer is supported.
