@@ -752,9 +752,9 @@ All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_j
 | **Job** | `job_name`, `job_state`, `job_progress`, `job_current_layer`, `job_total_layers`, `job_time_elapsed`, `job_time_remaining`, `job_eta`, `job_filament_used`, `job_z_thickness`, `job_speed_mode` |
 | **Status** | `current_status`, `printer_online`, `is_busy`, `is_available`, `job_in_progress`, `job_complete`, `job_failed`, `job_paused`, `mqtt_connection_active` |
 | **Temperatures** | `nozzle_temperature`, `hotbed_temperature`, `target_nozzle_temperature`, `target_hotbed_temperature` |
-| **Speeds & fans** | `print_speed`, `fan_speed`, `auxiliary_fan_speed` |
+| **Speeds & fans** | `print_speed`, `fan_speed`, `auxiliary_fan_speed` — the two fan readings are the printer's own, reported while it prints, so they read unavailable on an idle machine |
 | **Lifetime** | `total_material_used` (kg), `total_print_time`, `total_print_count` |
-| **Controls** | `printer_light`, `pause_print`, `resume_print`, `cancel_print`, `manual_mqtt_connection_enabled`, `refresh_mqtt_connection` |
+| **Controls** | `printer_light` — unavailable until the printer has reported a light, which it only does over MQTT — plus `pause_print`, `resume_print`, `cancel_print`, `manual_mqtt_connection_enabled`, `refresh_mqtt_connection` |
 | **Files** | `file_list_local`, `file_list_usb_disk`, `file_list_cloud` — each reports a **file count**, with the listing in its attributes — and their request buttons |
 | **Position** | `head_position_x`, `head_position_y`, `head_position_z`, and a `request_head_position` button. The printer only reports when asked |
 | **External spool** | `external_spool_material`, `external_spool_loaded` — for printers fed from a single external holder rather than the ACE |
@@ -1552,6 +1552,70 @@ were all arriving in messages that were being discarded.
 Your token expired. Re-extract via [step 2](#2-get-an-auth-token), then **Settings → Devices &
 services → Anycubic Cloud & LAN → Reconfigure → Re-Auth**. Entity IDs, history and automations are all
 preserved.
+
+</details>
+
+<details>
+<summary><b>The card isn't offered, or a dashboard says <code>Custom element not found: anycubic-card</code></b></summary>
+
+<br>
+
+**There is nothing to install by hand.** The integration registers the card with the frontend
+itself — no HACS entry, no dashboard resource. That error means the card's JavaScript never
+reached your browser, not that the card is misconfigured.
+
+Three causes, in the order worth checking:
+
+1. **A version older than 2.0.** Automatic registration arrived in the 2.x rewrite; on 0.2.x the
+   card was never offered. If HACS shows you a version starting `0.`, updating is the whole fix
+   — and if HACS thinks `0.2.2` is the newest, you're pointed at the archived original rather
+   than this repository. See [Moving from v0.2.2](#-moving-from-v022).
+2. **The integration isn't actually loaded.** Easy to miss, because the symptom shows on your
+   dashboard rather than on the integrations page. Check **Settings → Devices & services →
+   Anycubic**: red, or asking you to re-authenticate, is the real problem — the card is just the
+   messenger. (From 2.1.2 the card is registered *before* the cloud is contacted, so a failing
+   integration now shows a card that says what's wrong instead of vanishing.)
+3. **The browser is holding an old cache.** A hard refresh — <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>,
+   or <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> on a Mac. In the mobile app, clear the frontend
+   cache from the app's settings.
+
+**The check that separates them.** Open this in the same browser, with your own host:
+
+```
+http://YOUR-HA:8123/anycubic-cloud-panel-static/anycubic-card.js
+```
+
+A wall of JavaScript means the file is being served and it's a cache problem (3). A 404 means
+the integration isn't running, or is too old to serve it (1 or 2).
+
+> 💡 One last thing that catches people even once the card *is* loading: Home Assistant's
+> **Add card** dialog opens on the **By entity** tab, and custom cards only appear under
+> **By card**. That's where "Anycubic Card" will be.
+
+</details>
+
+<details>
+<summary><b>An entity says <i>unavailable</i></b></summary>
+
+<br>
+
+Usually not a fault. **Unavailable** here means *the printer hasn't told us, and I won't invent
+an answer* — which is deliberate, because a fabricated 0 is worse than a visible gap. The common
+ones:
+
+| Entity | Why | What to do |
+| --- | --- | --- |
+| `light.*_printer_light` | Nothing in your Anycubic account says a printer has a light; only the printer does, over MQTT. Until it has ever said so, offering a switch would be a promise I can't keep | Make sure the printer is **on** and MQTT is connected, then give it a few minutes. Still unavailable? That's worth [an issue](https://github.com/Nino6689/hass-anycubic/issues) — attach diagnostics |
+| `sensor.*_fan_speed_pct`, `_aux_fan_speed_pct`, `_ace_box_fan_level` | The printer volunteers these while it prints. The cloud protocol has a *set* for fan speed and no *get*, so an idle printer can't be asked | Expected when idle. **Unavailable during a print is a bug** — please report it |
+| `sensor.*_file_list_local` / `_usb_disk` / `_cloud` | Not fetched automatically — over the cloud that's a constant round trip for something most people never open | Press the matching **Request File List** button; the sensor fills in a second or two later |
+| `sensor.*_job_cost`, `_last_job_cost` | No price to work from | Set `number.*_ace_slot_N_spool_price_per_kg` — see [what your prints cost](#-what-your-prints-cost) |
+| `camera.*_camera` | That's the printer's own stream, which only exists over a local connection | On a cloud connection use `camera.*_cloud_camera`. The card sorts this out by itself |
+
+**Disabled is not unavailable.** Home Assistant greys both, similarly. A lot of entities here ship
+**disabled by default** — the ACE slot filament sensors, spool prices and weights, the feed
+buttons, `nozzle_filament_total`, `request_head_position`, `reset_nozzle_wear` — because enabled
+they'd be forty-odd extras for people who never touch them. Click one and **Enable** it; it starts
+recording from that moment, with no history before it.
 
 </details>
 
