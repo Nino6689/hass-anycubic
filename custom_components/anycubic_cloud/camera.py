@@ -30,6 +30,7 @@ from homeassistant.components.camera import (
     WebRTCAnswer,
     WebRTCSendMessage,
 )
+from homeassistant.components.ffmpeg import async_get_image
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
@@ -163,6 +164,43 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
         await self.coordinator.async_start_camera(self._printer_id)
 
         return url
+
+    async def async_camera_image(
+        self,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> bytes | None:
+        """A still, taken from the stream.
+
+        The printer serves video and nothing else -- it has no snapshot
+        endpoint to ask -- so a frame is pulled out of the stream itself, the
+        same way Home Assistant does it for any other stream-only camera.
+
+        Without this the base class answered None, so `camera.snapshot` had
+        nothing to save and failed while `camera.record` worked, which is
+        exactly how it was reported (#20). The entity picture and the
+        dashboard thumbnail were blank for the same reason.
+        """
+        url = await self.stream_source()
+
+        if url is None:
+            return None
+
+        try:
+            return await async_get_image(
+                self.hass,
+                url,
+                width=width,
+                height=height,
+            )
+        except HomeAssistantError as error:
+            # A camera that cannot produce a still is not a camera that is
+            # broken -- the stream may simply not be up yet -- and raising
+            # here marks the whole entity unavailable.
+            LOGGER.debug(
+                "Could not take a still from the printer camera: %s", error
+            )
+            return None
 
 
 class AnycubicCloudCamera(AnycubicCloudEntity, Camera):

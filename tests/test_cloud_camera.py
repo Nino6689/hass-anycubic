@@ -56,6 +56,24 @@ def _cloud_camera(hass: HomeAssistant) -> tuple[AnycubicCloudCamera, MagicMock]:
     return camera, coordinator
 
 
+def _local_camera(hass: HomeAssistant, stream_url: str | None = "http://printer/flv") -> tuple[AnycubicCamera, MagicMock]:
+    coordinator = MagicMock()
+    coordinator.printers = {1: MagicMock()}
+    coordinator.last_update_success = True
+    coordinator.camera_stream_url = MagicMock(return_value=stream_url)
+    coordinator.async_start_camera = AsyncMock()
+
+    with patch.object(AnycubicCamera, "__init__", lambda self, *a, **k: None):
+        camera = AnycubicCamera()
+
+    camera.coordinator = coordinator
+    camera._printer_id = 1
+    camera.entity_description = CAMERA_TYPES[0]
+    camera.hass = hass
+
+    return camera, coordinator
+
+
 class TestTheTwoTransportsStaySeparate:
     """The reason there are two entity classes at all."""
 
@@ -253,3 +271,58 @@ class TestCandidatesAndTeardown:
         assert camera._sessions == {}
         first.async_close.assert_awaited_once()
         second.async_close.assert_awaited_once()
+
+
+class TestStillsOffTheLocalStream:
+    """Reported as issue #20 on a Kobra X in LAN Mode.
+
+    `camera.snapshot` failed while `camera.record` worked -- which is exactly
+    what a camera with a stream and no still looks like. The printer has no
+    snapshot endpoint, so the frame has to come out of the stream.
+    """
+
+    async def test_a_still_is_pulled_from_the_stream(self, hass: HomeAssistant) -> None:
+        camera, coordinator = _local_camera(hass)
+
+        with patch(
+            "custom_components.anycubic_cloud.camera.async_get_image",
+            AsyncMock(return_value=b"jpeg-bytes"),
+        ) as get_image:
+            image = await camera.async_camera_image(width=640, height=480)
+
+        assert image == b"jpeg-bytes"
+        assert get_image.await_args.args[1] == "http://printer/flv"
+        assert get_image.await_args.kwargs == {"width": 640, "height": 480}
+
+    async def test_the_printer_is_told_to_start_capturing_first(self, hass: HomeAssistant) -> None:
+        """The stream stays closed until asked, so a frame needs it opened."""
+        camera, coordinator = _local_camera(hass)
+
+        with patch(
+            "custom_components.anycubic_cloud.camera.async_get_image",
+            AsyncMock(return_value=b"jpeg-bytes"),
+        ):
+            await camera.async_camera_image()
+
+        coordinator.async_start_camera.assert_awaited_once_with(1)
+
+    async def test_no_stream_means_no_still(self, hass: HomeAssistant) -> None:
+        camera, _ = _local_camera(hass, stream_url=None)
+
+        with patch(
+            "custom_components.anycubic_cloud.camera.async_get_image",
+            AsyncMock(return_value=b"jpeg-bytes"),
+        ) as get_image:
+            assert await camera.async_camera_image() is None
+
+        get_image.assert_not_awaited()
+
+    async def test_a_failed_grab_does_not_take_the_camera_down(self, hass: HomeAssistant) -> None:
+        """A stream that is not up yet is not a broken entity."""
+        camera, _ = _local_camera(hass)
+
+        with patch(
+            "custom_components.anycubic_cloud.camera.async_get_image",
+            AsyncMock(side_effect=HomeAssistantError("ffmpeg said no")),
+        ):
+            assert await camera.async_camera_image() is None
