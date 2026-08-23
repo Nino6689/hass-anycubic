@@ -171,6 +171,29 @@ def _as_slot_index(value: Any) -> int | None:
     return value if value >= 0 else None
 
 
+def _speed_mode_name(printer: AnycubicPrinter) -> str | None:
+    """What to call the speed mode the printer is currently in.
+
+    The names come from the cloud, which publishes the list of modes a machine
+    offers; the printer itself only ever reports a number. So the printer says
+    which mode, the cloud says what it is called, and where there is no cloud
+    the number stands on its own -- which is better than the nothing a local
+    printer used to show while printing (#19).
+    """
+    mode = printer.print_speed_mode
+
+    if mode is None:
+        return printer.latest_project_print_speed_mode_string
+
+    available = printer.latest_project_available_print_speed_modes_data_object or []
+
+    for entry in available:
+        if entry.get("mode") == mode and entry.get("description"):
+            return str(entry["description"])
+
+    return str(mode)
+
+
 class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """AnycubicCloud Data Update Coordinator."""
 
@@ -409,8 +432,16 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "job_total_layers": printer.latest_project_print_total_layers,
             "target_nozzle_temp": printer.latest_project_target_nozzle_temp,
             "target_hotbed_temp": printer.latest_project_target_hotbed_temp,
-            "job_speed_mode": printer.latest_project_print_speed_mode_string,
-            "print_speed_pct": printer.latest_project_print_speed_pct,
+            "job_speed_mode": _speed_mode_name(printer),
+            # The printer's own reading first, the sliced job's setting second.
+            # A printer reached over its own network has no cloud project at
+            # all, so both of these read unavailable on a Kobra X that was
+            # printing quite happily (#19).
+            "print_speed_pct": (
+                printer.print_speed_pct
+                if printer.print_speed_pct is not None
+                else printer.latest_project_print_speed_pct
+            ),
             "job_z_thick": printer.latest_project_z_thick,
             # The printer's own reading, not the sliced job's setting. The
             # job's value is 0 whenever nothing is printing, which is how the
@@ -557,7 +588,13 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             },
             "job_speed_mode": {
                 "available_modes": printer.latest_project_available_print_speed_modes_data_object,
-                "print_speed_mode_code": printer.latest_project_print_speed_mode,
+                # The code the printer is actually in, so an automation can act
+                # on it even where the cloud has never published the names.
+                "print_speed_mode_code": (
+                    printer.print_speed_mode
+                    if printer.print_speed_mode is not None
+                    else printer.latest_project_print_speed_mode
+                ),
             },
             "current_status": {
                 "model": printer.model,

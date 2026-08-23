@@ -216,6 +216,7 @@ integration it already has, not a new one. Concretely:
 | --- | --- | --- | --- | --- |
 | Kobra S1 | ACE Pro | Both | Temperatures and job progress, Every ACE slot, with material and colour, Filament remaining +5 more | [#16](https://github.com/Nino6689/hass-anycubic/discussions/16) |
 | Kobra S1 Max | ACE 2 Pro | Cloud | Temperatures and job progress | [#18](https://github.com/Nino6689/hass-anycubic/discussions/18) |
+| Kobra X | ACE (model 40002) | Local only, no Anycubic account | Temperatures and job progress, Every ACE slot, with material and colour, Filament remaining +2 more | [#19](https://github.com/Nino6689/hass-anycubic/discussions/19) |
 <!-- TESTED-PRINTERS:END -->
 
 **Ran it on your printer?** [Post a report](https://github.com/Nino6689/hass-anycubic/discussions)
@@ -752,7 +753,7 @@ All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_j
 | **Job** | `job_name`, `job_state`, `job_progress`, `job_current_layer`, `job_total_layers`, `job_time_elapsed`, `job_time_remaining`, `job_eta`, `job_filament_used`, `job_z_thickness`, `job_speed_mode` |
 | **Status** | `current_status`, `printer_online`, `is_busy`, `is_available`, `job_in_progress`, `job_complete`, `job_failed`, `job_paused`, `mqtt_connection_active` |
 | **Temperatures** | `nozzle_temperature`, `hotbed_temperature`, `target_nozzle_temperature`, `target_hotbed_temperature` |
-| **Speeds & fans** | `print_speed`, `fan_speed`, `auxiliary_fan_speed` — the two fan readings are the printer's own, reported while it prints, so they read unavailable on an idle machine |
+| **Speeds & fans** | `print_speed`, `fan_speed`, `auxiliary_fan_speed`, `job_speed_mode` — all the printer's own readings, reported while it prints, so they read unavailable on an idle machine. `job_speed_mode` shows the mode's **name** where the cloud has published one and its **number** otherwise; either way the number is on the entity as `print_speed_mode_code` |
 | **Lifetime** | `total_material_used` (kg), `total_print_time`, `total_print_count` |
 | **Controls** | `printer_light` — unavailable until the printer has reported a light, which it only does over MQTT — plus `pause_print`, `resume_print`, `cancel_print`, `manual_mqtt_connection_enabled`, `refresh_mqtt_connection` |
 | **Files** | `file_list_local`, `file_list_usb_disk`, `file_list_cloud` — each reports a **file count**, with the listing in its attributes — and their request buttons |
@@ -1034,6 +1035,11 @@ different streams and neither can stand in for the other:
 | --- | --- | --- |
 | `camera.<printer>_camera` | HTTP-FLV off the printer, as HLS | LAN Mode is on |
 | `camera.<printer>_cloud_camera` | Agora WebRTC | the printer is on the cloud |
+
+**`camera.snapshot` works on the local camera.** The printer has no snapshot endpoint of its own,
+so the frame is pulled out of the stream with ffmpeg, the same way Home Assistant does it for any
+other stream-only camera. That also gives the entity a picture and a dashboard thumbnail. The
+cloud camera cannot do this at all — see [why](#why-the-cloud-camera-has-no-snapshots).
 
 ### Putting it on a dashboard
 
@@ -1610,6 +1616,7 @@ ones:
 | `sensor.*_file_list_local` / `_usb_disk` / `_cloud` | Not fetched automatically — over the cloud that's a constant round trip for something most people never open | Press the matching **Request File List** button; the sensor fills in a second or two later |
 | `sensor.*_job_cost`, `_last_job_cost` | No price to work from | Set `number.*_ace_slot_N_spool_price_per_kg` — see [what your prints cost](#-what-your-prints-cost) |
 | `camera.*_camera` | That's the printer's own stream, which only exists over a local connection | On a cloud connection use `camera.*_cloud_camera`. The card sorts this out by itself |
+| `select.*_print_speed_mode` | The list of modes a printer offers is published by the **cloud**, and a printer in LAN Mode has no cloud. Without names there is nothing to put in the dropdown | Read the mode from `sensor.*_job_speed_mode` and change it with the `anycubic_cloud.change_print_speed_mode` action, which takes the number |
 
 **Disabled is not unavailable.** Home Assistant greys both, similarly. A lot of entities here ship
 **disabled by default** — the ACE slot filament sensors, spool prices and weights, the feed

@@ -5,3 +5,6 @@ ruff>=0.6
 mypy
 pytest-cov
 PyTurboJPEG
+# The camera platform now imports Home Assistant's ffmpeg helper to take a
+# still off the stream, and that module imports haffmpeg at module scope.
+ha-ffmpeg==3.2.2

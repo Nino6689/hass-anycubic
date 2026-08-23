@@ -219,3 +219,74 @@ class TestAPrinterThatWasSwitchedOff:
             await coordinator._async_poll_printer_capabilities()
 
         assert api.send_order_get_light_status.await_count == MAX_CAPABILITY_POLLS
+
+
+class TestTheSpeedEntitiesReadThePrinter:
+    """Reported as discussion #19: a Kobra X in LAN Mode, printing, with
+    Print speed mode and Print Speed % both unavailable.
+
+    Same shape as the model fan above. Both values were parsed out of the
+    printer's own reports and never exposed, so the entities read the sliced
+    job instead -- and a printer reached over its own network has no cloud
+    project to read.
+    """
+
+    async def test_the_cloud_names_the_mode_the_printer_is_in(self, loaded) -> None:
+        coordinator, _, printer = await loaded()
+        printer.print_speed_mode = 2
+        printer.latest_project_available_print_speed_modes_data_object = [
+            {"mode": 1, "description": "Standard"},
+            {"mode": 2, "description": "Sport"},
+        ]
+
+        state = coordinator._build_printer_dict(printer)["states"]
+
+        assert state["job_speed_mode"] == "Sport"
+
+    async def test_without_the_cloud_the_number_stands_alone(self, loaded) -> None:
+        """The names only ever come from the cloud, and a local printer has
+        none -- but the number it reports is still enough to automate on."""
+        coordinator, _, printer = await loaded()
+        printer.print_speed_mode = 2
+        printer.latest_project_available_print_speed_modes_data_object = None
+
+        state = coordinator._build_printer_dict(printer)["states"]
+
+        assert state["job_speed_mode"] == "2"
+
+    async def test_a_printer_that_has_not_said_falls_back_to_the_job(self, loaded) -> None:
+        coordinator, _, printer = await loaded()
+        printer.print_speed_mode = None
+        printer.latest_project_print_speed_mode_string = "Silent"
+
+        state = coordinator._build_printer_dict(printer)["states"]
+
+        assert state["job_speed_mode"] == "Silent"
+
+    async def test_the_printers_own_speed_percentage_wins(self, loaded) -> None:
+        coordinator, _, printer = await loaded()
+        printer.print_speed_pct = 76
+        printer.latest_project_print_speed_pct = 100
+
+        state = coordinator._build_printer_dict(printer)["states"]
+
+        assert state["print_speed_pct"] == 76
+
+    async def test_an_unreported_speed_falls_back_to_the_job(self, loaded) -> None:
+        coordinator, _, printer = await loaded()
+        printer.print_speed_pct = None
+        printer.latest_project_print_speed_pct = 100
+
+        state = coordinator._build_printer_dict(printer)["states"]
+
+        assert state["print_speed_pct"] == 100
+
+    async def test_the_mode_code_is_published_for_automations(self, loaded) -> None:
+        """The select stays unavailable without the cloud's list of names, so
+        the raw code is the only way to act on the mode locally."""
+        coordinator, _, printer = await loaded()
+        printer.print_speed_mode = 3
+
+        attributes = coordinator._build_printer_dict(printer)["attributes"]
+
+        assert attributes["job_speed_mode"]["print_speed_mode_code"] == 3
