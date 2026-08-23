@@ -183,7 +183,11 @@ def _speed_mode_name(printer: AnycubicPrinter) -> str | None:
     mode = printer.print_speed_mode
 
     if mode is None:
-        return printer.latest_project_print_speed_mode_string
+        # The API package ships no py.typed, so this arrives as Any however it
+        # is annotated there; narrow it here rather than let it through.
+        named = printer.latest_project_print_speed_mode_string
+
+        return str(named) if named is not None else None
 
     available = printer.latest_project_available_print_speed_modes_data_object or []
 
