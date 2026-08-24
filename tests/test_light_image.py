@@ -96,6 +96,29 @@ class TestJobImage:
         platform = hass.data["entity_components"]["image"]
         return next(e for e in platform.entities if isinstance(e, AnycubicCloudImage))
 
+    async def test_no_job_means_no_preview_to_serve(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Found while pointing a dashboard card at this entity.
+
+        An image entity always advertises an entity_picture, and Home Assistant
+        serves it by asking the entity for bytes. With no job there are none, so
+        the proxy answered HTTP 500 and the card drew a broken-image icon beside
+        a perfectly healthy idle printer.
+        """
+        await _setup(hass, mock_entry)
+        image = self._image(hass)
+
+        _states(mock_entry)[image.entity_description.key] = None
+
+        assert image.available is False
+
+    async def test_a_job_with_a_preview_is_available(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await _setup(hass, mock_entry)
+        image = self._image(hass)
+
+        _states(mock_entry)[image.entity_description.key] = "https://example/a.png"
+
+        assert image.available is True
+
     async def test_a_new_job_url_invalidates_the_cached_image(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
         """Otherwise the previous job's preview sticks around."""
         await _setup(hass, mock_entry)

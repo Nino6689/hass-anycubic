@@ -98,6 +98,21 @@ class AnycubicCloudImage(AnycubicCloudEntity, ImageEntity):
             self._known_image_url = image_url
 
     @property
+    def available(self) -> bool:
+        """Whether there is a preview to serve.
+
+        An image entity always advertises an ``entity_picture``, and Home
+        Assistant serves that URL by asking this entity for the bytes. With no
+        job there is no image, so the proxy answered HTTP 500 and every
+        consumer -- a picture card, a dashboard card asking for the current
+        model -- drew a broken-image icon. Idle is not broken, and saying so is
+        the entity's job.
+        """
+        return super().available and printer_state_for_key(
+            self.coordinator, self._printer_id, self.entity_description.key
+        ) is not None
+
+    @property
     def image_url(self) -> str | None:
         return self._known_image_url
 
