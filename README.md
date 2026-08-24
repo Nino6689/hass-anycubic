@@ -1475,7 +1475,7 @@ A written tag was loaded into a Kobra S1 + ACE Pro. Material and colour were rec
 {{ state_attr('sensor.anycubic_kobra_s1_ace_slot_3', 'color_hex') }}
 ```
 
-**Which spool is currently feeding** — reads `unavailable` when nothing is loaded
+**Which spool is currently feeding** — the number printed on the ACE itself (1–4), and `unavailable` when nothing is loaded
 
 ```jinja
 {{ states('sensor.anycubic_kobra_s1_ace_loaded_slot') }}

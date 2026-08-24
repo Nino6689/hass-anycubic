@@ -38,5 +38,5 @@
     "anycubic-cloud-api==0.4.25",
     "anycubic-cloud-frontend==0.1.5"
   ],
-  "version": "2.2.0"
+  "version": "2.3.0"
 }
