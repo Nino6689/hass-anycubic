@@ -517,3 +517,42 @@ class TestRevokedStoredTokensDoNotBlockReauth:
         await setup_entry(hass, mock_entry)
 
         assert mock_entry.state is ConfigEntryState.SETUP_ERROR, mock_entry.state
+
+
+class TestAceLoadedSlotNumbering:
+    """The loaded-slot sensor carries the number printed on the ACE itself.
+
+    The cloud payload counts slots from 0 (-1 when nothing is fed), while the
+    box labels its slots from 1 -- so a print running from slot 1 used to show
+    up as "0", and an idle box as "-1" rather than unavailable.
+    """
+
+    @pytest.mark.parametrize(
+        ("wire_value", "expected"),
+        [
+            (0, 1),  # first slot feeding: wire says 0, the box says 1
+            (2, 3),  # last slot feeding
+            (-1, None),  # nothing loaded reads unavailable, not "-1"
+            (None, None),  # no answer at all stays unknown
+        ],
+    )
+    async def test_the_sensor_shows_the_human_facing_number(self, hass, mock_entry, mock_api, wire_value, expected) -> None:
+        from unittest.mock import PropertyMock
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _api, printer = mock_api
+
+        with (
+            patch.object(
+                type(printer),
+                "primary_multi_color_box_loaded_slot",
+                PropertyMock(return_value=wire_value),
+            ),
+            patch.object(coordinator, "_poll_printer_capabilities", AsyncMock()),
+        ):
+            states = coordinator._build_printer_dict(printer)["states"]
+
+        assert states["ace_loaded_slot"] == expected

@@ -477,7 +477,20 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "print_time_total_hrs": printer.total_print_time_hrs,
             "print_count_total": printer.print_count,
             "job_filament_used": printer.latest_project_supplies_usage,
-            "ace_loaded_slot": printer.primary_multi_color_box_loaded_slot,
+            # The printer reports the feeding ACE slot 0-based (-1 = nothing
+            # loaded), but the sensor is named after the slot numbers printed on
+            # the box itself, which start at 1 -- so "Fach 1" in use showed up as
+            # "0" here. Report the human-facing slot number instead, and nothing
+            # (not -1) when the box is idle; that also matches what the docs
+            # below already promised ("reads unavailable when nothing is loaded").
+            # _as_slot_index() does double duty here: it keeps non-numeric or
+            # negative wire values from being treated as slots at all, which is
+            # what let a bare MagicMock stand in for the printer in tests.
+            "ace_loaded_slot": (
+                slot_wire + 1
+                if (slot_wire := _as_slot_index(printer.primary_multi_color_box_loaded_slot)) is not None
+                else None
+            ),
             "aux_fan_speed_pct": printer.aux_fan_speed_pct,
             # The external filament holder, for printers fed from a single
             # external spool rather than (or alongside) the ACE. Already in the
