@@ -30,7 +30,6 @@ from homeassistant.components.camera import (
     WebRTCAnswer,
     WebRTCSendMessage,
 )
-from homeassistant.components.ffmpeg import async_get_image
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
@@ -165,42 +164,25 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
 
         return url
 
-    async def async_camera_image(
-        self,
-        width: int | None = None,
-        height: int | None = None,
-    ) -> bytes | None:
-        """A still, taken from the stream.
+    @property
+    def use_stream_for_stills(self) -> bool:
+        """Take stills from the stream Home Assistant already has open.
 
-        The printer serves video and nothing else -- it has no snapshot
-        endpoint to ask -- so a frame is pulled out of the stream itself, the
-        same way Home Assistant does it for any other stream-only camera.
+        The printer serves video and nothing else -- there is no snapshot
+        endpoint to ask -- so a still has to come out of the stream. Home
+        Assistant does that itself for stream-only cameras when this is set,
+        reusing the connection go2rtc is already holding.
 
-        Without this the base class answered None, so `camera.snapshot` had
-        nothing to save and failed while `camera.record` worked, which is
-        exactly how it was reported (#20). The entity picture and the
-        dashboard thumbnail were blank for the same reason.
+        2.2.0 did it by hand instead, opening a second ffmpeg straight at the
+        printer's FLV endpoint. That competed with the live view for a stream
+        the printer only serves once: the snapshot blocked until Home
+        Assistant's ten-second limit gave up, and the live view came back
+        "DESCRIBE failed: 404" because the stream it wanted had been pulled
+        out from under it (#20, reported on 2.2.0 by the same person the
+        original fix was for). Nothing about that was visible from the tests,
+        which only ever proved ffmpeg had been called.
         """
-        url = await self.stream_source()
-
-        if url is None:
-            return None
-
-        try:
-            return await async_get_image(
-                self.hass,
-                url,
-                width=width,
-                height=height,
-            )
-        except HomeAssistantError as error:
-            # A camera that cannot produce a still is not a camera that is
-            # broken -- the stream may simply not be up yet -- and raising
-            # here marks the whole entity unavailable.
-            LOGGER.debug(
-                "Could not take a still from the printer camera: %s", error
-            )
-            return None
+        return True
 
 
 class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
