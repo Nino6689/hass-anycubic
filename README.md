@@ -127,7 +127,7 @@ for real. Until then I'd rather be upfront about the gap than imply coverage I d
 - [💷 What your prints cost](#-what-your-prints-cost)
 - [🔧 Nozzle wear](#-nozzle-wear)
 - [📚 Spool inventory](#-spool-inventory)
-- [📱 ReSpool — write your own spool tags *(beta)*](#-respool--an-ios-app-for-writing-spool-tags-beta)
+- [📱 ReSpool — write your own spool tags](#-respool--the-app-for-writing-spool-tags)
 - [Automation examples](#automation-examples)
 - [Troubleshooting](#troubleshooting)
 - [🔐 Security](#-security)
@@ -1423,7 +1423,7 @@ Treat it as "roughly how much is left", not a scale.
 
 ---
 
-## 📱 ReSpool — an iOS app for writing spool tags *(beta)*
+## 📱 ReSpool — the app for writing spool tags
 
 The ACE identifies filament from an NFC tag, and only Anycubic's own spools carry one. **ReSpool**
 writes those tags, so any brand of filament is recognised — and gives each reel an identity this
@@ -1431,9 +1431,18 @@ integration can tell apart.
 
 It's a separate project with its own home; this section is the short version of why it matters here.
 
-### 👉 [Join the TestFlight beta](https://testflight.apple.com/join/3sGsKNSM)
+### Get it
 
-*iPhone 7 or newer, and blank NTAG213 stickers — a few pence each online.*
+<a href="https://play.google.com/store/apps/details?id=com.nino6689.spooltags">
+  <img alt="Get it on Google Play" height="60" src="docs/images/google-play-badge.png">
+</a>
+
+**Android — [out now on Google Play](https://play.google.com/store/apps/details?id=com.nino6689.spooltags).**
+
+**iPhone — [join the TestFlight beta](https://testflight.apple.com/join/3sGsKNSM)**, which is the
+way in until 1.0 clears App Store review. iPhone 7 or newer.
+
+*Either way you need blank **NTAG213** stickers — a few pence each online.*
 
 ### Why it helps this integration
 
@@ -1457,7 +1466,6 @@ A written tag was loaded into a Kobra S1 + ACE Pro. Material and colour were rec
 - **Filament weight doesn't reach Home Assistant.** The app writes it to the tag faithfully, but the
   printer doesn't forward it. Use the per-slot weight entity here instead — it's remembered with the
   reel.
-- **Android** builds from the same Flutter codebase but isn't distributed yet.
 ## Automation examples
 
 **What's loaded in slot 3, and what colour**
@@ -1778,7 +1786,7 @@ see [testing scope](#hardware-and-testing-scope).
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
 | Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | **German added**, covering the config flow, options, errors and all entity names. Machine-drafted and not checked by a native speaker — corrections very welcome, and so are other languages. See [Translating](#translating) |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
-| ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--an-ios-app-for-writing-spool-tags-beta) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
+| ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--the-app-for-writing-spool-tags) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
 | ~~`aiSettings` message type~~ | **Done, and now writable.** Order `1243` sets it, so AI failure detection is a switch rather than a read-only sensor. The other fields — sensitivity, notice type, count — are preserved exactly as the printer already has them |
 | Chamber temperature | Confirmed again over the local connection: a Kobra S1 omits the fields entirely rather than sending zero, so it genuinely has no chamber sensor. Parsed and kept when a printer does send it; still no entity until a machine is found that populates it |
 | SAN-less broker certificate | Works today via OpenSSL's CN fallback; will need attention if that's removed |
