@@ -273,56 +273,52 @@ class TestCandidatesAndTeardown:
         second.async_close.assert_awaited_once()
 
 
-class TestStillsOffTheLocalStream:
-    """Reported as issue #20 on a Kobra X in LAN Mode.
+class TestStillsComeOffTheStreamHomeAssistantAlreadyHas:
+    """Issue #20, twice over.
 
-    `camera.snapshot` failed while `camera.record` worked -- which is exactly
-    what a camera with a stream and no still looks like. The printer has no
-    snapshot endpoint, so the frame has to come out of the stream.
+    First report: `camera.snapshot` failed while `camera.record` worked --
+    a camera with a stream and no still. 2.2.0 answered it by opening a
+    second ffmpeg straight at the printer's FLV endpoint.
+
+    Second report, on 2.2.0, from the same person: the snapshot timed out
+    after ten seconds and the live view started failing with "DESCRIBE
+    failed: 404". The printer serves that stream once, so the hand-rolled
+    grab was fighting the live view for it.
+
+    Home Assistant already knows how to take a still off a stream-only
+    camera -- reusing the connection rather than opening a rival one -- and
+    it does it when `use_stream_for_stills` is set. The tests that shipped
+    with 2.2.0 could not have caught this: they asserted ffmpeg had been
+    called, which was the thing that was wrong.
     """
 
-    async def test_a_still_is_pulled_from_the_stream(self, hass: HomeAssistant) -> None:
-        camera, coordinator = _local_camera(hass)
-
-        with patch(
-            "custom_components.anycubic_cloud.camera.async_get_image",
-            AsyncMock(return_value=b"jpeg-bytes"),
-        ) as get_image:
-            image = await camera.async_camera_image(width=640, height=480)
-
-        assert image == b"jpeg-bytes"
-        assert get_image.await_args.args[1] == "http://printer/flv"
-        assert get_image.await_args.kwargs == {"width": 640, "height": 480}
-
-    async def test_the_printer_is_told_to_start_capturing_first(self, hass: HomeAssistant) -> None:
-        """The stream stays closed until asked, so a frame needs it opened."""
-        camera, coordinator = _local_camera(hass)
-
-        with patch(
-            "custom_components.anycubic_cloud.camera.async_get_image",
-            AsyncMock(return_value=b"jpeg-bytes"),
-        ):
-            await camera.async_camera_image()
-
-        coordinator.async_start_camera.assert_awaited_once_with(1)
-
-    async def test_no_stream_means_no_still(self, hass: HomeAssistant) -> None:
-        camera, _ = _local_camera(hass, stream_url=None)
-
-        with patch(
-            "custom_components.anycubic_cloud.camera.async_get_image",
-            AsyncMock(return_value=b"jpeg-bytes"),
-        ) as get_image:
-            assert await camera.async_camera_image() is None
-
-        get_image.assert_not_awaited()
-
-    async def test_a_failed_grab_does_not_take_the_camera_down(self, hass: HomeAssistant) -> None:
-        """A stream that is not up yet is not a broken entity."""
+    async def test_the_still_comes_off_the_existing_stream(self, hass: HomeAssistant) -> None:
         camera, _ = _local_camera(hass)
 
-        with patch(
-            "custom_components.anycubic_cloud.camera.async_get_image",
-            AsyncMock(side_effect=HomeAssistantError("ffmpeg said no")),
-        ):
-            assert await camera.async_camera_image() is None
+        assert camera.use_stream_for_stills is True
+
+    async def test_the_entity_opens_no_connection_of_its_own(self, hass: HomeAssistant) -> None:
+        """The whole point: one consumer of the printer's stream, not two.
+
+        Home Assistant only routes a still through the stream when the entity
+        has not claimed the job itself, so the absence of an override is the
+        behaviour -- assert it rather than trusting it to stay absent.
+        """
+        from homeassistant.components.camera import Camera
+
+        camera, _ = _local_camera(hass)
+
+        assert type(camera).async_camera_image is Camera.async_camera_image
+
+    async def test_asking_for_the_stream_still_starts_the_capture(self, hass: HomeAssistant) -> None:
+        """The printer keeps the stream shut until told, stills included."""
+        camera, coordinator = _local_camera(hass)
+
+        assert await camera.stream_source() == "http://printer/flv"
+        coordinator.async_start_camera.assert_awaited_once_with(1)
+
+    async def test_no_stream_url_means_no_stream(self, hass: HomeAssistant) -> None:
+        camera, coordinator = _local_camera(hass, stream_url=None)
+
+        assert await camera.stream_source() is None
+        coordinator.async_start_camera.assert_not_awaited()
