@@ -66,16 +66,30 @@ async def async_register_panel(
 
         LOGGER.debug(f"Processed panel config: {conf}")
 
-        await panel_custom.async_register_panel(
-            hass,
-            webcomponent_name=anycubic_cloud_frontend.webcomponent_name,
-            frontend_url_path=DOMAIN,
-            module_url=f"{PANEL_URL}/{anycubic_cloud_frontend.entrypoint_js}",
-            sidebar_title=PANEL_TITLE,
-            sidebar_icon=PANEL_ICON,
-            require_admin=False,
-            config=conf,
-        )
+        try:
+            await panel_custom.async_register_panel(
+                hass,
+                webcomponent_name=anycubic_cloud_frontend.webcomponent_name,
+                frontend_url_path=DOMAIN,
+                module_url=f"{PANEL_URL}/{anycubic_cloud_frontend.entrypoint_js}",
+                sidebar_title=PANEL_TITLE,
+                sidebar_icon=PANEL_ICON,
+                require_admin=False,
+                config=conf,
+            )
+        except ValueError as e:
+            # Multi-printer setups create one config entry per printer. Each
+            # entry calls async_register_panel(), and in HA the entries are set
+            # up concurrently, so more than one can pass the `frontend_panels`
+            # guard above before the first one has actually registered the
+            # panel. The second one then raises "Overwriting panel
+            # <frontend_url_path>". The panel is a singleton shared by every
+            # entry, so an already-registered panel is not an error here.
+            if "Overwriting panel" not in str(e):
+                raise
+            LOGGER.debug(
+                "Panel already registered by a sibling entry: %s", e
+            )
 
 
 def async_unregister_panel(hass: HomeAssistant) -> None:
