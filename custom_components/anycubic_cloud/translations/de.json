@@ -568,6 +568,12 @@
       },
       "target_nozzle_temp": {
         "name": "Solltemperatur Düse"
+      },
+      "last_error_code": {
+        "name": "Letzter Fehlercode"
+      },
+      "last_error": {
+        "name": "Letzter Fehler"
       }
     },
     "switch": {

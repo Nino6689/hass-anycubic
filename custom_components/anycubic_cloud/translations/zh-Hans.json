@@ -568,6 +568,12 @@
       },
       "target_nozzle_temp": {
         "name": "喷嘴目标温度"
+      },
+      "last_error_code": {
+        "name": "最近错误代码"
+      },
+      "last_error": {
+        "name": "最近错误"
       }
     },
     "switch": {

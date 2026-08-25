@@ -568,6 +568,12 @@
       },
       "target_nozzle_temp": {
         "name": "Target Nozzle Temperature"
+      },
+      "last_error_code": {
+        "name": "Last Error Code"
+      },
+      "last_error": {
+        "name": "Last Error"
       }
     },
     "switch": {

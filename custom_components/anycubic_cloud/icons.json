@@ -248,6 +248,12 @@
       },
       "target_nozzle_temp": {
         "default": "mdi:printer-3d-nozzle-heat-outline"
+      },
+      "last_error_code": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "last_error": {
+        "default": "mdi:alert-circle-outline"
       }
     },
     "switch": {

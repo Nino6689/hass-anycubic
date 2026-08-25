@@ -301,6 +301,18 @@ LCD_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
 
 SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
     AnycubicSensorEntityDescription(
+        key="last_error_code",
+        translation_key="last_error_code",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        not_measured=True,
+    ),
+    AnycubicSensorEntityDescription(
+        key="last_error",
+        translation_key="last_error",
+        printer_entity_type=PrinterEntityType.PRINTER,
+        not_measured=True,
+    ),
+    AnycubicSensorEntityDescription(
         key="current_status",
         translation_key="current_status",
         printer_entity_type=PrinterEntityType.PRINTER,

@@ -568,6 +568,12 @@
       },
       "target_nozzle_temp": {
         "name": "Doeltemperatuur nozzle"
+      },
+      "last_error_code": {
+        "name": "Laatste foutcode"
+      },
+      "last_error": {
+        "name": "Laatste fout"
       }
     },
     "switch": {
