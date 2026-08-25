@@ -491,6 +491,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if (slot_wire := _as_slot_index(printer.primary_multi_color_box_loaded_slot)) is not None
                 else None
             ),
+            # The last code the printer reported that was not "all fine",
+            # and Anycubic's own wording for it. Both stay put once set: a
+            # fault is announced once, and clearing it on the next healthy
+            # heartbeat would leave nothing to automate on (#21).
+            "last_error_code": printer.latest_error_code,
+            "last_error": printer.latest_error_description,
             "aux_fan_speed_pct": printer.aux_fan_speed_pct,
             # The external filament holder, for printers fed from a single
             # external spool rather than (or alongside) the ACE. Already in the

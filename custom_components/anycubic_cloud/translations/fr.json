@@ -568,6 +568,12 @@
       },
       "target_nozzle_temp": {
         "name": "Température cible de la buse"
+      },
+      "last_error_code": {
+        "name": "Dernier code d'erreur"
+      },
+      "last_error": {
+        "name": "Dernière erreur"
       }
     },
     "switch": {

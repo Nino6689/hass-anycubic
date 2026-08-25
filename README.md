@@ -759,6 +759,7 @@ All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_j
 | **Files** | `file_list_local`, `file_list_usb_disk`, `file_list_cloud` — each reports a **file count**, with the listing in its attributes — and their request buttons |
 | **Position** | `head_position_x`, `head_position_y`, `head_position_z`, and a `request_head_position` button. The printer only reports when asked |
 | **External spool** | `external_spool_material`, `external_spool_loaded` — for printers fed from a single external holder rather than the ACE |
+| **Faults** | `last_error_code` and `last_error` — the code the printer shows on its own screen, and Anycubic's wording for it. Both stay put once set: a fault is announced once, so clearing them on the next healthy message would leave nothing to automate on. A code Anycubic has not published reads as `Unknown error code NNNNN`, which is a number you can search rather than a label that might be wrong |
 | **Other** | `job_preview` image, `printer_firmware` update |
 
 </details>
@@ -1473,6 +1474,24 @@ A written tag was loaded into a Kobra S1 + ACE Pro. Material and colour were rec
 ```jinja
 {{ states('sensor.anycubic_kobra_s1_ace_slot_3') }}
 {{ state_attr('sensor.anycubic_kobra_s1_ace_slot_3', 'color_hex') }}
+```
+
+**Tell me when the printer faults, and what it was**
+
+```yaml
+automation:
+  - alias: Anycubic fault
+    triggers:
+      - trigger: state
+        entity_id: sensor.anycubic_kobra_s1_last_error_code
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable'] }}"
+    actions:
+      - action: notify.mobile_app_your_phone
+        data:
+          title: "Printer fault {{ trigger.to_state.state }}"
+          message: "{{ states('sensor.anycubic_kobra_s1_last_error') }}"
 ```
 
 **Which spool is currently feeding** — the number printed on the ACE itself (1–4), and `unavailable` when nothing is loaded

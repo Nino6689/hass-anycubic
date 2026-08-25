@@ -556,3 +556,85 @@ class TestAceLoadedSlotNumbering:
             states = coordinator._build_printer_dict(printer)["states"]
 
         assert states["ace_loaded_slot"] == expected
+
+
+class TestTheLastErrorReachesTheEntities:
+    """Issue #21: a Kobra X owner wanted the code his printer shows on its own
+    screen -- 11858 when slot 4 runs dry -- so he could automate on it.
+
+    The first answer he got was that the printer's `code` is always 200 and a
+    sensor built on it would read 200 forever. He corrected it: 200 is what it
+    says while nothing is wrong. These pin the corrected behaviour at the point
+    the entities actually read from.
+    """
+
+    async def test_a_healthy_printer_reports_no_error(self, hass, mock_entry, mock_api) -> None:
+        from unittest.mock import PropertyMock
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _api, printer = mock_api
+
+        with (
+            patch.object(type(printer), "latest_error_code", PropertyMock(return_value=None)),
+            patch.object(
+                type(printer),
+                "latest_error_description",
+                PropertyMock(return_value=None),
+            ),
+            patch.object(coordinator, "_poll_printer_capabilities", AsyncMock()),
+        ):
+            states = coordinator._build_printer_dict(printer)["states"]
+
+        assert states["last_error_code"] is None
+        assert states["last_error"] is None
+
+    async def test_a_fault_is_carried_with_anycubics_wording(self, hass, mock_entry, mock_api) -> None:
+        from unittest.mock import PropertyMock
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _api, printer = mock_api
+
+        with (
+            patch.object(type(printer), "latest_error_code", PropertyMock(return_value=10107)),
+            patch.object(
+                type(printer),
+                "latest_error_description",
+                PropertyMock(return_value="Filament broken"),
+            ),
+            patch.object(coordinator, "_poll_printer_capabilities", AsyncMock()),
+        ):
+            states = coordinator._build_printer_dict(printer)["states"]
+
+        assert states["last_error_code"] == 10107
+        assert states["last_error"] == "Filament broken"
+
+    async def test_a_code_anycubic_never_published_still_arrives(self, hass, mock_entry, mock_api) -> None:
+        """11858 is the reporter's own code and is not on the wiki. It has to
+        reach him as a number he can look up, not be swallowed."""
+        from unittest.mock import PropertyMock
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _api, printer = mock_api
+
+        with (
+            patch.object(type(printer), "latest_error_code", PropertyMock(return_value=11858)),
+            patch.object(
+                type(printer),
+                "latest_error_description",
+                PropertyMock(return_value="Unknown error code 11858"),
+            ),
+            patch.object(coordinator, "_poll_printer_capabilities", AsyncMock()),
+        ):
+            states = coordinator._build_printer_dict(printer)["states"]
+
+        assert states["last_error_code"] == 11858
+        assert states["last_error"] == "Unknown error code 11858"
