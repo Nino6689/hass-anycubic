@@ -77,21 +77,56 @@ async def async_register_panel(
                 require_admin=False,
                 config=conf,
             )
-        except ValueError as e:
+        except ValueError:
             # Multi-printer setups create one config entry per printer. Each
-            # entry calls async_register_panel(), and in HA the entries are set
-            # up concurrently, so more than one can pass the `frontend_panels`
-            # guard above before the first one has actually registered the
-            # panel. The second one then raises "Overwriting panel
-            # <frontend_url_path>". The panel is a singleton shared by every
-            # entry, so an already-registered panel is not an error here.
-            if "Overwriting panel" not in str(e):
+            # entry calls async_register_panel(), and Home Assistant sets the
+            # entries up concurrently, so more than one can pass the
+            # `frontend_panels` guard above before the first has actually
+            # registered the panel -- the await in between is a real suspension
+            # point. The loser then raises, and unhandled that failed the whole
+            # entry: its entities stayed unavailable and only one printer
+            # worked.
+            #
+            # There is one panel for the integration however many printers are
+            # configured, so a panel that is already there is the outcome we
+            # wanted, not an error.
+            #
+            # Judged by asking the registry rather than by reading the
+            # exception's message. Core spells it "Overwriting panel
+            # <frontend_url_path>" today, but that is a formatted string with
+            # no promises attached, and a fix that stops working when someone
+            # rewords it would fail exactly the way it does now: silently, on
+            # somebody else's multi-printer setup.
+            if DOMAIN not in hass.data.get("frontend_panels", {}):
                 raise
-            LOGGER.debug(
-                "Panel already registered by a sibling entry: %s", e
-            )
+
+            LOGGER.debug("Panel already registered by a sibling entry.")
 
 
 def async_unregister_panel(hass: HomeAssistant) -> None:
+    """Take the panel away, but only once the last printer has gone.
+
+    The same singleton, in the other direction. There is one panel for the
+    integration however many printers are configured, and removing it is an
+    unconditional pop -- so unloading one entry took the sidebar away from
+    every other printer that was still perfectly well loaded. Reloading a
+    single entry did it too: the panel vanished for everyone and came back
+    only as a side effect of that one entry setting itself up again.
+
+    Home Assistant is asked which entries are still loaded rather than any
+    count being kept here, because a tally maintained by hand is a tally that
+    drifts the first time a setup fails halfway. The entry being unloaded is
+    already excluded: core moves it to UNLOAD_IN_PROGRESS before calling this,
+    and async_loaded_entries returns only entries in LOADED.
+    """
+    still_loaded = hass.config_entries.async_loaded_entries(DOMAIN)
+
+    if still_loaded:
+        LOGGER.debug(
+            "Keeping the panel: %s other printer(s) still loaded.",
+            len(still_loaded),
+        )
+        return
+
     frontend.async_remove_panel(hass, DOMAIN)
     LOGGER.debug("Removing panel")

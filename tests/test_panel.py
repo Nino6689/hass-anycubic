@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import anycubic_cloud_frontend
 import pytest
 
+from custom_components.anycubic_cloud.const import DOMAIN
 from custom_components.anycubic_cloud.panel import (
     PANEL_URL,
     async_register_card,
@@ -98,16 +99,45 @@ class TestMultiplePrintersShareOnePanel:
         self,
     ) -> None:
         hass = self._hass_with_http()
+
+        async def _sibling_got_there_first(*_args, **_kwargs):
+            # What actually happens on the losing side of the race: the panel
+            # is registered by then, which is precisely why this raises. A
+            # stub that raises while leaving the registry empty describes a
+            # situation that cannot occur, and would let a fix through that
+            # swallows a genuine failure to register.
+            hass.data["frontend_panels"][DOMAIN] = object()
+            raise ValueError("Overwriting panel anycubic_cloud")
+
         with (
             patch("custom_components.anycubic_cloud.panel.frontend.add_extra_js_url") as add_url,
             patch("custom_components.anycubic_cloud.panel.panel_custom.async_register_panel") as register_panel,
         ):
-            register_panel.side_effect = ValueError("Overwriting panel anycubic_cloud")
+            register_panel.side_effect = _sibling_got_there_first
             # The second entry hits the overwrite. It must not tear down setup.
             await async_register_panel(hass, {})
 
         # The card is still offered to the browser for the second entry.
         assert add_url.call_count == 1
+
+    async def test_a_panel_that_really_failed_to_register_still_raises(
+        self,
+    ) -> None:
+        """The other side of judging it by the registry.
+
+        If the panel is genuinely absent afterwards then nothing registered it,
+        whatever the message said, and swallowing that would hand the user a
+        printer with no sidebar and no error to explain it.
+        """
+        hass = self._hass_with_http()
+        with (
+            patch("custom_components.anycubic_cloud.panel.async_register_card"),
+            patch("custom_components.anycubic_cloud.panel.panel_custom.async_register_panel") as register_panel,
+        ):
+            register_panel.side_effect = ValueError("Overwriting panel anycubic_cloud")
+
+            with pytest.raises(ValueError, match="Overwriting panel"):
+                await async_register_panel(hass, {})
 
     async def test_unrelated_value_errors_still_propagate(self) -> None:
         hass = self._hass_with_http()
@@ -119,3 +149,95 @@ class TestMultiplePrintersShareOnePanel:
 
             with pytest.raises(ValueError, match="something else entirely"):
                 await async_register_panel(hass, {})
+
+
+class TestTwoPrintersSetUpTogether:
+    """The bug as a user meets it, rather than as the handler sees it.
+
+    Reported in #24: with two printers configured, the second entry failed to
+    set up at all -- its entities sat unavailable while the first printer
+    worked. Home Assistant sets entries up concurrently, and the panel is a
+    singleton, so the loser of the race hit an already-registered panel and
+    took that as fatal.
+
+    These drive both entries through real setup rather than injecting the
+    error, so they fail if the race is reintroduced by any route -- not only
+    the one route that was fixed.
+    """
+
+    def _second_entry(self, hass):
+        from conftest import PRINTER_ID, TEST_TOKEN
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        from custom_components.anycubic_cloud.const import (
+            CONF_PRINTER_ID_LIST,
+            CONF_USER_TOKEN,
+        )
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Anycubic Cloud 2",
+            unique_id="998",
+            data={
+                CONF_USER_TOKEN: TEST_TOKEN,
+                CONF_PRINTER_ID_LIST: [PRINTER_ID],
+            },
+        )
+        entry.add_to_hass(hass)
+        return entry
+
+    async def test_both_printers_load_when_set_up_at_once(self, hass, mock_entry, mock_api) -> None:
+        """Concurrently, the way Home Assistant does it at boot."""
+        import asyncio
+
+        from homeassistant.config_entries import ConfigEntryState
+
+        second = self._second_entry(hass)
+
+        await asyncio.gather(
+            hass.config_entries.async_setup(mock_entry.entry_id),
+            hass.config_entries.async_setup(second.entry_id),
+        )
+        await hass.async_block_till_done()
+
+        assert mock_entry.state is ConfigEntryState.LOADED, mock_entry.state
+        assert second.state is ConfigEntryState.LOADED, second.state
+        assert DOMAIN in hass.data.get("frontend_panels", {})
+
+    async def test_unloading_one_printer_leaves_the_others_panel(self, hass, mock_entry, mock_api) -> None:
+        """The same singleton, in the other direction.
+
+        Removing the panel is an unconditional pop, so unloading one entry
+        used to take the sidebar away from every printer still loaded.
+        """
+        import asyncio
+
+        from homeassistant.config_entries import ConfigEntryState
+
+        second = self._second_entry(hass)
+        await asyncio.gather(
+            hass.config_entries.async_setup(mock_entry.entry_id),
+            hass.config_entries.async_setup(second.entry_id),
+        )
+        await hass.async_block_till_done()
+        assert DOMAIN in hass.data.get("frontend_panels", {})
+
+        await hass.config_entries.async_unload(second.entry_id)
+        await hass.async_block_till_done()
+
+        assert second.state is ConfigEntryState.NOT_LOADED
+        assert mock_entry.state is ConfigEntryState.LOADED
+        # The printer that is still here keeps its sidebar.
+        assert DOMAIN in hass.data.get("frontend_panels", {})
+
+    async def test_the_panel_goes_when_the_last_printer_does(self, hass, mock_entry, mock_api) -> None:
+        """Not a licence to leak it -- the last one out still clears up."""
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        assert DOMAIN in hass.data.get("frontend_panels", {})
+
+        await hass.config_entries.async_unload(mock_entry.entry_id)
+        await hass.async_block_till_done()
+
+        assert DOMAIN not in hass.data.get("frontend_panels", {})
