@@ -8,11 +8,16 @@ the sort of failure nobody notices until someone tries to add it.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import anycubic_cloud_frontend
+import pytest
 
-from custom_components.anycubic_cloud.panel import PANEL_URL, async_register_card
+from custom_components.anycubic_cloud.panel import (
+    PANEL_URL,
+    async_register_card,
+    async_register_panel,
+)
 
 
 class TestCardRegistration:
@@ -69,3 +74,48 @@ class TestTheCardSurvivesASetupFailure:
         # as unavailable rather than as a missing custom element.
         assert add_url.call_count == 1
         assert anycubic_cloud_frontend.card_js in add_url.call_args.args[1]
+
+
+class TestMultiplePrintersShareOnePanel:
+    """Multi-printer setups create one config entry per printer.
+
+    HA sets the entries up concurrently, so two of them can get past the
+    ``frontend_panels`` guard before either has actually registered the panel.
+    The loser raises ``ValueError: Overwriting panel anycubic_cloud``, which used
+    to abort that entry's whole setup. The panel is a singleton shared by every
+    entry, so an already-registered panel must be treated as success.
+    """
+
+    def _hass_with_http(self) -> MagicMock:
+        hass = MagicMock()
+        http = MagicMock()
+        http.async_register_static_paths = AsyncMock()
+        hass.http = http
+        hass.data = {"frontend_panels": {}}
+        return hass
+
+    async def test_a_second_registration_that_overwrites_is_not_an_error(
+        self,
+    ) -> None:
+        hass = self._hass_with_http()
+        with (
+            patch("custom_components.anycubic_cloud.panel.frontend.add_extra_js_url") as add_url,
+            patch("custom_components.anycubic_cloud.panel.panel_custom.async_register_panel") as register_panel,
+        ):
+            register_panel.side_effect = ValueError("Overwriting panel anycubic_cloud")
+            # The second entry hits the overwrite. It must not tear down setup.
+            await async_register_panel(hass, {})
+
+        # The card is still offered to the browser for the second entry.
+        assert add_url.call_count == 1
+
+    async def test_unrelated_value_errors_still_propagate(self) -> None:
+        hass = self._hass_with_http()
+        with (
+            patch("custom_components.anycubic_cloud.panel.async_register_card"),
+            patch("custom_components.anycubic_cloud.panel.panel_custom.async_register_panel") as register_panel,
+        ):
+            register_panel.side_effect = ValueError("something else entirely")
+
+            with pytest.raises(ValueError, match="something else entirely"):
+                await async_register_panel(hass, {})
