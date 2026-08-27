@@ -11,8 +11,8 @@ import { platform } from "../../../const";
 import { HASSDomEvent } from "../../../fire_event";
 
 import {
-  getPrinterEntityId,
   getPrinterSensorStateObj,
+  getStrictMatchingEntity,
   isFDMPrinter,
   speedModesFromStateObj,
 } from "../../../helpers";
@@ -565,14 +565,23 @@ export class AnycubicPrintercardPrintsettingsModal extends LitElement {
   };
 
   private _pressHassButton(suffix: string): void {
+    // Resolved, never concatenated. The concatenated id only ever existed on
+    // an English install registered before the ACE became its own device --
+    // everywhere else pause, resume and cancel were pressing a button that
+    // does not exist, and the catch below swallowed the proof.
+    const entityId = getStrictMatchingEntity(
+      this.printerEntities,
+      this.printerEntityIdPart,
+      "button",
+      suffix,
+    )?.entity_id;
+    if (!entityId) {
+      return;
+    }
     this._changingSettings = true;
     this.hass
       .callService("button", "press", {
-        entity_id: getPrinterEntityId(
-          this.printerEntityIdPart,
-          "button",
-          suffix,
-        ),
+        entity_id: entityId,
       })
       .then(() => {
         this._changingSettings = false;

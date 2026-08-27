@@ -16,7 +16,8 @@
     "eslint": "eslint src --fix -c .eslintrc.js --ignore-pattern src/lib",
     "lint": "npm run eslint && npm run check-types",
     "prettier": "prettier src/components/**/*.ts --write",
-    "start": "rollup -c --watch"
+    "start": "rollup -c --watch",
+    "test:resolver": "esbuild src/helpers.ts --bundle --format=esm --alias:date-fns=./test/stubs/date-fns.js --outfile=test/.build/helpers.js --log-level=error && node test/entity-resolver.mjs"
   },
   "author": "",
   "license": "ISC",

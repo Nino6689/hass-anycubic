@@ -36,7 +36,7 @@
   ],
   "requirements": [
     "anycubic-cloud-api==0.4.26",
-    "anycubic-cloud-frontend==0.1.5"
+    "anycubic-cloud-frontend==0.2.0"
   ],
-  "version": "2.4.1"
+  "version": "2.5.0"
 }

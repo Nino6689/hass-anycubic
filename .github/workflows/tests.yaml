@@ -41,6 +41,15 @@ jobs:
       - name: Types
         run: mypy custom_components/anycubic_cloud
 
+      # The frontend's entity resolver, against the registry populations that
+      # exist in the wild -- English pre- and post-device-split, German, and
+      # keyless. This lived in the repo unwired while the exact bug it tests
+      # for shipped and was reported from a German install (#25). A test that
+      # is not in the gate is a test that does not exist.
+      - name: Frontend entity resolver
+        working-directory: frontend_panel
+        run: npx --yes esbuild src/helpers.ts --bundle --format=esm --alias:date-fns=./test/stubs/date-fns.js --outfile=test/.build/helpers.js --log-level=error && node test/entity-resolver.mjs
+
       - name: Tests
         run: >-
           pytest tests -q

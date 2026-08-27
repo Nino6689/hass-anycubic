@@ -11,7 +11,6 @@ import { customElementIfUndef } from "../../../internal/register-custom-element"
 import { fireEvent } from "../../../fire_event";
 
 import {
-  getPrinterEntityId,
   getPrinterSensorStateObj,
   getPrinterSwitchStateObj,
   getStrictMatchingEntity,
@@ -200,25 +199,25 @@ export class AnycubicPrintercardMulticolorboxview extends LitElement {
     if (this._changingRunout) {
       return;
     }
+    // Resolved through the registry (translation-key first): a concatenated
+    // id misses every install whose ids do not follow the English
+    // pre-device-split pattern. There is no concatenated fallback any more --
+    // on a German install it produced "switch.undefined<suffix>", and the
+    // service call went out to an entity that cannot exist, succeeded as far
+    // as the UI could tell, and toggled nothing.
+    const runoutEntityId = getStrictMatchingEntity(
+      this.printerEntities,
+      this.printerEntityIdPart,
+      "switch",
+      this._runoutRefillId,
+    )?.entity_id;
+    if (!runoutEntityId) {
+      return;
+    }
     this._changingRunout = true;
     this.hass
       .callService("switch", "toggle", {
-        // Resolved through the registry (translation-key first), because a
-        // concatenated id misses every install whose ids do not follow the
-        // English pre-device-split pattern. The concatenation only remains as
-        // the last resort for registries the lookup cannot see.
-        entity_id:
-          getStrictMatchingEntity(
-            this.printerEntities,
-            this.printerEntityIdPart,
-            "switch",
-            this._runoutRefillId,
-          )?.entity_id ??
-          getPrinterEntityId(
-            this.printerEntityIdPart,
-            "switch",
-            this._runoutRefillId,
-          ),
+        entity_id: runoutEntityId,
       })
       .then(() => {
         this._changingRunout = false;

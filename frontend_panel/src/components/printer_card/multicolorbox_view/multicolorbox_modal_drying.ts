@@ -11,7 +11,6 @@ import { customElementIfUndef } from "../../../internal/register-custom-element"
 
 import {
   getPrinterDryingButtonStateObj,
-  getPrinterEntityId,
   getStrictMatchingEntity,
   isPrinterButtonStateAvailable,
 } from "../../../helpers";
@@ -364,26 +363,29 @@ export class AnycubicPrintercardMulticolorboxModalDrying extends LitElement {
   }
 
   private _pressHassButton(suffix: string): void {
-    if (this.printerEntityIdPart) {
-      this.hass
-        .callService("button", "press", {
-          // Registry lookup first -- a concatenated id only exists on
-          // English installs registered before the ACE became its own
-          // device. The old id stays as the last resort.
-          entity_id:
-            getStrictMatchingEntity(
-              this.printerEntities,
-              this.printerEntityIdPart,
-              "button",
-              suffix,
-            )?.entity_id ??
-            getPrinterEntityId(this.printerEntityIdPart, "button", suffix),
-        })
-        .then()
-        .catch((_e: unknown) => {
-          // Show in error modal
-        });
+    // Registry lookup only. This used to be gated on the shared id prefix
+    // and to fall back to a concatenated id -- which meant that on any
+    // install whose ids were not English, the drying presets either did
+    // nothing at all (no prefix derived) or pressed a button that does not
+    // exist. The translation-key match works on every install; if it finds
+    // nothing, there is genuinely nothing to press.
+    const entityId = getStrictMatchingEntity(
+      this.printerEntities,
+      this.printerEntityIdPart,
+      "button",
+      suffix,
+    )?.entity_id;
+    if (!entityId) {
+      return;
     }
+    this.hass
+      .callService("button", "press", {
+        entity_id: entityId,
+      })
+      .then()
+      .catch((_e: unknown) => {
+        // Show in error modal
+      });
   }
 
   private _handleDryingPreset1 = (): void => {
