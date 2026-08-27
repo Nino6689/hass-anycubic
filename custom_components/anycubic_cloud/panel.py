@@ -1,4 +1,5 @@
 """Anycubic Cloud frontend panel."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -35,9 +36,7 @@ def async_register_card(hass: HomeAssistant) -> None:
     so without this the card ships with the integration but never appears in
     the card picker unless the user adds it as a resource by hand.
     """
-    frontend.add_extra_js_url(
-        hass, f"{PANEL_URL}/{anycubic_cloud_frontend.card_js_url}"
-    )
+    frontend.add_extra_js_url(hass, f"{PANEL_URL}/{anycubic_cloud_frontend.card_js_url}")
 
 
 async def async_register_panel(
@@ -53,12 +52,25 @@ async def async_register_panel(
         panel_dir = anycubic_cloud_frontend.locate_dir()
 
         try:
-            await hass.http.async_register_static_paths(
-                [StaticPathConfig(PANEL_URL, panel_dir, cache_headers=False)]
+            await hass.http.async_register_static_paths([StaticPathConfig(PANEL_URL, panel_dir, cache_headers=False)])
+        except RuntimeError:
+            # The same singleton lives here as in the panel handoff below. In
+            # a multi-printer setup a sibling entry can race ahead and serve
+            # the same static path before this one gets to it; Home Assistant
+            # registers the path as a GET route, so the loser trips aiohttp's
+            # "method GET is already registered" RuntimeError. That is the
+            # outcome we wanted, not an error.
+            #
+            # As with the panel below, we do not read the exception's message
+            # to tell that case apart from a real failure -- a formatted
+            # string carries no promise. We ask the HTTP server whether the
+            # path is genuinely being served from here now; only then is
+            # having failed to register it harmless.
+            served = any(
+                route.resource is not None and route.resource.canonical == PANEL_URL for route in hass.http.app.router.routes()
             )
-        except RuntimeError as e:
-            if "already registered" not in str(e):
-                raise e
+            if not served:
+                raise
 
         async_register_card(hass)
 

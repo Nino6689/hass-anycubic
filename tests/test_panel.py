@@ -150,6 +150,64 @@ class TestMultiplePrintersShareOnePanel:
             with pytest.raises(ValueError, match="something else entirely"):
                 await async_register_panel(hass, {})
 
+    @staticmethod
+    def _route(served: str | None) -> MagicMock:
+        """A stand-in for one aiohttp route, serving ``served`` when set."""
+        route = MagicMock()
+        route.resource.canonical = served
+        return route
+
+    async def test_a_static_path_a_sibling_already_serves_is_not_an_error(
+        self,
+    ) -> None:
+        """The static path is the same singleton, judged by the router.
+
+        Home Assistant registers the panel directory as a GET route, so a
+        sibling entry that raced ahead makes the loser hit aiohttp's
+        ``method GET is already registered`` RuntimeError. That reflects the
+        race faithfully: the path IS present in the router -- the sibling's
+        ``add_route`` ran before this one threw -- so standing aside and
+        letting the entry continue is right, and the recent test above is
+        consistent: the panel and its static path are registered together.
+        """
+        hass = self._hass_with_http()
+        hass.http.app.router.routes.return_value = [
+            self._route(PANEL_URL),
+        ]
+        hass.http.async_register_static_paths.side_effect = RuntimeError(
+            "Added route will never be executed, method GET is already registered"
+        )
+        with (
+            patch("custom_components.anycubic_cloud.panel.frontend.add_extra_js_url") as add_url,
+            patch("custom_components.anycubic_cloud.panel.panel_custom.async_register_panel") as register_panel,
+        ):
+            register_panel.side_effect = AsyncMock()
+
+            await async_register_panel(hass, {})
+
+        # The entry still offers the card and reaches the panel handoff.
+        assert add_url.call_count == 1
+
+    async def test_a_static_path_nobody_is_serving_still_raises(
+        self,
+    ) -> None:
+        """The other side of judging it by the router's state.
+
+        If the exception did not come from a race, the path will not be found
+        in the router, and swallowing that would hand the user a panel whose
+        files are served by nothing and no error to explain it.
+        """
+        hass = self._hass_with_http()
+        hass.http.app.router.routes.return_value = [self._route("/some-other-path")]
+
+        hass.http.async_register_static_paths.side_effect = RuntimeError("boom")
+
+        with (
+            patch("custom_components.anycubic_cloud.panel.async_register_card"),
+        ):
+            with pytest.raises(RuntimeError):
+                await async_register_panel(hass, {})
+
 
 class TestTwoPrintersSetUpTogether:
     """The bug as a user meets it, rather than as the handler sees it.
