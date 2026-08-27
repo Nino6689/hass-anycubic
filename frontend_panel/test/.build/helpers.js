@@ -2000,7 +2000,11 @@ function getPrinterCameras(hass, entities) {
     const stateObj = hass.states[key];
     cameras.push({
       entity_id: key,
-      isCloud: key.endsWith("cloud_camera"),
+      // By the integration's own key first: on a German install the id ends
+      // in "_cloud_kamera", on a Dutch one "_cloudcamera", and neither ends
+      // with the English text. Mistaking the Agora WebRTC camera for the
+      // local stream breaks both of them.
+      isCloud: entities[key].translation_key === "cloud_camera" || key.endsWith("cloud_camera"),
       available: typeof stateObj !== "undefined" && stateObj.state !== "unavailable"
     });
   }
@@ -2034,7 +2038,21 @@ function getPrinterEntities(hass, deviceID) {
   }
   return entities;
 }
+var KEY_ALIASES = {
+  nozzle_temperature: "curr_nozzle_temp",
+  hotbed_temperature: "curr_hotbed_temp",
+  target_nozzle_temperature: "target_nozzle_temp",
+  target_hotbed_temperature: "target_hotbed_temp",
+  fan_speed: "fan_speed_pct",
+  drying_active: "dry_status_is_drying",
+  drying_remaining_time: "dry_status_remaining_time",
+  drying_total_duration: "dry_status_total_duration",
+  job_preview: "job_image_url",
+  printer_firmware: "fw_version",
+  ace_firmware: "multi_color_box_fw_version"
+};
 function matchByKeyOrSuffix(entities, match_domain, match_suffix, strictPrefix) {
+  let keyHit;
   let suffixHit;
   for (const key in entities) {
     const ent = entities[key];
@@ -2042,46 +2060,59 @@ function matchByKeyOrSuffix(entities, match_domain, match_suffix, strictPrefix) 
     if (splitID[0] !== match_domain) {
       continue;
     }
-    if (ent.translation_key === match_suffix) {
-      return ent;
+    const idPart = splitID[1];
+    if (ent.translation_key === match_suffix || ent.translation_key === KEY_ALIASES[match_suffix]) {
+      if (!strictPrefix || idPart.startsWith(strictPrefix)) {
+        return ent;
+      }
+      keyHit = keyHit ?? ent;
+      continue;
     }
     if (!suffixHit) {
-      const idPart = splitID[1];
       const matched = strictPrefix ? idPart.split(strictPrefix)[1] === match_suffix : idPart.endsWith(match_suffix);
       if (matched) {
         suffixHit = ent;
       }
     }
   }
-  return suffixHit;
+  return keyHit ?? suffixHit;
 }
 function getMatchingEntity(entities, match_domain, match_suffix) {
   return matchByKeyOrSuffix(entities, match_domain, match_suffix);
 }
-function getPrinterEntityId(printerEntityIdPart, domain, suffix) {
-  return domain + "." + String(printerEntityIdPart) + suffix;
-}
 function getStrictMatchingEntity(entities, printerEntityIdPart, match_domain, match_suffix) {
-  if (!printerEntityIdPart) {
-    return void 0;
-  }
   return matchByKeyOrSuffix(
     entities,
     match_domain,
     match_suffix,
-    printerEntityIdPart
+    printerEntityIdPart || void 0
   );
 }
 function getPrinterEntityIdPart(entities) {
+  let common;
   for (const key in entities) {
-    const splitID = key.split(".");
-    const domain = splitID[0];
-    const entity_id = splitID[1];
-    if (domain === "binary_sensor" && entity_id.endsWith("printer_online")) {
-      return entity_id.split("printer_online")[0];
+    const idPart = key.split(".")[1];
+    if (common === void 0) {
+      common = idPart;
+      continue;
+    }
+    let i = 0;
+    while (i < common.length && i < idPart.length && common[i] === idPart[i]) {
+      i++;
+    }
+    common = common.slice(0, i);
+    if (common === "") {
+      return void 0;
     }
   }
-  return void 0;
+  if (!common) {
+    return void 0;
+  }
+  const lastUnderscore = common.lastIndexOf("_");
+  if (lastUnderscore <= 0) {
+    return void 0;
+  }
+  return common.slice(0, lastUnderscore + 1);
 }
 function getPrinterSwitchStateObj(hass, entities, printerEntityIdPart, suffix) {
   const entInfo = getStrictMatchingEntity(
@@ -2550,7 +2581,6 @@ export {
   getPrinterDevices,
   getPrinterDryingButtonStateObj,
   getPrinterEntities,
-  getPrinterEntityId,
   getPrinterEntityIdPart,
   getPrinterID,
   getPrinterImageStateUrl,

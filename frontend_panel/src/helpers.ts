@@ -241,7 +241,13 @@ export function getPrinterCameras(
     const stateObj: HassEntity | undefined = hass.states[key];
     cameras.push({
       entity_id: key,
-      isCloud: key.endsWith("cloud_camera"),
+      // By the integration's own key first: on a German install the id ends
+      // in "_cloud_kamera", on a Dutch one "_cloudcamera", and neither ends
+      // with the English text. Mistaking the Agora WebRTC camera for the
+      // local stream breaks both of them.
+      isCloud:
+        entities[key].translation_key === "cloud_camera" ||
+        key.endsWith("cloud_camera"),
       available:
         typeof stateObj !== "undefined" && stateObj.state !== "unavailable",
     });
@@ -305,12 +311,39 @@ export function getPrinterEntities(
  * across languages, devices and renames, so it is consulted first; the suffix
  * remains as a fallback for the few lookups whose suffix never matched a key.
  */
+/**
+ * Lookup names whose entity carries a different translation_key.
+ *
+ * The names on the left are the frontend's own vocabulary -- they appear in
+ * card configs users have saved (monitoredStats) and they match the entity-id
+ * suffix of an English install, so they cannot simply be renamed. But eleven
+ * of them never matched the integration's translation_key, which means those
+ * lookups only ever worked by English id text: on a German or French install
+ * the temperatures, fan, drying, preview and firmware rows were blank even
+ * with every other fix in place. The matcher consults this table so the old
+ * names keep working everywhere, in every language.
+ */
+const KEY_ALIASES: Record<string, string> = {
+  nozzle_temperature: "curr_nozzle_temp",
+  hotbed_temperature: "curr_hotbed_temp",
+  target_nozzle_temperature: "target_nozzle_temp",
+  target_hotbed_temperature: "target_hotbed_temp",
+  fan_speed: "fan_speed_pct",
+  drying_active: "dry_status_is_drying",
+  drying_remaining_time: "dry_status_remaining_time",
+  drying_total_duration: "dry_status_total_duration",
+  job_preview: "job_image_url",
+  printer_firmware: "fw_version",
+  ace_firmware: "multi_color_box_fw_version",
+};
+
 function matchByKeyOrSuffix(
   entities: HassEntityInfos,
   match_domain: string,
   match_suffix: string,
   strictPrefix?: string,
 ): HassEntityInfo | undefined {
+  let keyHit: HassEntityInfo | undefined;
   let suffixHit: HassEntityInfo | undefined;
   for (const key in entities) {
     const ent = entities[key];
@@ -318,11 +351,25 @@ function matchByKeyOrSuffix(
     if (splitID[0] !== match_domain) {
       continue;
     }
-    if (ent.translation_key === match_suffix) {
-      return ent;
+    const idPart = splitID[1];
+    if (
+      ent.translation_key === match_suffix ||
+      ent.translation_key === KEY_ALIASES[match_suffix]
+    ) {
+      // The prefix is a preference here, never a filter. The sets these
+      // lookups run over are already scoped to one printer's devices, so a
+      // key match is normally unique -- but if two ever qualify, the one
+      // whose id carries the printer's own prefix wins. Filtering instead
+      // would resurrect the bug this replaced: a renamed or foreign-language
+      // id doesn't carry the expected prefix, and the key match is exactly
+      // what still identifies it.
+      if (!strictPrefix || idPart.startsWith(strictPrefix)) {
+        return ent;
+      }
+      keyHit = keyHit ?? ent;
+      continue;
     }
     if (!suffixHit) {
-      const idPart = splitID[1];
       const matched = strictPrefix
         ? idPart.split(strictPrefix)[1] === match_suffix
         : idPart.endsWith(match_suffix);
@@ -331,7 +378,7 @@ function matchByKeyOrSuffix(
       }
     }
   }
-  return suffixHit;
+  return keyHit ?? suffixHit;
 }
 
 export function getMatchingEntity(
@@ -342,44 +389,69 @@ export function getMatchingEntity(
   return matchByKeyOrSuffix(entities, match_domain, match_suffix);
 }
 
-export function getPrinterEntityId(
-  printerEntityIdPart: string | undefined,
-  domain: string,
-  suffix: string,
-): string {
-  return domain + "." + String(printerEntityIdPart) + suffix;
-}
-
 export function getStrictMatchingEntity(
   entities: HassEntityInfos,
   printerEntityIdPart: string | undefined,
   match_domain: string,
   match_suffix: string,
 ): HassEntityInfo | undefined {
-  if (!printerEntityIdPart) {
-    return undefined;
-  }
+  // No bail when the prefix is unknown. It used to return undefined here,
+  // which turned one failed derivation into a blank card: on a German or
+  // French install nothing ends in "printer_online", the prefix came back
+  // undefined, and every lookup in the card and panel died before the
+  // translation-key match -- the one identity that still held -- was ever
+  // tried (#25).
   return matchByKeyOrSuffix(
     entities,
     match_domain,
     match_suffix,
-    printerEntityIdPart,
+    printerEntityIdPart || undefined,
   );
 }
 
 export function getPrinterEntityIdPart(
   entities: HassEntityInfos,
 ): string | undefined {
+  // The shared id prefix, derived from the ids themselves rather than from
+  // any one English suffix. Ids are slug(device name) + slug(entity name in
+  // the server's language at registration time): the device half is the
+  // cloud's own name and never localized, the entity half is. The old
+  // derivation looked for an id ending in "printer_online", which on a
+  // German install is "_drucker_online" -- nothing matched, the prefix came
+  // back undefined, and with the old bail in getStrictMatchingEntity that
+  // blanked the whole card (#25).
+  //
+  // The longest common prefix of the printer's own ids is language-proof,
+  // and it is trimmed back to an underscore so two suffixes that share a
+  // first letter cannot leak it forward ("_ace_spulen" and
+  // "_aktueller_status" share "a"). The prefix is only ever a preference and
+  // a legacy-fallback aid now, so an empty answer -- one renamed entity is
+  // enough to collapse the common prefix -- costs nothing: the
+  // translation-key match carries every lookup on its own.
+  let common: string | undefined;
   for (const key in entities) {
-    const splitID = key.split(".");
-    const domain: string = splitID[0];
-    const entity_id: string = splitID[1];
-
-    if (domain === "binary_sensor" && entity_id.endsWith("printer_online")) {
-      return entity_id.split("printer_online")[0];
+    const idPart = key.split(".")[1];
+    if (common === undefined) {
+      common = idPart;
+      continue;
+    }
+    let i = 0;
+    while (i < common.length && i < idPart.length && common[i] === idPart[i]) {
+      i++;
+    }
+    common = common.slice(0, i);
+    if (common === "") {
+      return undefined;
     }
   }
-  return undefined;
+  if (!common) {
+    return undefined;
+  }
+  const lastUnderscore = common.lastIndexOf("_");
+  if (lastUnderscore <= 0) {
+    return undefined;
+  }
+  return common.slice(0, lastUnderscore + 1);
 }
 
 export function getPrinterSwitchStateObj(
