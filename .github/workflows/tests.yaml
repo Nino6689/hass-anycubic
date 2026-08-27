@@ -48,7 +48,7 @@ jobs:
       # is not in the gate is a test that does not exist.
       - name: Frontend entity resolver
         working-directory: frontend_panel
-        run: npx --yes esbuild src/helpers.ts --bundle --format=esm --outfile=test/.build/helpers.js --log-level=error && node test/entity-resolver.mjs
+        run: npx --yes esbuild src/helpers.ts --bundle --format=esm --alias:date-fns=./test/stubs/date-fns.js --outfile=test/.build/helpers.js --log-level=error && node test/entity-resolver.mjs
 
       - name: Tests
         run: >-
