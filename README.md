@@ -1437,11 +1437,16 @@ It's a separate project with its own home; this section is the short version of 
 <a href="https://play.google.com/store/apps/details?id=com.nino6689.spooltags">
   <img alt="Get it on Google Play" height="60" src="docs/images/google-play-badge.png">
 </a>
+<a href="https://apps.apple.com/app/id6797200396">
+  <img alt="Download on the App Store" height="60" src="docs/images/app-store-badge.png">
+</a>
 
-**Android — [out now on Google Play](https://play.google.com/store/apps/details?id=com.nino6689.spooltags).**
+**Out now on both stores, free** — [Google Play](https://play.google.com/store/apps/details?id=com.nino6689.spooltags)
+and the [App Store](https://apps.apple.com/app/id6797200396). Android 7 or newer; iPhone 7 or newer
+on iOS 13+ (older iPhones cannot write NFC tags).
 
-**iPhone — [join the TestFlight beta](https://testflight.apple.com/join/3sGsKNSM)**, which is the
-way in until 1.0 clears App Store review. iPhone 7 or newer.
+Want fixes before they reach the store? The [TestFlight beta](https://testflight.apple.com/join/3sGsKNSM)
+runs ahead of the release build.
 
 *Either way you need blank **NTAG213** stickers — a few pence each online.*
 
