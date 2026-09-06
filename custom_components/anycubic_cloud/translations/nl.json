@@ -17,7 +17,8 @@
       "no_printers": "Geen printers gevonden.",
       "token_corrupted": "Dit token is beschadigd — de handtekening past niet bij de inhoud, dus onderweg is er een teken verloren gegaan of veranderd. Kopieer het opnieuw, in één geheel. Komt het uit een geheugendump, meld u dan eerst opnieuw aan en haal het token uit een verse dump.",
       "token_expired": "Dit token is verlopen. Meld u opnieuw aan bij de slicer of de website en haal een nieuw token op — Anycubic-tokens zijn ongeveer 90 dagen geldig.",
-      "wrong_token_type": "Dit lijkt het verkeerde soort token. Anycubic geeft er meerdere uit en de integratie heeft het token nodig waarvan het type \"access-token\" is — de andere worden geweigerd met \"User does not exist\". Hebt u het uit een geheugendump gehaald, dan staan daar meestal meerdere tokens in; probeer de volgende treffer."
+      "wrong_token_type": "Dit lijkt het verkeerde soort token. Anycubic geeft er meerdere uit en de integratie heeft het token nodig waarvan het type \"access-token\" is — de andere worden geweigerd met \"User does not exist\". Hebt u het uit een geheugendump gehaald, dan staan daar meestal meerdere tokens in; probeer de volgende treffer.",
+      "cannot_read_response": "De Anycubic-cloud heeft geantwoord, maar deze integratie kon het antwoord niet lezen. Dat is een fout in de integratie en ligt niet aan je inloggegevens -- meld het met je printermodel en firmwareversie."
     },
     "step": {
       "auth_mode_android": {

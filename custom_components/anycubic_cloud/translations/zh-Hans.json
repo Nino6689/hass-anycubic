@@ -17,7 +17,8 @@
       "no_printers": "未找到打印机。",
       "token_corrupted": "此令牌已损坏——它的签名与内容不符，说明在复制过程中丢失或改动了某个字符。请重新完整复制一次。如果它来自内存转储，请先重新登录，再从新的转储中提取令牌。",
       "token_expired": "此令牌已过期。请重新登录切片软件或网站，获取一个新的令牌——Anycubic 令牌的有效期约为 90 天。",
-      "wrong_token_type": "这似乎是类型不对的令牌。Anycubic 会签发多种令牌，本集成需要类型为 \"access-token\" 的那一个——其他令牌会被拒绝并提示 \"User does not exist\"。如果您是从内存转储中提取的，里面通常不止一个令牌，请试试下一个匹配项。"
+      "wrong_token_type": "这似乎是类型不对的令牌。Anycubic 会签发多种令牌，本集成需要类型为 \"access-token\" 的那一个——其他令牌会被拒绝并提示 \"User does not exist\"。如果您是从内存转储中提取的，里面通常不止一个令牌，请试试下一个匹配项。",
+      "cannot_read_response": "Anycubic 云端已响应，但此集成无法解析其响应。这是集成本身的缺陷，与您的凭据无关 —— 请附上打印机型号和固件版本进行反馈。"
     },
     "step": {
       "auth_mode_android": {
