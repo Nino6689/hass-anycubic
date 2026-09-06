@@ -17,7 +17,8 @@
       "no_printers": "Aucune imprimante trouvée.",
       "token_corrupted": "Ce jeton est endommagé — sa signature ne correspond pas à son contenu, ce qui signifie qu'un caractère a été perdu ou modifié en chemin. Copiez-le de nouveau, d'un seul tenant. S'il provient d'un vidage mémoire, reconnectez-vous d'abord, puis reprenez le jeton dans un nouveau vidage.",
       "token_expired": "Ce jeton a expiré. Reconnectez-vous au slicer ou au site web et récupérez-en un nouveau — les jetons Anycubic durent environ 90 jours.",
-      "wrong_token_type": "Il semble s'agir du mauvais type de jeton. Anycubic en délivre plusieurs, et l'intégration a besoin de celui dont le type est \"access-token\" — les autres sont refusés avec le message \"User does not exist\". Si vous l'avez récupéré dans un vidage mémoire, il y en a généralement plusieurs : essayez la correspondance suivante."
+      "wrong_token_type": "Il semble s'agir du mauvais type de jeton. Anycubic en délivre plusieurs, et l'intégration a besoin de celui dont le type est \"access-token\" — les autres sont refusés avec le message \"User does not exist\". Si vous l'avez récupéré dans un vidage mémoire, il y en a généralement plusieurs : essayez la correspondance suivante.",
+      "cannot_read_response": "Le cloud Anycubic a répondu, mais cette intégration n'a pas pu lire sa réponse. Il s'agit d'un défaut de l'intégration et non d'un problème d'identifiants -- merci de le signaler avec le modèle d'imprimante et la version du firmware."
     },
     "step": {
       "auth_mode_android": {

@@ -62,6 +62,7 @@ from .const import (
     DOMAIN,
     LOGGER,
     MAX_DRYING_PRESETS,
+    PARSE_FAULTS,
     STORAGE_KEY,
     STORAGE_VERSION,
     TOOLS_URL,
@@ -338,6 +339,20 @@ class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
         self,
         error: Exception,
     ) -> dict[str, str]:
+        # Not every failure on this path is a credentials problem, and saying
+        # so sends people to re-paste a token that was never the trouble.
+        # A payload this integration cannot read is the obvious example: the
+        # login had already succeeded to get that far (#28).
+        if isinstance(error, PARSE_FAULTS):
+            LOGGER.error(
+                "The Anycubic cloud answered, but its response could not be "
+                "read. This is a fault in the integration, not your "
+                "credentials -- please report it with your printer model and "
+                "firmware version. %s",
+                error,
+            )
+            return {"base": "cannot_read_response"}
+
         LOGGER.error("Authentication failed with unknown Error. Check credentials %s", error)
         return {"base": "cannot_connect"}
 

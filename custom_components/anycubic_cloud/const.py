@@ -2,7 +2,25 @@
 import logging
 from enum import IntEnum
 
+from anycubic_cloud_api.exceptions.exceptions import AnycubicDataParsingError
 from homeassistant.const import Platform
+
+# Faults from reading a payload rather than from reaching the service.
+#
+# Kept here so the coordinator and the config flow judge them the same way.
+# Both used to report a payload they could not read as something the user had
+# done wrong -- "the cloud does not have this printer, try LAN Mode" in one,
+# "check credentials" in the other -- and neither was true or actionable (#28).
+#
+# AnycubicDataParsingError is the API package's own; the builtins are what a
+# raw payload surprise actually raises before it gets that far.
+PARSE_FAULTS = (
+    AnycubicDataParsingError,
+    TypeError,
+    ValueError,
+    KeyError,
+    AttributeError,
+)
 
 DEFAULT_NAME = "Anycubic Cloud Printer"
 

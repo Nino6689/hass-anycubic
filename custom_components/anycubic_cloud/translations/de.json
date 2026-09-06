@@ -17,7 +17,8 @@
       "no_printers": "Keine Drucker gefunden.",
       "token_corrupted": "Dieses Token ist beschädigt — die Signatur passt nicht zum Inhalt, unterwegs ging also ein Zeichen verloren oder wurde verändert. Kopieren Sie es erneut vollständig. Stammt es aus einem Speicherabbild, melden Sie sich zuerst neu an und verwenden Sie das Token aus einem frischen Abbild.",
       "token_expired": "Dieses Token ist abgelaufen. Melden Sie sich erneut im Slicer oder auf der Website an und verwenden Sie ein frisches Token — Anycubic-Tokens gelten etwa 90 Tage.",
-      "wrong_token_type": "Das scheint der falsche Token-Typ zu sein. Anycubic vergibt mehrere; benötigt wird der mit dem Typ \"access-token\" – die anderen werden mit \"User does not exist\" abgelehnt. Bei einer Wiederherstellung aus einem Speicherabbild sind dort meist mehrere Tokens enthalten; probieren Sie den nächsten Treffer."
+      "wrong_token_type": "Das scheint der falsche Token-Typ zu sein. Anycubic vergibt mehrere; benötigt wird der mit dem Typ \"access-token\" – die anderen werden mit \"User does not exist\" abgelehnt. Bei einer Wiederherstellung aus einem Speicherabbild sind dort meist mehrere Tokens enthalten; probieren Sie den nächsten Treffer.",
+      "cannot_read_response": "Die Anycubic-Cloud hat geantwortet, aber diese Integration konnte die Antwort nicht lesen. Das ist ein Fehler der Integration und liegt nicht an deinen Zugangsdaten -- bitte melde ihn mit Druckermodell und Firmware-Version."
     },
     "step": {
       "auth_mode_android": {

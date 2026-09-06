@@ -638,3 +638,86 @@ class TestTheLastErrorReachesTheEntities:
 
         assert states["last_error_code"] == 11858
         assert states["last_error"] == "Unknown error code 11858"
+
+
+class TestAnUnreadablePayloadIsNotBlamedOnLanMode:
+    """Issue #28, the half that sent the reporter looking in the wrong place.
+
+    Firmware 2.0.1.9 began sending a field this integration could not read.
+    The failure was reported as "The Anycubic cloud does not have this
+    printer. If it is in LAN Mode, that is expected..." with the real
+    TypeError in parentheses at the very end -- so a user whose printer was
+    sitting in their account exactly where it should be went hunting through
+    LAN Mode options for a fault that was never there.
+
+    The LAN Mode wording is good advice about a real situation. It just has to
+    be given for that situation and not for this one.
+    """
+
+    async def _reason_for(self, hass, mock_entry, mock_api, error) -> str:
+        from unittest.mock import AsyncMock
+
+        from helpers import setup_entry
+
+        api, _printer = mock_api
+        api.printer_info_for_id = AsyncMock(side_effect=error)
+
+        await setup_entry(hass, mock_entry)
+
+        return str(mock_entry.reason or "")
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            TypeError("int() argument must be a string, a bytes-like object or a real number, not 'NoneType'"),
+            KeyError("external_shelves"),
+            ValueError("bad payload"),
+            AttributeError("'NoneType' object has no attribute 'get'"),
+        ],
+    )
+    async def test_a_parse_fault_is_not_given_the_lan_mode_advice(self, hass, mock_entry, mock_api, error) -> None:
+        """Checked by which message was used, not by grepping for a phrase.
+
+        The new wording names LAN Mode in order to rule it out, so searching
+        for those two words finds the honest message as well as the wrong
+        one. What must not appear is the claim itself.
+        """
+        from custom_components.anycubic_cloud.coordinator import (
+            PRINTER_NOT_IN_CLOUD,
+            PRINTER_NOT_UNDERSTOOD,
+        )
+
+        reason = await self._reason_for(hass, mock_entry, mock_api, error)
+        claim = PRINTER_NOT_IN_CLOUD.split("({})")[0].strip()
+
+        assert claim not in reason, reason
+        assert PRINTER_NOT_UNDERSTOOD.split("({})")[0].strip() in reason, reason
+
+    async def test_the_reported_typeerror_says_it_is_ours_to_fix(self, hass, mock_entry, mock_api) -> None:
+        """The user should not be told to check an account that is fine."""
+        reason = await self._reason_for(
+            hass,
+            mock_entry,
+            mock_api,
+            TypeError("int() argument must be a string ... not 'NoneType'"),
+        )
+
+        assert "fault in the integration" in reason
+        assert "credentials" in reason
+        assert "report" in reason
+
+    async def test_a_printer_the_cloud_really_lost_still_says_lan_mode(self, hass, mock_entry, mock_api) -> None:
+        """The advice must survive for the case it was written for: LAN Mode
+        makes the cloud report the printer as deleted."""
+        from anycubic_cloud_api.exceptions.exceptions import AnycubicAPIError
+
+        reason = await self._reason_for(
+            hass,
+            mock_entry,
+            mock_api,
+            AnycubicAPIError("printer not exist (1007)"),
+        )
+
+        from custom_components.anycubic_cloud.coordinator import PRINTER_NOT_IN_CLOUD
+
+        assert PRINTER_NOT_IN_CLOUD.split("({})")[0].strip() in reason, reason

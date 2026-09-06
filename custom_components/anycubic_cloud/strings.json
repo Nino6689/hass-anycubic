@@ -17,7 +17,8 @@
       "no_printers": "No printers found.",
       "token_corrupted": "This token is damaged — its signature doesn't match its contents, so a character was lost or changed on its way here. Copy it again in one piece. If it came from a memory dump, sign in again first and take the token from a fresh dump.",
       "token_expired": "This token has expired. Sign in to the slicer or website again and grab a fresh one — Anycubic tokens last about 90 days.",
-      "wrong_token_type": "That looks like the wrong kind of token. Anycubic issues several, and the integration needs the one whose type is \"access-token\" — the others are refused with \"User does not exist\". If you recovered it from a memory dump, there is usually more than one token in there; try the next match."
+      "wrong_token_type": "That looks like the wrong kind of token. Anycubic issues several, and the integration needs the one whose type is \"access-token\" — the others are refused with \"User does not exist\". If you recovered it from a memory dump, there is usually more than one token in there; try the next match.",
+      "cannot_read_response": "The Anycubic cloud answered, but this integration could not read its response. That is a fault in the integration rather than a problem with your credentials -- please report it, with your printer model and firmware version."
     },
     "step": {
       "auth_mode_android": {

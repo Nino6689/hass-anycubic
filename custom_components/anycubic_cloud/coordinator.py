@@ -96,6 +96,7 @@ from .const import (
     MQTT_REFRESH_INTERVAL,
     MQTT_SCAN_INTERVAL,
     NOZZLE_ABRASIVE_LIFE_G,
+    PARSE_FAULTS,
     PRINT_JOB_STARTED_UPDATE_DELAY,
     TOKEN_EXPIRY_WARN_DAYS,
     TOOL_URL_BOOKMARKLET,
@@ -156,6 +157,22 @@ PRINTER_NOT_IN_CLOUD = (
     "neither switching LAN Mode off nor a power cycle brings it back: it has to "
     "be added again in the Anycubic app. ({})"
 )
+
+# Kept apart from the message above on purpose. The cloud answering "no such
+# printer" and this integration failing to read a printer the cloud described
+# perfectly well are different problems with different remedies, and for a
+# while both were reported with the LAN Mode wording -- so a user whose
+# printer had simply gained a new field went hunting through LAN Mode options
+# for a fault that was never there (#28). Nothing to do with LAN Mode, not the
+# user's to fix, and worth reporting.
+PRINTER_NOT_UNDERSTOOD = (
+    "The Anycubic cloud returned this printer, but its response could not be "
+    "read. This is a fault in the integration rather than anything to do with "
+    "your account, your credentials or LAN Mode -- it usually means a firmware "
+    "update started sending a field in a way this version does not expect. "
+    "Please report it with your printer model and firmware version. ({})"
+)
+
 
 
 def _as_slot_index(value: Any) -> int | None:
@@ -1469,6 +1486,17 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             try:
                 printer_status = await self._anycubic_api.printer_info_for_id(first_printer_id)
+
+            except PARSE_FAULTS as error:
+                # The cloud answered, and answered with a printer -- we simply
+                # could not read it. Saying "not in the cloud" here was wrong
+                # and actively unhelpful: it is the LAN Mode advice, given to
+                # someone whose printer is sitting in their account exactly
+                # where it should be.
+                raise ConfigEntryNotReady(
+                    PRINTER_NOT_UNDERSTOOD.format(error)
+                ) from error
+
             except Exception as error:
                 # The token has already been accepted, so whatever went wrong
                 # here is not a credentials problem. Switching the printer into
