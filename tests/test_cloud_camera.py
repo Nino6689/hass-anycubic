@@ -11,9 +11,11 @@ the thing a later refactor is most likely to undo by accident.
 
 from __future__ import annotations
 
+from http import HTTPStatus
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from aiohttp import ClientError, hdrs, web
 from homeassistant.components.camera import Camera, StreamType, WebRTCAnswer
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -22,6 +24,7 @@ from custom_components.anycubic_cloud.agora import AgoraError
 from custom_components.anycubic_cloud.camera import (
     CAMERA_TYPES,
     AnycubicCamera,
+    AnycubicCameraStreamView,
     AnycubicCloudCamera,
 )
 
@@ -56,11 +59,18 @@ def _cloud_camera(hass: HomeAssistant) -> tuple[AnycubicCloudCamera, MagicMock]:
     return camera, coordinator
 
 
-def _local_camera(hass: HomeAssistant, stream_url: str | None = "http://printer/flv") -> tuple[AnycubicCamera, MagicMock]:
+def _local_camera(
+    hass: HomeAssistant,
+    stream_url: str | None = "http://printer/flv",
+    *,
+    machine_type: int = 20025,
+) -> tuple[AnycubicCamera, MagicMock]:
     coordinator = MagicMock()
-    coordinator.printers = {1: MagicMock()}
+    printer = MagicMock(machine_type=machine_type)
+    coordinator.printers = {1: printer}
     coordinator.last_update_success = True
     coordinator.camera_stream_url = MagicMock(return_value=stream_url)
+    coordinator.get_printer_for_id = MagicMock(return_value=printer)
     coordinator.async_start_camera = AsyncMock()
 
     with patch.object(AnycubicCamera, "__init__", lambda self, *a, **k: None):
@@ -70,8 +80,42 @@ def _local_camera(hass: HomeAssistant, stream_url: str | None = "http://printer/
     camera._printer_id = 1
     camera.entity_description = CAMERA_TYPES[0]
     camera.hass = hass
+    camera.entity_id = "camera.anycubic_kobra"
+    camera._stream_proxy_token = "camera-token"
 
     return camera, coordinator
+
+
+def _kobra_x_camera(
+    hass: HomeAssistant,
+    stream_url: str | None = "http://10.0.66.28:18088/flv",
+) -> tuple[AnycubicCamera, MagicMock]:
+    return _local_camera(hass, stream_url, machine_type=20030)
+
+
+def _upstream_response(
+    status: HTTPStatus,
+    *,
+    chunks: tuple[bytes, ...] = (),
+    content_type: str | None = "video/x-flv",
+) -> MagicMock:
+    headers = {} if content_type is None else {hdrs.CONTENT_TYPE: content_type}
+    response = MagicMock(status=status, headers=headers)
+
+    async def body():
+        for chunk in chunks:
+            yield chunk
+
+    response.content.iter_chunked.return_value = body()
+    return response
+
+
+def _downstream_response() -> MagicMock:
+    response = MagicMock()
+    response.prepare = AsyncMock()
+    response.write = AsyncMock()
+    response.write_eof = AsyncMock()
+    return response
 
 
 class TestTheTwoTransportsStaySeparate:
@@ -322,3 +366,186 @@ class TestStillsComeOffTheStreamHomeAssistantAlreadyHas:
 
         assert await camera.stream_source() is None
         coordinator.async_start_camera.assert_not_awaited()
+
+
+class TestKobraXPartialContentStream:
+    """The Kobra X sends valid FLV with HTTP 206 even without a Range request."""
+
+    async def test_only_the_affected_model_uses_the_proxy(self, hass: HomeAssistant) -> None:
+        camera, coordinator = _kobra_x_camera(hass)
+
+        with patch(
+            "custom_components.anycubic_cloud.camera.get_url",
+            return_value="http://homeassistant.local:8123",
+        ):
+            source = await camera.stream_source()
+
+        assert source == (
+            "http://homeassistant.local:8123/api/anycubic_cloud/camera_stream/camera.anycubic_kobra?token=camera-token"
+        )
+        coordinator.async_start_camera.assert_not_awaited()
+
+    async def test_the_proxy_requires_its_entity_token(self, hass: HomeAssistant) -> None:
+        camera, _ = _kobra_x_camera(hass)
+        component = MagicMock()
+        component.get_entity.return_value = camera
+        view = AnycubicCameraStreamView(component)
+        request = MagicMock()
+        request.query = {"token": "wrong"}
+
+        with pytest.raises(web.HTTPForbidden):
+            await view.get(request, camera.entity_id)
+
+    async def test_the_proxy_accepts_its_entity_token(self, hass: HomeAssistant) -> None:
+        camera, _ = _kobra_x_camera(hass)
+        component = MagicMock()
+        component.get_entity.return_value = camera
+        view = AnycubicCameraStreamView(component)
+        view.handle = AsyncMock(return_value=MagicMock())
+        request = MagicMock()
+        request.query = {"token": "camera-token"}
+
+        await view.get(request, camera.entity_id)
+
+        view.handle.assert_awaited_once_with(request, camera)
+
+    async def test_other_endpoints_keep_the_direct_path(self, hass: HomeAssistant) -> None:
+        camera, coordinator = _kobra_x_camera(hass, "http://10.0.66.28:8080/flv")
+
+        assert await camera.stream_source() == "http://10.0.66.28:8080/flv"
+        coordinator.async_start_camera.assert_awaited_once_with(1)
+
+    async def test_malformed_urls_keep_the_direct_path(self, hass: HomeAssistant) -> None:
+        camera, coordinator = _kobra_x_camera(hass, "http://printer:not-a-port/flv")
+
+        assert await camera.stream_source() == "http://printer:not-a-port/flv"
+        coordinator.async_start_camera.assert_awaited_once_with(1)
+
+    async def test_the_proxy_normalizes_206_without_touching_the_body(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        camera, coordinator = _kobra_x_camera(hass)
+        upstream = _upstream_response(
+            HTTPStatus.PARTIAL_CONTENT,
+            chunks=(b"FLV", b"video-bytes"),
+        )
+        session = MagicMock()
+        session.get = AsyncMock(return_value=upstream)
+        downstream = _downstream_response()
+
+        with (
+            patch(
+                "custom_components.anycubic_cloud.camera.async_get_clientsession",
+                return_value=session,
+            ),
+            patch(
+                "custom_components.anycubic_cloud.camera.web.StreamResponse",
+                return_value=downstream,
+            ) as stream_response,
+        ):
+            response = await AnycubicCameraStreamView(MagicMock()).handle(
+                MagicMock(),
+                camera,
+            )
+
+        assert response is downstream
+        coordinator.async_start_camera.assert_awaited_once_with(1)
+        session.get.assert_awaited_once()
+        timeout = session.get.await_args.kwargs["timeout"]
+        assert timeout.total is None
+        assert timeout.sock_connect == 10
+        stream_response.assert_called_once_with(
+            status=HTTPStatus.OK,
+            headers={
+                hdrs.CONTENT_TYPE: "video/x-flv",
+                hdrs.CACHE_CONTROL: "no-store",
+            },
+        )
+        assert [call.args[0] for call in downstream.write.await_args_list] == [
+            b"FLV",
+            b"video-bytes",
+        ]
+        downstream.write_eof.assert_awaited_once()
+        upstream.release.assert_called_once()
+
+    async def test_a_fixed_firmware_returning_200_is_also_accepted(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        camera, _ = _kobra_x_camera(hass)
+        upstream = _upstream_response(HTTPStatus.OK, content_type=None)
+        session = MagicMock()
+        session.get = AsyncMock(return_value=upstream)
+        downstream = _downstream_response()
+
+        with (
+            patch(
+                "custom_components.anycubic_cloud.camera.async_get_clientsession",
+                return_value=session,
+            ),
+            patch(
+                "custom_components.anycubic_cloud.camera.web.StreamResponse",
+                return_value=downstream,
+            ) as stream_response,
+        ):
+            await AnycubicCameraStreamView(MagicMock()).handle(MagicMock(), camera)
+
+        assert stream_response.call_args.kwargs["headers"][hdrs.CONTENT_TYPE] == "video/x-flv"
+        upstream.release.assert_called_once()
+
+    async def test_upstream_http_errors_become_bad_gateway(self, hass: HomeAssistant) -> None:
+        camera, _ = _kobra_x_camera(hass)
+        upstream = _upstream_response(HTTPStatus.NOT_FOUND)
+        session = MagicMock()
+        session.get = AsyncMock(return_value=upstream)
+
+        with (
+            patch(
+                "custom_components.anycubic_cloud.camera.async_get_clientsession",
+                return_value=session,
+            ),
+            pytest.raises(web.HTTPBadGateway, match="HTTP 404"),
+        ):
+            await AnycubicCameraStreamView(MagicMock()).handle(MagicMock(), camera)
+
+        upstream.release.assert_called_once()
+
+    async def test_connection_errors_become_bad_gateway(self, hass: HomeAssistant) -> None:
+        camera, _ = _kobra_x_camera(hass)
+        session = MagicMock()
+        session.get = AsyncMock(side_effect=ClientError("offline"))
+
+        with (
+            patch(
+                "custom_components.anycubic_cloud.camera.async_get_clientsession",
+                return_value=session,
+            ),
+            pytest.raises(web.HTTPBadGateway, match="Could not connect"),
+        ):
+            await AnycubicCameraStreamView(MagicMock()).handle(MagicMock(), camera)
+
+    @pytest.mark.parametrize("stream_url", [None, "http://printer:18088/flv"])
+    async def test_the_proxy_rejects_unavailable_or_unaffected_cameras(
+        self,
+        hass: HomeAssistant,
+        stream_url: str | None,
+    ) -> None:
+        camera, coordinator = _local_camera(
+            hass,
+            stream_url,
+            machine_type=20025,
+        )
+        expected = web.HTTPServiceUnavailable if stream_url is None else web.HTTPNotFound
+
+        with pytest.raises(expected):
+            await AnycubicCameraStreamView(MagicMock()).handle(MagicMock(), camera)
+
+        coordinator.async_start_camera.assert_not_awaited()
+
+    async def test_the_proxy_rejects_other_camera_integrations(self) -> None:
+        with pytest.raises(web.HTTPNotFound):
+            await AnycubicCameraStreamView(MagicMock()).handle(
+                MagicMock(),
+                MagicMock(spec=Camera),
+            )

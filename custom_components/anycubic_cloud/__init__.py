@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import homeassistant.helpers.config_validation as cv
+from homeassistant.components.camera.const import DATA_COMPONENT as DATA_CAMERA_COMPONENT
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
+from .camera import AnycubicCameraStreamView
 from .const import (
     CONF_CARD_CONFIG,
     DOMAIN,
@@ -32,6 +34,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             service(hass).async_call_service,
             service.schema,
         )
+
+    hass.http.register_view(
+        AnycubicCameraStreamView(hass.data[DATA_CAMERA_COMPONENT])
+    )
 
     return True
 
