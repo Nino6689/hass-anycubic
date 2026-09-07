@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from helpers import PRINTER_ID
 from helpers import setup_entry as _setup
+from homeassistant.components.camera.const import DATA_COMPONENT as DATA_CAMERA_COMPONENT
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
@@ -59,6 +60,8 @@ class TestRegistration:
     async def test_all_actions_are_registered_before_setup(self, hass: HomeAssistant) -> None:
         from custom_components.anycubic_cloud import async_setup
 
+        hass.data[DATA_CAMERA_COMPONENT] = MagicMock()
+        hass.http = MagicMock()
         await async_setup(hass, {})
 
         missing = [n for n in SERVICE_NAMES if not hass.services.has_service(DOMAIN, n)]

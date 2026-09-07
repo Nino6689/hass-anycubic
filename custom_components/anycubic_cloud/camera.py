@@ -19,14 +19,19 @@ whole class. Defining it on the local camera would silently drop the HLS path.
 
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass, replace
+from http import HTTPStatus
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlsplit
 
+from aiohttp import ClientError, ClientTimeout, hdrs, web
 from homeassistant.components.camera import (
     Camera,
     CameraEntityDescription,
     CameraEntityFeature,
+    CameraView,
     WebRTCAnswer,
     WebRTCSendMessage,
 )
@@ -36,15 +41,21 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.network import get_url
 from webrtc_models import RTCIceCandidateInit
 
 from .agora import AgoraError, AgoraStreamSession
-from .const import LOGGER, PrinterEntityType
+from .const import CAMERA_STREAM_PORT, LOGGER, PrinterEntityType
 from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
 
 # One camera per printer, and starting the stream is a single cloud-free
 # publish, so there is nothing to serialise.
 PARALLEL_UPDATES = 0
+
+_KOBRA_X_MODEL_ID = "20030"
+_LOCAL_STREAM_PROXY_URL = "/api/anycubic_cloud/camera_stream/{entity_id}"
+_STREAM_CHUNK_SIZE = 64 * 1024
+_STREAM_CONNECT_TIMEOUT = 10
 
 if TYPE_CHECKING:
     from .coordinator import AnycubicCloudDataUpdateCoordinator
@@ -141,6 +152,7 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
         """Initialise both halves -- Camera keeps its own state."""
         super().__init__(*args, **kwargs)
         Camera.__init__(self)
+        self._stream_proxy_token = secrets.token_urlsafe(32)
 
     @property
     def _stream_url(self) -> str | None:
@@ -160,9 +172,34 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
         if url is None:
             return None
 
+        if self._needs_stream_proxy(url):
+            if self.entity_id is None:
+                return None
+
+            base_url = get_url(
+                self.hass,
+                allow_external=False,
+                prefer_external=False,
+            ).rstrip("/")
+            path = _LOCAL_STREAM_PROXY_URL.format(entity_id=self.entity_id)
+            return f"{base_url}{path}?token={self._stream_proxy_token}"
+
         await self.coordinator.async_start_camera(self._printer_id)
 
         return url
+
+    def _needs_stream_proxy(self, url: str) -> bool:
+        """Return whether this is the Kobra X endpoint that misreports 206."""
+        printer = self.coordinator.get_printer_for_id(self._printer_id)
+
+        if printer is None or str(printer.machine_type) != _KOBRA_X_MODEL_ID:
+            return False
+
+        try:
+            parsed = urlsplit(url)
+            return parsed.scheme == "http" and parsed.port == CAMERA_STREAM_PORT
+        except ValueError:
+            return False
 
     @property
     def use_stream_for_stills(self) -> bool:
@@ -183,6 +220,90 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
         which only ever proved ffmpeg had been called.
         """
         return True
+
+
+class AnycubicCameraStreamView(CameraView):
+    """Normalize the Kobra X's valid HTTP-FLV response for Home Assistant."""
+
+    url = _LOCAL_STREAM_PROXY_URL
+    name = "api:anycubic_cloud:camera_stream"
+
+    async def get(
+        self,
+        request: web.Request,
+        entity_id: str,
+    ) -> web.StreamResponse:
+        """Authorize the internal consumer with a stable per-entity token."""
+        camera = self.component.get_entity(entity_id)
+
+        if not isinstance(camera, AnycubicCamera):
+            raise web.HTTPNotFound
+
+        token = request.query.get("token", "")
+        if not secrets.compare_digest(token, camera._stream_proxy_token):
+            raise web.HTTPForbidden
+
+        if not camera.is_on:
+            raise web.HTTPServiceUnavailable
+
+        return await self.handle(request, camera)
+
+    async def handle(
+        self,
+        request: web.Request,
+        camera: Camera,
+    ) -> web.StreamResponse:
+        """Relay the stream unchanged, replacing the incorrect 206 with 200."""
+        if not isinstance(camera, AnycubicCamera):
+            raise web.HTTPNotFound
+
+        source_url = camera._stream_url
+
+        if source_url is None:
+            raise web.HTTPServiceUnavailable
+
+        if not camera._needs_stream_proxy(source_url):
+            raise web.HTTPNotFound
+
+        await camera.coordinator.async_start_camera(camera._printer_id)
+
+        try:
+            upstream = await async_get_clientsession(camera.hass).get(
+                source_url,
+                timeout=ClientTimeout(
+                    total=None,
+                    sock_connect=_STREAM_CONNECT_TIMEOUT,
+                    sock_read=None,
+                ),
+            )
+        except (ClientError, TimeoutError) as err:
+            raise web.HTTPBadGateway(reason="Could not connect to the printer camera") from err
+
+        try:
+            if upstream.status not in (HTTPStatus.OK, HTTPStatus.PARTIAL_CONTENT):
+                raise web.HTTPBadGateway(
+                    reason=f"Printer camera returned HTTP {upstream.status}"
+                )
+
+            response = web.StreamResponse(
+                status=HTTPStatus.OK,
+                headers={
+                    hdrs.CONTENT_TYPE: upstream.headers.get(
+                        hdrs.CONTENT_TYPE,
+                        "video/x-flv",
+                    ),
+                    hdrs.CACHE_CONTROL: "no-store",
+                },
+            )
+            await response.prepare(request)
+
+            async for chunk in upstream.content.iter_chunked(_STREAM_CHUNK_SIZE):
+                await response.write(chunk)
+
+            await response.write_eof()
+            return response
+        finally:
+            upstream.release()
 
 
 class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
