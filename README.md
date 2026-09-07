@@ -1557,6 +1557,33 @@ automation:
 </details>
 
 <details>
+<summary><b>Re-authentication keeps failing with a token you know is good</b></summary>
+
+<br>
+
+**Try a full Home Assistant restart before anything else.** Reported by a user whose freshly
+minted, signature-valid slicer token was refused over and over: reloading the config entry made
+no difference, a full restart cleared it immediately, and it has been fine since — same token,
+same firmware, same account.
+
+Why the restart helps is genuinely not established. Nothing this integration keeps in memory
+survives a reload but not a restart, so the difference is somewhere below us — most likely a
+temporary refusal at Anycubic's end that simply passed. If it happens to you, the log settles
+what the server actually said:
+
+1. **Settings → Devices & Services → Anycubic → ⋮ → Enable debug logging**
+2. Reload the entry
+3. `docker logs homeassistant` and grep for `anycubic` — ⚠️ `ha core logs` **does not show these**
+
+A line reading `Login information has expired. Please login again.` means the session behind your
+token was revoked, which Anycubic does when the same account signs in elsewhere. Note that this is
+**not** guaranteed: the same user has since run the slicer and Home Assistant side by side, mid
+print, with no trouble at all. Please open an issue with those lines — the token itself never
+appears in them.
+
+</details>
+
+<details>
 <summary><b>MQTT never connects (entity stays "off")</b></summary>
 
 <br>
