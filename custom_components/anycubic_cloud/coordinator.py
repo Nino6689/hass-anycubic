@@ -428,6 +428,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "secondary_multi_color_box_fw_version": printer.secondary_multi_color_box_fw_firmware_version,
             "secondary_ace_spools": state_string_active(secondary_ace_spool_info),
             "secondary_multi_color_box_runout_refill": printer.secondary_multi_color_box_auto_feed,
+            "secondary_ace_loaded_slot": (
+                slot + 1
+                if (slot := printer.secondary_multi_color_box_loaded_slot) is not None
+                else None
+            ),
             "secondary_ace_current_temperature": printer.secondary_multi_color_box_current_temperature,
             "dry_status_is_drying": printer.primary_drying_status_is_drying,
             "dry_status_target_temperature": printer.primary_drying_status_target_temperature,
@@ -2784,15 +2789,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         await self.force_state_update()
 
-    async def async_retract_filament(self, printer_id: int) -> None:
-        """Retract whatever is currently loaded."""
+    async def async_retract_filament(self, printer_id: int, box_id: int = 0) -> None:
+        """Retract whatever is currently loaded, from one ACE unit."""
         printer = self.get_printer_for_id(printer_id)
 
         if printer is None:
             raise HomeAssistantError("The printer is not available.")
 
         try:
-            await printer.multi_color_box_retract_filament()
+            await printer.multi_color_box_retract_filament(box_id=box_id)
         except Exception as error:
             raise HomeAssistantError(error) from error
 
@@ -2895,12 +2900,18 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self._async_save_filament()
         await self.force_state_update()
 
-    async def async_start_drying(self, printer_id: int) -> None:
-        """Start a dry cycle at the temperature and duration set alongside.
+    async def async_start_drying(self, printer_id: int, box_id: int = 0) -> None:
+        """Start a dry cycle on one ACE unit.
 
         Drying could previously only be started from a preset configured in
         the options flow, which is why the ACE device page offered a stop
         button and no way to start.
+
+        The settings are read per printer rather than per box, so a printer
+        with two units dries both to the same temperature and duration. That
+        is deliberate rather than an omission: the stored value is
+        printer-level, and offering a second pair of number entities would put
+        two sliders on screen that write to one setting (#33).
         """
         printer = self.get_printer_for_id(printer_id)
 
@@ -2910,12 +2921,18 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         duration = int(self.get_drying_setting(printer_id, ATTR_DRYING_DURATION, 120))
         temperature = int(self.get_drying_setting(printer_id, ATTR_DRYING_TEMPERATURE, 45))
 
-        LOGGER.debug("Starting drying: %s min at %s C.", duration, temperature)
+        LOGGER.debug(
+            "Starting drying on box %s: %s min at %s C.",
+            box_id,
+            duration,
+            temperature,
+        )
 
         try:
             await printer.multi_color_box_drying_start(
                 duration=duration,
                 target_temp=temperature,
+                box_id=box_id,
             )
         except Exception as error:
             raise HomeAssistantError(error) from error
@@ -2989,6 +3006,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             elif printer and event_key == 'secondary_drying_stop':
                 await self._connect_mqtt_for_action_response()
                 await printer.multi_color_box_drying_stop(box_id=1)
+
 
             elif printer and event_key == 'pause_print':
                 await self._connect_mqtt_for_action_response()

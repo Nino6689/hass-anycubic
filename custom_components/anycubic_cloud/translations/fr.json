@@ -340,6 +340,12 @@
       },
       "secondary_drying_stop": {
         "name": "Arrêter le séchage secondaire"
+      },
+      "secondary_ace_retract": {
+        "name": "Rétracter le filament (2e ACE)"
+      },
+      "secondary_drying_start": {
+        "name": "Démarrer le séchage (2e ACE)"
       }
     },
     "image": {
@@ -575,6 +581,9 @@
       },
       "last_error": {
         "name": "Dernière erreur"
+      },
+      "secondary_ace_loaded_slot": {
+        "name": "Emplacement chargé (2e ACE)"
       }
     },
     "switch": {

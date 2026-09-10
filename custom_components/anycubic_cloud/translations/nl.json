@@ -340,6 +340,12 @@
       },
       "secondary_drying_stop": {
         "name": "Secundair drogen stoppen"
+      },
+      "secondary_ace_retract": {
+        "name": "Filament terugtrekken (2e ACE)"
+      },
+      "secondary_drying_start": {
+        "name": "Drogen starten (2e ACE)"
       }
     },
     "image": {
@@ -575,6 +581,9 @@
       },
       "last_error": {
         "name": "Laatste fout"
+      },
+      "secondary_ace_loaded_slot": {
+        "name": "Geladen slot (2e ACE)"
       }
     },
     "switch": {

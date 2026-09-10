@@ -340,6 +340,12 @@
       },
       "secondary_drying_stop": {
         "name": "第二 ACE 停止烘干"
+      },
+      "secondary_ace_retract": {
+        "name": "第二 ACE 退料"
+      },
+      "secondary_drying_start": {
+        "name": "第二 ACE 开始烘干"
       }
     },
     "image": {
@@ -575,6 +581,9 @@
       },
       "last_error": {
         "name": "最近错误"
+      },
+      "secondary_ace_loaded_slot": {
+        "name": "第二 ACE 当前料槽"
       }
     },
     "switch": {

@@ -290,7 +290,9 @@ class TestDrying:
                 blocking=True,
             )
 
-        started.assert_awaited_once_with(duration=240, target_temp=55)
+        # box_id named explicitly now that a second ACE can be dried too --
+        # this pins that the primary button still targets the first box.
+        started.assert_awaited_once_with(duration=240, target_temp=55, box_id=0)
         assert coordinator is not None
 
     async def test_defaults_come_from_the_loaded_material(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
@@ -829,3 +831,151 @@ class TestTheActionsPreheatToo:
                     },
                     blocking=True,
                 )
+
+
+class TestTheSecondAceUnit:
+    """Issue #33: a Kobra S1 takes two ACE Pro units, a Kobra X up to four.
+
+    Two are parsed and mostly reachable; the second was missing the controls
+    that matter most for using it. There is no second ACE on the development
+    machine, so these tests are the whole of the evidence -- they drive the
+    coordinator directly rather than trusting that the wiring is right.
+
+    AnycubicPrinter uses __slots__, so the methods are patched on the class.
+    """
+
+    async def test_the_second_box_is_dried_not_the_first(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """The bug this would most easily hide: pressing the second unit's
+        button and drying the first one instead."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        started = AsyncMock()
+        with patch.object(type(printer), "multi_color_box_drying_start", started):
+            await coordinator.async_start_drying(printer.id, box_id=1)
+
+        assert started.await_args.kwargs["box_id"] == 1
+
+    async def test_the_second_box_retracts_its_own_filament(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        retract = AsyncMock()
+        with patch.object(type(printer), "multi_color_box_retract_filament", retract):
+            await coordinator.async_retract_filament(printer.id, box_id=1)
+
+        retract.assert_awaited_once_with(box_id=1)
+
+    async def test_the_first_box_is_still_box_zero(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Adding the second must not quietly renumber the first."""
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        retract = AsyncMock()
+        with patch.object(type(printer), "multi_color_box_retract_filament", retract):
+            await coordinator.async_retract_filament(printer.id)
+
+        retract.assert_awaited_once_with(box_id=0)
+
+    async def test_both_units_share_one_set_of_drying_settings(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """Deliberate, and worth pinning so nobody "fixes" it into two.
+
+        The stored temperature and duration are per printer, not per box, so a
+        second pair of number entities would be two sliders writing to one
+        value. Both boxes dry to the same figures instead.
+        """
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        await hass.services.async_call(
+            "number",
+            "set_value",
+            {"entity_id": "number.anycubic_kobra_s1_ace_pro_drying_temperature", "value": 55},
+            blocking=True,
+        )
+
+        started = AsyncMock()
+        with patch.object(type(printer), "multi_color_box_drying_start", started):
+            await coordinator.async_start_drying(printer.id, box_id=1)
+
+        assert started.await_args.kwargs["target_temp"] == 55
+
+
+class TestTheSecondAceEntitiesEndToEnd:
+    """Pressing the real buttons, on a printer that reports two ACE units.
+
+    The coordinator tests above prove box routing but not the wiring: which
+    entity key maps to which box. That gap was found by mutation -- pointing
+    both secondary buttons at box 0 left every test green -- and it is the
+    single most likely slip in this feature, so it is covered directly.
+    """
+
+    async def test_the_secondary_entities_are_created(self, hass: HomeAssistant, mock_entry, mock_api_two_ace) -> None:
+        await setup_entry(hass, mock_entry)
+
+        # The second unit gets its own device, hence the "ace_2" infix.
+        assert hass.states.get("sensor.anycubic_kobra_s1_ace_2_secondary_ace_spools") is not None
+
+        # The fixture feeds box 0 from slot 0 and box 1 from slot 1, so this
+        # also proves the sensor reads its OWN box. Slots are 1-based on the
+        # entity, as they are on the machine.
+        second = hass.states.get("sensor.anycubic_kobra_s1_ace_2_secondary_ace_loaded_slot")
+        first = hass.states.get("sensor.anycubic_kobra_s1_ace_pro_ace_loaded_slot")
+        assert second is not None and second.state == "2", second
+        assert first is not None and first.state == "1", first
+
+    async def test_pressing_the_secondary_retract_targets_the_second_box(
+        self, hass: HomeAssistant, mock_entry, mock_api_two_ace
+    ) -> None:
+        _, printer = mock_api_two_ace
+        await setup_entry(hass, mock_entry)
+
+        retract = AsyncMock()
+        with patch.object(type(printer), "multi_color_box_retract_filament", retract):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_ace_2_secondary_ace_retract"},
+                blocking=True,
+            )
+
+        retract.assert_awaited_once_with(box_id=1)
+
+    async def test_pressing_the_secondary_drying_start_targets_the_second_box(
+        self, hass: HomeAssistant, mock_entry, mock_api_two_ace
+    ) -> None:
+        _, printer = mock_api_two_ace
+        await setup_entry(hass, mock_entry)
+
+        started = AsyncMock()
+        with patch.object(type(printer), "multi_color_box_drying_start", started):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_ace_2_secondary_drying_start"},
+                blocking=True,
+            )
+
+        assert started.await_args.kwargs["box_id"] == 1
+
+    async def test_the_primary_buttons_still_target_the_first_box(
+        self, hass: HomeAssistant, mock_entry, mock_api_two_ace
+    ) -> None:
+        """Two units must not renumber the first one."""
+        _, printer = mock_api_two_ace
+        await setup_entry(hass, mock_entry)
+
+        retract = AsyncMock()
+        with patch.object(type(printer), "multi_color_box_retract_filament", retract):
+            await hass.services.async_call(
+                "button",
+                "press",
+                {"entity_id": "button.anycubic_kobra_s1_ace_pro_ace_retract_filament"},
+                blocking=True,
+            )
+
+        retract.assert_awaited_once_with(box_id=0)

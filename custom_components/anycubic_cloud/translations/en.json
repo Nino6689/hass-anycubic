@@ -340,6 +340,12 @@
       },
       "secondary_drying_stop": {
         "name": "Secondary Drying Stop"
+      },
+      "secondary_ace_retract": {
+        "name": "Secondary ACE Retract"
+      },
+      "secondary_drying_start": {
+        "name": "Secondary Drying Start"
       }
     },
     "image": {
@@ -575,6 +581,9 @@
       },
       "last_error": {
         "name": "Last Error"
+      },
+      "secondary_ace_loaded_slot": {
+        "name": "Secondary ACE Loaded Slot"
       }
     },
     "switch": {

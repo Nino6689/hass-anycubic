@@ -340,6 +340,12 @@
       },
       "secondary_drying_stop": {
         "name": "Trocknen stoppen (2. ACE)"
+      },
+      "secondary_ace_retract": {
+        "name": "Filament zurückziehen (2. ACE)"
+      },
+      "secondary_drying_start": {
+        "name": "Trocknung starten (2. ACE)"
       }
     },
     "image": {
@@ -575,6 +581,9 @@
       },
       "last_error": {
         "name": "Letzter Fehler"
+      },
+      "secondary_ace_loaded_slot": {
+        "name": "Geladenes Fach (2. ACE)"
       }
     },
     "switch": {

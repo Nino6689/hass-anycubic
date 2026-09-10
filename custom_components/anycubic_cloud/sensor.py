@@ -172,6 +172,12 @@ SECONDARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = 
         printer_entity_type=PrinterEntityType.ACE_SECONDARY,
     ),
     AnycubicSensorEntityDescription(
+        key="secondary_ace_loaded_slot",
+        translation_key="secondary_ace_loaded_slot",
+        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
+        not_measured=True,
+    ),
+    AnycubicSensorEntityDescription(
         key="secondary_ace_spools",
         translation_key="secondary_ace_spools",
         printer_entity_type=PrinterEntityType.ACE_SECONDARY,

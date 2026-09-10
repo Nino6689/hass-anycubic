@@ -171,6 +171,16 @@ PRIMARY_MULTI_COLOR_BOX_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = li
 
 SECONDARY_MULTI_COLOR_BOX_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
     AnycubicButtonEntityDescription(
+        key="secondary_ace_retract",
+        translation_key="secondary_ace_retract",
+        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
+    ),
+    AnycubicButtonEntityDescription(
+        key="secondary_drying_start",
+        translation_key="secondary_drying_start",
+        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
+    ),
+    AnycubicButtonEntityDescription(
         key="secondary_drying_stop",
         translation_key="secondary_drying_stop",
         printer_entity_type=PrinterEntityType.ACE_SECONDARY,
@@ -284,6 +294,10 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
             await self.coordinator.async_start_drying(self._printer_id)
             return
 
+        if key == "secondary_drying_start":
+            await self.coordinator.async_start_drying(self._printer_id, box_id=1)
+            return
+
         if key == "axis_home_xy":
             await self.coordinator.async_move_axis(
                 self._printer_id, axis=4, move_type=2
@@ -305,6 +319,10 @@ class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
 
         if key == "ace_retract":
             await self.coordinator.async_retract_filament(self._printer_id)
+            return
+
+        if key == "secondary_ace_retract":
+            await self.coordinator.async_retract_filament(self._printer_id, box_id=1)
             return
 
         if key == "axis_home_z":

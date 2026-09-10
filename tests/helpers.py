@@ -21,9 +21,24 @@ PRINTER_ID = 12345678
 TEST_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjQ4ODM5NjgwMDB9.sig"
 
 
-def build_printer() -> AnycubicPrinter:
-    """Build a real printer object from the captured cloud payload."""
+def build_printer(ace_units: int = 1) -> AnycubicPrinter:
+    """Build a real printer object from the captured cloud payload.
+
+    `ace_units` clones the captured box to model a printer with more than one
+    ACE attached. There is no second unit on the development machine, so this
+    is the only way the secondary entities are exercised at all (#33).
+    """
     data = json.loads(FIXTURE.read_text())
+
+    if ace_units > 1:
+        box = data["multi_color_box"]
+        boxes = [dict(box)] if isinstance(box, dict) else [dict(b) for b in box]
+        first = boxes[0]
+        # Each clone gets a DIFFERENT loaded slot on purpose. Identical boxes
+        # would let a bug that reads the first box while claiming to read the
+        # second pass every test -- which is exactly what happened before this
+        # line said so.
+        data = dict(data, multi_color_box=[dict(first, id=index, loaded_slot=index) for index in range(ace_units)])
     return AnycubicPrinter(
         api_parent=MagicMock(),
         machine_type=data["machine_type"],

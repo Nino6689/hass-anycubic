@@ -35,8 +35,8 @@
     "custom_components.anycubic_cloud"
   ],
   "requirements": [
-    "anycubic-cloud-api==0.4.28",
+    "anycubic-cloud-api==0.4.29",
     "anycubic-cloud-frontend==0.2.0"
   ],
-  "version": "2.7.0"
+  "version": "2.8.0"
 }
