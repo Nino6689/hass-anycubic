@@ -51,6 +51,30 @@ def mock_entry(hass: HomeAssistant) -> MockConfigEntry:
 
 
 @pytest.fixture
+def mock_api_two_ace():
+    """The same, for a printer with two ACE units attached.
+
+    The captured payload has one. Nobody on the project owns a second, so a
+    cloned box is the only way the secondary entities are created and pressed
+    in a test at all (#33).
+    """
+    printer = build_printer(ace_units=2)
+    api = MagicMock()
+    api.check_api_tokens = AsyncMock(return_value=True)
+    api.printer_info_for_id = AsyncMock(return_value=printer)
+    api.get_auth_config_dict = MagicMock(return_value={})
+    api.anycubic_auth.api_user_id = 999
+    api.mqtt_is_started = False
+    api.tokens_changed = MagicMock(return_value=False)
+
+    with (
+        patch("custom_components.anycubic_cloud.coordinator.AnycubicAPI", return_value=api),
+        patch.object(AnycubicPrinter, "update_info_from_api", AsyncMock()),
+    ):
+        yield api, printer
+
+
+@pytest.fixture
 def mock_api():
     """Patch the cloud API, leaving the printer object real."""
     printer = build_printer()
