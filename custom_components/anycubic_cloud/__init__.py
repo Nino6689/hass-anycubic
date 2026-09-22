@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
+from . import _aiofiles_compat as _aiofiles_compat
 from .camera import AnycubicCameraStreamView
 from .const import (
     CONF_CARD_CONFIG,

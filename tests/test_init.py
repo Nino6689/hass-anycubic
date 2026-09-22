@@ -7,6 +7,7 @@ attribute surface rather than a mock that agrees with whatever we assert.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 from helpers import PRINTER_ID
@@ -17,7 +18,33 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from custom_components.anycubic_cloud._aiofiles_compat import ensure_aiofiles_wrap
 from custom_components.anycubic_cloud.const import DOMAIN, PLATFORMS
+
+
+async def test_aiofiles_wrap_compatibility_shim() -> None:
+    """The config flow can import against HA's aiofiles 24.x base module."""
+    fake_base = SimpleNamespace()
+
+    ensure_aiofiles_wrap(fake_base)
+
+    assert hasattr(fake_base, "wrap")
+
+    @fake_base.wrap
+    def add(left: int, right: int) -> int:
+        return left + right
+
+    assert await add(20, 22) == 42
+
+
+def test_aiofiles_wrap_compatibility_shim_is_noop_when_present() -> None:
+    """Do not replace aiofiles' native helper on versions that provide it."""
+    marker = object()
+    fake_base = SimpleNamespace(wrap=marker)
+
+    ensure_aiofiles_wrap(fake_base)
+
+    assert fake_base.wrap is marker
 
 
 class TestSetup:
