@@ -721,3 +721,40 @@ class TestAnUnreadablePayloadIsNotBlamedOnLanMode:
         from custom_components.anycubic_cloud.coordinator import PRINTER_NOT_IN_CLOUD
 
         assert PRINTER_NOT_IN_CLOUD.split("({})")[0].strip() in reason, reason
+
+
+class TestAnIdlePrinterHasAJobState:
+    """Issue #35: job_state read unavailable on a LAN printer that was on and
+    idle, because there was no job to take a state from."""
+
+    async def _states(self, hass, mock_entry, mock_api, status, online):
+        from unittest.mock import PropertyMock
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _api, printer = mock_api
+
+        with (
+            patch.object(type(printer), "latest_project_print_status", PropertyMock(return_value=status)),
+            patch.object(type(printer), "printer_online", PropertyMock(return_value=online)),
+            patch.object(coordinator, "_poll_printer_capabilities", AsyncMock()),
+        ):
+            return coordinator._build_printer_dict(printer)["states"]
+
+    async def test_no_job_on_a_reachable_printer_reads_idle(self, hass, mock_entry, mock_api) -> None:
+        states = await self._states(hass, mock_entry, mock_api, None, True)
+
+        assert states["job_state"] == "idle"
+
+    async def test_a_job_keeps_its_own_state(self, hass, mock_entry, mock_api) -> None:
+        states = await self._states(hass, mock_entry, mock_api, "printing", True)
+
+        assert states["job_state"] == "printing"
+
+    async def test_an_offline_printer_has_no_job_state(self, hass, mock_entry, mock_api) -> None:
+        """Off is not idle: the sensor should go unavailable, not claim idle."""
+        states = await self._states(hass, mock_entry, mock_api, None, False)
+
+        assert states["job_state"] is None
