@@ -39,9 +39,13 @@ rules:
   dependency-transparency:
     status: done
     comment: >-
-      The API client and the frontend panel are published packages
-      (anycubic-cloud-api, anycubic-cloud-frontend) rather than vendored, and
-      each declares its own dependencies.
+      Both dependencies are GPL-3.0 packages on PyPI with public repositories
+      (Nino6689/anycubic-cloud-api, Nino6689/anycubic-cloud-frontend). Every
+      published version has a matching tag, checked file by file against the
+      wheel on PyPI. From 0.4.31 and 0.2.2 on, pushing a tag builds and uploads
+      the release from GitHub Actions via PyPI trusted publishing. Earlier
+      versions were uploaded by hand, which is why this rule was not met
+      before.
   docs-actions: done
   docs-high-level-description: done
   docs-installation-instructions: done
