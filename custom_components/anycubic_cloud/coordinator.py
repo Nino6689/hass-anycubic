@@ -455,7 +455,14 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "job_failed": printer.latest_project_print_failed,
             "job_is_paused": printer.latest_project_print_is_paused,
             "job_image_url": printer.latest_project_image_url,
-            "job_state": printer.latest_project_print_status,
+            # A printer reached over LAN has no cloud job history, so with
+            # nothing printing there is no job to take a state from -- and the
+            # sensor read unavailable on a printer that was on and idle (#35).
+            # Idle is the truthful answer while the printer is reachable.
+            "job_state": (
+                printer.latest_project_print_status
+                or ("idle" if printer.printer_online else None)
+            ),
             "job_eta": printer.latest_project_print_approximate_completion_time,
             "job_current_layer": printer.latest_project_print_current_layer,
             "job_total_layers": printer.latest_project_print_total_layers,
