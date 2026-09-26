@@ -9,6 +9,7 @@ leave Home Assistant worse off than before.
 
 from __future__ import annotations
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -20,6 +21,7 @@ from anycubic_cloud_api.exceptions.exceptions import (
 from anycubic_cloud_api.lan import AnycubicLANBroker
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.anycubic_cloud.const import (
@@ -771,6 +773,86 @@ class TestCloudPollingWhileLocal:
             await coordinator.get_anycubic_updates()
 
         checked.assert_awaited()
+
+
+class TestAPrinterSwitchedOffInLanMode:
+    """A Kobra X switched off in LAN Mode flapped every entity (#38).
+
+    The cloud is asked once a minute and fails; the refreshes in between
+    rebuilt the last local report and reported success. So every entity was
+    unavailable for 15 seconds and back for 60, for as long as the printer
+    was off.
+    """
+
+    def _down(self, hass: HomeAssistant, token: bool = True):
+        coordinator = _coordinator(hass, {CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: "10.0.66.28"})
+        if not token:
+            coordinator.entry.data = {CONF_PRINTER_ID_LIST: [1]}
+        client = MagicMock()
+        client.is_connected = False
+        coordinator._lan_client = client
+        coordinator._anycubic_api = MagicMock()
+
+        return coordinator
+
+    async def test_an_account_less_entry_never_asks_the_cloud(self, hass: HomeAssistant) -> None:
+        coordinator = self._down(hass, token=False)
+
+        with (
+            patch.object(coordinator, "_check_or_save_tokens", AsyncMock()) as checked,
+            pytest.raises(UpdateFailed),
+        ):
+            await coordinator.get_anycubic_updates()
+
+        checked.assert_not_awaited()
+
+    async def test_the_refreshes_between_cloud_polls_stay_unavailable(self, hass: HomeAssistant) -> None:
+        """The flap itself: a later refresh must not turn failure into success."""
+        coordinator = self._down(hass, token=False)
+
+        with pytest.raises(UpdateFailed):
+            await coordinator._async_update_data()
+
+        # The cloud is not due again for a minute, so this is the refresh
+        # that used to rebuild stale data and call it a success.
+        with (
+            patch.object(coordinator, "_build_coordinator_data", MagicMock(side_effect=AssertionError("stale"))),
+            pytest.raises(UpdateFailed),
+        ):
+            await coordinator._async_update_data()
+
+    async def test_a_failed_cloud_poll_with_an_account_also_holds(self, hass: HomeAssistant) -> None:
+        coordinator = self._down(hass)
+        coordinator._cloud_update_failed = True
+        coordinator._last_state_update = int(time.time())
+
+        with pytest.raises(UpdateFailed):
+            await coordinator._async_update_data()
+
+    async def test_the_printer_answering_again_clears_it(self, hass: HomeAssistant) -> None:
+        coordinator = self._down(hass, token=False)
+        coordinator._cloud_update_failed = True
+        coordinator._last_state_update = int(time.time())
+        coordinator._lan_client.is_connected = True
+        coordinator._printer_device_map = {}
+
+        with patch.object(coordinator, "_build_coordinator_data", MagicMock(return_value={})):
+            assert await coordinator._async_update_data() == {}
+
+        assert coordinator._cloud_update_failed is False
+
+    async def test_a_cloud_only_entry_is_unaffected(self, hass: HomeAssistant) -> None:
+        """Without LAN Mode, the refreshes between cloud polls behave as before."""
+        coordinator = _coordinator(hass)
+        coordinator._cloud_update_failed = True
+        coordinator._last_state_update = int(time.time())
+        coordinator._printer_device_map = {}
+
+        with (
+            patch.object(coordinator, "_build_coordinator_data", MagicMock(return_value={})),
+            patch.object(coordinator, "_check_token_expiry", MagicMock()),
+        ):
+            assert await coordinator._async_update_data() == {}
 
 
 class TestSwitchingBackToCloud:
