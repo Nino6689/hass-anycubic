@@ -241,6 +241,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._cloud_file_list: list[dict[str, Any]] | None = None
         self._last_state_update: int | None = None
         self._failed_updates: int = 0
+        # Whether the last attempt to reach the cloud failed. Only consulted
+        # while a local connection is down: see _async_update_data.
+        self._cloud_update_failed: bool = False
         # Quality scale (log-when-unavailable): log the transition into and out
         # of an outage once, rather than on every poll, so a long cloud outage
         # does not fill the log.
@@ -956,6 +959,20 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # to a cloud that has deleted the printer.
             self._set_api_lan_client(self._lan_client)
             self._lan_poll()
+
+            if self.lan_is_connected:
+                self._cloud_update_failed = False
+            elif self._cloud_update_failed:
+                # A printer switched off in LAN Mode has no source left: the
+                # cloud dropped it when it went local. The cloud is only asked
+                # once a minute, so without this every refresh in between
+                # rebuilt the last local report and called it a success --
+                # every entity went unavailable for 15 seconds and came back
+                # for 60, flooding the logbook for as long as the printer was
+                # off (#38). Stay unavailable until it answers again.
+                raise UpdateFailed(
+                    "The printer is not answering on the local network."
+                )
 
         if not self._last_state_update or int(time.time()) > self._last_state_update + DEFAULT_SCAN_INTERVAL:
             await self.get_anycubic_updates()
@@ -2569,6 +2586,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._last_state_update = int(time.time())
             return True
 
+        if self.lan_only:
+            # No account to fall back on. Asking the cloud here can only fail,
+            # and used to, with "anycubic_auth object is missing".
+            self._last_state_update = int(time.time())
+            self._cloud_update_failed = True
+            raise UpdateFailed(
+                "The printer is not answering on the local network."
+            )
+
         if self._failed_updates >= MAX_FAILED_UPDATES:
             self._last_state_update = int(time.time()) + FAILED_UPDATE_DELAY
             self._failed_updates = 0
@@ -2583,6 +2609,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await printer.update_info_from_api(True)
 
             self._failed_updates = 0
+            self._cloud_update_failed = False
 
             if self._connection_lost_logged:
                 LOGGER.info("Reconnected to the Anycubic cloud.")
@@ -2601,16 +2628,19 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         except AnycubicAPIParsingError as error:
             self._note_connection_lost(error)
+            self._cloud_update_failed = True
             raise UpdateFailed(error) from error
 
         except AnycubicAPIError as error:
             self._note_connection_lost(error)
+            self._cloud_update_failed = True
             raise UpdateFailed(error) from error
 
         except Exception as error:
             tb = traceback.format_exc()
             LOGGER.debug(f"Anycubic update error: {error}\n{tb}")
             self._note_connection_lost(error)
+            self._cloud_update_failed = True
             raise UpdateFailed(error) from error
 
         self._last_state_update = int(time.time())
