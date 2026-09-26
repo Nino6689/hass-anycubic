@@ -1,0 +1,211 @@
+{
+  "title": "Anycubic Cloud",
+  "common": {
+    "actions": {
+      "cancel": "Cancelar",
+      "pause": "Pausar",
+      "print": "Imprimir",
+      "resume": "Reanudar",
+      "yes": "Sí",
+      "no": "No",
+      "save": "Guardar"
+    },
+    "messages": {
+      "mqtt_unsupported": "Esta función necesita MQTT para obtener los datos, pero lamentablemente MQTT no es compatible con el modo de autenticación configurado."
+    }
+  },
+  "card": {
+    "buttons": {
+      "print_settings": "Ajustes de impresión",
+      "dry": "Secar",
+      "runout_refill": "Recargar"
+    },
+    "configure": {
+      "tabs": {
+        "main": "General",
+        "stats": "Estadísticas",
+        "colours": "Colores predefinidos del ACE"
+      },
+      "labels": {
+        "printer_id": "Seleccionar impresora",
+        "vertical": "¿Diseño vertical?",
+        "round": "¿Redondear valores?",
+        "use_24hr": "¿Usar formato de 24 h?",
+        "show_settings_button": "¿Mostrar siempre el botón de ajustes de impresión?",
+        "always_show": "¿Mostrar siempre la tarjeta?",
+        "temperature_unit": "Unidad de temperatura",
+        "light_entity_id": "Entidad de luz",
+        "power_entity_id": "Entidad de alimentación",
+        "camera_entity_id": "Entidad de cámara",
+        "scale_factor": "Factor de escala",
+        "slot_colors": "Colores predefinidos de las ranuras",
+        "media_view": "Vista principal",
+        "printer_art": "Ilustración de la impresora",
+        "show_controls": "Mostrar botones de control",
+        "show_move_buttons": "Mostrar botones de movimiento",
+        "sections": "Secciones desplegables"
+      },
+      "helpers": {
+        "light_entity_id": "Opcional. Añade un interruptor de luz en la cabecera de la tarjeta; normalmente la entidad «Luz de la impresora» de la propia impresora.",
+        "power_entity_id": "Opcional. Añade un interruptor de alimentación en la cabecera de la tarjeta. La impresora no tiene interruptor de encendido propio, así que es para el enchufe inteligente al que la tengas conectada. Déjalo vacío si no usas ninguno.",
+        "camera_entity_id": "Opcional. Cambia la cámara que muestra la tarjeta. Déjalo vacío para que la tarjeta la elija."
+      },
+      "options": {
+        "printer_art": {
+          "auto": "Automático (detectar)",
+          "kobra_s1": "Kobra S1",
+          "kobra_s1_combo": "Kobra S1 Combo",
+          "kobra_3": "Kobra 3 / Kobra 2",
+          "resin": "Photon / resina",
+          "fdm": "FDM genérica"
+        },
+        "media_view": {
+          "auto": "Automática",
+          "camera": "Cámara",
+          "preview": "Vista previa del trabajo",
+          "printer": "Gráfico de la impresora",
+          "printer_model": "Gráfico de la impresora + modelo",
+          "none": "Oculta"
+        },
+        "sections": {
+          "filament": "Filamento",
+          "insights": "Análisis"
+        }
+      }
+    },
+    "print_settings": {
+      "confirm_message": "{action}: ¿estás seguro?",
+      "label_nozzle_temp": "Temperatura de la boquilla",
+      "label_hotbed_temp": "Temperatura de la cama caliente",
+      "label_fan_speed": "Velocidad del ventilador",
+      "label_aux_fan_speed": "Velocidad del ventilador AUX",
+      "label_box_fan_speed": "Velocidad del ventilador de la carcasa",
+      "print_pause": "Pausar impresión",
+      "print_resume": "Reanudar impresión",
+      "print_cancel": "Cancelar impresión",
+      "save_speed_mode": "Guardar modo de velocidad",
+      "save_target_nozzle": "Guardar temperatura objetivo de la boquilla",
+      "save_target_hotbed": "Guardar temperatura objetivo de la cama caliente",
+      "save_fan_speed": "Guardar velocidad del ventilador",
+      "save_aux_fan_speed": "Guardar velocidad del ventilador AUX",
+      "save_box_fan_speed": "Guardar velocidad del ventilador de la carcasa"
+    },
+    "drying_settings": {
+      "heading": "Opciones de secado",
+      "button_preset": "Predefinido",
+      "button_stop_drying": "Detener secado",
+      "button_minutes": "min"
+    },
+    "spool_settings": {
+      "heading": "Editando ranura",
+      "label_select_material": "Seleccionar material",
+      "label_select_colour": "Seleccionar color manualmente"
+    },
+    "monitored_stats": {
+      "ETA": "Hora estimada",
+      "Elapsed": "Transcurrido",
+      "Remaining": "Restante",
+      "Status": "Estado",
+      "Online": "En línea",
+      "Availability": "Disponibilidad",
+      "Project": "Proyecto",
+      "Layer": "Capa",
+      "Hotend": "Hotend",
+      "Bed": "Cama",
+      "T Hotend": "T. hotend",
+      "T Bed": "T. cama",
+      "Dry Status": "Estado de secado",
+      "Dry Time": "Tiempo de secado",
+      "Speed Mode": "Modo de velocidad",
+      "Fan Speed": "Velocidad del ventilador",
+      "On Time": "Tiempo de exposición",
+      "Off Time": "Tiempo de apagado",
+      "Bottom Time": "Tiempo de capas base",
+      "Model Height": "Altura del modelo",
+      "Bottom Layers": "Capas base",
+      "Z Up Height": "Altura de elevación Z",
+      "Z Up Speed": "Velocidad de subida Z",
+      "Z Down Speed": "Velocidad de bajada Z"
+    },
+    "media_view": {
+      "tabs": {
+        "camera": "Cámara",
+        "preview": "Vista previa",
+        "printer": "Impresora",
+        "printer_model": "Impresora + modelo"
+      }
+    }
+  },
+  "panels": {
+    "initial": {
+      "printer_select": "Selecciona una impresora."
+    },
+    "main": {
+      "title": "General",
+      "cards": {
+        "main": {
+          "description": "Información general de la impresora.",
+          "fields": {
+            "printer_name": "Nombre",
+            "printer_id": "ID",
+            "printer_mac": "MAC",
+            "printer_model": "Modelo",
+            "printer_fw_version": "Versión de firmware",
+            "printer_fw_update_available": "Estado del firmware",
+            "printer_online": "En línea",
+            "printer_available": "Disponible",
+            "curr_nozzle_temp": "Temperatura actual de la boquilla",
+            "curr_hotbed_temp": "Temperatura actual de la cama caliente",
+            "target_nozzle_temp": "Temperatura objetivo de la boquilla",
+            "target_hotbed_temp": "Temperatura objetivo de la cama caliente",
+            "job_state": "Estado del trabajo",
+            "job_progress": "Progreso del trabajo",
+            "ace_fw_version": "Versión de firmware del ACE",
+            "ace_fw_update_available": "Estado del firmware del ACE",
+            "drying_active": "Estado de secado del ACE",
+            "drying_progress": "Progreso de secado del ACE"
+          }
+        }
+      },
+      "groups": {
+        "machine": "Máquina",
+        "ace": "ACE",
+        "diagnostics": "Identificadores"
+      },
+      "presets": {
+        "title": "Crea esto en tu propio panel",
+        "lede": "Cada una es la misma tarjeta de arriba, configurada de otra forma y mostrada con el ancho que le da una columna del panel. Las vistas previas nunca abren la cámara, así que aquí la sustituye el gráfico de la impresora. Copia una y pégala en una tarjeta Manual.",
+        "full": "Completa",
+        "compact": "Mosaico compacto",
+        "copy": "Copiar",
+        "copied": "Copiado",
+        "model": "Impresora + modelo",
+        "vertical": "Vertical"
+      }
+    },
+    "files_cloud": {
+      "title": "Archivos en la nube",
+      "cards": {}
+    },
+    "files_local": {
+      "title": "Archivos locales",
+      "cards": {}
+    },
+    "files_udisk": {
+      "title": "Archivos USB",
+      "cards": {}
+    },
+    "print_save_in_cloud": {
+      "title": "Imprimir (guardar en la nube del usuario)",
+      "cards": {}
+    },
+    "print_no_cloud_save": {
+      "title": "Imprimir (sin guardar en la nube)",
+      "cards": {}
+    },
+    "debug": {
+      "title": "Depuración",
+      "cards": {}
+    }
+  }
+}

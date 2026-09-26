@@ -1,5 +1,6 @@
 import * as de from './languages/de.json';
 import * as en from './languages/en.json';
+import * as es from './languages/es.json';
 import * as fr from './languages/fr.json';
 import * as nl from './languages/nl.json';
 import * as zhHans from './languages/zh-Hans.json';
@@ -9,6 +10,7 @@ import IntlMessageFormat from 'intl-messageformat';
 var languages: any = {
   de: de,
   en: en,
+  es: es,
   fr: fr,
   nl: nl,
   'zh-Hans': zhHans,
