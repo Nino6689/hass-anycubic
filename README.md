@@ -58,6 +58,25 @@
 
 Around **130 entities** per printer, across two devices: the printer, and the ACE as a child device.
 
+### This integration and Home Assistant core
+
+A separate, **LAN-only** Anycubic integration is being prepared for Home Assistant core itself
+(domain `anycubic`, built on the MIT-licensed [`anycubic-lan`](https://github.com/Nino6689/anycubic-lan)
+library). It is written from scratch rather than moved over from here, because this project is
+GPL-3.0 and built on someone else's work, and core only accepts code that can be licensed under
+Apache-2.0. [How it was written](https://github.com/Nino6689/anycubic-lan/blob/main/docs/CLEAN-ROOM.md).
+
+|  | This integration (HACS) | Core `anycubic` (when accepted) |
+|---|---|---|
+| Connection | Cloud **or** LAN Mode | LAN Mode only |
+| Anycubic account | Optional | Never needed |
+| Entities | ~130: telemetry, job, ACE, costs, controls | Starts with printer and job sensors, grows one platform at a time |
+| Sidebar panel, card, file browsers, actions | ✅ | — |
+
+**Both can be installed, but pick one per printer.** With both set up for a printer in LAN Mode,
+every reading appears twice. This integration is not going away: everything the core one can't
+carry (the cloud, the panel, the card, filament costs, the actions) stays here.
+
 ---
 
 ## Project status
