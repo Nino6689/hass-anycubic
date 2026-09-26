@@ -1835,7 +1835,7 @@ see [testing scope](#hardware-and-testing-scope).
 | 🔒 Second ACE unit ([#66](https://github.com/WaresWichall/hass-anycubic_cloud/issues/66)) | Entities and a second device are wired up, and a bug that made the second unit vanish whenever a report named only one box is fixed. Still needs someone with two units to confirm |
 | ~~LAN / local mode~~ ([#47](https://github.com/WaresWichall/hass-anycubic_cloud/issues/47)) | **Done and proved on hardware** — see [local connection](#5-optional-talk-to-the-printer-directly). Handshake, local broker, ACE data and camera all confirmed on a Kobra S1 running 2.7.2.7 |
 | 🔒 Resin printers ([#10](https://github.com/WaresWichall/hass-anycubic_cloud/issues/10)) | Photon support is minimal; needs a resin machine |
-| Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | **German added**, covering the config flow, options, errors and all entity names. Machine-drafted and not checked by a native speaker — corrections very welcome, and so are other languages. See [Translating](#translating) |
+| Translations ([#30](https://github.com/WaresWichall/hass-anycubic_cloud/issues/30)) | **German, French, Dutch, Simplified Chinese and Spanish**, all complete. Machine-drafted and not checked by native speakers, so corrections are very welcome, and so are other languages. See [Translating](#translating) |
 | Units for ACE dry-status sensors | They ship with no unit; needs confirming against real dryer runs first, to avoid breaking existing history |
 | ACE `edit_status` meaning | Settled across several spools: `0` = read from an RFID tag, `1` = entered by hand, `2` = slot empty. A tag written by [ReSpool](#-respool--the-app-for-writing-spool-tags) reports `0`, identically to Anycubic's own. Still exposed raw; could drive a "how much to trust this" indicator |
 | ~~`aiSettings` message type~~ | **Done, and now writable.** Order `1243` sets it, so AI failure detection is a switch rather than a read-only sensor. The other fields — sensitivity, notice type, count — are preserved exactly as the printer already has them |
@@ -1846,25 +1846,24 @@ see [testing scope](#hardware-and-testing-scope).
 
 ## Translating
 
-The integration ships **English** and **German**. German covers everything a user actually reads —
-the setup flow, the options pages, every error message and all 156 entity names. The 350 action
-description strings are deliberately left in English; they only appear in Developer Tools.
+The integration ships **English, German, French, Dutch, Simplified Chinese and Spanish**. Every
+language covers the whole integration: the setup flow, the options pages, every error message and
+repair, all entity names and the action descriptions. The sidebar panel and the printer card are
+translated too.
 
 > [!NOTE]
-> **The German was drafted by machine and has not been checked by a native speaker.** If something
-> reads badly, it probably does — please say so. A correction to one string is a welcome
-> contribution, not a nuisance.
+> **The translations were drafted by machine and have not been checked by native speakers.** If
+> something reads badly, it probably does, so please say so. A correction to a single string is a
+> welcome contribution, not a nuisance.
 
-**To fix a string:** edit [`custom_components/anycubic_cloud/translations/de.json`](custom_components/anycubic_cloud/translations/de.json)
-and open a pull request. Nothing else needs touching.
+**To fix a string:** edit `custom_components/anycubic_cloud/translations/<code>.json` (integration)
+or `frontend_panel/localize/languages/<code>.json` (panel and card) and open a pull request.
 
-**To add a language:** copy `translations/en.json` to `translations/<code>.json` and translate the
-`config`, `options`, `entity`, `exceptions` and `issues` sections. Leave `services` in English unless
-you want the extra work. Any key you leave out falls back to English automatically, so a partial
-translation is genuinely useful — you don't have to finish it.
+**To add a language:** copy both `en.json` files to `<code>.json` and translate the values. Any key
+you leave out falls back to English automatically, so a partial translation is still useful and
+you don't have to finish it.
 
-Most wanted, by how many Home Assistant installs are in each country: **Dutch**, **French**,
-**Chinese (Simplified)**, **Italian**, **Spanish**, **Polish**.
+Still wanted, by how many Home Assistant installs are in each country: **Italian**, **Polish**.
 
 ---
 
