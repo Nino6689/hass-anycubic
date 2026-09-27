@@ -58,13 +58,25 @@
 
 Around **130 entities** per printer, across two devices: the printer, and the ACE as a child device.
 
-### This integration and Home Assistant core
+### Where this is heading
 
-A separate, **LAN-only** Anycubic integration is being prepared for Home Assistant core itself
-(domain `anycubic`, built on the MIT-licensed [`anycubic-lan`](https://github.com/Nino6689/anycubic-lan)
-library). It is written from scratch rather than moved over from here, because this project is
-GPL-3.0 and built on someone else's work, and core only accepts code that can be licensed under
-Apache-2.0. [How it was written](https://github.com/Nino6689/anycubic-lan/blob/main/docs/CLEAN-ROOM.md).
+Two efforts go beyond this integration. Progress on both is posted in
+[**#40**](https://github.com/Nino6689/hass-anycubic/issues/40): subscribe there for updates.
+
+**1. Asking Anycubic for an official developer portal**, *sent 27 September 2026, waiting for a reply.*
+Anycubic has never given third-party apps an official way into its cloud, so every Home Assistant
+integration, this one included, works by imitating Anycubic's own apps. That is why setup needs a
+copied token, and why things can break when Anycubic changes something. The proposal asks for an
+official login (OAuth 2.0), a documented API, and a published description of LAN Mode. In return,
+the only thing asked of Anycubic is test hardware.
+
+**2. Anycubic in Home Assistant core**, *prepared, not yet submitted, waiting on a real-hardware test.*
+A separate, **LAN-only** integration (`anycubic`) has been built for core itself, on the MIT-licensed
+[`anycubic-lan`](https://github.com/Nino6689/anycubic-lan) library. It is written from scratch rather
+than moved over from here, because this project is GPL-3.0 and built on someone else's work, and core
+requires code it can license under Apache-2.0
+([how it was written](https://github.com/Nino6689/anycubic-lan/blob/main/docs/CLEAN-ROOM.md)). The
+cloud can't follow until Anycubic offers an official login (point 1).
 
 |  | This integration (HACS) | Core `anycubic` (when accepted) |
 |---|---|---|
@@ -74,8 +86,11 @@ Apache-2.0. [How it was written](https://github.com/Nino6689/anycubic-lan/blob/m
 | Sidebar panel, card, file browsers, actions | ✅ | — |
 
 **Both can be installed, but pick one per printer.** With both set up for a printer in LAN Mode,
-every reading appears twice. This integration is not going away: everything the core one can't
+every reading appears twice. **This integration is not going away.** Everything the core one can't
 carry (the cloud, the panel, the card, filament costs, the actions) stays here.
+
+**You can help:** tell Anycubic support you use their printer with Home Assistant and want official
+support, and say which printer you have in [#40](https://github.com/Nino6689/hass-anycubic/issues/40).
 
 ---
 
@@ -90,13 +105,13 @@ which did all the original work and deserves the credit for it. Upstream's last 
 December 2024 and the author
 [stepped back from the project](https://github.com/WaresWichall/hass-anycubic_cloud/issues/33).
 
-> ### 🚚 Still on upstream v0.2.2? You are in the majority — and it is broken.
+> ### 🚚 Still on upstream v0.2.2? It is broken.
 >
-> [Home Assistant's analytics](https://analytics.home-assistant.io/) show **around 80% of
-> Anycubic Cloud installs still on 0.2.2** (165 of 206 reporting, August 2026),
-> and that version **cannot start on current Home Assistant**: it fails at setup with
+> [Home Assistant's analytics](https://analytics.home-assistant.io/) show **around 45% of
+> Anycubic Cloud installs still on 0.2.2** (125 of 278 reporting, September 2026, down from
+> 80% in August), and that version **cannot start on current Home Assistant**: it fails at setup with
 > `HTTP 500 "Server got itself in trouble"` — a `paho-mqtt 1.6.1` dependency against the 2.x
-> that Core now ships. Upstream is archived, so it will never prompt you to update.
+> that Core now ships. Upstream is no longer updated, so it will never prompt you to update.
 > The fix is a two-minute swap, and **nothing you built on it is lost** — see
 > [Moving from v0.2.2](#-moving-from-v022) for exactly what carries over.
 
@@ -1652,7 +1667,7 @@ Three causes, in the order worth checking:
 
 1. **A version older than 2.0.** Automatic registration arrived in the 2.x rewrite; on 0.2.x the
    card was never offered. If HACS shows you a version starting `0.`, updating is the whole fix
-   — and if HACS thinks `0.2.2` is the newest, you're pointed at the archived original rather
+   — and if HACS thinks `0.2.2` is the newest, you're pointed at the original, which is no longer updated, rather
    than this repository. See [Moving from v0.2.2](#-moving-from-v022).
 2. **The integration isn't actually loaded.** Easy to miss, because the symptom shows on your
    dashboard rather than on the integrations page. Check **Settings → Devices & services →
