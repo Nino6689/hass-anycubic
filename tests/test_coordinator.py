@@ -758,3 +758,37 @@ class TestAnIdlePrinterHasAJobState:
         states = await self._states(hass, mock_entry, mock_api, None, False)
 
         assert states["job_state"] is None
+
+
+class TestTheSecondAceKnowsItsModel:
+    """#39: two identical ACE Pro units showed as "ACE Pro" and plain "ACE",
+    because only the first unit's attributes carried its box info."""
+
+    async def test_the_second_unit_carries_its_box_info(self, hass, mock_entry, mock_api) -> None:
+        from unittest.mock import PropertyMock
+
+        from helpers import PRINTER_ID, setup_entry
+
+        from custom_components.anycubic_cloud.helpers import build_ace_device_info
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _api, printer = mock_api
+        from anycubic_cloud_api.data_models.printer_properties import (
+            AnycubicMultiColorBox,
+        )
+
+        box = AnycubicMultiColorBox.from_json(
+            {"id": 1, "status": 1, "model_id": 40001, "auto_feed": 0, "loaded_slot": -1, "temp": 25, "slots": []}
+        )
+
+        with (
+            patch.object(type(printer), "secondary_multi_color_box", PropertyMock(return_value=box)),
+            patch.object(coordinator, "_poll_printer_capabilities", AsyncMock()),
+        ):
+            printer_dict = coordinator._build_printer_dict(printer)
+
+        assert printer_dict["attributes"]["secondary_ace_spools"]["box_info"]["model_id"] == 40001
+
+        data = {"printers": {PRINTER_ID: printer_dict}, "user_info": {"id": 1}}
+        assert build_ace_device_info(data, PRINTER_ID, secondary=True)["model"] == "ACE Pro"

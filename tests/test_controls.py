@@ -386,6 +386,50 @@ class TestDryingKnowsTheMaterial:
         ):
             assert mock_entry.runtime_data.loaded_material(PRINTER_ID) is None
 
+    async def test_the_second_unit_dries_for_its_own_spool(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        """#39: a second ACE holding PETG was started at the first unit's PLA profile."""
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+
+        with (
+            patch.object(
+                type(printer),
+                "primary_multi_color_box_spool_info_object",
+                PropertyMock(return_value=[{"material_type": "PLA", "edit_status": 0}]),
+            ),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=0)),
+            patch.object(
+                type(printer),
+                "secondary_multi_color_box_spool_info_object",
+                PropertyMock(return_value=[{"material_type": "PETG", "edit_status": 0}]),
+            ),
+            patch.object(type(printer), "secondary_multi_color_box_loaded_slot", PropertyMock(return_value=None)),
+        ):
+            coordinator = mock_entry.runtime_data
+            first = coordinator.get_drying_setting(PRINTER_ID, "temperature", 45, box_id=0)
+            second = coordinator.get_drying_setting(PRINTER_ID, "temperature", 45, box_id=1)
+
+        assert first == 45.0, "the first unit keeps its own PLA profile"
+        assert second == 65.0, "the second unit's PETG decides its temperature"
+
+    async def test_the_start_button_sends_the_second_units_profile(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        start = AsyncMock()
+
+        with (
+            patch.object(
+                type(printer),
+                "secondary_multi_color_box_spool_info_object",
+                PropertyMock(return_value=[{"material_type": "PETG", "edit_status": 0}]),
+            ),
+            patch.object(type(printer), "secondary_multi_color_box_loaded_slot", PropertyMock(return_value=None)),
+            patch.object(type(printer), "multi_color_box_drying_start", start),
+        ):
+            await mock_entry.runtime_data.async_start_drying(PRINTER_ID, box_id=1)
+
+        assert start.await_args.kwargs == {"duration": 360, "target_temp": 65, "box_id": 1}
+
 
 class TestHomingAndMotors:
     """Homing, from what the printer actually does rather than what the
@@ -918,12 +962,12 @@ class TestTheSecondAceEntitiesEndToEnd:
         await setup_entry(hass, mock_entry)
 
         # The second unit gets its own device, hence the "ace_2" infix.
-        assert hass.states.get("sensor.anycubic_kobra_s1_ace_2_secondary_ace_spools") is not None
+        assert hass.states.get("sensor.anycubic_kobra_s1_ace_pro_2_secondary_ace_spools") is not None
 
         # The fixture feeds box 0 from slot 0 and box 1 from slot 1, so this
         # also proves the sensor reads its OWN box. Slots are 1-based on the
         # entity, as they are on the machine.
-        second = hass.states.get("sensor.anycubic_kobra_s1_ace_2_secondary_ace_loaded_slot")
+        second = hass.states.get("sensor.anycubic_kobra_s1_ace_pro_2_secondary_ace_loaded_slot")
         first = hass.states.get("sensor.anycubic_kobra_s1_ace_pro_ace_loaded_slot")
         assert second is not None and second.state == "2", second
         assert first is not None and first.state == "1", first
@@ -939,7 +983,7 @@ class TestTheSecondAceEntitiesEndToEnd:
             await hass.services.async_call(
                 "button",
                 "press",
-                {"entity_id": "button.anycubic_kobra_s1_ace_2_secondary_ace_retract"},
+                {"entity_id": "button.anycubic_kobra_s1_ace_pro_2_secondary_ace_retract"},
                 blocking=True,
             )
 
@@ -956,7 +1000,7 @@ class TestTheSecondAceEntitiesEndToEnd:
             await hass.services.async_call(
                 "button",
                 "press",
-                {"entity_id": "button.anycubic_kobra_s1_ace_2_secondary_drying_start"},
+                {"entity_id": "button.anycubic_kobra_s1_ace_pro_2_secondary_drying_start"},
                 blocking=True,
             )
 
