@@ -86,8 +86,12 @@ cloud can't follow until Anycubic offers an official login (point 1).
 | Sidebar panel, card, file browsers, actions | ✅ | — |
 
 **Both can be installed, but pick one per printer.** With both set up for a printer in LAN Mode,
-every reading appears twice. **This integration is not going away.** Everything the core one can't
-carry (the cloud, the panel, the card, filament costs, the actions) stays here.
+every reading appears twice.
+
+> **This integration stays fully maintained**: bug fixes, compatibility with new Home Assistant
+> releases, and answers to issues. That continues until an official replacement is live that does
+> everything this one does, cloud included. Nothing here will be retired in favour of something
+> that does less.
 
 **You can help:** tell Anycubic support you use their printer with Home Assistant and want official
 support, and say which printer you have in [#40](https://github.com/Nino6689/hass-anycubic/issues/40).
