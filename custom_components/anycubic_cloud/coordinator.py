@@ -622,7 +622,15 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
             },
             "secondary_ace_spools": {
-                "spool_info": secondary_ace_spool_info
+                "spool_info": secondary_ace_spool_info,
+                # Without this the second unit's device had no model to read
+                # and was always named plain "ACE", beside an identical
+                # first unit named "ACE Pro" (#39).
+                "box_info": (
+                    printer.secondary_multi_color_box.box_info_object
+                    if printer.secondary_multi_color_box
+                    else None
+                ),
             },
             "file_list_local": {
                 "file_info": file_list_local,
@@ -2877,20 +2885,29 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             printer_id, "change_print_setting_speed_mode", mode
         )
 
-    def loaded_material(self, printer_id: int) -> str | None:
-        """The material in the slot currently feeding, if any is."""
+    def loaded_material(self, printer_id: int, box_id: int = 0) -> str | None:
+        """The material in the slot currently feeding, if any is.
+
+        ``box_id`` picks the ACE unit. The feeding slot remembered across a
+        print belongs to the first unit, so the second only has its own report
+        to go on.
+        """
         printer = self.get_printer_for_id(printer_id)
 
         if printer is None:
             return None
 
-        spools = printer.primary_multi_color_box_spool_info_object or []
-        slot = _as_slot_index(printer.primary_multi_color_box_loaded_slot)
+        if box_id == 1:
+            spools = printer.secondary_multi_color_box_spool_info_object or []
+            slot = _as_slot_index(printer.secondary_multi_color_box_loaded_slot)
+        else:
+            spools = printer.primary_multi_color_box_spool_info_object or []
+            slot = _as_slot_index(printer.primary_multi_color_box_loaded_slot)
 
-        if slot is None:
-            slot = _as_slot_index(
-                self._printer_filament_state(printer_id).get(ATTR_FEEDING_SLOT)
-            )
+            if slot is None:
+                slot = _as_slot_index(
+                    self._printer_filament_state(printer_id).get(ATTR_FEEDING_SLOT)
+                )
 
         # Nothing loaded: fall back to whatever the first occupied slot holds,
         # which is what someone drying a spool is most likely reaching for.
@@ -2909,7 +2926,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return None
 
-    def get_drying_setting(self, printer_id: int, key: str, default: float) -> float:
+    def get_drying_setting(
+        self, printer_id: int, key: str, default: float, box_id: int = 0
+    ) -> float:
         """A stored drying temperature or duration, defaulted for the material.
 
         Nobody should have to look up that PETG wants 65 C and PLA 45 C when
@@ -2922,8 +2941,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if stored is not None:
             return float(stored)
 
+        # The material of the unit being dried: a second ACE holding PETG was
+        # started at the first unit's PLA profile (#39).
         temperature, duration = drying_profile_for_material(
-            self.loaded_material(printer_id)
+            self.loaded_material(printer_id, box_id)
         )
 
         return float(temperature if key == ATTR_DRYING_TEMPERATURE else duration)
@@ -2955,8 +2976,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if printer is None:
             raise HomeAssistantError("The printer is not available.")
 
-        duration = int(self.get_drying_setting(printer_id, ATTR_DRYING_DURATION, 120))
-        temperature = int(self.get_drying_setting(printer_id, ATTR_DRYING_TEMPERATURE, 45))
+        duration = int(
+            self.get_drying_setting(printer_id, ATTR_DRYING_DURATION, 120, box_id)
+        )
+        temperature = int(
+            self.get_drying_setting(printer_id, ATTR_DRYING_TEMPERATURE, 45, box_id)
+        )
 
         LOGGER.debug(
             "Starting drying on box %s: %s min at %s C.",
