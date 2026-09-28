@@ -1115,12 +1115,18 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             description,
                             material_type,
                         )
-                        or
-                        check_descriptor_state_ace_not_supported(
-                            description,
-                            supports_ace,
-                        )
                     ):
+                        continue
+                    elif check_descriptor_state_ace_not_supported(
+                        description,
+                        supports_ace,
+                    ):
+                        # Kept for later rather than dropped. Without an
+                        # Anycubic account nothing says a printer has an ACE
+                        # until the ACE itself reports, which happens after
+                        # setup -- and dropping the descriptors here meant a
+                        # LAN-only printer never got its ACE entities (#41).
+                        remaining_unregistered_descriptors.append(description)
                         continue
                     elif (
                         check_descriptor_state_ace_primary_unavailable(
