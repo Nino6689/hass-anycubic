@@ -287,6 +287,23 @@ _JOB_NAME_TIMESTAMP = re.compile(r"^\d{4}-\d{4}-")
 JOB_HISTORY_SAMPLES = 5
 
 
+def job_name_from_filename(filename: str | None) -> str | None:
+    """The job name a printer's file path stands for.
+
+    The printer reports a finished LAN job only by its file, for example
+    `.3mf_temp/0622-1002-Model_plate(01)_PLA_0.2_45s.gcode`. Dropping the
+    folder and the extension leaves what `normalise_job_name` expects, so a
+    model's history is shared between prints started either way.
+    """
+    if not filename:
+        return None
+
+    base = str(filename).replace("\\", "/").rsplit("/", 1)[-1]
+    stem = base.rsplit(".", 1)[0] if "." in base else base
+
+    return stem or None
+
+
 def normalise_job_name(name: str | None) -> str | None:
     """A job name that is the same for two prints of the same thing."""
     if not name:
