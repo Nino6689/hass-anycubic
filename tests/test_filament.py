@@ -1465,3 +1465,94 @@ class TestJobHistoryForecast:
 
         assert coordinator._filament["jobs"]["Repeatable_Thing"] == [pytest.approx(94, abs=3)]
         assert PRINTER_ID
+
+
+class TestLanJobsAreCharged:
+    """G1: over LAN no job was ever charged, so remaining filament never went
+    down. The estimate only ran on the cloud path, and the running job is
+    cleared the moment a LAN printer goes idle -- the finished job survives
+    only in the printer's last-job record."""
+
+    FINISHED = {
+        "task_id": 119231778,
+        "supplies_usage_mm": 10000.0,
+        "print_status": 2,
+        "state": "finished",
+        "filename": ".3mf_temp/0622-1002-Spectacular Wolt (1)_plate(01)_PLA_0.2_45s.gcode",
+    }
+
+    def _running(self, job_id):
+        from unittest.mock import MagicMock
+
+        project = MagicMock()
+        project.id = job_id
+        project.slice_material_info_list = None
+        return project
+
+    async def _watch_then_finish(self, hass, mock_entry, mock_api, seen_job_id):
+        from unittest.mock import PropertyMock, patch
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        c = mock_entry.runtime_data
+        _, printer = mock_api
+
+        # Printing over LAN: slot 2 feeds the job.
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=self._running(seen_job_id))),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=1)),
+        ):
+            await c._async_update_filament()
+
+        # Idle: the running job is gone; only the last-job record remains.
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=None)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=-1)),
+            patch.object(type(printer), "lan_last_job", PropertyMock(return_value=dict(self.FINISHED)), create=True),
+        ):
+            await c._async_update_filament()
+            # A second refresh must not charge the same job again.
+            await c._async_update_filament()
+
+        return c
+
+    async def test_a_finished_lan_job_comes_off_its_spool(self, hass, mock_entry, mock_api) -> None:
+        from helpers import PRINTER_ID
+
+        c = await self._watch_then_finish(hass, mock_entry, mock_api, seen_job_id=119231778)
+
+        used = c._filament_slot_state(PRINTER_ID, 1)["filament_used_g"]
+        assert 29 < used < 31, used  # 10 m of 1.75 mm PLA is about 30 g
+
+    async def test_a_job_never_seen_running_is_not_charged(self, hass, mock_entry, mock_api) -> None:
+        """An upgrade or restart must not bill a print that finished earlier."""
+        from helpers import PRINTER_ID
+
+        c = await self._watch_then_finish(hass, mock_entry, mock_api, seen_job_id=555)
+
+        assert c._filament_slot_state(PRINTER_ID, 1).get("filament_used_g", 0.0) == 0.0
+
+    async def test_the_lan_refresh_runs_the_estimate(self, hass, mock_entry, mock_api) -> None:
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        c = mock_entry.runtime_data
+        client = MagicMock()
+        client.is_connected = True
+        c._lan_client = client
+
+        with patch.object(c, "_async_update_filament", AsyncMock()) as estimate:
+            assert await c.get_anycubic_updates() is True
+
+        estimate.assert_awaited_once()
+
+    async def test_the_job_keeps_its_history_name(self, hass, mock_entry, mock_api) -> None:
+        """Keyed the same as prints recorded through the cloud."""
+        c = await self._watch_then_finish(hass, mock_entry, mock_api, seen_job_id=119231778)
+
+        assert "Spectacular Wolt (1)_plate(01)_PLA_0.2_45s" in c._filament.get("jobs", {})

@@ -6,6 +6,7 @@ import time
 import traceback
 from collections.abc import Callable
 from datetime import timedelta
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
 from aiohttp import CookieJar
@@ -114,6 +115,7 @@ from .filament import (
     history_estimate,
     is_abrasive,
     job_grams_required,
+    job_name_from_filename,
     normalise_job_name,
     remaining_grams,
     remaining_percent,
@@ -228,6 +230,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._anycubic_api: AnycubicAPI | None = None
         self._anycubic_printers: dict[int, AnycubicPrinter] = dict()
         self._filament: dict[str, Any] = {}
+        # Task ids seen printing since start-up. A LAN job is only charged once
+        # it has been watched running, so an upgrade or a restart never bills a
+        # print that finished before anyone was looking.
+        self._jobs_seen_running: set[int] = set()
         # What each printer has told us it is fitted with, remembered across
         # rebuilds of this object. See _remembered_light_types.
         self._capabilities: dict[str, Any] = {}
@@ -2402,13 +2408,26 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         rather than the slicer's estimate, so purge waste is counted and a
         cancelled print is only charged for the part that ran.
         """
-        project = printer.latest_project
+        project: Any = printer.latest_project
+        paint_infos: Any = None
 
-        if project is None or printer.latest_project_print_in_progress:
+        if project is None:
+            # Over LAN the running job is cleared as soon as the printer goes
+            # idle; the finished one is only in the printer's last-job record.
+            # Charge it only if it was seen running, never one that finished
+            # before this session started watching.
+            last = getattr(printer, "lan_last_job", None)
+            if not last or last.get("task_id") not in self._jobs_seen_running:
+                return False
+            job_id = last["task_id"]
+            usage_mm = last.get("supplies_usage_mm")
+            project = SimpleNamespace(name=job_name_from_filename(last.get("filename")))
+        elif printer.latest_project_print_in_progress:
             return False
-
-        job_id = project.id
-        usage_mm = printer.latest_project_supplies_usage
+        else:
+            job_id = project.id
+            usage_mm = printer.latest_project_supplies_usage
+            paint_infos = project.slice_material_info_list
 
         if not job_id or not usage_mm:
             return False
@@ -2433,7 +2452,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         per_slot = attribute_job_to_slots(
             supplies_usage_mm=usage_mm,
-            paint_infos=project.slice_material_info_list,
+            paint_infos=paint_infos,
             slot_materials=materials,
             loaded_slot=loaded_slot,
         )
@@ -2584,6 +2603,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         for printer in self._anycubic_printers.values():
             try:
+                project = printer.latest_project
+                if project is not None and printer.latest_project_print_in_progress and project.id:
+                    self._jobs_seen_running.add(int(project.id))
                 if self._check_spool_changes(printer):
                     changed = True
                 if self._remember_feeding_slot(printer):
@@ -2605,6 +2627,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # before the local reports were ever built into coordinator data,
             # leaving every entity unavailable on a working connection.
             self._last_state_update = int(time.time())
+            # The filament estimate used to run only on the cloud path, so on
+            # LAN no job was ever charged and remaining filament never went
+            # down (G1).
+            await self._async_update_filament()
             return True
 
         if self.lan_only:
