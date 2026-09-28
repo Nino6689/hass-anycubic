@@ -1023,3 +1023,31 @@ class TestTheSecondAceEntitiesEndToEnd:
             )
 
         retract.assert_awaited_once_with(box_id=0)
+
+
+class TestAnAceThatReportsAfterSetup:
+    """#41: a printer set up without an Anycubic account never got its ACE.
+
+    With no cloud feature list, nothing says a printer has an ACE until the ACE
+    itself reports, which happens after setup. The ACE entities were being
+    discarded at setup instead of kept until then.
+    """
+
+    async def test_the_ace_entities_appear_once_the_ace_reports(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
+        _, printer = mock_api
+        ace_sensor = "sensor.anycubic_kobra_s1_ace_pro_ace_spools"
+
+        with (
+            patch.object(type(printer), "supports_function_multi_color_box", PropertyMock(return_value=False)),
+            patch.object(type(printer), "connected_ace_units", PropertyMock(return_value=0)),
+        ):
+            await setup_entry(hass, mock_entry)
+            assert hass.states.get(ace_sensor) is None, "no ACE has reported yet"
+
+        # The ACE reports: the printer now has a box, as the real one does.
+        coordinator = mock_entry.runtime_data
+        coordinator.data = coordinator._build_coordinator_data()
+        coordinator.async_update_listeners()
+        await hass.async_block_till_done()
+
+        assert hass.states.get(ace_sensor) is not None, "the ACE entities were dropped at setup"
