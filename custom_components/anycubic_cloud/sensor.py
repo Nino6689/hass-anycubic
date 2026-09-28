@@ -1,7 +1,10 @@
-"""Sensors for Anycubic Cloud Printers."""
+"""Sensors (BEHAVIOUR §2.1-§2.11)."""
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
@@ -10,663 +13,810 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
-    Platform,
     UnitOfLength,
     UnitOfMass,
     UnitOfTemperature,
     UnitOfTime,
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ACE_SLOT_COUNT,
-    ENTITY_ID_ACE_SLOT_,
-    UNIT_LAYERS,
-    PrinterEntityType,
+from .const import ACE_SLOTS
+from .entity import (
+    AnycubicEntity,
+    AnycubicEntityDescription,
+    Device,
+    Kind,
+    async_add_when_ready,
 )
-from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import (
-    build_color_swatch_data_uri,
-    printer_attributes_for_key,
-    printer_state_for_key,
-)
-
-# All data comes from the shared coordinator, and writes go through the
-# cloud API one request at a time, so no per-entity parallelism is wanted.
-PARALLEL_UPDATES = 0
+from .filament import rgb_to_hex
+from .spool_image import spool_picture
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import AnycubicConfigEntry, AnycubicCoordinator
+
+# The unit text 2.x reported, capital L included (COMPAT §3 "State formats").
+UNIT_LAYERS = "Layers"
+UNIT_FILES = "files"
+
+type ValueFn = Callable[[AnycubicCoordinator], Any]
+type AttrsFn = Callable[[AnycubicCoordinator], dict[str, Any] | None]
 
 
-@dataclass(frozen=True)
-class AnycubicSensorEntityDescription(
-    SensorEntityDescription, AnycubicCloudEntityDescription
-):
-    """Describes Anycubic Cloud sensor entity."""
-    not_measured: bool = False
+@dataclass(frozen=True, kw_only=True)
+class AnycubicSensorDescription(AnycubicEntityDescription, SensorEntityDescription):
+    """A sensor reading one value of the printer."""
+
+    value_fn: ValueFn
+    attrs_fn: AttrsFn | None = None
+    monetary: bool = False
 
 
-PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
-    AnycubicSensorEntityDescription(
-        key="ace_current_temperature",
-        translation_key="ace_current_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="ace_spools",
-        translation_key="ace_spools",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-        not_measured=True,
-    ),
-    AnycubicSensorEntityDescription(
-        key="dry_status_target_temperature",
-        translation_key="dry_status_target_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="dry_status_total_duration",
-        translation_key="dry_status_total_duration",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="dry_status_remaining_time",
-        translation_key="dry_status_remaining_time",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="box_fan_level",
-        translation_key="box_fan_level",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="axis_position_x",
-        translation_key="axis_position_x",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        device_class=SensorDeviceClass.DISTANCE,
-        suggested_display_precision=1,
-        entity_registry_enabled_default=False,
-    ),
-    AnycubicSensorEntityDescription(
-        key="axis_position_y",
-        translation_key="axis_position_y",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        device_class=SensorDeviceClass.DISTANCE,
-        suggested_display_precision=1,
-        entity_registry_enabled_default=False,
-    ),
-    AnycubicSensorEntityDescription(
-        key="axis_position_z",
-        translation_key="axis_position_z",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        device_class=SensorDeviceClass.DISTANCE,
-        suggested_display_precision=1,
-        entity_registry_enabled_default=False,
-    ),
-    AnycubicSensorEntityDescription(
-        key="external_spool_material",
-        translation_key="external_spool_material",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
-        entity_registry_enabled_default=False,
-    ),
-    AnycubicSensorEntityDescription(
-        key="ace_loaded_slot",
-        translation_key="ace_loaded_slot",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-        not_measured=True,
-    ),
-    *[
-        AnycubicSensorEntityDescription(
-            key=f"ace_slot_{slot_num}",
-            translation_key=f"ace_slot_{slot_num}",
-            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-            not_measured=True,
-        )
-        for slot_num in range(1, ACE_SLOT_COUNT + 1)
-    ],
-    # Estimated, not measured: the ACE has no sensor for how full a spool is,
-    # so these are derived from what the printer reports it has extruded.
-    *[
-        AnycubicSensorEntityDescription(
-            key=f"ace_slot_{slot_num}_filament_remaining",
-            translation_key=f"ace_slot_{slot_num}_filament_remaining",
-            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-            native_unit_of_measurement=UnitOfMass.GRAMS,
-            device_class=SensorDeviceClass.WEIGHT,
-            suggested_display_precision=0,
-            entity_registry_enabled_default=False,
-        )
-        for slot_num in range(1, ACE_SLOT_COUNT + 1)
-    ],
-    *[
-        AnycubicSensorEntityDescription(
-            key=f"ace_slot_{slot_num}_filament_remaining_percent",
-            translation_key=f"ace_slot_{slot_num}_filament_remaining_percent",
-            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-            native_unit_of_measurement=PERCENTAGE,
-            suggested_display_precision=0,
-            entity_registry_enabled_default=False,
-        )
-        for slot_num in range(1, ACE_SLOT_COUNT + 1)
-    ],
-])
+def _whole(value: float | None) -> int | None:
+    return round(value) if value is not None else None
 
 
-SECONDARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
-    AnycubicSensorEntityDescription(
-        key="secondary_ace_current_temperature",
-        translation_key="secondary_ace_current_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="secondary_ace_loaded_slot",
-        translation_key="secondary_ace_loaded_slot",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-        not_measured=True,
-    ),
-    AnycubicSensorEntityDescription(
-        key="secondary_ace_spools",
-        translation_key="secondary_ace_spools",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-        not_measured=True,
-    ),
-    AnycubicSensorEntityDescription(
-        key="secondary_dry_status_target_temperature",
-        translation_key="secondary_dry_status_target_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="secondary_dry_status_total_duration",
-        translation_key="secondary_dry_status_total_duration",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-    AnycubicSensorEntityDescription(
-        key="secondary_dry_status_remaining_time",
-        translation_key="secondary_dry_status_remaining_time",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-])
+def _minutes_dhm(minutes: int | None) -> str | None:
+    if minutes is None:
+        return None
+    days, rest = divmod(minutes, 1440)
+    hours, mins = divmod(rest, 60)
+    return f"{days}:{hours}:{mins}"
 
-FDM_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
-    AnycubicSensorEntityDescription(
-        key="job_speed_mode",
-        translation_key="job_speed_mode",
-        printer_entity_type=PrinterEntityType.FDM,
-        not_measured=True,
-    ),
-    AnycubicSensorEntityDescription(
-        key="print_speed_pct",
-        translation_key="print_speed_pct",
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    AnycubicSensorEntityDescription(
-        key="fan_speed_pct",
-        translation_key="fan_speed_pct",
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    AnycubicSensorEntityDescription(
-        key="aux_fan_speed_pct",
-        translation_key="aux_fan_speed_pct",
-        native_unit_of_measurement=PERCENTAGE,
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
 
-    AnycubicSensorEntityDescription(
-        key="curr_nozzle_temp",
-        translation_key="curr_nozzle_temp",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    AnycubicSensorEntityDescription(
-        key="curr_hotbed_temp",
-        translation_key="curr_hotbed_temp",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    AnycubicSensorEntityDescription(
-        key="target_nozzle_temp",
-        translation_key="target_nozzle_temp",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    AnycubicSensorEntityDescription(
-        key="target_hotbed_temp",
-        translation_key="target_hotbed_temp",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-])
+def _job_eta(c: AnycubicCoordinator) -> datetime | None:
+    """The job's finish time when it carries one, else now + remaining
+    minutes, to the minute; no value at 0 minutes (BEHAVIOUR §1.6, G22)."""
+    printer = c.printer
+    if printer.job is None:
+        return None
+    if (end := printer.job_end_time) is not None:
+        return dt_util.utc_from_timestamp(end)
+    remaining = printer.job_remaining_minutes
+    if not remaining:
+        return None
+    eta = dt_util.utcnow() + timedelta(minutes=remaining)
+    return eta.replace(second=0, microsecond=0)
 
-LCD_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
-    AnycubicSensorEntityDescription(
-        key="job_on_time",
-        translation_key="job_on_time",
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_off_time",
-        translation_key="job_off_time",
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_bottom_time",
-        translation_key="job_bottom_time",
-        native_unit_of_measurement=UnitOfTime.SECONDS,
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_model_height",
-        translation_key="job_model_height",
-        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_anti_alias_count",
-        translation_key="job_anti_alias_count",
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_bottom_layers",
-        translation_key="job_bottom_layers",
-        native_unit_of_measurement=UNIT_LAYERS,
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_z_up_height",
-        translation_key="job_z_up_height",
-        native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_z_up_speed",
-        translation_key="job_z_up_speed",
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_z_down_speed",
-        translation_key="job_z_down_speed",
-        printer_entity_type=PrinterEntityType.LCD,
-    ),
-])
 
-SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
-    AnycubicSensorEntityDescription(
-        key="last_error_code",
-        translation_key="last_error_code",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
-    ),
-    AnycubicSensorEntityDescription(
-        key="last_error",
-        translation_key="last_error",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
-    ),
-    AnycubicSensorEntityDescription(
+def _current_status_attrs(c: AnycubicCoordinator) -> dict[str, Any]:
+    p = c.printer
+    minutes = p.print_time_total_minutes
+    return {
+        "model": p.identity.model_name,
+        "machine_type": p.identity.model_id,
+        "supported_functions": p.supported_functions,
+        "material_type": p.identity.material_type,
+        "device_status_code": p.device_status,
+        "is_printing_code": p.work_status,
+        "print_status_code": p.job_status_code,
+        "peripherals": p.peripherals,
+        # Lifetime figures come from the cloud only (BEHAVIOUR §2.4).
+        "total_material_used": p.material_used_text,
+        "total_print_time_hrs": minutes // 60 if minutes is not None else None,
+        "total_print_time_dhm": _minutes_dhm(minutes),
+        "job_download_progress": p.download_progress,
+    }
+
+
+def _slicer_value(value: Any) -> Any:
+    """Slicer values of -1 or empty are "not set" (PROTOCOL B §3.1.2)."""
+    if value in (-1, "-1", "", None):
+        return None
+    return value
+
+
+def _cloud_job_attrs(c: AnycubicCoordinator) -> dict[str, Any]:
+    """The slicer details of a cloud job; only keys with a value (§2.3)."""
+    job = c.printer.cloud_job
+    if job is None:
+        return {}
+    slice_param = job.slice_param.raw if job.slice_param is not None else {}
+    slice_result = job.slice_result or {}
+    types = _slicer_value(slice_param.get("filament_type"))
+    size = [slice_result.get(key) for key in ("size_x", "size_y", "size_z")]
+    candidates: dict[str, Any] = {
+        "source": job.source,
+        "slicer": job.settings.slicer if job.settings is not None else None,
+        "printer_profile": slice_param.get("printer_settings_id"),
+        "layer_height": slice_param.get("layer_height"),
+        "filament_types": (
+            [part.strip() for part in str(types).split(";") if part.strip()]
+            if types is not None
+            else None
+        ),
+        "nozzle_temperature": slice_param.get("temperature"),
+        "bed_temperature": slice_param.get("bed_temperature"),
+        "fill_density": slice_param.get("fill_density"),
+        "travel_speed": slice_param.get("travel_speed"),
+        "brim_type": slice_param.get("brim_type"),
+        "model_size_mm": size if all(v is not None for v in size) else None,
+        "estimated_filament": slice_result.get("used_filament"),
+    }
+    return {
+        key: value
+        for key, value in candidates.items()
+        if _slicer_value(value) is not None
+    }
+
+
+def _job_name_attrs(c: AnycubicCoordinator) -> dict[str, Any]:
+    p = c.printer
+    job = p.job
+    elapsed = p.job_elapsed_minutes
+    remaining = p.job_remaining_minutes
+    cloud_job = p.cloud_job
+    total: int | None = None
+    total_text: str | None = None
+    if cloud_job is not None and cloud_job.total_time_minutes is not None:
+        total = int(cloud_job.total_time_minutes)
+        raw = cloud_job.raw.get("total_time")
+        total_text = str(raw) if raw is not None else None
+    elif elapsed is not None and remaining is not None:
+        total = elapsed + remaining
+    attrs: dict[str, Any] = {}
+    if job is not None and job.filename:
+        attrs["file_name"] = job.filename
+    attrs |= _cloud_job_attrs(c)
+    cloud = p.cloud if p.via_cloud else None
+    # Always present (BEHAVIOUR §2.3); the slicer details are cloud only.
+    attrs |= {
+        "created_timestamp": cloud_job.create_time if cloud_job else None,
+        "finished_timestamp": p.job_end_time,
+        "print_total_time": total_text,
+        "print_total_time_minutes": total,
+        "print_total_time_dhm": _minutes_dhm(total),
+        "print_supplies_usage": p.job_filament_used,
+        "print_status_message": cloud.failure_reason if cloud is not None else None,
+    }
+    return attrs
+
+
+def _speed_mode_attrs(c: AnycubicCoordinator) -> dict[str, Any]:
+    p = c.printer
+    return {
+        "available_modes": p.speed_modes,
+        "print_speed_mode_code": p.speed_mode_code,
+    }
+
+
+def _target_attrs(which: str) -> AttrsFn:
+    def attrs(c: AnycubicCoordinator) -> dict[str, Any]:
+        # The allowed range comes from the cloud job detail: null on LAN.
+        limits = c.printer.target_limits(which)
+        if limits is None:
+            return {"limit_min": None, "limit_max": None}
+        return {"limit_min": limits[0], "limit_max": limits[1]}
+
+    return attrs
+
+
+def _external_attrs(c: AnycubicCoordinator) -> dict[str, Any]:
+    spool = c.printer.external_spool
+    if spool is None:
+        return {}
+    return {
+        "material": spool.material,
+        "color": spool.color,
+        "color_hex": rgb_to_hex(spool.color),
+        "loaded": spool.loaded,
+    }
+
+
+def _external_material(c: AnycubicCoordinator) -> str | None:
+    spool = c.printer.external_spool
+    if spool is None or not spool.loaded:
+        return None
+    return spool.material
+
+
+def _axis_position(axis: str) -> ValueFn:
+    return lambda c: c.printer.axis_position(axis)
+
+
+def _slot_remaining(number: int) -> ValueFn:
+    return lambda c: c.ledger.slot_remaining(c.printer, number)
+
+
+def _slot_remaining_percent(number: int) -> ValueFn:
+    return lambda c: c.ledger.slot_remaining_percent(c.printer, number)
+
+
+def _forecast(name: str) -> ValueFn:
+    return lambda c: getattr(c.forecast, name) if c.forecast is not None else None
+
+
+def _forecast_source(c: AnycubicCoordinator) -> dict[str, Any]:
+    return {"source": c.forecast.source if c.forecast is not None else "unknown"}
+
+
+def _ledger(name: str) -> ValueFn:
+    return lambda c: getattr(c.ledger, name)(c.printer.printer_id)
+
+
+PRINTER_SENSORS: tuple[AnycubicSensorDescription, ...] = (
+    AnycubicSensorDescription(
         key="current_status",
-        translation_key="current_status",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
+        value_fn=lambda c: c.printer.current_status,
+        attrs_fn=_current_status_attrs,
     ),
-    AnycubicSensorEntityDescription(
-        key="file_list_local",
-        translation_key="file_list_local",
-        native_unit_of_measurement="files",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
+    AnycubicSensorDescription(
+        key="last_error_code",
+        value_fn=lambda c: c.printer.last_error_code,
     ),
-    AnycubicSensorEntityDescription(
-        key="file_list_udisk",
-        translation_key="file_list_udisk",
-        native_unit_of_measurement="files",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
+    AnycubicSensorDescription(
+        key="last_error",
+        value_fn=lambda c: c.printer.last_error,
     ),
-    AnycubicSensorEntityDescription(
-        key="file_list_cloud",
-        translation_key="file_list_cloud",
-        native_unit_of_measurement="files",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
-    ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_name",
-        translation_key="job_name",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
+        value_fn=lambda c: c.printer.job_name,
+        attrs_fn=_job_name_attrs,
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_progress",
-        translation_key="job_progress",
         native_unit_of_measurement=PERCENTAGE,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.job_progress,
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_time_elapsed",
-        translation_key="job_time_elapsed",
         native_unit_of_measurement=UnitOfTime.MINUTES,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.job_elapsed_minutes,
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_time_remaining",
-        translation_key="job_time_remaining",
         native_unit_of_measurement=UnitOfTime.MINUTES,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.job_remaining_minutes,
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_state",
-        translation_key="job_state",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
+        value_fn=lambda c: c.printer.job_state,
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_eta",
-        translation_key="job_eta",
         device_class=SensorDeviceClass.TIMESTAMP,
-        printer_entity_type=PrinterEntityType.PRINTER,
-        not_measured=True,
+        value_fn=_job_eta,
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_current_layer",
-        translation_key="job_current_layer",
         native_unit_of_measurement=UNIT_LAYERS,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.job.current_layer if c.printer.job else None,
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_total_layers",
-        translation_key="job_total_layers",
         native_unit_of_measurement=UNIT_LAYERS,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.job.total_layers if c.printer.job else None,
     ),
-    AnycubicSensorEntityDescription(
-        key="job_z_thick",
-        translation_key="job_z_thick",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="job_filament_used",
-        translation_key="job_filament_used",
         native_unit_of_measurement=UnitOfLength.MILLIMETERS,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        state_class=SensorStateClass.MEASUREMENT,
+        # A whole number of millimetres, as 2.x reports it (COMPAT §3).
+        value_fn=lambda c: _whole(c.printer.job_filament_used),
     ),
-    AnycubicSensorEntityDescription(
-        key="material_used_total",
-        translation_key="material_used_total",
-        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.PRINTER,
+    *(
+        AnycubicSensorDescription(
+            key=f"axis_position_{axis}",
+            native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+            device_class=SensorDeviceClass.DISTANCE,
+            state_class=SensorStateClass.MEASUREMENT,
+            suggested_display_precision=1,
+            entity_registry_enabled_default=False,
+            value_fn=_axis_position(axis),
+        )
+        for axis in ("x", "y", "z")
     ),
-    AnycubicSensorEntityDescription(
-        key="print_time_total_hrs",
-        translation_key="print_time_total_hrs",
-        native_unit_of_measurement=UnitOfTime.HOURS,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicSensorEntityDescription(
-        key="print_count_total",
-        translation_key="print_count_total",
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    # Will the loaded reel see this print out? Derived from what the printer
-    # has extruded against how far through it is, so it needs no slicer
-    # estimate and answers within the first couple of percent -- while there is
-    # still time to swap a spool, rather than finding out four hours in.
-    AnycubicSensorEntityDescription(
-        key="job_filament_required",
-        translation_key="job_filament_required",
-        native_unit_of_measurement=UnitOfMass.GRAMS,
-        device_class=SensorDeviceClass.WEIGHT,
-        suggested_display_precision=0,
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_filament_shortfall",
-        translation_key="job_filament_shortfall",
-        native_unit_of_measurement=UnitOfMass.GRAMS,
-        device_class=SensorDeviceClass.WEIGHT,
-        suggested_display_precision=0,
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicSensorEntityDescription(
-        key="job_filament_runs_out_at",
-        translation_key="job_filament_runs_out_at",
-        native_unit_of_measurement=PERCENTAGE,
-        suggested_display_precision=0,
+    AnycubicSensorDescription(
+        key="external_spool_material",
         entity_registry_enabled_default=False,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        value_fn=_external_material,
+        attrs_fn=_external_attrs,
     ),
-    # Cost, priced from what you paid per reel. An unpriced reel leaves these
-    # unknown rather than reporting a job as free.
-    AnycubicSensorEntityDescription(
+)
+
+FDM_SENSORS: tuple[AnycubicSensorDescription, ...] = (
+    *(
+        AnycubicSensorDescription(
+            key=key,
+            kind=Kind.FDM,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=fn,
+            attrs_fn=attrs,
+        )
+        for key, fn, attrs in (
+            ("curr_nozzle_temp", lambda c: c.printer.nozzle_temperature, None),
+            ("curr_hotbed_temp", lambda c: c.printer.hotbed_temperature, None),
+            (
+                "target_nozzle_temp",
+                lambda c: c.printer.target_nozzle_temperature,
+                _target_attrs("nozzle"),
+            ),
+            (
+                "target_hotbed_temp",
+                lambda c: c.printer.target_hotbed_temperature,
+                _target_attrs("hotbed"),
+            ),
+        )
+    ),
+    AnycubicSensorDescription(
+        key="fan_speed_pct",
+        kind=Kind.FDM,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.fan_speed,
+    ),
+    AnycubicSensorDescription(
+        key="aux_fan_speed_pct",
+        kind=Kind.FDM,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.aux_fan_speed,
+    ),
+    AnycubicSensorDescription(
+        key="print_speed_pct",
+        kind=Kind.FDM,
+        state_class=SensorStateClass.MEASUREMENT,
+        # The printer's own reading, else the cloud job's (B14; Q2.2).
+        value_fn=lambda c: c.printer.print_speed,
+    ),
+    AnycubicSensorDescription(
+        key="job_speed_mode",
+        kind=Kind.FDM,
+        value_fn=lambda c: c.printer.job_speed_mode,
+        attrs_fn=_speed_mode_attrs,
+    ),
+    # Computed from the ledger (BEHAVIOUR §2.10).
+    AnycubicSensorDescription(
+        key="job_filament_required",
+        kind=Kind.FDM,
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_forecast("required"),
+        attrs_fn=_forecast_source,
+    ),
+    AnycubicSensorDescription(
+        key="job_filament_shortfall",
+        kind=Kind.FDM,
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_forecast("shortfall"),
+    ),
+    AnycubicSensorDescription(
+        key="job_filament_runs_out_at",
+        kind=Kind.FDM,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=_forecast("runs_out_at"),
+    ),
+    AnycubicSensorDescription(
         key="job_cost",
-        translation_key="job_cost",
+        kind=Kind.FDM,
         device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        monetary=True,
+        value_fn=_forecast("cost"),
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="last_job_cost",
-        translation_key="last_job_cost",
+        kind=Kind.FDM,
         device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        monetary=True,
+        value_fn=_ledger("last_job_cost"),
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
+        key="last_job_filament",
+        kind=Kind.FDM,
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=_ledger("last_job_filament"),
+    ),
+    AnycubicSensorDescription(
         key="filament_cost_total",
-        translation_key="filament_cost_total",
+        kind=Kind.FDM,
         device_class=SensorDeviceClass.MONETARY,
+        # G20: total for the lifetime spend.
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        monetary=True,
+        value_fn=_ledger("cost_total"),
+        attrs_fn=lambda c: {
+            "by_material_g": c.ledger.material_totals(c.printer.printer_id)
+        },
     ),
-    AnycubicSensorEntityDescription(
-        key="last_job_filament",
-        translation_key="last_job_filament",
-        native_unit_of_measurement=UnitOfMass.GRAMS,
-        device_class=SensorDeviceClass.WEIGHT,
-        suggested_display_precision=0,
-        entity_registry_enabled_default=False,
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    # Nozzle wear counted in filament pushed through rather than hours run:
-    # abrasive fill is what actually wears a nozzle, and the material of every
-    # job is already known here.
-    AnycubicSensorEntityDescription(
-        key="nozzle_abrasive_filament",
-        translation_key="nozzle_abrasive_filament",
-        native_unit_of_measurement=UnitOfMass.GRAMS,
-        device_class=SensorDeviceClass.WEIGHT,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        suggested_display_precision=0,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicSensorEntityDescription(
-        key="nozzle_wear_percent",
-        translation_key="nozzle_wear_percent",
-        native_unit_of_measurement=PERCENTAGE,
-        suggested_display_precision=0,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
         key="nozzle_filament_total",
-        translation_key="nozzle_filament_total",
+        kind=Kind.FDM,
         native_unit_of_measurement=UnitOfMass.GRAMS,
         device_class=SensorDeviceClass.WEIGHT,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        suggested_display_precision=0,
         entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
         entity_registry_enabled_default=False,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        value_fn=_ledger("nozzle_total"),
     ),
-    # Every reel ever seen, including ones not in the machine. The spool
-    # history has always been kept; nothing ever showed it.
-    AnycubicSensorEntityDescription(
-        key="spool_inventory_remaining",
-        translation_key="spool_inventory_remaining",
+    AnycubicSensorDescription(
+        key="nozzle_abrasive_filament",
+        kind=Kind.FDM,
         native_unit_of_measurement=UnitOfMass.GRAMS,
         device_class=SensorDeviceClass.WEIGHT,
-        suggested_display_precision=0,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+        value_fn=_ledger("nozzle_abrasive"),
     ),
-    AnycubicSensorEntityDescription(
+    AnycubicSensorDescription(
+        key="nozzle_wear_percent",
+        kind=Kind.FDM,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+        value_fn=_ledger("nozzle_wear"),
+    ),
+    AnycubicSensorDescription(
+        key="spool_inventory_remaining",
+        kind=Kind.FDM,
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=lambda c: c.ledger.spool_inventory_remaining(),
+        attrs_fn=lambda c: {
+            "spools": [entry.as_dict() for entry in c.ledger.spool_inventory()]
+        },
+    ),
+    AnycubicSensorDescription(
         key="spool_inventory_count",
-        translation_key="spool_inventory_count",
+        kind=Kind.FDM,
+        state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        value_fn=lambda c: c.ledger.spool_inventory_count(),
     ),
-])
-
-GLOBAL_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
-])
+)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-) -> None:
-    """Set up the Anycubic Cloud sensor entry."""
+def _ace_sensors(box: int) -> tuple[AnycubicSensorDescription, ...]:
+    """Sensors shared by both ACE units (BEHAVIOUR §2.8, §2.9)."""
+    prefix = "" if box == 0 else "secondary_"
+    kind = Kind.ACE1 if box == 0 else Kind.ACE2
+    device = Device.ACE1 if box == 0 else Device.ACE2
 
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
+    def loaded(c: AnycubicCoordinator) -> int | None:
+        index = c.printer.ace_loaded_slot_index(box)
+        return index + 1 if index is not None else None
 
-    coordinator.add_entities_for_seen_printers(
-        async_add_entities=async_add_entities,
-        entity_constructor=AnycubicSensor,
-        platform=Platform.SENSOR,
-        available_descriptors=list(
-            SENSOR_TYPES
-            + LCD_SENSOR_TYPES
-            + FDM_SENSOR_TYPES
-            + PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES
-            + SECONDARY_MULTI_COLOR_BOX_SENSOR_TYPES
-            + GLOBAL_SENSOR_TYPES
+    return (
+        AnycubicSensorDescription(
+            key=f"{prefix}ace_spools",
+            kind=kind,
+            device=device,
+            value_fn=lambda c: "active" if c.printer.spool_info(box) else "inactive",
+            attrs_fn=lambda c: {
+                "spool_info": c.printer.spool_info(box),
+                "box_info": c.printer.box_info(box),
+            },
+        ),
+        AnycubicSensorDescription(
+            key=f"{prefix}ace_loaded_slot",
+            kind=kind,
+            device=device,
+            value_fn=loaded,
+        ),
+        AnycubicSensorDescription(
+            key=f"{prefix}ace_current_temperature",
+            kind=kind,
+            device=device,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda c: float(c.printer.ace_temperature(box)),
+        ),
+        AnycubicSensorDescription(
+            key=f"{prefix}dry_status_target_temperature",
+            kind=kind,
+            device=device,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda c: float(c.printer.drying_value(box, "target_temp")),
+        ),
+        # Minutes, deliberately without a declared unit (BEHAVIOUR §8).
+        AnycubicSensorDescription(
+            key=f"{prefix}dry_status_total_duration",
+            kind=kind,
+            device=device,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda c: round(c.printer.drying_value(box, "duration")),
+        ),
+        AnycubicSensorDescription(
+            key=f"{prefix}dry_status_remaining_time",
+            kind=kind,
+            device=device,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda c: round(c.printer.drying_value(box, "remain_time")),
         ),
     )
 
 
-class AnycubicSensor(AnycubicCloudEntity, SensorEntity):
-    """Representation of a Anycubic Cloud sensor."""
+def _slot_value(box: int, number: int) -> ValueFn:
+    def value(c: AnycubicCoordinator) -> str | None:
+        slot = c.printer.ace_slot(box, number)
+        if c.printer.slot_is_empty(slot):
+            return None  # B16
+        return slot.material if slot is not None else None
 
-    entity_description: AnycubicSensorEntityDescription
+    return value
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: AnycubicCloudDataUpdateCoordinator,
-        printer_id: int,
-        entity_description: AnycubicSensorEntityDescription,
-    ) -> None:
-        """Initiate Anycubic Sensor."""
-        super().__init__(hass, coordinator, printer_id, entity_description)
 
-        unit = self.entity_description.native_unit_of_measurement
+def _slot_attrs(box: int, number: int) -> AttrsFn:
+    def attrs(c: AnycubicCoordinator) -> dict[str, Any] | None:
+        slot = c.printer.ace_slot(box, number)
+        if slot is None:
+            return None
+        full = c.printer.slot_attributes(box, slot, number - 1)
+        full.pop("color_group")
+        full.pop("icon_type")
+        return full
 
-        if unit == UnitOfTemperature.CELSIUS:
-            self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    return attrs
 
-        # Infer the device class from the unit where the description doesn't set
-        # one explicitly. Temperature enables per-user C/F conversion, and both
-        # classes give the history graphs and voice assistants proper context.
-        if self.entity_description.device_class is None:
-            if unit == UnitOfTemperature.CELSIUS:
-                self._attr_device_class = SensorDeviceClass.TEMPERATURE
-            elif unit in (UnitOfTime.SECONDS, UnitOfTime.MINUTES):
-                self._attr_device_class = SensorDeviceClass.DURATION
 
-        # A monetary sensor has to carry a currency, and the only sensible one
-        # is whatever Home Assistant is already set to -- asking the user for
-        # it again would be a configuration step to state something known.
-        if self.entity_description.device_class == SensorDeviceClass.MONETARY:
-            self._attr_native_unit_of_measurement = hass.config.currency
+FIRST_ACE_SENSORS: tuple[AnycubicSensorDescription, ...] = (
+    *_ace_sensors(0),
+    AnycubicSensorDescription(
+        key="box_fan_level",
+        kind=Kind.ACE1,
+        device=Device.ACE1,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.box_fan_level,
+    ),
+    *(
+        description
+        for number in ACE_SLOTS
+        for description in (
+            AnycubicSensorDescription(
+                key=f"ace_slot_{number}",
+                kind=Kind.ACE1,
+                device=Device.ACE1,
+                value_fn=_slot_value(0, number),
+                attrs_fn=_slot_attrs(0, number),
+            ),
+            AnycubicSensorDescription(
+                key=f"ace_slot_{number}_filament_remaining",
+                kind=Kind.ACE1,
+                device=Device.ACE1,
+                native_unit_of_measurement=UnitOfMass.GRAMS,
+                device_class=SensorDeviceClass.WEIGHT,
+                state_class=SensorStateClass.MEASUREMENT,
+                suggested_display_precision=0,
+                entity_registry_enabled_default=False,
+                value_fn=_slot_remaining(number),
+            ),
+            AnycubicSensorDescription(
+                key=f"ace_slot_{number}_filament_remaining_percent",
+                kind=Kind.ACE1,
+                device=Device.ACE1,
+                native_unit_of_measurement=PERCENTAGE,
+                state_class=SensorStateClass.MEASUREMENT,
+                suggested_display_precision=0,
+                entity_registry_enabled_default=False,
+                value_fn=_slot_remaining_percent(number),
+            ),
+        )
+    ),
+)
 
-        if self.entity_description.not_measured:
-            self._attr_state_class = None
-        elif self.entity_description.state_class is not None:
-            # Respect an explicitly declared state class (e.g. lifetime totals)
-            # rather than forcing everything to MEASUREMENT.
-            self._attr_state_class = self.entity_description.state_class
-        else:
-            self._attr_state_class = SensorStateClass.MEASUREMENT
+SECOND_ACE_SENSORS = _ace_sensors(1)
+
+
+def _file_list(source: str) -> ValueFn:
+    def value(c: AnycubicCoordinator) -> int | None:
+        files = c.file_list(source)
+        return len(files) if files is not None else None  # 0 when empty (G12)
+
+    return value
+
+
+def _file_list_attrs(source: str) -> AttrsFn:
+    def attrs(c: AnycubicCoordinator) -> dict[str, Any] | None:
+        files = c.file_list(source)
+        return {"file_info": files} if files is not None else None
+
+    return attrs
+
+
+def _hours(c: AnycubicCoordinator) -> int | None:
+    """Whole hours, rounded down; no value when the text is absent (G11)."""
+    minutes = c.printer.print_time_total_minutes
+    return minutes // 60 if minutes is not None else None
+
+
+def _resin(name: str) -> ValueFn:
+    return lambda c: c.printer.resin_setting(name)
+
+
+# The cloud-only sensors (BEHAVIOUR §2.3-§2.5, §2.11). Not created on
+# LAN-only entries (DECISIONS round 2, Q8).
+CLOUD_SENSORS: tuple[AnycubicSensorDescription, ...] = (
+    *(
+        AnycubicSensorDescription(
+            key=f"file_list_{source}",
+            cloud_only=True,
+            native_unit_of_measurement=UNIT_FILES,
+            value_fn=_file_list(source),
+            attrs_fn=_file_list_attrs(source),
+        )
+        for source in ("local", "udisk", "cloud")
+    ),
+    AnycubicSensorDescription(
+        key="job_z_thick",
+        cloud_only=True,
+        # Millimetres, deliberately without a declared unit (BEHAVIOUR §8).
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.job_z_thick,
+    ),
+    AnycubicSensorDescription(
+        key="material_used_total",
+        cloud_only=True,
+        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda c: c.printer.material_used_kg,
+    ),
+    AnycubicSensorDescription(
+        key="print_time_total_hrs",
+        cloud_only=True,
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_hours,
+    ),
+    AnycubicSensorDescription(
+        key="print_count_total",
+        cloud_only=True,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda c: c.printer.print_count_total,
+    ),
+)
+
+# Resin printers (BEHAVIOUR §2.11): cloud only, from the job's settings.
+RESIN_SENSORS: tuple[AnycubicSensorDescription, ...] = (
+    *(
+        AnycubicSensorDescription(
+            key=key,
+            kind=Kind.LCD,
+            cloud_only=True,
+            native_unit_of_measurement=UnitOfTime.SECONDS,
+            device_class=SensorDeviceClass.DURATION,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=_resin(name),
+        )
+        for key, name in (
+            ("job_on_time", "on_time"),
+            ("job_off_time", "off_time"),
+            ("job_bottom_time", "bottom_time"),
+        )
+    ),
+    *(
+        AnycubicSensorDescription(
+            key=key,
+            kind=Kind.LCD,
+            cloud_only=True,
+            native_unit_of_measurement=UnitOfLength.MILLIMETERS,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=_resin(name),
+        )
+        for key, name in (
+            ("job_model_height", "model_hight"),
+            ("job_z_up_height", "z_up_height"),
+        )
+    ),
+    AnycubicSensorDescription(
+        key="job_bottom_layers",
+        kind=Kind.LCD,
+        cloud_only=True,
+        native_unit_of_measurement=UNIT_LAYERS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_resin("bottom_layers"),
+    ),
+    # No unit declared (BEHAVIOUR §9, V5).
+    *(
+        AnycubicSensorDescription(
+            key=key,
+            kind=Kind.LCD,
+            cloud_only=True,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=_resin(name),
+        )
+        for key, name in (
+            ("job_anti_alias_count", "anti_count"),
+            ("job_z_up_speed", "z_up_speed"),
+            ("job_z_down_speed", "z_down_speed"),
+        )
+    ),
+)
+
+SENSORS: tuple[AnycubicSensorDescription, ...] = (
+    *PRINTER_SENSORS,
+    *FDM_SENSORS,
+    *FIRST_ACE_SENSORS,
+    *SECOND_ACE_SENSORS,
+    *CLOUD_SENSORS,
+    *RESIN_SENSORS,
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: AnycubicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    """Set up the sensors of a config entry."""
+    async_add_when_ready(
+        entry.runtime_data, SENSORS, AnycubicSensor, async_add_entities
+    )
+
+
+class AnycubicSensor(AnycubicEntity, SensorEntity):
+    """A printer or ACE sensor."""
+
+    entity_description: AnycubicSensorDescription
+
+    @property
+    def _value(self) -> Any:
+        return self.entity_description.value_fn(self.coordinator)
 
     @property
     def available(self) -> bool:
-        return printer_state_for_key(
-            self.coordinator,
-            self._printer_id,
-            self.entity_description.key
-        ) is not None
+        """A sensor with no value is unavailable, not unknown (§0.3)."""
+        return super().available and self._value is not None
 
     @property
     def native_value(self) -> Any:
-        """Return the ...."""
-        state = printer_state_for_key(self.coordinator, self._printer_id, self.entity_description.key)
-
-        if state is None:
-            return None
-
-        if self.entity_description.device_class == SensorDeviceClass.TIMESTAMP:
-            return dt_util.utc_from_timestamp(state)
-
-        elif (
-            isinstance(state, float)
-            or self.entity_description.native_unit_of_measurement == UnitOfTemperature.CELSIUS
-        ):
-            return float(state)
-
-        elif (
-            isinstance(state, int)
-            or self.entity_description.native_unit_of_measurement == UNIT_LAYERS
-            or self.entity_description.native_unit_of_measurement == PERCENTAGE
-        ):
-            return int(state)
-
-        return str(state)
+        return self._value
 
     @property
-    def entity_picture(self) -> str | None:
-        """Show ACE slots as a swatch of the filament colour.
-
-        The state stays as the material type so automations are unaffected;
-        this only makes the colour visible without needing a custom card.
-        """
-        if not self.entity_description.key.startswith(ENTITY_ID_ACE_SLOT_):
-            return None
-
-        attributes = printer_attributes_for_key(
-            self.coordinator, self._printer_id, self.entity_description.key
-        )
-
-        if not attributes:
-            return None
-
-        return build_color_swatch_data_uri(attributes.get("colors_hex"))
+    def native_unit_of_measurement(self) -> str | None:
+        if self.entity_description.monetary:
+            return self.hass.config.currency
+        return super().native_unit_of_measurement
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return extra state attributes."""
-        attrib = printer_attributes_for_key(self.coordinator, self._printer_id, self.entity_description.key)
-        if attrib is not None:
-            return attrib
-        else:
+        if (attrs_fn := self.entity_description.attrs_fn) is None:
             return None
+        return attrs_fn(self.coordinator)
+
+    @property
+    def entity_picture(self) -> str | None:
+        key = self.entity_description.key
+        if not key.startswith("ace_slot_") or not key[-1].isdigit():
+            return None
+        attrs = self.extra_state_attributes or {}
+        if attrs.get("edit_status") == 2:
+            return None
+        return spool_picture(list(attrs.get("colors_hex") or []))

@@ -2,20 +2,17 @@
   "domain": "anycubic_cloud",
   "name": "Anycubic Cloud & LAN",
   "after_dependencies": [
-    "panel_custom"
+    "frontend",
+    "panel_custom",
+    "stream"
   ],
   "codeowners": [
-    "@Nino6689",
-    "@WaresWichall"
+    "@Nino6689"
   ],
   "config_flow": true,
   "dependencies": [
-    "camera",
-    "ffmpeg",
     "file_upload",
-    "frontend",
-    "http",
-    "image"
+    "http"
   ],
   "dhcp": [
     {
@@ -29,14 +26,17 @@
     }
   ],
   "documentation": "https://github.com/Nino6689/hass-anycubic",
-  "iot_class": "cloud_push",
+  "integration_type": "hub",
+  "iot_class": "local_push",
   "issue_tracker": "https://github.com/Nino6689/hass-anycubic/issues",
   "loggers": [
-    "custom_components.anycubic_cloud"
+    "anycubic_cloud_client",
+    "anycubic_lan"
   ],
   "requirements": [
-    "anycubic-cloud-api==0.4.33",
-    "anycubic-cloud-frontend==0.2.1"
+    "anycubic-cloud-api>=0.4.31,<0.5",
+    "anycubic-cloud-client==0.1.0",
+    "anycubic-lan==0.1.0"
   ],
-  "version": "2.9.4"
+  "version": "3.0.0b1"
 }

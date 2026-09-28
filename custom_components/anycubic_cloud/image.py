@@ -1,137 +1,73 @@
-"""Support for Anycubic Cloud image."""
+"""The job preview picture (BEHAVIOUR §2.3, B23). Cloud only.
+
+A PNG fetched from the job's preview URL; the cached picture is dropped
+whenever the URL changes. Unavailable with no URL, rather than serving an
+error that dashboards draw as a broken image.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING
 
-from homeassistant.components.image import (
-    Image,
-    ImageEntity,
-    ImageEntityDescription,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.components.image import ImageEntity, ImageEntityDescription
+from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    PrinterEntityType,
-)
-from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_state_for_key
-
-# All data comes from the shared coordinator, and writes go through the
-# cloud API one request at a time, so no per-entity parallelism is wanted.
-PARALLEL_UPDATES = 0
+from .entity import AnycubicEntity, AnycubicEntityDescription, async_add_when_ready
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import AnycubicConfigEntry, AnycubicCoordinator
 
 
-@dataclass(frozen=True)
-class AnycubicImageEntityDescription(
-    ImageEntityDescription, AnycubicCloudEntityDescription
-):
-    """Describes Anycubic Cloud image entity."""
+@dataclass(frozen=True, kw_only=True)
+class AnycubicImageDescription(AnycubicEntityDescription, ImageEntityDescription):
+    """The job preview."""
 
 
-IMAGE_TYPES: list[AnycubicImageEntityDescription] = list([
-    AnycubicImageEntityDescription(
-        key="job_image_url",
-        translation_key="job_image_url",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-])
-
-GLOBAL_IMAGE_TYPES: list[AnycubicImageEntityDescription] = list([
-])
+JOB_PREVIEW = AnycubicImageDescription(key="job_image_url", cloud_only=True)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: AnycubicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the image from a config entry."""
-
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
-
-    coordinator.add_entities_for_seen_printers(
-        async_add_entities=async_add_entities,
-        entity_constructor=AnycubicCloudImage,
-        platform=Platform.IMAGE,
-        available_descriptors=list(
-            IMAGE_TYPES
-            + GLOBAL_IMAGE_TYPES
-        ),
+    """Set up the job preview of a config entry."""
+    async_add_when_ready(
+        entry.runtime_data, (JOB_PREVIEW,), JobPreview, async_add_entities
     )
 
 
-class AnycubicCloudImage(AnycubicCloudEntity, ImageEntity):
-    """An image for Anycubic Cloud."""
+class JobPreview(AnycubicEntity, ImageEntity):
+    """The current job's preview picture."""
 
-    entity_description: AnycubicImageEntityDescription
+    entity_description: AnycubicImageDescription
+    _attr_content_type = "image/png"
 
     def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: AnycubicCloudDataUpdateCoordinator,
-        printer_id: int,
-        entity_description: AnycubicImageEntityDescription,
+        self, coordinator: AnycubicCoordinator, description: AnycubicImageDescription
     ) -> None:
-        """Initialize."""
-        super().__init__(hass, coordinator, printer_id, entity_description)
-        ImageEntity.__init__(self, hass)
-        self._known_image_url = None
-
-    def _reset_cached_image(self) -> None:
-        self._cached_image = None
+        AnycubicEntity.__init__(self, coordinator, description)
+        ImageEntity.__init__(self, coordinator.hass)
+        self._url = self.printer.job_image_url
+        self._attr_image_url = self._url
         self._attr_image_last_updated = dt_util.utcnow()
-
-    def _check_image_url(self) -> None:
-        image_url = printer_state_for_key(self.coordinator, self._printer_id, self.entity_description.key)
-        if self._known_image_url != image_url:
-            self._reset_cached_image()
-
-            self._known_image_url = image_url
 
     @property
     def available(self) -> bool:
-        """Whether there is a preview to serve.
+        return super().available and self._url is not None
 
-        An image entity always advertises an ``entity_picture``, and Home
-        Assistant serves that URL by asking this entity for the bytes. With no
-        job there is no image, so the proxy answered HTTP 500 and every
-        consumer -- a picture card, a dashboard card asking for the current
-        model -- drew a broken-image icon. Idle is not broken, and saying so is
-        the entity's job.
-        """
-        return super().available and printer_state_for_key(
-            self.coordinator, self._printer_id, self.entity_description.key
-        ) is not None
-
-    @property
-    def image_url(self) -> str | None:
-        return self._known_image_url
-
-    @property
-    def image_last_updated(self) -> datetime | None:
-        return self._attr_image_last_updated
-
-    async def _async_load_image_from_url(self, url: str) -> Image | None:
-        """Load an image by url."""
-        if response := await self._fetch_url(url):
-            return Image(
-                content=response.content,
-                content_type="image/png",
-            )
-        return None
-
-    async def async_image(self) -> bytes | None:
-        """Return bytes of image."""
-
-        self._check_image_url()
-
-        return await ImageEntity.async_image(self)
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        url = self.printer.job_image_url
+        if url != self._url:
+            # A new URL: the cached picture is dropped and fetched again.
+            self._url = url
+            self._attr_image_url = url
+            self._cached_image = None
+            self._attr_image_last_updated = dt_util.utcnow()
+        super()._handle_coordinator_update()

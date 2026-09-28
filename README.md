@@ -1,3 +1,10 @@
+> [!IMPORTANT]
+> **You are looking at the 3.0 beta.** 3.0 is a from-scratch, MIT-licensed rewrite of this integration, and it keeps everything you have.
+> Updating from 2.x keeps every entity id, your settings and your filament history: nothing to reconfigure. It
+> runs over the Anycubic cloud and over LAN Mode, with the same panel, card and cloud camera.
+> Report anything that behaves differently from 2.x in [#40](https://github.com/Nino6689/hass-anycubic/issues/40).
+> To go back, open the integration in HACS → **Redownload** → pick **v2.9.4**, then restart Home Assistant.
+
 <h1 align="center">Anycubic Cloud &amp; LAN</h1>
 
 <p align="center"><b>Home Assistant integration for Anycubic 3D printers</b></p>

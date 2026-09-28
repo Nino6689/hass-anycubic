@@ -1,364 +1,1257 @@
 {
   "config": {
-    "abort": {
-      "already_configured": "Already configured.",
-      "reauth_successful": "Re-authentication successful."
-    },
-    "error": {
-      "cannot_connect": "Cannot connect.",
-      "invalid_auth": "Invalid authentication.",
-      "invalid_printer": "Invalid printer.",
-      "invalid_token": "Invalid user token.",
-      "invalid_token_format": "That doesn't look like an Anycubic token. It should be a long string of letters and numbers — slicer tokens start with \"eyJ\". Try one of the one-click helpers in the tools folder, then paste the result here.",
-      "lan_host_required": "Enter the printer's address on your network.",
-      "lan_printer_in_cloud_mode": "The printer answered, but it is still in cloud mode. Switch LAN Mode on at the printer: Settings → Network → LAN Mode.",
-      "lan_unreachable": "Could not reach the printer at that address. Check the address, and that LAN Mode is switched on at the printer.",
-      "lan_unsupported_printer": "This printer does not use the local protocol this integration speaks (Kobra 3 / S1 generation). Please open an issue with your model and firmware version.",
-      "no_printers": "No printers found.",
-      "token_corrupted": "This token is damaged — its signature doesn't match its contents, so a character was lost or changed on its way here. Copy it again in one piece. If it came from a memory dump, sign in again first and take the token from a fresh dump.",
-      "token_expired": "This token has expired. Sign in to the slicer or website again and grab a fresh one — Anycubic tokens last about 90 days.",
-      "wrong_token_type": "That looks like the wrong kind of token. Anycubic issues several, and the integration needs the one whose type is \"access-token\" — the others are refused with \"User does not exist\". If you recovered it from a memory dump, there is usually more than one token in there; try the next match.",
-      "cannot_read_response": "The Anycubic cloud answered, but this integration could not read its response. That is a fault in the integration rather than a problem with your credentials -- please report it, with your printer model and firmware version."
-    },
+    "flow_title": "{name}",
     "step": {
-      "auth_mode_android": {
-        "title": "Authentication Mode - Android App",
-        "description": "Requires both token and device_id.",
-        "data": {
-          "user_token": "User Token",
-          "user_device_id": "Device ID (Required for Android)"
-        }
-      },
-      "auth_mode_pick": {
-        "title": "Authentication Mode",
-        "description": "Which authentication mode would you like to use?",
+      "user": {
+        "title": "How should Home Assistant reach the printer?",
         "menu_options": {
-          "auth_mode_web": "Web (No MQTT)",
-          "auth_mode_slicer": "Slicer Next (Win)",
-          "auth_mode_android": "Android"
-        }
-      },
-      "auth_mode_slicer": {
-        "title": "Authentication Mode - Slicer Next",
-        "description": "Retrieve the access_token from your Anycubic Slicer Next config (see the integration readme — on Windows it's AppData/AnycubicSlicerNext/AnycubicSlicerNext.conf; on macOS it's under Library/Application Support).",
-        "data": {
-          "user_token": "Slicer Access Token"
-        }
-      },
-      "auth_mode_web": {
-        "title": "Authentication Mode - Web",
-        "description": "Retrieve your token from the Anycubic Cloud website (see the integration readme for the exact steps — open your browser's developer console on the file page and read window.localStorage XX-Token).",
-        "data": {
-          "user_token": "User Token"
+          "cloud": "Through my Anycubic account",
+          "local": "Directly on my network (LAN Mode)"
         }
       },
       "cloud": {
-        "title": "Connect your Anycubic account",
-        "description": "Home Assistant can't sign in to Anycubic for you — their login uses a captcha and 2-factor check. Instead, paste a **token**: a \"you're already signed in\" pass.\n\n**The easy way — no terminal needed.** The integration's tools folder ({tools_url}) has one-click helpers:\n• **Browser bookmark** — click it on the Anycubic site, token copied. No terminal at all.\n• **Mac** — double-click a file.  • **Windows** — right-click → Run.\n\nEach one only *reads* a value your computer already saved and copies it. They never connect to the internet, ask for your password, or change anything.\n\nThen just paste it below — don't worry about tidying it up, and you don't need to know which type it is. Extra quotes, spaces or even the whole config file are fine, and the right mode is detected for you.",
+        "title": "Anycubic account",
+        "description": "Paste the access token from Anycubic Slicer Next (or the whole configuration file section that holds it). Home Assistant signs in with it; it never asks for your password.",
         "data": {
-          "user_token": "Paste your token here",
-          "user_device_id": "Device ID (only for the Android method — leave blank otherwise)",
-          "region": "Which Anycubic service is your account on?"
+          "user_token": "Access token",
+          "user_device_id": "Android device ID",
+          "region": "Anycubic region"
         },
         "data_description": {
-          "user_token": "A slicer token gives live, second-by-second updates and the control buttons. A web token gives status only. Whichever you paste, it's detected automatically.",
-          "user_device_id": "Leave this empty unless you extracted a token from the Android app's network traffic.",
-          "region": "Anycubic runs two separate services and they do not share accounts. Almost everyone should leave this on International. Choose China only if you signed up inside the Chinese app or at a .cn address — an account from one service does not exist on the other, so the wrong choice here reports your login as invalid."
+          "user_token": "The token, or text that contains it. Quotes and surrounding configuration text are removed.",
+          "user_device_id": "Only for a token taken from the Android app. Leave empty otherwise.",
+          "region": "The Anycubic service your account belongs to. Accounts are not shared between the two."
+        }
+      },
+      "printer": {
+        "title": "Choose printers",
+        "description": "Pick the printers on your Anycubic account that this entry should cover.",
+        "data": {
+          "printer_ids": "Printers"
+        }
+      },
+      "local": {
+        "title": "Printer in LAN Mode",
+        "description": "Switch LAN Mode on at the printer first (Settings → Network → LAN Mode). The printer then works without the Anycubic cloud.",
+        "data": {
+          "lan_host": "Printer address"
+        },
+        "data_description": {
+          "lan_host": "The printer's address on your network, for example 192.168.1.50. You find it on the printer under Settings → Network."
         }
       },
       "confirm_discovery": {
         "title": "Anycubic printer found",
-        "description": "A printer was found at {host}. Set it up now?"
+        "description": "An Anycubic printer was found at {host}. Do you want to set it up?"
+      },
+      "reauth_or_choose_printer": {
+        "title": "What do you want to change?",
+        "menu_options": {
+          "reauth": "Replace the Anycubic token",
+          "printer": "Choose printers",
+          "connection": "Connection (LAN Mode)"
+        }
       },
       "connection": {
         "title": "Connection",
-        "description": "Choose how Home Assistant reaches the printer.\n\n⚠ Switching LAN Mode on REMOVES the printer from your Anycubic account. Switching it back off does not restore it, and nor does a power cycle — the printer has to be added again in the Anycubic app. This is the printer's behaviour, not the integration's.\n\nChange it at the printer first, then match it here. Your entity IDs stay the same either way.",
+        "description": "Change how Home Assistant reaches the printer.",
         "data": {
-          "lan_mode_enabled": "Use the local connection (LAN Mode)",
-          "lan_host": "Printer address on your network"
+          "lan_mode_enabled": "Use LAN Mode",
+          "lan_host": "Printer address"
         },
         "data_description": {
-          "lan_host": "For example 10.0.0.42. Only needed for the local connection."
+          "lan_mode_enabled": "Talk to the printer directly on your network. LAN Mode must also be switched on at the printer.",
+          "lan_host": "The printer's address on your network, for example 192.168.1.50. You find it on the printer under Settings → Network."
         }
       },
-      "local": {
-        "title": "Connect directly to the printer",
-        "description": "Your printer must have **LAN Mode** switched on — Settings → Network → LAN Mode, on the printer's own screen.\n\nNo Anycubic account or token is needed. You'll get temperatures, job progress, all four ACE slots, filament tracking and the camera. Cloud file management and the print queue aren't available this way.\n\n⚠️ Turning LAN Mode on removes the printer from your Anycubic account. You can add it back in the app later, but it isn't automatic.",
-        "data": {
-          "lan_host": "Printer IP address"
-        }
-      },
-      "printer": {
-        "title": "Choose your printers.",
-        "data": {
-          "printer_ids": "Monitored Printers"
-        }
-      },
-      "reauth_or_choose_printer": {
-        "title": "Re-Auth or Printer Select",
-        "description": "Are you re-authenticating or changing your monitored printer(s)?",
+      "auth_mode_pick": {
+        "title": "Kind of token",
         "menu_options": {
-          "reauth": "Re-Authenticate",
-          "printer": "Change Printer(s)",
-          "connection": "Connection (cloud or local)"
+          "auth_mode_web": "Token from the Anycubic website",
+          "auth_mode_slicer": "Token from Anycubic Slicer Next",
+          "auth_mode_android": "Token from the Android app"
         }
       },
-      "user": {
-        "title": "How should Home Assistant reach your printer?",
-        "menu_options": {
-          "cloud": "Anycubic account (cloud)",
-          "local": "Directly on my network (LAN Mode) — no account needed"
+      "auth_mode_web": {
+        "title": "Website token",
+        "data": {
+          "user_token": "Access token"
+        }
+      },
+      "auth_mode_slicer": {
+        "title": "Slicer token",
+        "data": {
+          "user_token": "Access token"
+        }
+      },
+      "auth_mode_android": {
+        "title": "Android app token",
+        "data": {
+          "user_token": "Access token",
+          "user_device_id": "Android device ID"
         }
       }
+    },
+    "error": {
+      "lan_host_required": "Enter the printer's IP address or host name.",
+      "lan_printer_in_cloud_mode": "The printer answered, but LAN Mode is off. On the printer, open Settings → Network and switch LAN Mode on, then try again.",
+      "lan_unsupported_printer": "The printer answered with something this integration cannot use. Older models (Kobra 2 and earlier) have no LAN Mode.",
+      "lan_unreachable": "No printer answered at this address. Check that the printer is switched on, awake and on the same network.",
+      "lan_different_printer": "A different printer answered at this address. To add another printer, set up a new entry instead.",
+      "invalid_token_format": "No token was found in what you pasted.",
+      "token_expired": "This token has expired. Sign in to Anycubic Slicer Next again and copy the new one.",
+      "token_corrupted": "This token is damaged: its signature does not match. Copy it again, in full.",
+      "invalid_auth": "Anycubic did not accept this token.",
+      "wrong_token_type": "This is not an access token. Copy the access token from Anycubic Slicer Next.",
+      "cannot_read_response": "Anycubic answered with something this integration could not read. This is a fault in the integration; please report it with your printer model and firmware.",
+      "cannot_connect": "Could not reach the Anycubic cloud. Try again in a moment.",
+      "no_printers": "Choose at least one printer. If the list is empty, the account has no printers - a printer in LAN Mode leaves the account.",
+      "invalid_printer": "Anycubic could not give the details of a chosen printer. A printer in LAN Mode leaves the account."
+    },
+    "abort": {
+      "already_configured": "This printer is already set up. If its address changed, the entry now uses the new one.",
+      "reconfigure_successful": "The settings were saved and the printer reconnected.",
+      "cloud_credentials_unavailable": "The Anycubic app credentials this integration needs could not be loaded, so Anycubic accounts cannot be used right now. See the repair notice for details.",
+      "reauth_successful": "The new token was saved and the entry restarted.",
+      "wrong_account": "This token belongs to a different Anycubic account than the entry."
     }
   },
   "options": {
     "step": {
       "options_menu": {
-        "title": "Anycubic Options",
+        "title": "Options",
         "menu_options": {
-          "mqtt": "MQTT Settings",
-          "drying": "Drying Presets",
-          "card_config": "Panel Card Config",
-          "debug": "Debug Settings",
-          "local": "Local connection (LAN Mode)"
+          "mqtt": "Cloud connection",
+          "drying": "Drying presets",
+          "local": "LAN Mode",
+          "card_config": "Side panel card",
+          "debug": "Debug logging"
         }
       },
       "mqtt": {
-        "title": "MQTT Settings",
+        "title": "Cloud connection",
+        "description": "When to keep the live connection to the Anycubic cloud open. Used by cloud entries.",
         "data": {
-          "mqtt_connect_mode": "MQTT Connection Mode"
+          "mqtt_connect_mode": "Keep connected"
         }
       },
       "drying": {
-        "title": "Drying Presets",
+        "title": "Drying presets",
+        "description": "Up to four fixed drying programmes for the ACE. Each complete preset gets its own start button.",
         "data": {
-          "drying_preset_duration_1": "Dry Preset 1 Duration",
-          "drying_preset_temperature_1": "Dry Preset 1 Temperature",
-          "drying_preset_duration_2": "Dry Preset 2 Duration",
-          "drying_preset_temperature_2": "Dry Preset 2 Temperature",
-          "drying_preset_duration_3": "Dry Preset 3 Duration",
-          "drying_preset_temperature_3": "Dry Preset 3 Temperature",
-          "drying_preset_duration_4": "Dry Preset 4 Duration",
-          "drying_preset_temperature_4": "Dry Preset 4 Temperature"
-        }
-      },
-      "card_config": {
-        "title": "Panel Card Config",
-        "data": {
-          "card_config": "Panel Card Config (YAML format)"
-        }
-      },
-      "debug": {
-        "title": "Debug Settings",
-        "data": {
-          "debug_mqtt_msg": "Debug Log all MQTT messages",
-          "debug_api_calls": "Debug Log all API calls"
+          "drying_preset_duration_1": "Preset 1 duration (minutes)",
+          "drying_preset_temperature_1": "Preset 1 temperature (°C)",
+          "drying_preset_duration_2": "Preset 2 duration (minutes)",
+          "drying_preset_temperature_2": "Preset 2 temperature (°C)",
+          "drying_preset_duration_3": "Preset 3 duration (minutes)",
+          "drying_preset_temperature_3": "Preset 3 temperature (°C)",
+          "drying_preset_duration_4": "Preset 4 duration (minutes)",
+          "drying_preset_temperature_4": "Preset 4 temperature (°C)"
+        },
+        "data_description": {
+          "drying_preset_duration_1": "How long preset 1 dries for. Set both values of a preset to get a button for it.",
+          "drying_preset_temperature_1": "The drying temperature of preset 1.",
+          "drying_preset_duration_2": "How long preset 2 dries for. Set both values of a preset to get a button for it.",
+          "drying_preset_temperature_2": "The drying temperature of preset 2.",
+          "drying_preset_duration_3": "How long preset 3 dries for. Set both values of a preset to get a button for it.",
+          "drying_preset_temperature_3": "The drying temperature of preset 3.",
+          "drying_preset_duration_4": "How long preset 4 dries for. Set both values of a preset to get a button for it.",
+          "drying_preset_temperature_4": "The drying temperature of preset 4."
         }
       },
       "local": {
-        "title": "Local connection (LAN Mode)",
-        "description": "Talk to the printer directly on your network instead of through Anycubic's cloud.\n\n⚠ Switching LAN Mode on REMOVES the printer from your Anycubic account. Switching it back off does not restore it, and nor does a power cycle — the printer has to be added again in the Anycubic app. This is the printer's behaviour, not the integration's.\n\nCloud-only features (the file library, uploads, print history) stop working. Everything the printer itself knows, including filament tracking, keeps working.\n\nSwitch LAN Mode on at the printer first, then enable it here.",
+        "title": "LAN Mode",
+        "description": "Change how Home Assistant reaches the printer.",
         "data": {
-          "lan_mode_enabled": "Use the local connection",
-          "lan_host": "Printer address on your network"
+          "lan_mode_enabled": "Use LAN Mode",
+          "lan_host": "Printer address"
         },
         "data_description": {
-          "lan_host": "For example 10.0.0.42. A fixed address is strongly recommended."
+          "lan_mode_enabled": "Talk to the printer directly on your network. LAN Mode must also be switched on at the printer.",
+          "lan_host": "The printer's address on your network, for example 192.168.1.50. You find it on the printer under Settings → Network."
+        }
+      },
+      "card_config": {
+        "title": "Side panel card",
+        "description": "Settings for the printer card shown in the side panel, in YAML.",
+        "data": {
+          "card_config": "Card settings"
+        }
+      },
+      "debug": {
+        "title": "Debug logging",
+        "description": "Write extra detail to the Home Assistant log, at debug level.",
+        "data": {
+          "debug_mqtt_msg": "Log printer messages",
+          "debug_api_calls": "Log cloud requests"
+        },
+        "data_description": {
+          "debug_mqtt_msg": "Every message the printer sends. The printer's key is hidden.",
+          "debug_api_calls": "Every request to the Anycubic cloud."
         }
       }
     },
     "error": {
-      "lan_host_required": "Enter the printer's address on your network.",
-      "lan_unreachable": "Could not reach the printer at that address. Check the address, and that LAN Mode is switched on at the printer.",
-      "lan_printer_in_cloud_mode": "The printer answered, but it is still in cloud mode. Switch LAN Mode on at the printer: Settings → Network → LAN Mode.",
-      "lan_unsupported_printer": "This printer does not use the local protocol this integration speaks (Kobra 3 / S1 generation). Please open an issue with your model and firmware version."
+      "lan_host_required": "Enter the printer's IP address or host name.",
+      "lan_printer_in_cloud_mode": "The printer answered, but LAN Mode is off. On the printer, open Settings → Network and switch LAN Mode on, then try again.",
+      "lan_unsupported_printer": "The printer answered with something this integration cannot use. Older models (Kobra 2 and earlier) have no LAN Mode.",
+      "lan_unreachable": "No printer answered at this address. Check that the printer is switched on, awake and on the same network.",
+      "lan_different_printer": "A different printer answered at this address. To add another printer, set up a new entry instead.",
+      "invalid_card_config": "The card settings must be a mapping of setting names to values."
+    }
+  },
+  "selector": {
+    "mqtt_connect_mode": {
+      "options": {
+        "1": "While printing",
+        "2": "While printing or drying",
+        "3": "While the printer is online",
+        "4": "Always",
+        "5": "Never"
+      }
+    },
+    "region": {
+      "options": {
+        "international": "International (anycubic.com)",
+        "china": "China (anycubicloud.com)"
+      }
+    }
+  },
+  "issues": {
+    "cloud_credentials_unavailable": {
+      "title": "Anycubic cloud features are unavailable",
+      "description": "The Anycubic app credentials are read at run time from the {package} Python package, which could not be loaded or is incomplete. Printers in LAN Mode keep working; entries that need the Anycubic cloud wait until it is available. Your entries and their settings are unchanged. Reinstalling the integration, then restarting Home Assistant, usually fixes this."
+    },
+    "token_expiring": {
+      "title": "The Anycubic token of {name} expires soon",
+      "description": "The token {name} uses expires in {days} days. Anycubic tokens last about 90 days and cannot be renewed automatically. Copy a fresh token (helpers: [macOS]({tool_macos}), [Windows]({tool_windows}), [browser]({tool_browser})) and enter it with [re-authentication]({reauth_url})."
+    }
+  },
+  "exceptions": {
+    "lan_mode_off": {
+      "message": "LAN Mode is switched off for this entry. Switch it on in the entry's options."
+    },
+    "lan_mode_disabled": {
+      "message": "The printer answered, but LAN Mode is off at the printer."
+    },
+    "lan_unsupported_printer": {
+      "message": "The printer's reply cannot be used by this integration."
+    },
+    "lan_unreachable": {
+      "message": "No printer answered at {host}."
+    },
+    "lan_connection_lost": {
+      "message": "The printer at {host} does not answer."
+    },
+    "printer_not_connected": {
+      "message": "The printer is not connected."
+    },
+    "printer_error": {
+      "message": "The printer refused the command: {message}"
+    },
+    "printer_printing": {
+      "message": "Not possible while a print is running."
+    },
+    "cloud_only_control": {
+      "message": "This can only be done through the Anycubic cloud, which cannot reach a printer in LAN Mode."
+    },
+    "cloud_only_action": {
+      "message": "The action {action} needs the Anycubic cloud, which a printer in LAN Mode cannot use."
+    },
+    "speed_mode_unavailable": {
+      "message": "This speed mode is not one the printer offers for the job. Over LAN the printer lists no speed modes."
+    },
+    "printer_not_busy": {
+      "message": "The printer is not busy."
+    },
+    "no_job": {
+      "message": "There is no print job."
+    },
+    "job_not_in_progress": {
+      "message": "The print job is not running."
+    },
+    "config_entry_not_found": {
+      "message": "No Anycubic entry with this ID exists."
+    },
+    "config_entry_not_loaded": {
+      "message": "The Anycubic entry is not loaded."
+    },
+    "one_printer_at_a_time": {
+      "message": "Choose one printer device at a time."
+    },
+    "printer_not_found": {
+      "message": "The printer was not found in this entry."
+    },
+    "gcode_read_failed": {
+      "message": "The uploaded file could not be read."
+    },
+    "printer_busy": {
+      "message": "The printer is busy."
+    },
+    "mqtt_connect_timeout": {
+      "message": "The live connection to the Anycubic cloud could not be opened. Try switching on the manual MQTT connection, then try again."
+    },
+    "file_list_unavailable": {
+      "message": "The {source} file list cannot be fetched over this printer's current connection."
+    },
+    "cloud_credentials_unavailable": {
+      "message": "The Anycubic app credentials could not be loaded, so this entry cannot reach the Anycubic cloud yet. Its settings are kept."
+    },
+    "no_token": {
+      "message": "This entry has no Anycubic token."
+    },
+    "token_rejected": {
+      "message": "Anycubic no longer accepts this entry's token."
+    },
+    "cloud_read_error": {
+      "message": "Anycubic answered with something this integration could not read. This is a fault in the integration; please report it with your printer model and firmware."
+    },
+    "cloud_unavailable": {
+      "message": "The Anycubic cloud is not answering: {error}"
+    },
+    "cloud_not_available": {
+      "message": "The Anycubic cloud is not available for this printer."
+    },
+    "printer_not_in_cloud": {
+      "message": "The Anycubic cloud cannot supply a printer of this entry. A printer in LAN Mode leaves the Anycubic account: to use it that way, switch LAN Mode on in the entry's options and enter the printer's address."
+    },
+    "printer_removed": {
+      "message": "The Anycubic cloud reports this printer removed from the account, which LAN Mode does."
+    },
+    "no_printers": {
+      "message": "This entry covers no printers."
+    },
+    "cloud_error": {
+      "message": "The Anycubic cloud refused the request: {message}"
+    },
+    "cloud_file_delete_failed": {
+      "message": "The Anycubic cloud did not delete the file."
+    },
+    "cloud_storage_full": {
+      "message": "There is not enough free space in the Anycubic cloud storage for this file."
+    },
+    "slots_required": {
+      "message": "This printer has an ACE: give one slot per colour of the file."
+    },
+    "slots_not_allowed": {
+      "message": "This printer has no ACE: leave the slots out."
+    },
+    "slot_not_on_ace": {
+      "message": "A chosen slot is not on a connected ACE (slots 1-4 are on the first ACE, 5-8 on the second)."
+    },
+    "slot_mapping_failed": {
+      "message": "The slots do not fit the file: {message}"
+    }
+  },
+  "services": {
+    "multi_color_box_set_slot_pla": {
+      "name": "Set ACE slot to PLA",
+      "description": "Records PLA and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_petg": {
+      "name": "Set ACE slot to PETG",
+      "description": "Records PETG and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_abs": {
+      "name": "Set ACE slot to ABS",
+      "description": "Records ABS and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pacf": {
+      "name": "Set ACE slot to PA-CF",
+      "description": "Records PA-CF and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pc": {
+      "name": "Set ACE slot to PC",
+      "description": "Records PC and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_asa": {
+      "name": "Set ACE slot to ASA",
+      "description": "Records ASA and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_hips": {
+      "name": "Set ACE slot to HIPS",
+      "description": "Records HIPS and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pa": {
+      "name": "Set ACE slot to PA",
+      "description": "Records PA and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_set_slot_pla_se": {
+      "name": "Set ACE slot to PLA SE",
+      "description": "Records PLA SE and a colour for one ACE slot, as when you edit the slot by hand in the slicer.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "slot_color_red": {
+          "name": "Red",
+          "description": "Red part of the filament colour, 0 to 255."
+        },
+        "slot_color_green": {
+          "name": "Green",
+          "description": "Green part of the filament colour, 0 to 255."
+        },
+        "slot_color_blue": {
+          "name": "Blue",
+          "description": "Blue part of the filament colour, 0 to 255."
+        }
+      }
+    },
+    "multi_color_box_filament_extrude": {
+      "name": "Feed filament from an ACE slot",
+      "description": "Pushes the filament of one ACE slot to the print head, or ends a feed. Follow every feed with a call that ends it.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        },
+        "slot_number": {
+          "name": "Slot",
+          "description": "Slot number on that ACE, 1 to 4."
+        },
+        "finished": {
+          "name": "End the feed",
+          "description": "On to end a feed that is in progress; off to start one."
+        }
+      }
+    },
+    "multi_color_box_filament_retract": {
+      "name": "Retract ACE filament",
+      "description": "Pulls the filament that is loaded back into the ACE.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "box_id": {
+          "name": "ACE unit",
+          "description": "Which ACE: 0 for the first, 1 for the second."
+        }
+      }
+    },
+    "print_and_upload_save_in_cloud": {
+      "name": "Upload, keep in the cloud and print",
+      "description": "Uploads a sliced file to your Anycubic cloud storage and starts printing it. Needs an Anycubic account.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "slot_number": {
+          "name": "ACE slots",
+          "description": "One ACE slot per colour of the file, in the file's colour order: 1–4 on the first ACE, 5–8 on the second. Leave empty on printers without an ACE."
+        },
+        "uploaded_gcode_file": {
+          "name": "Sliced file",
+          "description": "The sliced file to print."
+        }
+      }
+    },
+    "print_and_upload_no_cloud_save": {
+      "name": "Upload and print once",
+      "description": "Uploads a sliced file for one print and starts it; the cloud removes the file afterwards. Needs an Anycubic account.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "slot_number": {
+          "name": "ACE slots",
+          "description": "One ACE slot per colour of the file, in the file's colour order: 1–4 on the first ACE, 5–8 on the second. Leave empty on printers without an ACE."
+        },
+        "uploaded_gcode_file": {
+          "name": "Sliced file",
+          "description": "The sliced file to print."
+        }
+      }
+    },
+    "print_local_file": {
+      "name": "Print a file stored on the printer",
+      "description": "Starts printing a file that is already in the printer's internal storage. Needs an Anycubic account.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "filename": {
+          "name": "File name",
+          "description": "The exact name of the file, as the file list shows it."
+        }
+      }
+    },
+    "delete_file_local": {
+      "name": "Delete a file from the printer",
+      "description": "Removes a file from the printer's internal storage. Needs an Anycubic account.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "filename": {
+          "name": "File name",
+          "description": "The exact name of the file, as the file list shows it."
+        }
+      }
+    },
+    "delete_file_udisk": {
+      "name": "Delete a file from the USB stick",
+      "description": "Removes a file from the USB stick in the printer. Needs an Anycubic account.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "filename": {
+          "name": "File name",
+          "description": "The exact name of the file, as the file list shows it."
+        }
+      }
+    },
+    "delete_file_cloud": {
+      "name": "Delete a cloud file",
+      "description": "Removes a file from your Anycubic cloud storage.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "file_id": {
+          "name": "File ID",
+          "description": "The numeric ID of the cloud file."
+        }
+      }
+    },
+    "change_print_speed_mode": {
+      "name": "Change the print speed mode",
+      "description": "Switches the running print to another speed mode. Only modes the printer lists can be chosen.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "speed_mode": {
+          "name": "Speed mode",
+          "description": "The number of the speed mode."
+        }
+      }
+    },
+    "change_print_target_nozzle_temperature": {
+      "name": "Set the nozzle temperature",
+      "description": "Sets the nozzle's target temperature, idle or printing.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Target temperature in °C. The printer applies its own limits."
+        }
+      }
+    },
+    "change_print_target_hotbed_temperature": {
+      "name": "Set the bed temperature",
+      "description": "Sets the bed's target temperature, idle or printing.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Target temperature in °C. The printer applies its own limits."
+        }
+      }
+    },
+    "change_print_fan_speed": {
+      "name": "Set the part cooling fan",
+      "description": "Sets the speed of the part cooling fan.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "speed": {
+          "name": "Speed",
+          "description": "Fan speed from 0 to 100."
+        }
+      }
+    },
+    "change_print_aux_fan_speed": {
+      "name": "Set the auxiliary fan",
+      "description": "Sets the speed of the auxiliary part fan.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "speed": {
+          "name": "Speed",
+          "description": "Fan speed from 0 to 100."
+        }
+      }
+    },
+    "change_print_box_fan_speed": {
+      "name": "Set the box fan",
+      "description": "Sets the level of the box fan.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "speed": {
+          "name": "Speed",
+          "description": "Fan speed from 0 to 100."
+        }
+      }
+    },
+    "change_print_bottom_layers": {
+      "name": "Set resin bottom layers",
+      "description": "Changes the number of bottom layers of the running resin print.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "layers": {
+          "name": "Layers",
+          "description": "Number of bottom layers."
+        }
+      }
+    },
+    "change_print_bottom_time": {
+      "name": "Set resin bottom exposure",
+      "description": "Changes the bottom-layer exposure time of the running resin print.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "time": {
+          "name": "Time",
+          "description": "Time in seconds."
+        }
+      }
+    },
+    "change_print_off_time": {
+      "name": "Set resin light-off time",
+      "description": "Changes the time the light stays off between layers of the running resin print.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "time": {
+          "name": "Time",
+          "description": "Time in seconds."
+        }
+      }
+    },
+    "change_print_on_time": {
+      "name": "Set resin exposure",
+      "description": "Changes the normal-layer exposure time of the running resin print.",
+      "fields": {
+        "config_entry": {
+          "name": "Config entry",
+          "description": "The Anycubic entry the printer belongs to."
+        },
+        "device_id": {
+          "name": "Printer device",
+          "description": "The printer's device (not an ACE unit). Takes precedence over the printer ID."
+        },
+        "printer_id": {
+          "name": "Printer ID",
+          "description": "The printer's numeric ID, as an alternative to choosing its device."
+        },
+        "time": {
+          "name": "Time",
+          "description": "Time in seconds."
+        }
+      }
     }
   },
   "entity": {
-    "binary_sensor": {
-      "axis_move_failed": {
-        "name": "Axis move refused"
-      },
-      "axis_moving": {
-        "name": "Axis moving"
-      },
-      "dry_status_is_drying": {
-        "name": "Drying Active"
-      },
-      "external_spool_loaded": {
-        "name": "External spool loaded"
-      },
-      "is_available": {
-        "name": "Is Available"
-      },
-      "is_busy": {
-        "name": "Is Busy"
-      },
-      "job_complete": {
-        "name": "Job Complete"
-      },
-      "job_failed": {
-        "name": "Job Failed"
-      },
-      "job_filament_insufficient": {
-        "name": "Filament insufficient for job"
-      },
-      "job_in_progress": {
-        "name": "Job In Progress"
-      },
-      "job_is_paused": {
-        "name": "Job Paused"
-      },
-      "mqtt_connection_active": {
-        "name": "MQTT Connection Active"
-      },
-      "printer_online": {
-        "name": "Printer Online"
-      },
-      "secondary_dry_status_is_drying": {
-        "name": "Secondary Drying Active"
-      }
-    },
-    "button": {
-      "ace_refresh_spools": {
-        "name": "Refresh ACE Spools"
-      },
-      "ace_retract": {
-        "name": "ACE retract filament"
-      },
-      "ace_slot_1_feed": {
-        "name": "ACE slot 1 feed"
-      },
-      "ace_slot_1_reset_spool": {
-        "name": "ACE slot 1 reset spool"
-      },
-      "ace_slot_2_feed": {
-        "name": "ACE slot 2 feed"
-      },
-      "ace_slot_2_reset_spool": {
-        "name": "ACE slot 2 reset spool"
-      },
-      "ace_slot_3_feed": {
-        "name": "ACE slot 3 feed"
-      },
-      "ace_slot_3_reset_spool": {
-        "name": "ACE slot 3 reset spool"
-      },
-      "ace_slot_4_feed": {
-        "name": "ACE slot 4 feed"
-      },
-      "ace_slot_4_reset_spool": {
-        "name": "ACE slot 4 reset spool"
-      },
-      "axis_home_all": {
-        "name": "Home all axes"
-      },
-      "axis_home_xy": {
-        "name": "Home X and Y"
-      },
-      "axis_home_z": {
-        "name": "Home Z axis"
-      },
-      "axis_motors_off": {
-        "name": "Release motors"
-      },
-      "axis_move_x_minus": {
-        "name": "Move X minus"
-      },
-      "axis_move_x_plus": {
-        "name": "Move X plus"
-      },
-      "axis_move_y_minus": {
-        "name": "Move Y minus"
-      },
-      "axis_move_y_plus": {
-        "name": "Move Y plus"
-      },
-      "axis_move_z_minus": {
-        "name": "Move Z minus"
-      },
-      "axis_move_z_plus": {
-        "name": "Move Z plus"
-      },
-      "cancel_print": {
-        "name": "Cancel Print"
-      },
-      "drying_start": {
-        "name": "Start drying"
-      },
-      "drying_start_preset_1": {
-        "name": "Drying Preset 1"
-      },
-      "drying_start_preset_2": {
-        "name": "Drying Preset 2"
-      },
-      "drying_start_preset_3": {
-        "name": "Drying Preset 3"
-      },
-      "drying_start_preset_4": {
-        "name": "Drying Preset 4"
-      },
-      "drying_stop": {
-        "name": "Drying Stop"
-      },
-      "pause_print": {
-        "name": "Pause Print"
-      },
-      "refresh_mqtt_connection": {
-        "name": "Refresh MQTT Connection"
-      },
-      "request_axis_position": {
-        "name": "Request head position"
-      },
-      "request_file_list_cloud": {
-        "name": "Request File List (Cloud)"
-      },
-      "request_file_list_local": {
-        "name": "Request File List (Local)"
-      },
-      "request_file_list_udisk": {
-        "name": "Request File List (USB Disk)"
-      },
-      "reset_nozzle_wear": {
-        "name": "Reset nozzle wear"
-      },
-      "resume_print": {
-        "name": "Resume Print"
-      },
-      "secondary_drying_start_preset_1": {
-        "name": "Secondary Drying Preset 1"
-      },
-      "secondary_drying_start_preset_2": {
-        "name": "Secondary Drying Preset 2"
-      },
-      "secondary_drying_start_preset_3": {
-        "name": "Secondary Drying Preset 3"
-      },
-      "secondary_drying_start_preset_4": {
-        "name": "Secondary Drying Preset 4"
-      },
-      "secondary_drying_stop": {
-        "name": "Secondary Drying Stop"
-      },
-      "secondary_ace_retract": {
-        "name": "Secondary ACE Retract"
-      },
-      "secondary_drying_start": {
-        "name": "Secondary Drying Start"
-      }
-    },
-    "image": {
-      "job_image_url": {
-        "name": "Job Preview"
-      }
-    },
     "sensor": {
-      "ace_current_temperature": {
-        "name": "ACE Current Temperature"
+      "current_status": {
+        "name": "Current Status",
+        "state": {
+          "moving": "Moving",
+          "busy": "Busy",
+          "available": "Available",
+          "unknown": "Unknown"
+        }
+      },
+      "last_error_code": {
+        "name": "Last Error Code"
+      },
+      "last_error": {
+        "name": "Last Error"
+      },
+      "job_name": {
+        "name": "Job Name"
+      },
+      "job_progress": {
+        "name": "Job Progress %"
+      },
+      "job_time_elapsed": {
+        "name": "Job Time Elapsed"
+      },
+      "job_time_remaining": {
+        "name": "Job Time Remaining"
+      },
+      "job_state": {
+        "name": "Job State",
+        "state": {
+          "printing": "Printing",
+          "paused": "Paused",
+          "finished": "Finished",
+          "failed": "Failed or cancelled",
+          "downloading": "Downloading",
+          "checking": "Checking",
+          "preheating": "Preheating",
+          "slicing": "Slicing",
+          "levelling": "Levelling",
+          "idle": "Idle",
+          "unknown": "Unknown"
+        }
+      },
+      "job_eta": {
+        "name": "Job ETA"
+      },
+      "job_current_layer": {
+        "name": "Job Current Layer"
+      },
+      "job_total_layers": {
+        "name": "Job Total Layers"
+      },
+      "job_filament_used": {
+        "name": "Job Filament Used"
+      },
+      "axis_position_x": {
+        "name": "Head position X"
+      },
+      "axis_position_y": {
+        "name": "Head position Y"
+      },
+      "axis_position_z": {
+        "name": "Head position Z"
+      },
+      "external_spool_material": {
+        "name": "External spool material"
+      },
+      "curr_nozzle_temp": {
+        "name": "Nozzle Temperature"
+      },
+      "curr_hotbed_temp": {
+        "name": "Hotbed Temperature"
+      },
+      "target_nozzle_temp": {
+        "name": "Target Nozzle Temperature"
+      },
+      "target_hotbed_temp": {
+        "name": "Target Hotbed Temperature"
+      },
+      "fan_speed_pct": {
+        "name": "Fan Speed %"
+      },
+      "aux_fan_speed_pct": {
+        "name": "Auxiliary Fan Speed"
+      },
+      "print_speed_pct": {
+        "name": "Print Speed %"
+      },
+      "job_speed_mode": {
+        "name": "Job Speed Mode"
+      },
+      "job_filament_required": {
+        "name": "Job filament required"
+      },
+      "job_filament_shortfall": {
+        "name": "Job filament shortfall"
+      },
+      "job_filament_runs_out_at": {
+        "name": "Job filament runs out at"
+      },
+      "job_cost": {
+        "name": "Job cost"
+      },
+      "last_job_cost": {
+        "name": "Last job cost"
+      },
+      "last_job_filament": {
+        "name": "Last job filament"
+      },
+      "filament_cost_total": {
+        "name": "Filament cost total"
+      },
+      "nozzle_filament_total": {
+        "name": "Nozzle filament total"
+      },
+      "nozzle_abrasive_filament": {
+        "name": "Nozzle abrasive filament"
+      },
+      "nozzle_wear_percent": {
+        "name": "Nozzle wear"
+      },
+      "spool_inventory_remaining": {
+        "name": "Spool inventory remaining"
+      },
+      "spool_inventory_count": {
+        "name": "Spool inventory count"
+      },
+      "ace_spools": {
+        "name": "ACE Spools",
+        "state": {
+          "active": "Reporting",
+          "inactive": "Not reporting"
+        }
       },
       "ace_loaded_slot": {
         "name": "ACE Loaded Slot"
+      },
+      "ace_current_temperature": {
+        "name": "ACE Current Temperature"
+      },
+      "dry_status_target_temperature": {
+        "name": "Drying Target Temperature"
+      },
+      "dry_status_total_duration": {
+        "name": "Drying Total Duration"
+      },
+      "dry_status_remaining_time": {
+        "name": "Drying Remaining Time"
+      },
+      "box_fan_level": {
+        "name": "ACE Box Fan Level"
       },
       "ace_slot_1": {
         "name": "ACE Slot 1"
@@ -396,50 +1289,27 @@
       "ace_slot_4_filament_remaining_percent": {
         "name": "ACE slot 4 filament remaining percent"
       },
-      "ace_spools": {
-        "name": "ACE Spools"
+      "secondary_ace_spools": {
+        "name": "Secondary ACE Spools",
+        "state": {
+          "active": "Reporting",
+          "inactive": "Not reporting"
+        }
       },
-      "aux_fan_speed_pct": {
-        "name": "Auxiliary Fan Speed"
+      "secondary_ace_loaded_slot": {
+        "name": "Secondary ACE Loaded Slot"
       },
-      "axis_position_x": {
-        "name": "Head position X"
+      "secondary_ace_current_temperature": {
+        "name": "Secondary ACE Current Temperature"
       },
-      "axis_position_y": {
-        "name": "Head position Y"
+      "secondary_dry_status_target_temperature": {
+        "name": "Secondary Drying Target Temperature"
       },
-      "axis_position_z": {
-        "name": "Head position Z"
+      "secondary_dry_status_total_duration": {
+        "name": "Secondary Drying Total Duration"
       },
-      "box_fan_level": {
-        "name": "ACE Box Fan Level"
-      },
-      "curr_hotbed_temp": {
-        "name": "Hotbed Temperature"
-      },
-      "curr_nozzle_temp": {
-        "name": "Nozzle Temperature"
-      },
-      "current_status": {
-        "name": "Current Status"
-      },
-      "dry_status_remaining_time": {
-        "name": "Drying Remaining Time"
-      },
-      "dry_status_target_temperature": {
-        "name": "Drying Target Temperature"
-      },
-      "dry_status_total_duration": {
-        "name": "Drying Total Duration"
-      },
-      "external_spool_material": {
-        "name": "External spool material"
-      },
-      "fan_speed_pct": {
-        "name": "Fan Speed %"
-      },
-      "filament_cost_total": {
-        "name": "Filament cost total"
+      "secondary_dry_status_remaining_time": {
+        "name": "Secondary Drying Remaining Time"
       },
       "file_list_cloud": {
         "name": "File List (Cloud)"
@@ -459,56 +1329,14 @@
       "job_bottom_time": {
         "name": "Job Bottom Time"
       },
-      "job_cost": {
-        "name": "Job cost"
-      },
-      "job_current_layer": {
-        "name": "Job Current Layer"
-      },
-      "job_eta": {
-        "name": "Job ETA"
-      },
-      "job_filament_required": {
-        "name": "Job filament required"
-      },
-      "job_filament_runs_out_at": {
-        "name": "Job filament runs out at"
-      },
-      "job_filament_shortfall": {
-        "name": "Job filament shortfall"
-      },
-      "job_filament_used": {
-        "name": "Job Filament Used"
-      },
       "job_model_height": {
         "name": "Job Model Height"
-      },
-      "job_name": {
-        "name": "Job Name"
       },
       "job_off_time": {
         "name": "Job Off Time"
       },
       "job_on_time": {
         "name": "Job On Time"
-      },
-      "job_progress": {
-        "name": "Job Progress %"
-      },
-      "job_speed_mode": {
-        "name": "Job Speed Mode"
-      },
-      "job_state": {
-        "name": "Job State"
-      },
-      "job_time_elapsed": {
-        "name": "Job Time Elapsed"
-      },
-      "job_time_remaining": {
-        "name": "Job Time Remaining"
-      },
-      "job_total_layers": {
-        "name": "Job Total Layers"
       },
       "job_z_down_speed": {
         "name": "Job Z Down Speed"
@@ -522,82 +1350,260 @@
       "job_z_up_speed": {
         "name": "Job Z Up Speed"
       },
-      "last_job_cost": {
-        "name": "Last job cost"
-      },
-      "last_job_filament": {
-        "name": "Last job filament"
-      },
       "material_used_total": {
         "name": "Total Material Used"
-      },
-      "nozzle_abrasive_filament": {
-        "name": "Nozzle abrasive filament"
-      },
-      "nozzle_filament_total": {
-        "name": "Nozzle filament total"
-      },
-      "nozzle_wear_percent": {
-        "name": "Nozzle wear"
       },
       "print_count_total": {
         "name": "Total Print Count"
       },
-      "print_speed_pct": {
-        "name": "Print Speed %"
-      },
       "print_time_total_hrs": {
         "name": "Total Print Time"
+      }
+    },
+    "binary_sensor": {
+      "printer_online": {
+        "name": "Printer Online"
       },
-      "secondary_ace_current_temperature": {
-        "name": "Secondary ACE Current Temperature"
+      "is_available": {
+        "name": "Is Available"
       },
-      "secondary_ace_spools": {
-        "name": "Secondary ACE Spools"
+      "is_busy": {
+        "name": "Is Busy"
       },
-      "secondary_dry_status_remaining_time": {
-        "name": "Secondary Drying Remaining Time"
+      "job_in_progress": {
+        "name": "Job In Progress"
       },
-      "secondary_dry_status_target_temperature": {
-        "name": "Secondary Drying Target Temperature"
+      "job_complete": {
+        "name": "Job Complete"
       },
-      "secondary_dry_status_total_duration": {
-        "name": "Secondary Drying Total Duration"
+      "job_failed": {
+        "name": "Job Failed"
       },
-      "spool_inventory_count": {
-        "name": "Spool inventory count"
+      "job_is_paused": {
+        "name": "Job Paused"
       },
-      "spool_inventory_remaining": {
-        "name": "Spool inventory remaining"
+      "axis_moving": {
+        "name": "Axis moving"
       },
-      "target_hotbed_temp": {
-        "name": "Target Hotbed Temperature"
+      "axis_move_failed": {
+        "name": "Axis move refused"
       },
-      "target_nozzle_temp": {
-        "name": "Target Nozzle Temperature"
+      "external_spool_loaded": {
+        "name": "External spool loaded"
       },
-      "last_error_code": {
-        "name": "Last Error Code"
+      "job_filament_insufficient": {
+        "name": "Filament insufficient for job"
       },
-      "last_error": {
-        "name": "Last Error"
+      "dry_status_is_drying": {
+        "name": "Drying Active"
       },
-      "secondary_ace_loaded_slot": {
-        "name": "Secondary ACE Loaded Slot"
+      "secondary_dry_status_is_drying": {
+        "name": "Secondary Drying Active"
+      },
+      "mqtt_connection_active": {
+        "name": "MQTT Connection Active"
+      }
+    },
+    "button": {
+      "pause_print": {
+        "name": "Pause Print"
+      },
+      "resume_print": {
+        "name": "Resume Print"
+      },
+      "cancel_print": {
+        "name": "Cancel Print"
+      },
+      "request_axis_position": {
+        "name": "Request head position"
+      },
+      "axis_home_xy": {
+        "name": "Home X and Y"
+      },
+      "axis_home_z": {
+        "name": "Home Z axis"
+      },
+      "axis_home_all": {
+        "name": "Home all axes"
+      },
+      "axis_move_x_plus": {
+        "name": "Move X plus"
+      },
+      "axis_move_x_minus": {
+        "name": "Move X minus"
+      },
+      "axis_move_y_plus": {
+        "name": "Move Y plus"
+      },
+      "axis_move_y_minus": {
+        "name": "Move Y minus"
+      },
+      "axis_move_z_plus": {
+        "name": "Move Z plus"
+      },
+      "axis_move_z_minus": {
+        "name": "Move Z minus"
+      },
+      "axis_motors_off": {
+        "name": "Release motors"
+      },
+      "reset_nozzle_wear": {
+        "name": "Reset nozzle wear"
+      },
+      "ace_refresh_spools": {
+        "name": "Refresh ACE Spools"
+      },
+      "ace_slot_1_feed": {
+        "name": "ACE slot 1 feed"
+      },
+      "ace_slot_2_feed": {
+        "name": "ACE slot 2 feed"
+      },
+      "ace_slot_3_feed": {
+        "name": "ACE slot 3 feed"
+      },
+      "ace_slot_4_feed": {
+        "name": "ACE slot 4 feed"
+      },
+      "ace_slot_1_reset_spool": {
+        "name": "ACE slot 1 reset spool"
+      },
+      "ace_slot_2_reset_spool": {
+        "name": "ACE slot 2 reset spool"
+      },
+      "ace_slot_3_reset_spool": {
+        "name": "ACE slot 3 reset spool"
+      },
+      "ace_slot_4_reset_spool": {
+        "name": "ACE slot 4 reset spool"
+      },
+      "ace_retract": {
+        "name": "ACE retract filament"
+      },
+      "drying_start": {
+        "name": "Start drying"
+      },
+      "drying_stop": {
+        "name": "Drying Stop"
+      },
+      "drying_start_preset_1": {
+        "name": "Start drying preset 1"
+      },
+      "drying_start_preset_2": {
+        "name": "Start drying preset 2"
+      },
+      "drying_start_preset_3": {
+        "name": "Start drying preset 3"
+      },
+      "drying_start_preset_4": {
+        "name": "Start drying preset 4"
+      },
+      "secondary_ace_retract": {
+        "name": "Secondary ACE Retract"
+      },
+      "secondary_drying_start": {
+        "name": "Secondary Drying Start"
+      },
+      "secondary_drying_stop": {
+        "name": "Secondary Drying Stop"
+      },
+      "secondary_drying_start_preset_1": {
+        "name": "Secondary start drying preset 1"
+      },
+      "secondary_drying_start_preset_2": {
+        "name": "Secondary start drying preset 2"
+      },
+      "secondary_drying_start_preset_3": {
+        "name": "Secondary start drying preset 3"
+      },
+      "secondary_drying_start_preset_4": {
+        "name": "Secondary start drying preset 4"
+      },
+      "request_file_list_cloud": {
+        "name": "Request File List (Cloud)"
+      },
+      "request_file_list_local": {
+        "name": "Request File List (Local)"
+      },
+      "request_file_list_udisk": {
+        "name": "Request File List (USB Disk)"
+      },
+      "refresh_mqtt_connection": {
+        "name": "Refresh MQTT Connection"
+      }
+    },
+    "number": {
+      "set_target_nozzle_temp": {
+        "name": "Set nozzle temperature"
+      },
+      "set_target_hotbed_temp": {
+        "name": "Set bed temperature"
+      },
+      "set_fan_speed_pct": {
+        "name": "Set fan speed"
+      },
+      "set_aux_fan_speed_pct": {
+        "name": "Set auxiliary fan speed"
+      },
+      "set_box_fan_level": {
+        "name": "Set box fan level"
+      },
+      "ace_slot_1_spool_weight": {
+        "name": "ACE slot 1 spool weight"
+      },
+      "ace_slot_1_spool_price": {
+        "name": "ACE slot 1 spool price per kg"
+      },
+      "ace_slot_2_spool_weight": {
+        "name": "ACE slot 2 spool weight"
+      },
+      "ace_slot_2_spool_price": {
+        "name": "ACE slot 2 spool price per kg"
+      },
+      "ace_slot_3_spool_weight": {
+        "name": "ACE slot 3 spool weight"
+      },
+      "ace_slot_3_spool_price": {
+        "name": "ACE slot 3 spool price per kg"
+      },
+      "ace_slot_4_spool_weight": {
+        "name": "ACE slot 4 spool weight"
+      },
+      "ace_slot_4_spool_price": {
+        "name": "ACE slot 4 spool price per kg"
+      },
+      "drying_set_temperature": {
+        "name": "Drying temperature"
+      },
+      "drying_set_duration": {
+        "name": "Drying duration"
+      }
+    },
+    "select": {
+      "axis_step": {
+        "name": "Axis step size"
+      },
+      "set_speed_mode": {
+        "name": "Print speed mode"
       }
     },
     "switch": {
       "ai_detection_enabled": {
         "name": "AI failure detection"
       },
-      "manual_mqtt_connection_enabled": {
-        "name": "Manual MQTT Connection Enabled"
-      },
       "multi_color_box_runout_refill": {
         "name": "ACE Run-out Refill"
       },
       "secondary_multi_color_box_runout_refill": {
         "name": "Secondary ACE Run-out Refill"
+      },
+      "manual_mqtt_connection_enabled": {
+        "name": "Manual MQTT Connection Enabled"
+      }
+    },
+    "light": {
+      "printer_light": {
+        "name": "Printer Light"
       }
     },
     "update": {
@@ -611,58 +1617,6 @@
         "name": "Secondary ACE Firmware"
       }
     },
-    "light": {
-      "printer_light": {
-        "name": "Printer Light"
-      }
-    },
-    "number": {
-      "ace_slot_1_spool_price": {
-        "name": "ACE slot 1 spool price per kg"
-      },
-      "ace_slot_1_spool_weight": {
-        "name": "ACE slot 1 spool weight"
-      },
-      "ace_slot_2_spool_price": {
-        "name": "ACE slot 2 spool price per kg"
-      },
-      "ace_slot_2_spool_weight": {
-        "name": "ACE slot 2 spool weight"
-      },
-      "ace_slot_3_spool_price": {
-        "name": "ACE slot 3 spool price per kg"
-      },
-      "ace_slot_3_spool_weight": {
-        "name": "ACE slot 3 spool weight"
-      },
-      "ace_slot_4_spool_price": {
-        "name": "ACE slot 4 spool price per kg"
-      },
-      "ace_slot_4_spool_weight": {
-        "name": "ACE slot 4 spool weight"
-      },
-      "drying_set_duration": {
-        "name": "Drying duration"
-      },
-      "drying_set_temperature": {
-        "name": "Drying temperature"
-      },
-      "set_aux_fan_speed_pct": {
-        "name": "Set auxiliary fan speed"
-      },
-      "set_box_fan_level": {
-        "name": "Set box fan level"
-      },
-      "set_fan_speed_pct": {
-        "name": "Set fan speed"
-      },
-      "set_target_hotbed_temp": {
-        "name": "Set bed temperature"
-      },
-      "set_target_nozzle_temp": {
-        "name": "Set nozzle temperature"
-      }
-    },
     "camera": {
       "camera": {
         "name": "Camera"
@@ -671,798 +1625,10 @@
         "name": "Cloud camera"
       }
     },
-    "select": {
-      "axis_step": {
-        "name": "Axis step size"
-      },
-      "set_speed_mode": {
-        "name": "Print speed mode"
+    "image": {
+      "job_image_url": {
+        "name": "Job Preview"
       }
-    }
-  },
-  "services": {
-    "multi_color_box_set_slot_pla": {
-      "name": "ACE Set Slot - PLA",
-      "description": "Sets PLA slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_petg": {
-      "name": "ACE Set Slot - PETG",
-      "description": "Sets PETG slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_abs": {
-      "name": "ACE Set Slot - ABS",
-      "description": "Sets ABS slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_pacf": {
-      "name": "ACE Set Slot - PACF",
-      "description": "Sets PACF slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_pc": {
-      "name": "ACE Set Slot - PC",
-      "description": "Sets PC slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_asa": {
-      "name": "ACE Set Slot - ASA",
-      "description": "Sets ASA slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_hips": {
-      "name": "ACE Set Slot - HIPS",
-      "description": "Sets HIPS slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_pa": {
-      "name": "ACE Set Slot - PA",
-      "description": "Sets PA slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_set_slot_pla_se": {
-      "name": "ACE Set Slot - PLA SE",
-      "description": "Sets PLA SE slot properties in ACE unit.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "slot_color_red": {
-          "name": "Slot Color Red",
-          "description": "Slot Color Red (0-255)."
-        },
-        "slot_color_green": {
-          "name": "Slot Color Green",
-          "description": "Slot Color Green (0-255)."
-        },
-        "slot_color_blue": {
-          "name": "Slot Color Blue",
-          "description": "Slot Color Blue (0-255)."
-        }
-      }
-    },
-    "multi_color_box_filament_extrude": {
-      "name": "ACE Filament Extrude",
-      "description": "Activate filament extrude on ACE.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        },
-        "slot_number": {
-          "name": "Slot Number",
-          "description": "Slot Number (1-4)."
-        },
-        "finished": {
-          "name": "Extrude Finished",
-          "description": "End filament extrusion command."
-        }
-      }
-    },
-    "multi_color_box_filament_retract": {
-      "name": "ACE Filament Retract",
-      "description": "Activate filament retract on ACE.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "box_id": {
-          "name": "Box ID",
-          "description": "Box ID (0-1)."
-        }
-      }
-    },
-    "print_and_upload_save_in_cloud": {
-      "name": "Print and upload (save in user cloud).",
-      "description": "Print and upload, save in user cloud store.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "slot_number": {
-          "name": "Slot Number List",
-          "description": "Slot Number List (1-4) to map to print colours. e.g. [1, 2]"
-        },
-        "uploaded_gcode_file": {
-          "name": "Gcode File",
-          "description": "The sliced .gcode file."
-        }
-      }
-    },
-    "print_and_upload_no_cloud_save": {
-      "name": "Print and upload (no cloud save).",
-      "description": "Print and upload, but don't save in user cloud store.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "slot_number": {
-          "name": "Slot Number List",
-          "description": "Slot Number List (1-4) to map to print colours. e.g. [1, 2]"
-        },
-        "uploaded_gcode_file": {
-          "name": "Gcode File",
-          "description": "The sliced .gcode file."
-        }
-      }
-    },
-    "delete_file_local": {
-      "name": "Delete file (Local)",
-      "description": "Delete a file from printer local storage.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "filename": {
-          "name": "File Name",
-          "description": "Full file name (with extension)"
-        }
-      }
-    },
-    "delete_file_udisk": {
-      "name": "Delete file (USB Disk)",
-      "description": "Delete a file from printer USB disk.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "filename": {
-          "name": "File Name",
-          "description": "Full file name (with extension)"
-        }
-      }
-    },
-    "delete_file_cloud": {
-      "name": "Delete file (Cloud)",
-      "description": "Delete a file from user cloud store.",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "file_id": {
-          "name": "File ID",
-          "description": "Cloud file ID"
-        }
-      }
-    },
-    "change_print_speed_mode": {
-      "name": "Change Print Speed Mode",
-      "description": "Change Print Speed Mode",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "speed_mode": {
-          "name": "Speed Mode",
-          "description": "Speed Mode"
-        }
-      }
-    },
-    "change_print_target_nozzle_temperature": {
-      "name": "Change Print Nozzle Temperature",
-      "description": "Change Print Nozzle Temperature",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "temperature": {
-          "name": "Nozzle Temperature",
-          "description": "Nozzle Temperature"
-        }
-      }
-    },
-    "change_print_target_hotbed_temperature": {
-      "name": "Change Print Hotbed Temperature",
-      "description": "Change Print Hotbed Temperature",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "temperature": {
-          "name": "Hotbed Temperature",
-          "description": "Hotbed Temperature"
-        }
-      }
-    },
-    "change_print_fan_speed": {
-      "name": "Change Print Fan Speed",
-      "description": "Change Print Fan Speed",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "speed": {
-          "name": "Fan Speed",
-          "description": "Fan Speed"
-        }
-      }
-    },
-    "change_print_aux_fan_speed": {
-      "name": "Change Print Aux Fan Speed",
-      "description": "Change Print Aux Fan Speed",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "speed": {
-          "name": "Aux Fan Speed",
-          "description": "Aux Fan Speed"
-        }
-      }
-    },
-    "change_print_box_fan_speed": {
-      "name": "Change Print Box Fan Speed",
-      "description": "Change Print Box Fan Speed",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "speed": {
-          "name": "Box Fan Speed",
-          "description": "Box Fan Speed"
-        }
-      }
-    },
-    "change_print_bottom_layers": {
-      "name": "Change Print Bottom Layers",
-      "description": "Change Print Bottom Layers",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "layers": {
-          "name": "Bottom Layers",
-          "description": "Bottom Layers"
-        }
-      }
-    },
-    "change_print_bottom_time": {
-      "name": "Change Print Bottom Time",
-      "description": "Change Print Bottom Time",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "time": {
-          "name": "Bottom Time",
-          "description": "Bottom Time"
-        }
-      }
-    },
-    "change_print_off_time": {
-      "name": "Change Print Off Time",
-      "description": "Change Print Off Time",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "time": {
-          "name": "Off Time",
-          "description": "Off Time"
-        }
-      }
-    },
-    "change_print_on_time": {
-      "name": "Change Print On Time",
-      "description": "Change Print On Time",
-      "fields": {
-        "config_entry": {
-          "name": "Config Entry",
-          "description": "The config entry to use for this service."
-        },
-        "device_id": {
-          "name": "Printer Device",
-          "description": "Printer Device (if not using ID)."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Printer ID (if not using device)."
-        },
-        "time": {
-          "name": "On Time",
-          "description": "On Time"
-        }
-      }
-    },
-    "print_local_file": {
-      "name": "Print a file on the printer",
-      "description": "Start a print using a file the printer already holds. Use the file list sensors to find the filename.",
-      "fields": {
-        "config_entry": {
-          "name": "Config entry",
-          "description": "The Anycubic account."
-        },
-        "printer_id": {
-          "name": "Printer ID",
-          "description": "Which printer."
-        },
-        "device_id": {
-          "name": "Device",
-          "description": "Which printer."
-        },
-        "filename": {
-          "name": "Filename",
-          "description": "Exact name as listed by the file list sensor."
-        }
-      }
-    }
-  },
-  "exceptions": {
-    "config_entry_not_found": {
-      "message": "Could not find that Anycubic configuration."
-    },
-    "config_entry_not_loaded": {
-      "message": "The Anycubic integration isn't loaded. Check it's set up and connected, then try again."
-    },
-    "one_printer_at_a_time": {
-      "message": "This action can only target one printer at a time."
-    },
-    "printer_not_found": {
-      "message": "Couldn't find that Anycubic printer. It may have been removed from your account."
-    },
-    "gcode_read_failed": {
-      "message": "Couldn't read that gcode file. Check the file uploaded correctly and try again."
-    },
-    "mqtt_connect_timeout": {
-      "message": "Timed out connecting to the printer. Try turning on the manual MQTT connection switch, then retry."
-    },
-    "printer_busy": {
-      "message": "The printer is busy. Wait for the current job to finish before starting another."
-    }
-  },
-  "issues": {
-    "token_expiring": {
-      "title": "Anycubic token expires in {days} days",
-      "description": "The token for **{name}** expires in about **{days} days**. Anycubic tokens last 90 days and can't be renewed automatically, so Home Assistant will lose access when it lapses.\n\n**1. Get a fresh token** with the one-click helper for your computer. Each one only reads a value your computer has already saved — nothing is sent anywhere.\n\n- [Mac — double-click this]({tool_macos})\n- [Windows — PowerShell one-liner]({tool_windows})\n- [Any browser — bookmarklet]({tool_browser})\n\n**2. [Open the integration]({reauth_url})** → ⋮ → **Reconfigure** → **Re-Auth**.\n\n**3. Paste it in.** You don't need to tidy it up or pick a type — it's worked out for you."
     }
   }
 }

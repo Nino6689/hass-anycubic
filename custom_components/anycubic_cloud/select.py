@@ -1,140 +1,102 @@
-"""Selects for Anycubic Cloud.
-
-Print speed mode, which the printer publishes its own options for -- Quiet,
-Standard and Sport on a Kobra S1 -- rather than a list hardcoded here that
-would be wrong on another model.
-
-Like the other live controls, the printer only accepts a change while a job
-is running, so this reports unavailable when idle instead of accepting a
-value that would be silently dropped.
-"""
+"""Selects (BEHAVIOUR §2.14)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.exceptions import ServiceValidationError
 
-from .const import AXIS_STEPS_MM, LOGGER, PrinterEntityType
-from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_attributes_for_key, printer_state_for_key
-
-# Writes go through the cloud API one request at a time.
-PARALLEL_UPDATES = 0
+from . import control
+from .const import AXIS_STEPS, DOMAIN
+from .entity import (
+    AnycubicEntity,
+    AnycubicEntityDescription,
+    Kind,
+    async_add_when_ready,
+)
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import AnycubicConfigEntry, AnycubicCoordinator
 
 
-@dataclass(frozen=True)
-class AnycubicSelectEntityDescription(
-    SelectEntityDescription, AnycubicCloudEntityDescription
-):
-    """Describes an Anycubic Cloud select entity."""
-
-    # Where the current value and the option list are read from. Kept apart
-    # from `key` because unique ids are built from the key, and a sensor
-    # already reports this same reading -- sharing the key collides.
-    state_key: str = ""
+@dataclass(frozen=True, kw_only=True)
+class AnycubicSelectDescription(AnycubicEntityDescription, SelectEntityDescription):
+    """A select of a printer."""
 
 
-SELECT_TYPES: list[AnycubicSelectEntityDescription] = list([
-    AnycubicSelectEntityDescription(
-        key="axis_step",
-        translation_key="axis_step",
-        printer_entity_type=PrinterEntityType.FDM,
-        options=[f"{step} mm" for step in AXIS_STEPS_MM],
-    ),
-    AnycubicSelectEntityDescription(
-        key="set_speed_mode",
-        translation_key="set_speed_mode",
-        state_key="job_speed_mode",
-        # PRINTER rather than FDM: the real gate is whether the printer
-        # publishes any speed modes, which `available` already checks.
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-])
+AXIS_STEP = AnycubicSelectDescription(key="axis_step", kind=Kind.FDM)
+SPEED_MODE = AnycubicSelectDescription(key="set_speed_mode")
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: AnycubicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the Anycubic Cloud select entry."""
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
-    coordinator.add_entities_for_seen_printers(
-        async_add_entities=async_add_entities,
-        entity_constructor=AnycubicSelect,
-        platform=Platform.SELECT,
-        available_descriptors=list(SELECT_TYPES),
+    """Set up the selects of a config entry."""
+
+    def factory(
+        coordinator: AnycubicCoordinator, description: AnycubicSelectDescription
+    ) -> AnycubicEntity:
+        if description is AXIS_STEP:
+            return AxisStepSelect(coordinator, description)
+        return SpeedModeSelect(coordinator, description)
+
+    async_add_when_ready(
+        entry.runtime_data, (AXIS_STEP, SPEED_MODE), factory, async_add_entities
     )
 
 
-class AnycubicSelect(AnycubicCloudEntity, SelectEntity):
-    """A print setting chosen from the printer's own list of options."""
+class AxisStepSelect(AnycubicEntity, SelectEntity):
+    """Jog step, stored per printer in the ledger (BEHAVIOUR §3.12)."""
 
-    entity_description: AnycubicSelectEntityDescription
+    entity_description: AnycubicSelectDescription
+    _attr_options = [f"{step} mm" for step in AXIS_STEPS]
 
-    def _modes(self) -> list[dict[str, Any]]:
-        """The modes this printer says it supports, in its own order."""
-        attributes = printer_attributes_for_key(
-            self.coordinator, self._printer_id, self.entity_description.state_key
-        )
-        modes = (attributes or {}).get("available_modes")
+    @property
+    def current_option(self) -> str:
+        return f"{self.coordinator.ledger.axis_step(self.printer.printer_id)} mm"
 
-        return [m for m in modes if isinstance(m, dict)] if modes else []
+    async def async_select_option(self, option: str) -> None:
+        step = int(option.split(maxsplit=1)[0])
+        self.coordinator.ledger.set_axis_step(self.printer.printer_id, step)
+        self.async_write_ha_state()
+
+
+class SpeedModeSelect(AnycubicEntity, SelectEntity):
+    """Print speed mode, named from the cloud's list (BEHAVIOUR §1.5).
+
+    LAN has no list of mode names, so on a LAN connection this entity is
+    always unavailable. Over the cloud the list survives the job, so it is
+    available while idle but refuses a change.
+    """
+
+    entity_description: AnycubicSelectDescription
 
     @property
     def options(self) -> list[str]:
-        if self.entity_description.key == "axis_step":
-            return list(self.entity_description.options or [])
-
-        return [str(m.get("description")) for m in self._modes() if m.get("description")]
+        return [str(mode["description"]) for mode in self.printer.speed_modes]
 
     @property
     def available(self) -> bool:
-        if self.entity_description.key == "axis_step":
-            return super().available
-
-        # No options means no job running, and the printer would refuse the
-        # change -- better to look unavailable than to accept and drop it.
         return super().available and bool(self.options)
 
     @property
     def current_option(self) -> str | None:
-        if self.entity_description.key == "axis_step":
-            return f"{self.coordinator.get_axis_step(self._printer_id)} mm"
-
-        state = printer_state_for_key(
-            self.coordinator, self._printer_id, self.entity_description.state_key
-        )
-
-        return str(state) if state else None
+        return self.printer.job_speed_mode
 
     async def async_select_option(self, option: str) -> None:
-        """Send the printer the mode code behind the chosen name."""
-        if self.entity_description.key == "axis_step":
-            await self.coordinator.async_set_axis_step(
-                self._printer_id, int(option.split()[0])
-            )
-            return
-
-        code = next(
-            (
-                m.get("mode")
-                for m in self._modes()
-                if str(m.get("description")) == option
-            ),
-            None,
+        """Send the code paired with the name (order 6); refused unless a
+        job is in progress (BEHAVIOUR §2.14)."""
+        for mode in self.printer.speed_modes:
+            if str(mode["description"]) == option:
+                await control.async_set_speed_mode(self.coordinator, int(mode["mode"]))
+                return
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="speed_mode_unavailable"
         )
-
-        if code is None:
-            raise HomeAssistantError(f"{option} is not a speed mode this printer offers")
-
-        LOGGER.debug("Setting print speed mode to %s (code %s).", option, code)
-        await self.coordinator.async_set_print_speed_mode(self._printer_id, int(code))

@@ -1,353 +1,258 @@
-"""Support for Anycubic Cloud button."""
+"""Buttons (BEHAVIOUR §2.12).
+
+Cloud-only buttons are not created on LAN-only entries (ones a 2.x install
+registered stay in the registry, never removed: DECISIONS round 2, Q8),
+except the three ``request_file_list_<source>`` buttons: they always exist and
+are unavailable while their list cannot be fetched over the printer's current
+connection, which the frontend uses as its signal (DECISIONS round 2, F3).
+"""
+
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.const import EntityCategory
 
+from . import control
 from .const import (
-    ACE_SLOT_COUNT,
-    ENTITY_ID_DRYING_START_PRESET_,
-    MAX_DRYING_PRESETS,
-    PrinterEntityType,
+    ACE_SLOTS,
+    AXIS_X,
+    AXIS_XY,
+    AXIS_Y,
+    AXIS_Z,
+    DRYING_PRESETS,
+    MOVE_HOME,
+    MOVE_MINUS,
+    MOVE_PLUS,
 )
-from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_attributes_for_key
-
-# All data comes from the shared coordinator, and writes go through the
-# cloud API one request at a time, so no per-entity parallelism is wanted.
-PARALLEL_UPDATES = 0
+from .entity import (
+    AnycubicEntity,
+    AnycubicEntityDescription,
+    Device,
+    Kind,
+    async_add_when_ready,
+)
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import AnycubicConfigEntry, AnycubicCoordinator
 
 
-@dataclass(frozen=True)
-class AnycubicButtonEntityDescription(
-    ButtonEntityDescription, AnycubicCloudEntityDescription
-):
-    """Describes Anycubic Cloud button entity."""
+@dataclass(frozen=True, kw_only=True)
+class AnycubicButtonDescription(AnycubicEntityDescription, ButtonEntityDescription):
+    """A button and what pressing it does."""
+
+    press_fn: Callable[[AnycubicCoordinator], Awaitable[None]]
+    available_fn: Callable[[AnycubicCoordinator], bool] | None = None
 
 
-# Zero a slot's consumption estimate. Swapping a spool is normally detected
-# automatically from its colour, material and SKU, but two identical reels look
-# the same, so this covers that case.
-# Nozzle wear is tracked in filament pushed through, so fitting a new nozzle
-# has to be told to it -- there is nothing the printer reports that would
-# reveal a nozzle change on its own.
-NOZZLE_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key="reset_nozzle_wear",
-        translation_key="reset_nozzle_wear",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        entity_category=EntityCategory.CONFIG,
-        entity_registry_enabled_default=False,
-    ),
-])
+FILE_LIST_SOURCES = ("local", "udisk", "cloud")
 
 
-# Axis movement. The printer refuses jogs until it has been homed, and warns
-# about driving the nozzle into the bed, so the home buttons sit alongside
-# these and the step comes from a fixed list rather than free text.
-AXIS_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key="axis_home_xy",
-        translation_key="axis_home_xy",
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    # Convenience only: the printer has no home-everything command, so this
-    # sends the X/Y home and then the Z one.
-    AnycubicButtonEntityDescription(
-        key="axis_home_all",
-        translation_key="axis_home_all",
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    AnycubicButtonEntityDescription(
-        key="axis_motors_off",
-        translation_key="axis_motors_off",
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    # ⚠ Home-all does NOT cover Z. Until Z is homed on its own every Z move
-    # is refused, so this button is not a duplicate of the one above -- the
-    # printer's own panel carries both for the same reason.
-    AnycubicButtonEntityDescription(
-        key="axis_home_z",
-        translation_key="axis_home_z",
-        printer_entity_type=PrinterEntityType.FDM,
-    ),
-    *[
-        AnycubicButtonEntityDescription(
-            key=f"axis_move_{name}",
-            translation_key=f"axis_move_{name}",
-            printer_entity_type=PrinterEntityType.FDM,
+def _file_list_fetchable(source: str) -> Callable[[AnycubicCoordinator], bool]:
+    def available(c: AnycubicCoordinator) -> bool:
+        return c.can_fetch_file_list(source)
+
+    return available
+
+
+def _request_file_list(
+    source: str,
+) -> Callable[[AnycubicCoordinator], Awaitable[None]]:
+    return lambda c: control.async_request_file_list(c, source)
+
+
+async def _refresh_mqtt(c: AnycubicCoordinator) -> None:
+    if (cloud := c.runtime.cloud) is not None:
+        await cloud.mqtt.async_refresh()
+
+
+async def _reset_nozzle(c: AnycubicCoordinator) -> None:
+    c.ledger.reset_nozzle(c.printer.printer_id)
+    c.async_update_listeners()
+
+
+def _reset_slot(number: int) -> Callable[[AnycubicCoordinator], Awaitable[None]]:
+    async def press(c: AnycubicCoordinator) -> None:
+        c.ledger.reset_slot(c.printer.printer_id, number)
+        c.async_update_listeners()
+
+    return press
+
+
+_AXES = {"x": AXIS_X, "y": AXIS_Y, "z": AXIS_Z}
+_DIRECTIONS = {"plus": MOVE_PLUS, "minus": MOVE_MINUS}
+
+
+def _ace_buttons(box: int) -> tuple[AnycubicButtonDescription, ...]:
+    prefix = "" if box == 0 else "secondary_"
+    kind = Kind.ACE1 if box == 0 else Kind.ACE2
+    device = Device.ACE1 if box == 0 else Device.ACE2
+    return (
+        AnycubicButtonDescription(
+            key=f"{prefix}ace_retract",
+            kind=kind,
+            device=device,
+            press_fn=lambda c: control.async_ace_retract(c, box),
+        ),
+        AnycubicButtonDescription(
+            key=f"{prefix}drying_start",
+            kind=kind,
+            device=device,
+            press_fn=lambda c: control.async_drying_start(c, box),
+        ),
+        AnycubicButtonDescription(
+            key=f"{prefix}drying_stop",
+            kind=kind,
+            device=device,
+            press_fn=lambda c: control.async_drying_stop(c, box),
+        ),
+        *(
+            AnycubicButtonDescription(
+                key=f"{prefix}drying_start_preset_{number}",
+                kind=kind,
+                device=device,
+                preset=number,
+                press_fn=partial(control.async_drying_start, box=box, preset=number),
             )
-        for name in ("x_plus", "x_minus", "y_plus", "y_minus", "z_plus", "z_minus")
-    ],
-])
-
-
-BUTTON_TYPES_AXIS: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key="request_axis_position",
-        translation_key="request_axis_position",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-    ),
-])
-
-
-# Feeding and retracting have been available as actions for a long time but
-# never had buttons, so the ACE device page offered no way to load a spool.
-# The slicer puts Feed and Retract right under the slot picker.
-PRIMARY_FEED_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    *[
-        AnycubicButtonEntityDescription(
-            key=f"ace_slot_{slot_num}_feed",
-            translation_key=f"ace_slot_{slot_num}_feed",
-            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-            entity_registry_enabled_default=False,
-        )
-        for slot_num in range(1, ACE_SLOT_COUNT + 1)
-    ],
-    AnycubicButtonEntityDescription(
-        key="ace_retract",
-        translation_key="ace_retract",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-])
-
-
-PRIMARY_SPOOL_RESET_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key=f"ace_slot_{slot_num}_reset_spool",
-        translation_key=f"ace_slot_{slot_num}_reset_spool",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-        entity_category=EntityCategory.CONFIG,
-        entity_registry_enabled_default=False,
-    )
-    for slot_num in range(1, ACE_SLOT_COUNT + 1)
-])
-
-
-PRIMARY_DRYING_PRESET_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key=f"{ENTITY_ID_DRYING_START_PRESET_}{x + 1}",
-        translation_key=f"{ENTITY_ID_DRYING_START_PRESET_}{x + 1}",
-        printer_entity_type=PrinterEntityType.DRY_PRESET_PRIMARY,
-    ) for x in range(MAX_DRYING_PRESETS)
-])
-
-SECONDARY_DRYING_PRESET_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key=f"secondary_{ENTITY_ID_DRYING_START_PRESET_}{x + 1}",
-        translation_key=f"secondary_{ENTITY_ID_DRYING_START_PRESET_}{x + 1}",
-        printer_entity_type=PrinterEntityType.DRY_PRESET_SECONDARY,
-    ) for x in range(MAX_DRYING_PRESETS)
-])
-
-PRIMARY_MULTI_COLOR_BOX_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key="drying_stop",
-        translation_key="drying_stop",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-    AnycubicButtonEntityDescription(
-        key="drying_start",
-        translation_key="drying_start",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-    AnycubicButtonEntityDescription(
-        key="ace_refresh_spools",
-        translation_key="ace_refresh_spools",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-])
-
-SECONDARY_MULTI_COLOR_BOX_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key="secondary_ace_retract",
-        translation_key="secondary_ace_retract",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-    AnycubicButtonEntityDescription(
-        key="secondary_drying_start",
-        translation_key="secondary_drying_start",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-    AnycubicButtonEntityDescription(
-        key="secondary_drying_stop",
-        translation_key="secondary_drying_stop",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-])
-
-BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key="pause_print",
-        translation_key="pause_print",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicButtonEntityDescription(
-        key="resume_print",
-        translation_key="resume_print",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicButtonEntityDescription(
-        key="cancel_print",
-        translation_key="cancel_print",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicButtonEntityDescription(
-        key="request_file_list_local",
-        translation_key="request_file_list_local",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-    AnycubicButtonEntityDescription(
-        key="request_file_list_udisk",
-        translation_key="request_file_list_udisk",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-])
-
-GLOBAL_BUTTON_TYPES: list[AnycubicButtonEntityDescription] = list([
-    AnycubicButtonEntityDescription(
-        key="request_file_list_cloud",
-        translation_key="request_file_list_cloud",
-        printer_entity_type=PrinterEntityType.GLOBAL,
-    ),
-    AnycubicButtonEntityDescription(
-        key="refresh_mqtt_connection",
-        translation_key="refresh_mqtt_connection",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.GLOBAL,
-    ),
-])
-
-
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Set up the button from a config entry."""
-
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
-
-    coordinator.add_entities_for_seen_printers(
-        async_add_entities=async_add_entities,
-        entity_constructor=AnycubicCloudButton,
-        platform=Platform.BUTTON,
-        available_descriptors=list(
-            BUTTON_TYPES
-            + PRIMARY_MULTI_COLOR_BOX_BUTTON_TYPES
-            + SECONDARY_MULTI_COLOR_BOX_BUTTON_TYPES
-            + PRIMARY_DRYING_PRESET_BUTTON_TYPES
-            + SECONDARY_DRYING_PRESET_BUTTON_TYPES
-            + GLOBAL_BUTTON_TYPES
-            + PRIMARY_SPOOL_RESET_BUTTON_TYPES
-            + BUTTON_TYPES_AXIS
-            + NOZZLE_BUTTON_TYPES
-            + AXIS_BUTTON_TYPES
-            + PRIMARY_FEED_BUTTON_TYPES
+            for number in DRYING_PRESETS
         ),
     )
 
 
-class AnycubicCloudButton(AnycubicCloudEntity, ButtonEntity):
-    """A button for Anycubic Cloud."""
+BUTTONS: tuple[AnycubicButtonDescription, ...] = (
+    AnycubicButtonDescription(
+        key="pause_print", press_fn=lambda c: control.async_job_command(c, "pause")
+    ),
+    AnycubicButtonDescription(
+        key="resume_print", press_fn=lambda c: control.async_job_command(c, "resume")
+    ),
+    AnycubicButtonDescription(
+        key="cancel_print", press_fn=lambda c: control.async_job_command(c, "stop")
+    ),
+    AnycubicButtonDescription(
+        key="request_axis_position",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        press_fn=control.async_request_position,
+    ),
+    AnycubicButtonDescription(
+        key="axis_home_xy",
+        kind=Kind.FDM,
+        press_fn=lambda c: control.async_move_axis(c, AXIS_XY, MOVE_HOME),
+    ),
+    AnycubicButtonDescription(
+        key="axis_home_z",
+        kind=Kind.FDM,
+        press_fn=lambda c: control.async_move_axis(c, AXIS_Z, MOVE_HOME),
+    ),
+    AnycubicButtonDescription(
+        key="axis_home_all", kind=Kind.FDM, press_fn=control.async_home_all
+    ),
+    *(
+        AnycubicButtonDescription(
+            key=f"axis_move_{axis}_{direction}",
+            kind=Kind.FDM,
+            press_fn=partial(control.async_move_axis, axis=axis_id, move_type=move),
+        )
+        for axis, axis_id in _AXES.items()
+        for direction, move in _DIRECTIONS.items()
+    ),
+    AnycubicButtonDescription(
+        key="axis_motors_off", kind=Kind.FDM, press_fn=control.async_motors_off
+    ),
+    *(
+        AnycubicButtonDescription(
+            key=f"request_file_list_{source}",
+            press_fn=_request_file_list(source),
+            available_fn=_file_list_fetchable(source),
+        )
+        for source in FILE_LIST_SOURCES
+    ),
+    AnycubicButtonDescription(
+        key="reset_nozzle_wear",
+        kind=Kind.FDM,
+        entity_category=EntityCategory.CONFIG,
+        entity_registry_enabled_default=False,
+        press_fn=_reset_nozzle,
+    ),
+    AnycubicButtonDescription(
+        key="ace_refresh_spools",
+        kind=Kind.ACE1,
+        device=Device.ACE1,
+        press_fn=control.async_ace_refresh,
+    ),
+    *(
+        AnycubicButtonDescription(
+            key=f"ace_slot_{number}_feed",
+            kind=Kind.ACE1,
+            device=Device.ACE1,
+            entity_registry_enabled_default=False,
+            press_fn=partial(control.async_ace_feed, box=0, slot_index=number - 1),
+        )
+        for number in ACE_SLOTS
+    ),
+    *(
+        AnycubicButtonDescription(
+            key=f"ace_slot_{number}_reset_spool",
+            kind=Kind.ACE1,
+            device=Device.ACE1,
+            entity_category=EntityCategory.CONFIG,
+            entity_registry_enabled_default=False,
+            press_fn=_reset_slot(number),
+        )
+        for number in ACE_SLOTS
+    ),
+    *_ace_buttons(0),
+    *_ace_buttons(1),
+    AnycubicButtonDescription(
+        key="refresh_mqtt_connection",
+        cloud_only=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        press_fn=_refresh_mqtt,
+    ),
+)
 
-    entity_description: AnycubicButtonEntityDescription
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: AnycubicCloudDataUpdateCoordinator,
-        printer_id: int,
-        entity_description: AnycubicButtonEntityDescription,
-    ) -> None:
-        """Initialize."""
-        super().__init__(hass, coordinator, printer_id, entity_description)
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: AnycubicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    """Set up the buttons of a config entry."""
+    async_add_when_ready(
+        entry.runtime_data, BUTTONS, AnycubicButton, async_add_entities
+    )
+
+
+class AnycubicButton(AnycubicEntity, ButtonEntity):
+    """A printer or ACE button."""
+
+    entity_description: AnycubicButtonDescription
+
+    @property
+    def available(self) -> bool:
+        available_fn = self.entity_description.available_fn
+        if available_fn is not None and not available_fn(self.coordinator):
+            return False
+        return super().available
 
     async def async_press(self) -> None:
-        """Press the button."""
-        if TYPE_CHECKING:
-            assert self.coordinator.anycubic_api, "Connection to API is missing"
-
-        key = self.entity_description.key
-
-        if key.endswith("_reset_spool"):
-            slot_index = int(key.split("_")[2]) - 1
-            await self.coordinator.async_reset_spool(self._printer_id, slot_index)
-            return
-
-        if key == "reset_nozzle_wear":
-            await self.coordinator.async_reset_nozzle(self._printer_id)
-            return
-
-        if key == "drying_start":
-            await self.coordinator.async_start_drying(self._printer_id)
-            return
-
-        if key == "secondary_drying_start":
-            await self.coordinator.async_start_drying(self._printer_id, box_id=1)
-            return
-
-        if key == "axis_home_xy":
-            await self.coordinator.async_move_axis(
-                self._printer_id, axis=4, move_type=2
-            )
-            return
-
-        if key == "axis_home_all":
-            await self.coordinator.async_home_all_axes(self._printer_id)
-            return
-
-        if key == "axis_motors_off":
-            await self.coordinator.async_disengage_motors(self._printer_id)
-            return
-
-        if key.endswith("_feed") and key.startswith("ace_slot_"):
-            slot_index = int(key.split("_")[2]) - 1
-            await self.coordinator.async_feed_filament(self._printer_id, slot_index)
-            return
-
-        if key == "ace_retract":
-            await self.coordinator.async_retract_filament(self._printer_id)
-            return
-
-        if key == "secondary_ace_retract":
-            await self.coordinator.async_retract_filament(self._printer_id, box_id=1)
-            return
-
-        if key == "axis_home_z":
-            await self.coordinator.async_move_axis(
-                self._printer_id, axis=3, move_type=2
-            )
-            return
-
-        if key.startswith("axis_move_"):
-            axis_name, _, direction = key.removeprefix("axis_move_").partition("_")
-            await self.coordinator.async_move_axis(
-                self._printer_id,
-                axis={"x": 1, "y": 2, "z": 3}[axis_name],
-                move_type=1 if direction == "plus" else 0,
-                distance=self.coordinator.get_axis_step(self._printer_id),
-            )
-            return
-
-        await self.coordinator.button_press_event(self._printer_id, key)
+        await self.entity_description.press_fn(self.coordinator)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return extra state attributes."""
-        attrib = printer_attributes_for_key(self.coordinator, self._printer_id, self.entity_description.key)
-        if attrib is not None:
-            return attrib
-        else:
+        """Preset buttons show their preset (§2.12)."""
+        if (preset := self.entity_description.preset) is None:
             return None
+        values = self.coordinator.drying_preset(preset)
+        if values is None:
+            return None
+        duration, temperature = values
+        return {"duration": duration, "temperature": temperature}

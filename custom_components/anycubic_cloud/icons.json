@@ -1,109 +1,86 @@
 {
   "entity": {
-    "binary_sensor": {
-      "dry_status_is_drying": {
-        "default": "mdi:air-filter"
-      },
-      "is_available": {
-        "default": "mdi:check-circle-outline"
-      },
-      "is_busy": {
-        "default": "mdi:progress-wrench"
-      },
-      "job_complete": {
-        "default": "mdi:check-bold"
-      },
-      "job_failed": {
-        "default": "mdi:alert-circle-outline"
-      },
-      "job_in_progress": {
-        "default": "mdi:printer-3d-nozzle"
-      },
-      "job_is_paused": {
-        "default": "mdi:pause-circle-outline"
-      },
-      "mqtt_connection_active": {
-        "default": "mdi:transit-connection-variant"
-      },
-      "printer_online": {
+    "sensor": {
+      "current_status": {
         "default": "mdi:printer-3d"
       },
-      "secondary_dry_status_is_drying": {
-        "default": "mdi:air-filter"
-      }
-    },
-    "button": {
-      "ace_refresh_spools": {
-        "default": "mdi:refresh"
+      "last_error_code": {
+        "default": "mdi:alert-circle-outline"
       },
-      "cancel_print": {
-        "default": "mdi:stop"
+      "last_error": {
+        "default": "mdi:alert-circle-outline"
       },
-      "drying_start_preset_1": {
-        "default": "mdi:air-filter"
+      "job_name": {
+        "default": "mdi:file-document-outline"
       },
-      "drying_start_preset_2": {
-        "default": "mdi:air-filter"
+      "job_progress": {
+        "default": "mdi:progress-clock"
       },
-      "drying_start_preset_3": {
-        "default": "mdi:air-filter"
+      "job_time_elapsed": {
+        "default": "mdi:timer-play-outline"
       },
-      "drying_start_preset_4": {
-        "default": "mdi:air-filter"
+      "job_time_remaining": {
+        "default": "mdi:timer-sand"
       },
-      "drying_stop": {
-        "default": "mdi:stop-circle-outline"
+      "job_state": {
+        "default": "mdi:list-status"
       },
-      "pause_print": {
-        "default": "mdi:pause"
+      "job_eta": {
+        "default": "mdi:clock-end"
       },
-      "refresh_mqtt_connection": {
-        "default": "mdi:connection"
+      "job_current_layer": {
+        "default": "mdi:layers"
       },
-      "request_file_list_cloud": {
-        "default": "mdi:cloud-search"
+      "job_total_layers": {
+        "default": "mdi:layers-triple"
       },
-      "request_file_list_local": {
-        "default": "mdi:folder-search"
+      "job_filament_used": {
+        "default": "mdi:tape-measure"
       },
-      "request_file_list_udisk": {
-        "default": "mdi:usb-flash-drive"
+      "curr_nozzle_temp": {
+        "default": "mdi:printer-3d-nozzle-heat"
       },
-      "resume_print": {
-        "default": "mdi:play"
+      "curr_hotbed_temp": {
+        "default": "mdi:heating-coil"
       },
-      "secondary_drying_start_preset_1": {
-        "default": "mdi:air-filter"
+      "target_nozzle_temp": {
+        "default": "mdi:printer-3d-nozzle-heat-outline"
       },
-      "secondary_drying_start_preset_2": {
-        "default": "mdi:air-filter"
+      "target_hotbed_temp": {
+        "default": "mdi:heating-coil"
       },
-      "secondary_drying_start_preset_3": {
-        "default": "mdi:air-filter"
+      "fan_speed_pct": {
+        "default": "mdi:fan"
       },
-      "secondary_drying_start_preset_4": {
-        "default": "mdi:air-filter"
+      "aux_fan_speed_pct": {
+        "default": "mdi:fan-auto"
       },
-      "secondary_drying_stop": {
-        "default": "mdi:stop-circle-outline"
-      }
-    },
-    "image": {
-      "job_image_url": {
-        "default": "mdi:image"
-      }
-    },
-    "light": {
-      "printer_light": {
-        "default": "mdi:lightbulb"
-      }
-    },
-    "sensor": {
-      "ace_current_temperature": {
-        "default": "mdi:thermometer"
+      "print_speed_pct": {
+        "default": "mdi:speedometer"
+      },
+      "job_speed_mode": {
+        "default": "mdi:speedometer-medium"
+      },
+      "ace_spools": {
+        "default": "mdi:printer-3d-nozzle"
       },
       "ace_loaded_slot": {
         "default": "mdi:tray-arrow-up"
+      },
+      "ace_current_temperature": {
+        "default": "mdi:thermometer"
+      },
+      "dry_status_target_temperature": {
+        "default": "mdi:thermometer"
+      },
+      "dry_status_total_duration": {
+        "default": "mdi:timer-outline"
+      },
+      "dry_status_remaining_time": {
+        "default": "mdi:timer-sand"
+      },
+      "box_fan_level": {
+        "default": "mdi:fan-chevron-up"
       },
       "ace_slot_1": {
         "default": "mdi:circle-slice-8"
@@ -117,35 +94,20 @@
       "ace_slot_4": {
         "default": "mdi:circle-slice-8"
       },
-      "ace_spools": {
+      "secondary_ace_spools": {
         "default": "mdi:printer-3d-nozzle"
       },
-      "aux_fan_speed_pct": {
-        "default": "mdi:fan-auto"
-      },
-      "box_fan_level": {
-        "default": "mdi:fan-chevron-up"
-      },
-      "curr_hotbed_temp": {
-        "default": "mdi:heating-coil"
-      },
-      "curr_nozzle_temp": {
-        "default": "mdi:printer-3d-nozzle-heat"
-      },
-      "current_status": {
-        "default": "mdi:printer-3d"
-      },
-      "dry_status_remaining_time": {
-        "default": "mdi:timer-sand"
-      },
-      "dry_status_target_temperature": {
+      "secondary_ace_current_temperature": {
         "default": "mdi:thermometer"
       },
-      "dry_status_total_duration": {
+      "secondary_dry_status_target_temperature": {
+        "default": "mdi:thermometer"
+      },
+      "secondary_dry_status_total_duration": {
         "default": "mdi:timer-outline"
       },
-      "fan_speed_pct": {
-        "default": "mdi:fan"
+      "secondary_dry_status_remaining_time": {
+        "default": "mdi:timer-sand"
       },
       "file_list_cloud": {
         "default": "mdi:cloud-outline"
@@ -165,44 +127,14 @@
       "job_bottom_time": {
         "default": "mdi:timer-outline"
       },
-      "job_current_layer": {
-        "default": "mdi:layers"
-      },
-      "job_eta": {
-        "default": "mdi:clock-end"
-      },
-      "job_filament_used": {
-        "default": "mdi:tape-measure"
-      },
       "job_model_height": {
         "default": "mdi:arrow-expand-vertical"
-      },
-      "job_name": {
-        "default": "mdi:file-document-outline"
       },
       "job_off_time": {
         "default": "mdi:timer-off"
       },
       "job_on_time": {
         "default": "mdi:timer-play"
-      },
-      "job_progress": {
-        "default": "mdi:progress-clock"
-      },
-      "job_speed_mode": {
-        "default": "mdi:speedometer-medium"
-      },
-      "job_state": {
-        "default": "mdi:list-status"
-      },
-      "job_time_elapsed": {
-        "default": "mdi:timer-play-outline"
-      },
-      "job_time_remaining": {
-        "default": "mdi:timer-sand"
-      },
-      "job_total_layers": {
-        "default": "mdi:layers-triple"
       },
       "job_z_down_speed": {
         "default": "mdi:arrow-down-bold"
@@ -222,50 +154,201 @@
       "print_count_total": {
         "default": "mdi:counter"
       },
-      "print_speed_pct": {
-        "default": "mdi:speedometer"
-      },
       "print_time_total_hrs": {
         "default": "mdi:clock-outline"
+      }
+    },
+    "binary_sensor": {
+      "printer_online": {
+        "default": "mdi:printer-3d"
       },
-      "secondary_ace_current_temperature": {
-        "default": "mdi:thermometer"
+      "is_available": {
+        "default": "mdi:check-circle-outline"
       },
-      "secondary_ace_spools": {
+      "is_busy": {
+        "default": "mdi:progress-wrench"
+      },
+      "job_in_progress": {
         "default": "mdi:printer-3d-nozzle"
       },
-      "secondary_dry_status_remaining_time": {
-        "default": "mdi:timer-sand"
+      "job_complete": {
+        "default": "mdi:check-bold"
       },
-      "secondary_dry_status_target_temperature": {
-        "default": "mdi:thermometer"
-      },
-      "secondary_dry_status_total_duration": {
-        "default": "mdi:timer-outline"
-      },
-      "target_hotbed_temp": {
-        "default": "mdi:heating-coil"
-      },
-      "target_nozzle_temp": {
-        "default": "mdi:printer-3d-nozzle-heat-outline"
-      },
-      "last_error_code": {
+      "job_failed": {
         "default": "mdi:alert-circle-outline"
       },
-      "last_error": {
-        "default": "mdi:alert-circle-outline"
+      "job_is_paused": {
+        "default": "mdi:pause-circle-outline"
+      },
+      "dry_status_is_drying": {
+        "default": "mdi:air-filter"
+      },
+      "secondary_dry_status_is_drying": {
+        "default": "mdi:air-filter"
+      },
+      "mqtt_connection_active": {
+        "default": "mdi:transit-connection-variant"
+      }
+    },
+    "button": {
+      "pause_print": {
+        "default": "mdi:pause"
+      },
+      "resume_print": {
+        "default": "mdi:play"
+      },
+      "cancel_print": {
+        "default": "mdi:stop"
+      },
+      "ace_refresh_spools": {
+        "default": "mdi:refresh"
+      },
+      "drying_stop": {
+        "default": "mdi:stop-circle-outline"
+      },
+      "drying_start_preset_1": {
+        "default": "mdi:air-filter"
+      },
+      "drying_start_preset_2": {
+        "default": "mdi:air-filter"
+      },
+      "drying_start_preset_3": {
+        "default": "mdi:air-filter"
+      },
+      "drying_start_preset_4": {
+        "default": "mdi:air-filter"
+      },
+      "secondary_drying_stop": {
+        "default": "mdi:stop-circle-outline"
+      },
+      "secondary_drying_start_preset_1": {
+        "default": "mdi:air-filter"
+      },
+      "secondary_drying_start_preset_2": {
+        "default": "mdi:air-filter"
+      },
+      "secondary_drying_start_preset_3": {
+        "default": "mdi:air-filter"
+      },
+      "secondary_drying_start_preset_4": {
+        "default": "mdi:air-filter"
+      },
+      "request_file_list_cloud": {
+        "default": "mdi:cloud-search"
+      },
+      "request_file_list_local": {
+        "default": "mdi:folder-search"
+      },
+      "request_file_list_udisk": {
+        "default": "mdi:usb-flash-drive"
+      },
+      "refresh_mqtt_connection": {
+        "default": "mdi:connection"
       }
     },
     "switch": {
-      "manual_mqtt_connection_enabled": {
-        "default": "mdi:transit-connection-variant"
-      },
       "multi_color_box_runout_refill": {
         "default": "mdi:autorenew"
       },
       "secondary_multi_color_box_runout_refill": {
         "default": "mdi:autorenew"
+      },
+      "manual_mqtt_connection_enabled": {
+        "default": "mdi:transit-connection-variant"
       }
+    },
+    "light": {
+      "printer_light": {
+        "default": "mdi:lightbulb"
+      }
+    },
+    "image": {
+      "job_image_url": {
+        "default": "mdi:image"
+      }
+    }
+  },
+  "services": {
+    "multi_color_box_set_slot_pla": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_petg": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_abs": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_pacf": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_pc": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_asa": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_hips": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_pa": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_set_slot_pla_se": {
+      "service": "mdi:palette"
+    },
+    "multi_color_box_filament_extrude": {
+      "service": "mdi:tray-arrow-up"
+    },
+    "multi_color_box_filament_retract": {
+      "service": "mdi:tray-arrow-down"
+    },
+    "print_and_upload_save_in_cloud": {
+      "service": "mdi:printer-3d-nozzle"
+    },
+    "print_and_upload_no_cloud_save": {
+      "service": "mdi:printer-3d-nozzle"
+    },
+    "print_local_file": {
+      "service": "mdi:printer-3d-nozzle"
+    },
+    "delete_file_local": {
+      "service": "mdi:delete"
+    },
+    "delete_file_udisk": {
+      "service": "mdi:delete"
+    },
+    "delete_file_cloud": {
+      "service": "mdi:delete"
+    },
+    "change_print_speed_mode": {
+      "service": "mdi:speedometer"
+    },
+    "change_print_target_nozzle_temperature": {
+      "service": "mdi:thermometer"
+    },
+    "change_print_target_hotbed_temperature": {
+      "service": "mdi:thermometer"
+    },
+    "change_print_fan_speed": {
+      "service": "mdi:fan"
+    },
+    "change_print_aux_fan_speed": {
+      "service": "mdi:fan"
+    },
+    "change_print_box_fan_speed": {
+      "service": "mdi:fan"
+    },
+    "change_print_bottom_layers": {
+      "service": "mdi:tune"
+    },
+    "change_print_bottom_time": {
+      "service": "mdi:tune"
+    },
+    "change_print_off_time": {
+      "service": "mdi:tune"
+    },
+    "change_print_on_time": {
+      "service": "mdi:tune"
     }
   }
 }

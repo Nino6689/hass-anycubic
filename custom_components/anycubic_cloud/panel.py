@@ -1,144 +1,189 @@
-"""Anycubic Cloud frontend panel."""
+"""Serve the dashboard card and register the side panel (FRONTEND §1).
+
+The bundles come from the ``anycubic_cloud_frontend`` package (built from
+this repository's ``frontend/``) through its interface: ``locate_dir()``,
+``entrypoint_js()``, ``webcomponent_name()``, ``card_js()`` and
+``card_hash()`` (DECISIONS round 2, Q6). Only version 1.0.0 or later is
+used; the version is read from the package metadata before anything is
+imported, so an older release is never loaded. Without it, the bundles
+shipped in ``www/`` (``anycubic-card.js`` and one ``entrypoint*.js``) are
+served instead; without either, nothing is registered and the integration
+works without its card.
+
+Registration happens at the start of entry setup, before the first refresh,
+so a failing entry still serves its card (B26).
+"""
 
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+import hashlib
+import importlib
+from importlib import metadata
+import logging
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-import anycubic_cloud_frontend
 from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntryState
+from packaging.version import InvalidVersion, Version
 
-from .const import (
-    DOMAIN,
-    LOGGER,
-    PANEL_ICON,
-    PANEL_TITLE,
-)
-from .helpers import extract_panel_card_config
+from .const import CONF_CARD_CONFIG, DOMAIN
 
-PANEL_URL = "/anycubic-cloud-panel-static"
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
+_LOGGER = logging.getLogger(__name__)
 
-def process_card_config(
-    conf_object: Any,
-) -> dict[str, Any]:
-    if isinstance(conf_object, dict):
-        return extract_panel_card_config(conf_object)
-    else:
-        return {}
+WWW = Path(__file__).parent / "www"
+STATIC_PREFIX = "/anycubic-cloud-panel-static"
+CARD_FILE = "anycubic-card.js"
+PANEL_URL_PATH = "anycubic_cloud"
+PANEL_COMPONENT = "anycubic-cloud-panel"
+PANEL_TITLE = "Anycubic Cloud & LAN"
+PANEL_ICON = "mdi:printer-3d"
+_DATA = f"{DOMAIN}_frontend"
 
-
-def async_register_card(hass: HomeAssistant) -> None:
-    """Make the Anycubic card available to dashboards.
-
-    Home Assistant does not load third-party cards into dashboards on its own,
-    so without this the card ships with the integration but never appears in
-    the card picker unless the user adds it as a resource by hand.
-    """
-    frontend.add_extra_js_url(hass, f"{PANEL_URL}/{anycubic_cloud_frontend.card_js_url}")
+FRONTEND_PACKAGE = "anycubic_cloud_frontend"
+FRONTEND_DISTRIBUTION = "anycubic-cloud-frontend"
+FRONTEND_MIN_VERSION = Version("1.0.0")
 
 
-async def async_register_panel(
-    hass: HomeAssistant,
-    conf_object: Any,
-) -> None:
-    """Register the Anycubic Cloud frontend panel."""
-    if DOMAIN not in hass.data.get("frontend_panels", {}):
-        # The built panel ships in its own package rather than inside the
-        # integration, so Home Assistant core's rule against bundled frontend
-        # assets is satisfied. Serve the whole directory: the entrypoint
-        # filename carries a content hash for cache-busting.
-        panel_dir = anycubic_cloud_frontend.locate_dir()
+@dataclass(frozen=True, slots=True)
+class FrontendFiles:
+    """Where the built panel and card are, and what they are called."""
 
-        try:
-            await hass.http.async_register_static_paths([StaticPathConfig(PANEL_URL, panel_dir, cache_headers=False)])
-        except RuntimeError:
-            # The same singleton lives here as in the panel handoff below. In
-            # a multi-printer setup a sibling entry can race ahead and serve
-            # the same static path before this one gets to it; Home Assistant
-            # registers the path as a GET route, so the loser trips aiohttp's
-            # "method GET is already registered" RuntimeError. That is the
-            # outcome we wanted, not an error.
-            #
-            # As with the panel below, we do not read the exception's message
-            # to tell that case apart from a real failure -- a formatted
-            # string carries no promise. We ask the HTTP server whether the
-            # path is genuinely being served from here now; only then is
-            # having failed to register it harmless.
-            served = any(
-                route.resource is not None and route.resource.canonical == PANEL_URL for route in hass.http.app.router.routes()
-            )
-            if not served:
-                raise
-
-        async_register_card(hass)
-
-        conf = process_card_config(conf_object)
-
-        LOGGER.debug(f"Processed panel config: {conf}")
-
-        try:
-            await panel_custom.async_register_panel(
-                hass,
-                webcomponent_name=anycubic_cloud_frontend.webcomponent_name,
-                frontend_url_path=DOMAIN,
-                module_url=f"{PANEL_URL}/{anycubic_cloud_frontend.entrypoint_js}",
-                sidebar_title=PANEL_TITLE,
-                sidebar_icon=PANEL_ICON,
-                require_admin=False,
-                config=conf,
-            )
-        except ValueError:
-            # Multi-printer setups create one config entry per printer. Each
-            # entry calls async_register_panel(), and Home Assistant sets the
-            # entries up concurrently, so more than one can pass the
-            # `frontend_panels` guard above before the first has actually
-            # registered the panel -- the await in between is a real suspension
-            # point. The loser then raises, and unhandled that failed the whole
-            # entry: its entities stayed unavailable and only one printer
-            # worked.
-            #
-            # There is one panel for the integration however many printers are
-            # configured, so a panel that is already there is the outcome we
-            # wanted, not an error.
-            #
-            # Judged by asking the registry rather than by reading the
-            # exception's message. Core spells it "Overwriting panel
-            # <frontend_url_path>" today, but that is a formatted string with
-            # no promises attached, and a fix that stops working when someone
-            # rewords it would fail exactly the way it does now: silently, on
-            # somebody else's multi-printer setup.
-            if DOMAIN not in hass.data.get("frontend_panels", {}):
-                raise
-
-            LOGGER.debug("Panel already registered by a sibling entry.")
+    directory: str
+    panel_file: str
+    component: str
+    card_file: str
+    card_hash: str
 
 
-def async_unregister_panel(hass: HomeAssistant) -> None:
-    """Take the panel away, but only once the last printer has gone.
+def _short_hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:8]
 
-    The same singleton, in the other direction. There is one panel for the
-    integration however many printers are configured, and removing it is an
-    unconditional pop -- so unloading one entry took the sidebar away from
-    every other printer that was still perfectly well loaded. Reloading a
-    single entry did it too: the panel vanished for everyone and came back
-    only as a side effect of that one entry setting itself up again.
 
-    Home Assistant is asked which entries are still loaded rather than any
-    count being kept here, because a tally maintained by hand is a tally that
-    drifts the first time a setup fails halfway. The entry being unloaded is
-    already excluded: core moves it to UNLOAD_IN_PROGRESS before calling this,
-    and async_loaded_entries returns only entries in LOADED.
-    """
-    still_loaded = hass.config_entries.async_loaded_entries(DOMAIN)
-
-    if still_loaded:
-        LOGGER.debug(
-            "Keeping the panel: %s other printer(s) still loaded.",
-            len(still_loaded),
+def _package_files() -> FrontendFiles | None:
+    """The files of ``anycubic_cloud_frontend`` >= 1.0.0, if installed."""
+    try:
+        installed = Version(metadata.version(FRONTEND_DISTRIBUTION))
+    except metadata.PackageNotFoundError:
+        return None
+    except InvalidVersion:
+        _LOGGER.debug("Ignoring %s with an unreadable version", FRONTEND_DISTRIBUTION)
+        return None
+    if installed < FRONTEND_MIN_VERSION:
+        # Checked before importing: releases before 1.0.0 are never loaded.
+        _LOGGER.debug(
+            "Ignoring %s %s; %s or later is needed",
+            FRONTEND_DISTRIBUTION,
+            installed,
+            FRONTEND_MIN_VERSION,
         )
-        return
+        return None
+    try:
+        package = importlib.import_module(FRONTEND_PACKAGE)
+        return FrontendFiles(
+            directory=str(package.locate_dir()),
+            panel_file=str(package.entrypoint_js()),
+            component=str(package.webcomponent_name()),
+            card_file=str(package.card_js()),
+            card_hash=str(package.card_hash()),
+        )
+    except Exception:
+        # A broken package must not stop the entry; fall back to www/.
+        _LOGGER.exception("Could not load %s", FRONTEND_PACKAGE)
+        return None
 
-    frontend.async_remove_panel(hass, DOMAIN)
-    LOGGER.debug("Removing panel")
+
+def _www_files(www: Path) -> FrontendFiles | None:
+    """The bundles shipped in ``www/``, or ``None`` when not shipped."""
+    card = www / CARD_FILE
+    panels = sorted(www.glob("entrypoint*.js"))
+    if not card.is_file() or not panels:
+        return None
+    return FrontendFiles(
+        directory=str(www),
+        panel_file=panels[0].name,
+        component=PANEL_COMPONENT,
+        card_file=CARD_FILE,
+        card_hash=_short_hash(card),
+    )
+
+
+def _find_frontend() -> FrontendFiles | None:
+    """The package first, then the ``www/`` fallback (round 2, Q6)."""
+    return _package_files() or _www_files(WWW)
+
+
+def _static_path_served(hass: HomeAssistant) -> bool:
+    return any(
+        resource.canonical == STATIC_PREFIX
+        for resource in hass.http.app.router.resources()
+        if hasattr(resource, "canonical")
+    )
+
+
+async def async_register_frontend(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Serve the card and register the panel once for the whole integration."""
+    if "frontend" not in hass.config.components:
+        return
+    files = await hass.async_add_executor_job(_find_frontend)
+    if files is None:
+        _LOGGER.debug("No card or panel bundle installed or shipped in %s", WWW)
+        return
+    state: dict[str, Any] = hass.data.setdefault(_DATA, {})
+    if not state.get("static"):
+        # Claimed before the await so concurrent setups do not both register;
+        # released again if registration fails, so a later entry retries.
+        state["static"] = True
+        try:
+            await hass.http.async_register_static_paths(
+                [StaticPathConfig(STATIC_PREFIX, files.directory, cache_headers=False)]
+            )
+        except RuntimeError:
+            # Registered by a concurrent setup: fine if it is being served.
+            if not _static_path_served(hass):
+                state["static"] = False
+                raise
+        except BaseException:
+            state["static"] = False
+            raise
+        frontend.add_extra_js_url(
+            hass, f"{STATIC_PREFIX}/{files.card_file}?v={files.card_hash}"
+        )
+    if PANEL_URL_PATH in hass.data.get(frontend.DATA_PANELS, {}):
+        return
+    try:
+        await panel_custom.async_register_panel(
+            hass,
+            frontend_url_path=PANEL_URL_PATH,
+            webcomponent_name=files.component,
+            sidebar_title=PANEL_TITLE,
+            sidebar_icon=PANEL_ICON,
+            module_url=f"{STATIC_PREFIX}/{files.panel_file}",
+            embed_iframe=False,
+            require_admin=False,
+            # The stored card_config is the panel's config itself (round 2, F1).
+            config=dict(entry.options.get(CONF_CARD_CONFIG) or {}),
+        )
+    except ValueError:
+        # Lost a race with another entry: success if the panel exists.
+        if PANEL_URL_PATH not in hass.data.get(frontend.DATA_PANELS, {}):
+            raise
+
+
+def async_unregister_frontend(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the panel only when no other entry of the domain is loaded."""
+    others = [
+        other
+        for other in hass.config_entries.async_entries(DOMAIN)
+        if other.entry_id != entry.entry_id and other.state is ConfigEntryState.LOADED
+    ]
+    if others:
+        return
+    if PANEL_URL_PATH in hass.data.get(frontend.DATA_PANELS, {}):
+        frontend.async_remove_panel(hass, PANEL_URL_PATH, warn_if_unknown=False)

@@ -1,142 +1,160 @@
-"""Switches for Anycubic Cloud."""
+"""Switches (BEHAVIOUR §2.15). ``manual_mqtt_connection_enabled`` is cloud only."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.const import EntityCategory
+from homeassistant.core import callback
 
-from .const import (
-    PrinterEntityType,
+from . import control
+from .entity import (
+    AnycubicEntity,
+    AnycubicEntityDescription,
+    Device,
+    Kind,
+    async_add_when_ready,
 )
-from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_state_for_key
-
-# All data comes from the shared coordinator, and writes go through the
-# cloud API one request at a time, so no per-entity parallelism is wanted.
-PARALLEL_UPDATES = 0
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import AnycubicConfigEntry, AnycubicCoordinator
 
 
-@dataclass(frozen=True)
-class AnycubicSwitchEntityDescription(
-    SwitchEntityDescription, AnycubicCloudEntityDescription
-):
-    """Describes Anycubic Cloud switch entity."""
-
-    # Report unknown rather than "off" when the printer hasn't said.
-    #
-    # bool(None) is False, which turns "I have not been told" into a
-    # confident "it is off" -- and unlike a sensor, someone acts on a switch.
-    # Reading off and flicking it on writes a setting based on a reading that
-    # was never real. Returning None leaves the state unknown while keeping
-    # the switch operable, so the first toggle both sets it and settles it.
-    # Opt-in, so switches whose value always arrives keep their behaviour.
-    unknown_when_none: bool = False
+@dataclass(frozen=True, kw_only=True)
+class AnycubicSwitchDescription(AnycubicEntityDescription, SwitchEntityDescription):
+    """A switch of a printer or ACE."""
 
 
-PRIMARY_MULTI_COLOR_BOX_SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
-    AnycubicSwitchEntityDescription(
-        key="multi_color_box_runout_refill",
-        translation_key="multi_color_box_runout_refill",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+AI_DETECTION = AnycubicSwitchDescription(
+    key="ai_detection_enabled", entity_category=EntityCategory.CONFIG
+)
+MANUAL_MQTT = AnycubicSwitchDescription(
+    key="manual_mqtt_connection_enabled",
+    cloud_only=True,
+    entity_category=EntityCategory.DIAGNOSTIC,
+)
+RUNOUT_REFILL = (
+    AnycubicSwitchDescription(
+        key="multi_color_box_runout_refill", kind=Kind.ACE1, device=Device.ACE1
     ),
-])
-
-SECONDARY_MULTI_COLOR_BOX_SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
-    AnycubicSwitchEntityDescription(
+    AnycubicSwitchDescription(
         key="secondary_multi_color_box_runout_refill",
-        translation_key="secondary_multi_color_box_runout_refill",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
+        kind=Kind.ACE2,
+        device=Device.ACE2,
     ),
-])
-
-SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
-    # Read-only until now: the printer reports whether AI print-failure
-    # detection is on, but nothing could change it. Order 1243 does, with
-    # every other setting preserved as the printer already has it. Belongs to
-    # the printer, not the ACE -- it works on machines with no ACE fitted.
-    #
-    # The settings arrive unprompted over a local connection, but over the
-    # cloud only in reply to a write, so this sits at unknown until either the
-    # printer volunteers them or someone uses the switch.
-    AnycubicSwitchEntityDescription(
-        key="ai_detection_enabled",
-        translation_key="ai_detection_enabled",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        entity_category=EntityCategory.CONFIG,
-        unknown_when_none=True,
-    ),
-])
-
-GLOBAL_SWITCH_TYPES: list[AnycubicSwitchEntityDescription] = list([
-    AnycubicSwitchEntityDescription(
-        key="manual_mqtt_connection_enabled",
-        translation_key="manual_mqtt_connection_enabled",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.GLOBAL,
-    ),
-])
+)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: AnycubicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the Anycubic Cloud switch entry."""
+    """Set up the switches of a config entry."""
 
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
-    coordinator.add_entities_for_seen_printers(
-        async_add_entities=async_add_entities,
-        entity_constructor=AnycubicSwitch,
-        platform=Platform.SWITCH,
-        available_descriptors=list(
-            SWITCH_TYPES
-            + PRIMARY_MULTI_COLOR_BOX_SWITCH_TYPES
-            + SECONDARY_MULTI_COLOR_BOX_SWITCH_TYPES
-            + GLOBAL_SWITCH_TYPES
-        ),
+    def factory(
+        coordinator: AnycubicCoordinator, description: AnycubicSwitchDescription
+    ) -> AnycubicEntity:
+        if description is AI_DETECTION:
+            return AiDetectionSwitch(coordinator, description)
+        if description is MANUAL_MQTT:
+            return ManualMqttSwitch(coordinator, description)
+        return RunoutRefillSwitch(coordinator, description)
+
+    async_add_when_ready(
+        entry.runtime_data,
+        (AI_DETECTION, MANUAL_MQTT, *RUNOUT_REFILL),
+        factory,
+        async_add_entities,
     )
 
 
-class AnycubicSwitch(AnycubicCloudEntity, SwitchEntity):
-    """Representation of a Anycubic switch."""
+class AiDetectionSwitch(AnycubicEntity, SwitchEntity):
+    """AI failure detection. Readable over LAN; changing it is cloud only
+    (order 1243 has no LAN form, BEHAVIOUR §5.3)."""
 
-    entity_description: AnycubicSwitchEntityDescription
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: AnycubicCloudDataUpdateCoordinator,
-        printer_id: int,
-        entity_description: AnycubicSwitchEntityDescription,
-    ) -> None:
-        """Initiate Anycubic Switch."""
-        super().__init__(hass, coordinator, printer_id, entity_description)
+    entity_description: AnycubicSwitchDescription
 
     @property
     def is_on(self) -> bool | None:
-        """Return true if the switch is on, None if the printer hasn't said."""
-        state = printer_state_for_key(
-            self.coordinator, self._printer_id, self.entity_description.key
-        )
-
-        if state is None and self.entity_description.unknown_when_none:
-            return None
-
-        return bool(state)
+        # Unknown until the printer has said (§0.3).
+        return self.printer.ai_detection_enabled
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the device on."""
-
-        await self.coordinator.switch_on_event(self._printer_id, self.entity_description.key)
+        await control.async_set_ai_detection(self.coordinator, True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the device off."""
+        await control.async_set_ai_detection(self.coordinator, False)
 
-        await self.coordinator.switch_off_event(self._printer_id, self.entity_description.key)
+
+class ManualMqttSwitch(AnycubicEntity, SwitchEntity):
+    """Hold the cloud MQTT link open whatever the connect mode (§2.15).
+
+    In memory only: off after every restart or reload; one flag per entry.
+    """
+
+    entity_description: AnycubicSwitchDescription
+
+    @property
+    def is_on(self) -> bool:
+        cloud = self.coordinator.runtime.cloud
+        return cloud is not None and cloud.mqtt.manual
+
+    async def _set(self, enabled: bool) -> None:
+        cloud = self.coordinator.runtime.cloud
+        if cloud is None:  # pragma: no cover - created only with an account
+            return
+        await cloud.mqtt.async_set_manual(enabled)
+        self.async_write_ha_state()
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._set(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._set(False)
+
+
+class RunoutRefillSwitch(AnycubicEntity, SwitchEntity):
+    """ACE run-out refill (auto-feed)."""
+
+    entity_description: AnycubicSwitchDescription
+
+    def __init__(
+        self,
+        coordinator: AnycubicCoordinator,
+        description: AnycubicSwitchDescription,
+    ) -> None:
+        super().__init__(coordinator, description)
+        self._box = 0 if description.device is Device.ACE1 else 1
+        self._pending: bool | None = None
+
+    @property
+    def is_on(self) -> bool:
+        if self._pending is not None:
+            return self._pending
+        return self.printer.ace_auto_feed(self._box)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        # The printer's own report replaces the state set on sending.
+        self._pending = None
+        super()._handle_coordinator_update()
+
+    async def _set(self, enabled: bool) -> None:
+        if self.is_on == enabled:
+            return
+        await control.async_set_auto_feed(self.coordinator, self._box, enabled)
+        self._pending = enabled
+        self.async_write_ha_state()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._set(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._set(False)

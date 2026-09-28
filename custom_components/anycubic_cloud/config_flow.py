@@ -1,1226 +1,836 @@
-"""Adds config flow for Anycubic Cloud integration."""
+"""Config and options flows (BEHAVIOUR §5.8, §5.9; step ids in COMPAT §1).
+
+Cloud setup: the ``cloud`` form takes a pasted token, extracts and checks it
+locally, then signs in trying the modes in the order of PROTOCOL A §2.9;
+``printer`` picks the account's printers. Re-authentication and reconfigure
+reuse both. LAN setup, DHCP discovery and the options are as in the LAN
+release.
+"""
+
 from __future__ import annotations
 
-import hashlib
-import time
-import traceback
-from collections.abc import Mapping
+import logging
 from typing import TYPE_CHECKING, Any
 
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
-from aiohttp import CookieJar
-from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
-from anycubic_cloud_api.const.regions import AnycubicRegion, resolve_region
-from anycubic_cloud_api.exceptions.exceptions import (
-    AnycubicLANCloudModeError,
-    AnycubicLANError,
-    AnycubicLANUnsupportedError,
+from anycubic_cloud_client import (
+    AnycubicCloudClient,
+    AnycubicCloudError,
+    AuthMode,
+    CloudSecrets,
+    CredentialsRejectedError,
+    PrinterSummary,
+    RejectReason,
+    ServiceUnavailableError,
+    SignatureStatus,
+    SignInResult,
+    UnexpectedResponseError,
+    decode_claims,
+    extract_token,
+    sign_in_any,
+    verify_token_signature,
 )
-from anycubic_cloud_api.lan import AnycubicLANHandshake
-from anycubic_cloud_api.models.auth import AnycubicAuthMode
+from anycubic_lan import (
+    AnycubicLanError,
+    LanModeDisabledError,
+    PrinterConnectionInfo,
+    UnsupportedPrinterError,
+    handshake,
+)
 from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    SOURCE_RECONFIGURE,
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
-    OptionsFlow,
+    OptionsFlowWithReload,
 )
 from homeassistant.core import callback
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.aiohttp_client import (
-    async_create_clientsession,
-    async_get_clientsession,
-)
+from homeassistant.helpers import device_registry as dr, selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import format_mac
-from homeassistant.helpers.selector import (
-    BooleanSelector,
-    ObjectSelector,
-    SelectOptionDict,
-    SelectSelector,
-    SelectSelectorConfig,
-    SelectSelectorMode,
-)
-from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
-from homeassistant.helpers.storage import Store
-from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
+from .cloud import TokenStore, async_delete_token_store, async_hand_off_sign_in
 from .const import (
+    CARD_CONFIG_BOOL_KEYS,
+    CARD_CONFIG_LIST_KEYS,
+    CARD_CONFIG_NUMBER_KEYS,
+    CARD_CONFIG_STR_KEYS,
     CONF_CARD_CONFIG,
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
-    CONF_DRYING_PRESET_DURATION_,
-    CONF_DRYING_PRESET_TEMPERATURE_,
+    CONF_DRYING_PRESET_DURATION,
+    CONF_DRYING_PRESET_TEMPERATURE,
     CONF_LAN_HOST,
     CONF_LAN_MODE_ENABLED,
     CONF_MQTT_CONNECT_MODE,
-    CONF_PRINTER_ID_LIST,
+    CONF_PRINTER_IDS,
     CONF_REGION,
     CONF_USER_AUTH_MODE,
     CONF_USER_DEVICE_ID,
     CONF_USER_TOKEN,
+    DEFAULT_MQTT_CONNECT_MODE,
     DOMAIN,
-    LOGGER,
-    MAX_DRYING_PRESETS,
-    PARSE_FAULTS,
-    STORAGE_KEY,
-    STORAGE_VERSION,
-    TOOLS_URL,
+    DRYING_PRESETS,
+    MQTT_CONNECT_MODES,
+    REGION_CHINA,
+    REGION_INTERNATIONAL,
 )
-from .helpers import (
-    TOKEN_TYPE_EXPECTED,
-    AnycubicMQTTConnectMode,
-    async_load_saved_tokens,
-    async_repair_access_token,
-    async_token_store,
-    describe_token,
-    detect_auth_mode,
-    extract_panel_card_config,
-    extract_pasted_token,
-    remove_quotes_from_string,
-    token_expiry_timestamp,
-    token_type_looks_wrong,
-)
+from .credentials import async_get_cloud_secrets
+from .identity import entry_unique_id_for_lan, is_cloud_entry, lan_printer_id
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
-AUTH_MODES = {
-    AnycubicAuthMode.WEB: "Web (No MQTT)",
-    AnycubicAuthMode.SLICER: "Slicer",
-    AnycubicAuthMode.ANDROID: "Android",
-}
+_LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA_AUTH_WEB = vol.Schema(
-    {
-        vol.Required(CONF_USER_TOKEN): cv.string,
-    }
-)
-
-DATA_SCHEMA_AUTH_SLICER = vol.Schema(
-    {
-        vol.Required(CONF_USER_TOKEN): cv.string,
-    }
-)
-
-
-def _region_selector() -> SelectSelector:
-    """Which Anycubic deployment the account belongs to.
-
-    A dropdown on the token form rather than a step of its own: it has to be
-    answered before the token is sent anywhere, but it is a one-click default
-    for almost everybody, and an extra full-screen question would tax every
-    international user to serve a handful of Chinese ones.
-
-    Deliberately not auto-detected. Anycubic's China service is a separate
-    deployment with separate accounts, and the only claim that might identify
-    it -- the token's issuer -- was observed carrying the *international*
-    value on the China token in issue #13. Probing the other cloud to find
-    out would mean sending someone's bearer token to a second operator in
-    another jurisdiction on every failed login, which is not a reasonable
-    thing to do by default.
-    """
-    return SelectSelector(
-        SelectSelectorConfig(
-            options=[
-                SelectOptionDict(
-                    value=AnycubicRegion.INTERNATIONAL.value,
-                    label="International — anycubic.com",
-                ),
-                SelectOptionDict(
-                    value=AnycubicRegion.CHINA.value,
-                    label="China / 中国 — anycubicloud.com",
-                ),
-            ],
-            mode=SelectSelectorMode.DROPDOWN,
-            # No translation_key deliberately: the labels carry the operators'
-            # own domain names, and the whole point of showing them is that a
-            # user can match one against the address they actually sign in at.
-            # Translating a hostname would defeat that. Note that passing None
-            # is not the same as omitting it -- the selector schema rejects a
-            # null outright.
-        )
-    )
-
-
-DATA_SCHEMA_TOKEN = vol.Schema(
-    {
-        vol.Required(CONF_USER_TOKEN): cv.string,
-        # Only the Android flow needs this; left blank for Web and Slicer.
-        vol.Optional(CONF_USER_DEVICE_ID): cv.string,
-        vol.Optional(
-            CONF_REGION,
-            default=AnycubicRegion.INTERNATIONAL.value,
-        ): _region_selector(),
-    }
-)
-
-DATA_SCHEMA_AUTH_ANDROID = vol.Schema(
-    {
-        vol.Required(CONF_USER_TOKEN): cv.string,
-        vol.Required(CONF_USER_DEVICE_ID): cv.string,
-    }
-)
-
-MQTT_CONNECT_MODES = {
-    AnycubicMQTTConnectMode.Printing_Only: "Printing Only",
-    AnycubicMQTTConnectMode.Printing_Drying: "Printing & Drying",
-    AnycubicMQTTConnectMode.Device_Online: "Device Online",
-    AnycubicMQTTConnectMode.Always: "Always",
-    AnycubicMQTTConnectMode.Never_Connect: "Never Connect",
+ABORT_NO_CREDENTIALS = "cloud_credentials_unavailable"
+LEGACY_MODES = {
+    "auth_mode_web": AuthMode.WEB,
+    "auth_mode_slicer": AuthMode.SLICER,
+    "auth_mode_android": AuthMode.ANDROID,
 }
 
 
-def region_from_entry_data(data: Mapping[str, Any]) -> AnycubicRegion:
-    """The region an entry belongs to, for entries that may not name one.
-
-    Every read of the stored value goes through here. Reading it directly is
-    the one mistake in this change with a catastrophic failure mode: entries
-    created before this field existed, and every LAN-only entry, simply have
-    no region -- and `data.get(CONF_REGION) == AnycubicRegion.INTERNATIONAL`
-    is False for those, so a direct comparison would treat every existing
-    install as the non-default case and turn ordinary reauth into an
-    unrecoverable failure.
-    """
-    return resolve_region(data.get(CONF_REGION))
-
-
-def async_create_anycubic_api(
-    hass: HomeAssistant,
-    auth_token: str | None,
-    auth_mode: AnycubicAuthMode | int | None = None,
-    device_id: str | None = None,
-    region: AnycubicRegion | str | None = None,
-) -> AnycubicAPI:
-    if not auth_token:
-        raise Exception("Missing auth token.")
-
-    resolved = resolve_region(region)
-
-    cookie_jar = CookieJar(unsafe=True)
-    websession = async_create_clientsession(
-        hass,
-        cookie_jar=cookie_jar,
-    )
-    api = AnycubicAPI(
-        session=websession,
-        cookie_jar=cookie_jar,
-        debug_logger=LOGGER,
-        region=resolved,
-    )
-
-    api.set_authentication(
-        auth_token=auth_token,
-        auth_mode=auth_mode,
-        device_id=device_id,
-        # Slicer mode normally reclassifies a pasted token as an access token.
-        # China's slicer issues an HS512 user token instead, and only a token
-        # left in _auth_token can be used to log in to MQTT -- reclassify it
-        # and MQTT is quietly unavailable while setup still reports success.
-        # Note the polarity: every other region, and every unrecognised
-        # value, keeps today's True.
-        auto_pick_token=resolved is not AnycubicRegion.CHINA,
-    )
-
-    return api
-
-
-async def async_load_tokens_from_store(
-    hass: HomeAssistant,
-    anycubic_api: AnycubicAPI,
-    entry_id: str | None = None,
-) -> None:
-    """Load saved tokens for an entry, or the legacy shared ones during setup.
-
-    A first-time setup has no entry yet, so it can only fall back to the legacy
-    store; a reconfigure passes its entry_id and gets that entry's own tokens.
-    """
-    if entry_id is not None:
-        await async_load_saved_tokens(hass, entry_id, anycubic_api)
-        return
-
-    config = await Store[dict[str, Any]](hass, STORAGE_VERSION, STORAGE_KEY).async_load()
-
-    if config:
-        anycubic_api.load_auth_config_from_dict(config, minimal=True)
-
-
-def lan_printer_id(device_id: str) -> int:
-    """A stable integer handle for a printer known only over the network.
-
-    Printers do not agree on what a device id looks like: a Kobra S1 reports
-    digits, a Kobra 3 V2 reports a 32-character hex string. Everything
-    downstream -- the coordinator's printer map, the entity base class, the
-    service schemas -- treats a printer id as an integer, so the id is mapped
-    to one here, at the only boundary where a local printer gets an identity.
-
-    Digits are kept as they are, so a printer whose local id already matches
-    its cloud id keeps that id and its history if an account is added later.
-    Anything else is digested. 48 bits stays well inside the range Home
-    Assistant can store -- its JSON encoder rejects anything wider than 64
-    bits outright, and silently loses the whole write when it does -- while
-    sitting far above the range real cloud ids occupy, so a digested id
-    cannot collide with a real one.
-    """
-    if device_id.isdigit() and len(device_id) <= 15:
-        return int(device_id)
-
-    digest = hashlib.blake2b(device_id.encode(), digest_size=6).digest()
-    return int.from_bytes(digest, "big")
-
-
-async def check_lan_host(hass: HomeAssistant, host: str) -> dict[str, str]:
-    """Prove the printer is reachable and in LAN Mode before saving."""
-    errors, _broker = await async_lan_handshake(hass, host)
-
-    return errors
-
-
-async def async_lan_handshake(
-    hass: HomeAssistant, host: str
-) -> tuple[dict[str, str], Any]:
-    """Handshake with the printer, returning any error and what it said.
-
-    The broker carries the printer's own device id, which a local-only entry
-    needs -- there is no cloud account to enumerate printers from.
-    """
-    handshake = AnycubicLANHandshake(async_create_clientsession(hass), host, LOGGER)
-
+async def _async_try_handshake(
+    flow: ConfigFlow | OptionsFlowWithReload, host: str
+) -> tuple[PrinterConnectionInfo | None, dict[str, str]]:
+    """Validate a printer address; errors as in BEHAVIOUR §5.8 ``local``."""
+    if not host.strip():
+        return None, {CONF_LAN_HOST: "lan_host_required"}
     try:
-        broker = await handshake.async_authenticate()
-    except AnycubicLANCloudModeError:
-        return {"base": "lan_printer_in_cloud_mode"}, None
-    except AnycubicLANUnsupportedError:
-        return {"base": "lan_unsupported_printer"}, None
-    except AnycubicLANError:
-        return {"base": "lan_unreachable"}, None
+        info = await handshake(async_get_clientsession(flow.hass), host.strip())
+    except LanModeDisabledError:
+        return None, {"base": "lan_printer_in_cloud_mode"}
+    except UnsupportedPrinterError:
+        return None, {"base": "lan_unsupported_printer"}
+    except AnycubicLanError:
+        return None, {"base": "lan_unreachable"}
     except Exception:
-        LOGGER.debug(f"Unexpected error checking LAN Mode:\n{traceback.format_exc()}")
-        return {"base": "lan_unreachable"}, None
+        _LOGGER.exception("Unexpected error during the LAN handshake")
+        return None, {"base": "lan_unreachable"}
+    return info, {}
 
-    return {}, broker
+
+def _lan_schema(enabled: bool, host: str) -> vol.Schema:
+    return vol.Schema(
+        {
+            vol.Required(CONF_LAN_MODE_ENABLED, default=enabled): bool,
+            vol.Optional(CONF_LAN_HOST, default=host): str,
+        }
+    )
 
 
-class AnycubicCloudConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for AnycubicCloud integration."""
+class AnycubicConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Set up a printer."""
 
     VERSION = 1
-
-    entry: ConfigEntry | None
+    MINOR_VERSION = 1
 
     def __init__(self) -> None:
-        """Initialize."""
-        self._user_token: str | None = None
-        self._user_auth_mode: AnycubicAuthMode | int | None = None
-        self._user_device_id: str | None = None
-        self._user_region: AnycubicRegion = AnycubicRegion.INTERNATIONAL
-        self._is_reconfigure: bool = False
-        self._is_reauth: bool = False
-        self._anycubic_api: AnycubicAPI | None = None
-        self.entry: ConfigEntry | None = None
         self._discovered_host: str | None = None
+        self._cloud_data: dict[str, Any] = {}
+        self._cloud_title = ""
+        self._cloud_tokens: SignInResult
+        self._reconfigure_client: AnycubicCloudClient | None = None
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> AnycubicCloudOptionsFlowHandler:
-        """Get the options flow for this handler."""
-        return AnycubicCloudOptionsFlowHandler(config_entry)
+    def async_get_options_flow(config_entry: ConfigEntry) -> AnycubicOptionsFlow:
+        return AnycubicOptionsFlow()
 
-    def _async_create_anycubic_api(self) -> AnycubicAPI:
-        return async_create_anycubic_api(
-            self.hass,
-            self._user_token,
-            self._user_auth_mode,
-            self._user_device_id,
-            self._user_region,
-        )
-
-    def _errors_unknown_authentication_failure(
-        self,
-        error: Exception,
-    ) -> dict[str, str]:
-        # Not every failure on this path is a credentials problem, and saying
-        # so sends people to re-paste a token that was never the trouble.
-        # A payload this integration cannot read is the obvious example: the
-        # login had already succeeded to get that far (#28).
-        if isinstance(error, PARSE_FAULTS):
-            LOGGER.error(
-                "The Anycubic cloud answered, but its response could not be "
-                "read. This is a fault in the integration, not your "
-                "credentials -- please report it with your printer model and "
-                "firmware version. %s",
-                error,
-            )
-            return {"base": "cannot_read_response"}
-
-        LOGGER.error("Authentication failed with unknown Error. Check credentials %s", error)
-        return {"base": "cannot_connect"}
-
-    async def _async_check_anycubic_api_instance_exists(self) -> None:
-        if self._anycubic_api is not None:
-            return
-
-        LOGGER.debug("Setting up API instance for config flow.")
-
-        self._anycubic_api = self._async_create_anycubic_api()
-
-        if not self.entry or self._is_reauth:
-            return
-
-        await async_load_tokens_from_store(
-            self.hass, self._anycubic_api, self.entry.entry_id
-        )
-
-    async def _async_check_login_errors(self) -> dict[str, str]:
-        # Worded as a question, not a statement -- the old "checking auth was
-        # successful" read as a success message and was logged immediately
-        # before every failure.
-        LOGGER.debug("Config flow checking whether authentication succeeded.")
-        assert self._anycubic_api
-
-        # Logged whether or not it works: when a token is refused, its own
-        # claims are the fastest way to see why, and a report that already
-        # contains them saves a round of questions.
-        LOGGER.debug("Pasted token claims: %s", describe_token(self._user_token))
-
-        success = await self._anycubic_api.check_api_tokens()
-        if not success:
-            wrong_kind = (
-                None
-                if self._user_region is AnycubicRegion.CHINA
-                else token_type_looks_wrong(self._user_token)
-            )
-
-            if wrong_kind:
-                LOGGER.error(
-                    "That token is a %s, not an %s -- Anycubic refuses it with "
-                    "'User does not exist'.",
-                    wrong_kind,
-                    TOKEN_TYPE_EXPECTED,
-                )
-                return {"base": "wrong_token_type"}
-
-            LOGGER.error("Authentication failed. Check credentials.")
-            return {"base": "invalid_auth"}
-
-        LOGGER.debug("Config flow auth successful.")
-
-        return {}
-
-    async def _async_check_authentication_with_user_input(
-        self,
-        auth_mode: AnycubicAuthMode,
-        user_input: dict[str, Any],
-    ) -> dict[str, str]:
-        try:
-            self._user_token = remove_quotes_from_string(user_input[CONF_USER_TOKEN])
-        except TypeError as error:
-            LOGGER.warning(f"Token appears invalid: {error}")
-
-            self._user_token = user_input[CONF_USER_TOKEN]
-
-        self._user_auth_mode = auth_mode
-        self._user_device_id = user_input.get(CONF_USER_DEVICE_ID)
-
-        try:
-            await self._async_check_anycubic_api_instance_exists()
-            errors = await self._async_check_login_errors()
-
-        except Exception as error:
-            tb = traceback.format_exc()
-            LOGGER.debug(f"Error during authentication with user_input: {error}\n{tb}")
-            errors = self._errors_unknown_authentication_failure(error)
-
-        return errors
-
-    async def async_step_auth_mode_pick(
-        self, _: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Authentication mode selection."""
-
-        return self.async_show_menu(
-            step_id="auth_mode_pick",
-            menu_options=["auth_mode_web", "auth_mode_slicer", "auth_mode_android"],
-        )
-
-    async def async_step_auth_mode_web(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Handle the auth_mode_web step."""
-        return await self._async_handle_auth_mode_step(
-            step_id="auth_mode_web",
-            auth_mode=AnycubicAuthMode.WEB,
-            auth_schema=DATA_SCHEMA_AUTH_WEB,
-            user_input=user_input,
-        )
-
-    async def async_step_auth_mode_slicer(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Handle the auth_mode_slicer step."""
-        return await self._async_handle_auth_mode_step(
-            step_id="auth_mode_slicer",
-            auth_mode=AnycubicAuthMode.SLICER,
-            auth_schema=DATA_SCHEMA_AUTH_SLICER,
-            user_input=user_input,
-        )
-
-    async def async_step_auth_mode_android(
-        self,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Handle the auth_mode_android step."""
-        return await self._async_handle_auth_mode_step(
-            step_id="auth_mode_android",
-            auth_mode=AnycubicAuthMode.ANDROID,
-            auth_schema=DATA_SCHEMA_AUTH_ANDROID,
-            user_input=user_input,
-        )
-
-    async def _async_handle_auth_mode_step(
-        self,
-        step_id: str,
-        auth_mode: AnycubicAuthMode,
-        auth_schema: vol.Schema,
-        user_input: dict[str, Any] | None = None,
-    ) -> ConfigFlowResult:
-        """Handle authentication step."""
-        errors = {}
-
-        if user_input is not None:
-            LOGGER.debug("Handling auth step with user_input.")
-            errors = await self._async_check_authentication_with_user_input(
-                auth_mode=auth_mode,
-                user_input=user_input,
-            )
-
-            if not errors:
-                if self.entry:
-                    self.hass.config_entries.async_update_entry(
-                        self.entry,
-                        data={
-                            **self.entry.data,
-                            CONF_USER_TOKEN: self._user_token,
-                            CONF_USER_AUTH_MODE: self._user_auth_mode,
-                            CONF_REGION: self._user_region.value,
-                            CONF_USER_DEVICE_ID: self._user_device_id,
-                        },
-                    )
-                    return self.async_abort(reason="reauth_successful")
-
-                else:
-                    return await self.async_step_printer()
-
-        return self.async_show_form(
-            step_id=step_id,
-            data_schema=auth_schema,
-            errors=errors,
-        )
-
-    async def async_step_printer(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Handle the printer step."""
-        errors = {}
-        printer_id_map = {}
-
-        try:
-            LOGGER.debug("Config flow step: Printer")
-            if self._is_reconfigure and not self._is_reauth:
-                LOGGER.debug("Fetching existing entry for printer auth.")
-                self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-
-                assert self.entry
-
-                self._user_token = self.entry.data[CONF_USER_TOKEN]
-                self._user_auth_mode = self.entry.data.get(CONF_USER_AUTH_MODE)
-                self._user_device_id = self.entry.data.get(CONF_USER_DEVICE_ID)
-                self._user_region = region_from_entry_data(self.entry.data)
-
-            await self._async_check_anycubic_api_instance_exists()
-            errors = await self._async_check_login_errors()
-
-            assert self._anycubic_api
-
-            printer_list = await self._anycubic_api.list_my_printers(ignore_init_errors=True)
-
-            if printer_list is None or len(printer_list) < 1:
-                LOGGER.error("No printers found. Check config.")
-                errors = {"base": "no_printers"}
-
-            printer_id_map = {f"{x.id}": x.name for x in printer_list}
-
-        except Exception as error:
-            tb = traceback.format_exc()
-            LOGGER.debug(f"Error during printers list fetch: {error}\n{tb}")
-            errors = self._errors_unknown_authentication_failure(error)
-
-        if user_input and not errors:
-            assert self._anycubic_api
-
-            printer_id_list = list([int(x) for x in user_input[CONF_PRINTER_ID_LIST]])
-
-            for printer_id in printer_id_list:
-                try:
-                    printer_status = await self._anycubic_api.printer_info_for_id(printer_id, ignore_init_errors=True)
-
-                    if printer_status is None:
-                        LOGGER.error("Printer not found. Check config.")
-                        errors = {"base": "invalid_printer"}
-                        break
-
-                except Exception as error:
-                    tb = traceback.format_exc()
-                    LOGGER.debug(f"Error during printer info fetch: {error}\n{tb}")
-                    errors = self._errors_unknown_authentication_failure(error)
-                    break
-
-            if not errors:
-                existing_entry = await self.async_set_unique_id(
-                    f"{self._anycubic_api.anycubic_auth.api_user_id}"
-                )
-                if existing_entry and self.entry:
-                    self.hass.config_entries.async_update_entry(
-                        existing_entry,
-                        data={
-                            **self.entry.data,
-                            CONF_USER_TOKEN: self._user_token,
-                            CONF_USER_AUTH_MODE: self._user_auth_mode,
-                            CONF_REGION: self._user_region.value,
-                            CONF_USER_DEVICE_ID: self._user_device_id,
-                            CONF_PRINTER_ID_LIST: printer_id_list,
-                        },
-                    )
-                    return self.async_abort(reason="reconfigure_successful")
-
-                # Setting the unique id doesn't enforce it. Without this, adding
-                # the same Anycubic account a second time creates a duplicate
-                # entry and a second copy of every device and entity.
-                self._abort_if_unique_id_configured()
-
-                return self.async_create_entry(
-                    title=self._anycubic_api.anycubic_auth.api_user_identifier,
-                    data={
-                        CONF_USER_TOKEN: self._user_token,
-                        CONF_USER_AUTH_MODE: self._user_auth_mode,
-                        CONF_REGION: self._user_region.value,
-                        CONF_USER_DEVICE_ID: self._user_device_id,
-                        CONF_PRINTER_ID_LIST: printer_id_list,
-                    },
-                )
-
-        return self.async_show_form(
-            step_id="printer",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_PRINTER_ID_LIST): cv.multi_select(printer_id_map),
-                },
-            ),
-            errors=errors,
-        )
+    # -- new entries -----------------------------------------------------------
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Ask how to reach the printer before asking for anything else.
+        return self.async_show_menu(step_id="user", menu_options=["cloud", "local"])
 
-        LAN Mode needs no Anycubic account at all, so leading with the token
-        made people hunt through a memory dump for a credential they did not
-        need. Cloud stays first because it is what most printers are on.
-        """
+    async def async_step_cloud(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Paste a token; extract, pre-check, then sign in (§5.8)."""
+        secrets = await async_get_cloud_secrets(self.hass)
+        if secrets is None:
+            return self.async_abort(reason=ABORT_NO_CREDENTIALS)
+        entry = self._entry_being_changed()
+        region = str(
+            (entry.data.get(CONF_REGION) if entry else None) or REGION_INTERNATIONAL
+        )
+        if region not in (REGION_INTERNATIONAL, REGION_CHINA):
+            region = REGION_INTERNATIONAL
+        errors: dict[str, str] = {}
+        device_id = ""
+        if user_input is not None:
+            region = user_input.get(CONF_REGION, region)
+            device_id = str(user_input.get(CONF_USER_DEVICE_ID) or "").strip()
+            token, errors = await self._async_check_token(user_input[CONF_USER_TOKEN])
+            if token is not None:
+                try:
+                    result = await sign_in_any(
+                        async_get_clientsession(self.hass),
+                        secrets,
+                        token,
+                        device_id=device_id or None,
+                        region=region,
+                    )
+                except Exception as err:
+                    errors = {"base": _sign_in_error(err)}
+                else:
+                    return await self._async_signed_in(
+                        result, token, device_id or None, region
+                    )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_USER_TOKEN): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional(
+                    CONF_USER_DEVICE_ID, description={"suggested_value": device_id}
+                ): str,
+                vol.Required(CONF_REGION, default=region): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[REGION_INTERNATIONAL, REGION_CHINA],
+                        translation_key=CONF_REGION,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(step_id="cloud", data_schema=schema, errors=errors)
+
+    async def _async_check_token(
+        self, pasted: str
+    ) -> tuple[str | None, dict[str, str]]:
+        """Local pre-checks: extraction, expiry, the RS256 signature (§5.8)."""
+        token = extract_token(pasted)
+        if token is None:
+            return None, {CONF_USER_TOKEN: "invalid_token_format"}
+        claims = decode_claims(token)
+        if claims is not None and claims.is_expired():
+            return None, {CONF_USER_TOKEN: "token_expired"}
+        check = await verify_token_signature(async_get_clientsession(self.hass), token)
+        if check.status in (SignatureStatus.CORRUPTED, SignatureStatus.INVALID):
+            return None, {CONF_USER_TOKEN: "token_corrupted"}
+        # An over-long signature comes back trimmed.
+        return check.token, {}
+
+    def _entry_being_changed(self) -> ConfigEntry | None:
+        if self.source == SOURCE_REAUTH:
+            return self._get_reauth_entry()
+        if self.source == SOURCE_RECONFIGURE:
+            return self._get_reconfigure_entry()
+        return None
+
+    async def _async_signed_in(
+        self,
+        result: SignInResult,
+        token: str,
+        device_id: str | None,
+        region: str,
+        *,
+        legacy: bool = False,
+    ) -> ConfigFlowResult:
+        user_id = result.account.user_id
+        unique_id = str(user_id) if user_id is not None else result.account.identifier
+        data = {
+            CONF_USER_TOKEN: token,
+            CONF_USER_AUTH_MODE: int(result.auth_mode),
+            CONF_USER_DEVICE_ID: device_id,
+            CONF_REGION: region,
+        }
+        entry = self._entry_being_changed()
+        if entry is not None:
+            if entry.unique_id and entry.unique_id != unique_id:
+                # Another account's token (E2-Q6 in docs/QUESTIONS.md).
+                return self.async_abort(reason="wrong_account")
+            if legacy:
+                # The legacy steps neither clear the store nor reload (§5.8).
+                self.hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, **data}
+                )
+                return self.async_abort(reason="reauth_successful")
+            # PROTOCOL A §5.3 rule 4: the new token, mode, region and device id
+            # on the entry; the old session deleted so it cannot overwrite
+            # them; a reload; then done. The sign-in's own tokens are handed
+            # to that setup so it does not exchange again (acceptance L2).
+            await async_delete_token_store(self.hass, entry.entry_id)
+            async_hand_off_sign_in(self.hass, token, result.tokens)
+            return self.async_update_reload_and_abort(
+                entry, data={**entry.data, **data}, reason="reauth_successful"
+            )
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
+        self._cloud_data = data
+        self._cloud_title = result.account.identifier
+        self._cloud_tokens = result
+        return await self.async_step_printer()
+
+    # -- legacy fixed-mode steps (BEHAVIOUR §5.8 last row; DECISIONS V9) -----
+
+    async def async_step_auth_mode_pick(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Not offered by any menu, as in 2.x; kept for their step ids
+        (E2-Q4 in docs/QUESTIONS.md)."""
         return self.async_show_menu(
-            step_id="user",
-            menu_options=["cloud", "local"],
+            step_id="auth_mode_pick", menu_options=list(LEGACY_MODES)
+        )
+
+    async def async_step_auth_mode_web(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await self._async_legacy_step("auth_mode_web", user_input)
+
+    async def async_step_auth_mode_slicer(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await self._async_legacy_step("auth_mode_slicer", user_input)
+
+    async def async_step_auth_mode_android(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        return await self._async_legacy_step("auth_mode_android", user_input)
+
+    async def _async_legacy_step(
+        self, step_id: str, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        """Log in with one fixed mode: quotes stripped, no other checks."""
+        secrets = await async_get_cloud_secrets(self.hass)
+        if secrets is None:
+            return self.async_abort(reason=ABORT_NO_CREDENTIALS)
+        mode = LEGACY_MODES[step_id]
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            token = str(user_input[CONF_USER_TOKEN]).strip().strip("\"'")
+            device_id = str(user_input.get(CONF_USER_DEVICE_ID) or "").strip() or None
+            result, errors = await self._async_sign_in_mode(
+                secrets, token, mode, device_id
+            )
+            if result is not None:
+                return await self._async_signed_in(
+                    result, token, device_id, REGION_INTERNATIONAL, legacy=True
+                )
+        fields: dict[vol.Marker, Any] = {vol.Required(CONF_USER_TOKEN): str}
+        if mode is AuthMode.ANDROID:
+            fields[vol.Required(CONF_USER_DEVICE_ID)] = str
+        return self.async_show_form(
+            step_id=step_id, data_schema=vol.Schema(fields), errors=errors
+        )
+
+    async def _async_sign_in_mode(
+        self,
+        secrets: CloudSecrets,
+        token: str,
+        mode: AuthMode,
+        device_id: str | None,
+    ) -> tuple[SignInResult | None, dict[str, str]]:
+        client = AnycubicCloudClient.from_entry(
+            async_get_clientsession(self.hass),
+            secrets,
+            token=token,
+            auth_mode=mode,
+            region=REGION_INTERNATIONAL,
+            device_id=device_id,
+        )
+        try:
+            account = await client.check()
+        except Exception as err:
+            return None, {"base": _sign_in_error(err)}
+        return (
+            SignInResult(
+                auth_mode=mode,
+                account=account,
+                tokens=client.token_state,
+                client=client,
+            ),
+            {},
         )
 
     async def async_step_local(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Set up against the printer alone -- no token, no account.
-
-        The handshake proves the printer is reachable and actually in LAN
-        Mode before an entry is created, so a printer still on the cloud says
-        so here rather than producing an entry that never works.
-        """
         errors: dict[str, str] = {}
         host = self._discovered_host or ""
-
         if user_input is not None:
-            host = str(user_input.get(CONF_LAN_HOST) or "").strip()
-
-            broker = None
-
-            if not host:
-                errors[CONF_LAN_HOST] = "lan_host_required"
-            else:
-                errors, broker = await async_lan_handshake(self.hass, host)
-
-            if not errors and broker is not None:
-                # The printer's own id, since there is no cloud account to
-                # enumerate printers from.
-                printer_id = lan_printer_id(broker.device_id)
-                await self.async_set_unique_id(
-                    format_mac(broker.mac) if broker.mac else f"lan-{host}"
-                )
-                self._abort_if_unique_id_configured(updates={CONF_LAN_HOST: host})
-
-                return self.async_create_entry(
-                    title=broker.model_name or f"Anycubic ({host})",
-                    data={
-                        CONF_LAN_HOST: host,
-                        CONF_PRINTER_ID_LIST: [printer_id],
-                    },
-                    options={
-                        CONF_LAN_MODE_ENABLED: True,
-                        CONF_LAN_HOST: host,
-                    },
-                )
-
+            host = user_input.get(CONF_LAN_HOST, "").strip()
+            info, errors = await _async_try_handshake(self, host)
+            if info is not None:
+                return await self._async_create_lan_entry(info, host)
         return self.async_show_form(
             step_id="local",
-            data_schema=vol.Schema({
-                vol.Required(CONF_LAN_HOST, default=host): cv.string,
-            }),
+            data_schema=vol.Schema({vol.Optional(CONF_LAN_HOST, default=host): str}),
             errors=errors,
         )
+
+    async def _async_create_lan_entry(
+        self, info: PrinterConnectionInfo, host: str
+    ) -> ConfigFlowResult:
+        await self.async_set_unique_id(entry_unique_id_for_lan(info.mac, host))
+        if existing := self.hass.config_entries.async_entry_for_domain_unique_id(
+            DOMAIN, self.unique_id or ""
+        ):
+            self._async_update_host(existing, host)
+            return self.async_abort(reason="already_configured")
+        title = info.discovery.model_name or f"Anycubic ({host})"
+        return self.async_create_entry(
+            title=title,
+            data={
+                CONF_LAN_HOST: host,
+                CONF_PRINTER_IDS: [lan_printer_id(info.device_id)],
+            },
+            options={CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: host},
+        )
+
+    @callback
+    def _async_update_host(self, entry: ConfigEntry, host: str) -> None:
+        """Move an entry to a new address - the one the connection reads (G24)."""
+        options = dict(entry.options)
+        if entry.options.get(CONF_LAN_HOST) == host:
+            return
+        options[CONF_LAN_HOST] = host
+        data = dict(entry.data)
+        if CONF_LAN_HOST in data or not is_cloud_entry(entry):
+            data[CONF_LAN_HOST] = host
+        self.hass.config_entries.async_update_entry(entry, data=data, options=options)
+        self.hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    # -- DHCP discovery ----------------------------------------------------------
 
     async def async_step_dhcp(
         self, discovery_info: DhcpServiceInfo
     ) -> ConfigFlowResult:
-        """A printer appeared on the network.
-
-        Offered as a local setup with the address filled in, because that is
-        the path that needs nothing else from the user. Someone who wants the
-        cloud can still pick it from the menu.
-        """
+        """A printer seen by DHCP (matchers confirmed, DECISIONS round 2, Q9.2)."""
         mac = format_mac(discovery_info.macaddress)
+        host = discovery_info.ip
         await self.async_set_unique_id(mac)
-        self._abort_if_unique_id_configured(
-            updates={CONF_LAN_HOST: discovery_info.ip}
-        )
-
-        # The unique_id check above only catches an entry keyed by this MAC --
-        # a LAN-only one. A CLOUD entry is keyed by the account's user id, so
-        # a printer that has been set up through the cloud for months still
-        # gets rediscovered and offered as new every time its lease renews.
-        # The device registry already knows the MAC as a connection on that
-        # printer's device, so ask it: if any device carrying this MAC belongs
-        # to one of our entries, this printer is already configured.
-        dev_reg = dr.async_get(self.hass)
-        device = dev_reg.async_get_device(
-            connections={(dr.CONNECTION_NETWORK_MAC, mac)}
-        )
-        if device is not None and any(
-            entry.domain == DOMAIN
-            for entry in (
-                self.hass.config_entries.async_get_entry(entry_id)
-                for entry_id in device.config_entries
-            )
-            if entry is not None
+        if existing := self.hass.config_entries.async_entry_for_domain_unique_id(
+            DOMAIN, mac
+        ):
+            if existing.options.get(CONF_LAN_MODE_ENABLED):
+                self._async_update_host(existing, host)
+            return self.async_abort(reason="already_configured")
+        # A printer of a cloud entry is keyed by account, not MAC: look for
+        # the MAC among this integration's devices (B27).
+        registry = dr.async_get(self.hass)
+        connection = (dr.CONNECTION_NETWORK_MAC, mac)
+        if any(
+            connection in device.connections
+            for entry in self.hass.config_entries.async_entries(DOMAIN)
+            for device in dr.async_entries_for_config_entry(registry, entry.entry_id)
         ):
             return self.async_abort(reason="already_configured")
-
-        self._discovered_host = discovery_info.ip
-        self.context["title_placeholders"] = {"name": f"Anycubic ({discovery_info.ip})"}
-
+        self._discovered_host = host
+        self.context["title_placeholders"] = {"name": f"Anycubic ({host})"}
         return await self.async_step_confirm_discovery()
 
     async def async_step_confirm_discovery(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Confirm a discovered printer before doing anything with it."""
         if user_input is not None:
             return await self.async_step_user()
-
         return self.async_show_form(
             step_id="confirm_discovery",
             description_placeholders={"host": self._discovered_host or ""},
         )
 
-    async def async_step_cloud(
+    # -- re-authentication and reconfigure ---------------------------------------
+
+    async def async_step_reauth(self, entry_data: Any = None) -> ConfigFlowResult:
+        """Straight to the ``cloud`` form, region pre-filled (§5.6)."""
+        return await self.async_step_cloud()
+
+    async def async_step_printer(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the token step: one paste, mode detected automatically.
-
-        Users can't reasonably choose between Web/Slicer/Android before they
-        have a token in hand, so we don't ask. Paste whatever you have and the
-        mode is inferred from its shape, with the alternatives tried as a
-        fallback if the first guess is rejected.
-        """
+        """Choose the account's printers (§5.8 ``printer``)."""
         errors: dict[str, str] = {}
-
-        if user_input is not None:
-            raw_token = user_input.get(CONF_USER_TOKEN)
-            device_id = (user_input.get(CONF_USER_DEVICE_ID) or "").strip() or None
-            # Set before anything authenticates: it decides which
-            # service the token is sent to.
-            self._user_region = resolve_region(user_input.get(CONF_REGION))
-            token = extract_pasted_token(raw_token)
-
-            if not token:
-                errors = {CONF_USER_TOKEN: "invalid_token_format"}
-            else:
-                token, errors = await self._async_precheck_token(token)
-
-                if not errors:
-                    errors = await self._async_authenticate_detecting_mode(
-                        token, device_id
-                    )
-
-                if not errors:
-                    if self.entry:
-                        self.hass.config_entries.async_update_entry(
-                            self.entry,
-                            data={
-                                **self.entry.data,
-                                CONF_USER_TOKEN: self._user_token,
-                                CONF_USER_AUTH_MODE: self._user_auth_mode,
-                                CONF_REGION: self._user_region.value,
-                                CONF_USER_DEVICE_ID: self._user_device_id,
-                            },
-                        )
-                        # Setup loads the saved tokens on top of the entry's,
-                        # so leaving the old pair in place would have the
-                        # credentials just proved good overwritten by the ones
-                        # that failed. A new paste retires them.
-                        await async_token_store(
-                            self.hass, self.entry.entry_id
-                        ).async_remove()
-                        # And bring the entry back up now. Without this it sits
-                        # on its old error -- re-authenticated, still red --
-                        # until something else reloads it.
-                        self.hass.config_entries.async_schedule_reload(
-                            self.entry.entry_id
-                        )
-                        return self.async_abort(reason="reauth_successful")
-
-                    return await self.async_step_printer()
-
-        return self.async_show_form(
-            step_id="cloud",
-            # Seeded with the entry's own region on reauth and reconfigure.
-            # Without this the dropdown falls back to its international
-            # default, and a China user who does not notice sends their token
-            # to the wrong service -- where it fails, and gets reported as a
-            # wrong token type rather than a wrong region. Actively
-            # misdirecting, and not something the maintainer can reproduce.
-            data_schema=self.add_suggested_values_to_schema(
-                DATA_SCHEMA_TOKEN,
-                {CONF_REGION: self._user_region.value},
-            ),
-            errors=errors,
-            # hassfest forbids URLs inside translation files, so it is passed in.
-            description_placeholders={"tools_url": TOOLS_URL},
-        )
-
-    async def _async_precheck_token(self, token: str) -> tuple[str, dict[str, str]]:
-        """Judge the pasted token locally before the server sees it.
-
-        Anycubic's login answers every invalid token -- corrupted, truncated,
-        expired or stale -- with the same "User does not exist", which reads
-        as an account problem and sends people entirely the wrong way (issue
-        #8 burned a full day on that). An expired or signature-broken token
-        can be named as exactly that, right here.
-
-        Returns the token to carry on with, which may have had stray trailing
-        bytes trimmed off its signature.
-        """
-        expiry = token_expiry_timestamp(token)
-        if expiry is not None and expiry <= int(time.time()):
-            LOGGER.error("Pasted token expired on %s.", dt_util.utc_from_timestamp(expiry))
-            return token, {CONF_USER_TOKEN: "token_expired"}
-
-        checked, corrupt = await async_repair_access_token(
-            async_get_clientsession(self.hass), token
-        )
-
-        if corrupt:
-            LOGGER.error(
-                "Pasted token failed local signature verification -- it was "
-                "damaged in copying, or reassembled wrongly from a memory dump."
-            )
-            return token, {CONF_USER_TOKEN: "token_corrupted"}
-
-        if checked != token:
-            LOGGER.debug(
-                "Trimmed %d stray character(s) from the pasted token's "
-                "signature; it verifies once they are removed.",
-                len(token) - len(checked),
-            )
-
-        return checked, {}
-
-    async def _async_authenticate_detecting_mode(
-        self,
-        token: str,
-        device_id: str | None,
-    ) -> dict[str, str]:
-        """Try the most likely auth mode first, then the plausible others.
-
-        The token's shape is a strong hint but not a guarantee, so rather than
-        failing and making the user guess, we try the alternatives before
-        reporting an error.
-        """
-        first_choice = detect_auth_mode(token, device_id)
-
-        if device_id:
-            # A device id is only meaningful for the Android flow.
-            modes = [AnycubicAuthMode.ANDROID]
-        else:
-            modes = [first_choice] + [
-                mode
-                for mode in (AnycubicAuthMode.SLICER, AnycubicAuthMode.WEB)
-                if mode is not first_choice
-            ]
-
-        errors: dict[str, str] = {}
-
-        for mode in modes:
-            # Each attempt needs a fresh API instance, since a failed login
-            # leaves the previous one holding rejected credentials.
-            self._anycubic_api = None
-
-            errors = await self._async_check_authentication_with_user_input(
-                auth_mode=mode,
-                user_input={
-                    CONF_USER_TOKEN: token,
-                    CONF_USER_DEVICE_ID: device_id,
-                },
-            )
-
+        reconfigure = self.source == SOURCE_RECONFIGURE
+        client = await self._async_printer_client()
+        if client is None:
+            return self.async_abort(reason=ABORT_NO_CREDENTIALS)
+        printers: list[PrinterSummary] = []
+        try:
+            printers = [p for p in await client.get_printers() if p.id is not None]
+        except UnexpectedResponseError:
+            errors["base"] = "cannot_read_response"
+        except Exception:
+            errors["base"] = "cannot_connect"
+        if not printers and not errors:
+            errors["base"] = "no_printers"
+        if user_input is not None and not errors:
+            chosen = [int(pid) for pid in user_input.get(CONF_PRINTER_IDS) or []]
+            errors = await self._async_check_printers(client, chosen)
             if not errors:
-                LOGGER.debug("Authenticated using detected auth mode %s.", mode.name)
-                return {}
+                return await self._async_printers_chosen(client, chosen)
+        entry = self._entry_being_changed()
+        current = (
+            [str(pid) for pid in (entry.data.get(CONF_PRINTER_IDS) or [])]
+            if (entry and reconfigure)
+            else []
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_PRINTER_IDS, default=current
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=str(p.id), label=p.name or str(p.id)
+                            )
+                            for p in printers
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.LIST,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="printer", data_schema=schema, errors=errors
+        )
 
-        return errors
+    async def _async_printer_client(self) -> AnycubicCloudClient | None:
+        """New flows use the sign-in's client. Reconfigure uses the entry's
+        token with its stored session - not a re-auth (§5.3 rule 6)."""
+        if self.source != SOURCE_RECONFIGURE:
+            return self._cloud_tokens.client
+        if self._reconfigure_client is not None:
+            return self._reconfigure_client
+        secrets = await async_get_cloud_secrets(self.hass)
+        if secrets is None:
+            return None
+        entry = self._get_reconfigure_entry()
+        store = await TokenStore(self.hass, entry.entry_id).async_load()
+        client = AnycubicCloudClient.from_entry(
+            async_get_clientsession(self.hass),
+            secrets,
+            token=str(entry.data.get(CONF_USER_TOKEN) or ""),
+            auth_mode=entry.data.get(CONF_USER_AUTH_MODE),
+            region=entry.data.get(CONF_REGION),
+            device_id=entry.data.get(CONF_USER_DEVICE_ID),
+            store=store,
+        )
+        try:
+            await client.check()
+        except AnycubicCloudError as err:
+            _LOGGER.debug("Reconfigure sign-in failed: %s", err)
+        self._reconfigure_client = client
+        return client
 
-    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
-        """Handle initiation of re-authentication with AnycubicCloud."""
-        self._is_reauth = True
-        self.entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        return await self.async_step_reauth_confirm()
+    @staticmethod
+    async def _async_check_printers(
+        client: AnycubicCloudClient, chosen: list[int]
+    ) -> dict[str, str]:
+        """Each chosen printer's record can be fetched."""
+        if not chosen:
+            return {"base": "no_printers"}
+        for printer_id in chosen:
+            try:
+                await client.get_printer(printer_id)
+            except UnexpectedResponseError:
+                return {"base": "cannot_read_response"}
+            except CredentialsRejectedError:
+                return {"base": "invalid_auth"}
+            except ServiceUnavailableError:
+                return {"base": "cannot_connect"}
+            except AnycubicCloudError:
+                return {"base": "invalid_printer"}
+            except Exception:
+                return {"base": "cannot_connect"}
+        return {}
 
-    async def async_step_reauth_confirm(
-        self, user_input: dict[str, Any] | None = None
+    async def _async_printers_chosen(
+        self, client: AnycubicCloudClient, chosen: list[int]
     ) -> ConfigFlowResult:
-        """Re-authenticate with the same single paste as first-time setup.
-
-        Straight to the token form, not the connection menu: an entry only
-        needs re-authenticating because it uses a cloud account, so asking
-        again how to reach the printer would be a question already answered.
-        """
-        return await self.async_step_cloud(user_input)
+        if self.source == SOURCE_RECONFIGURE:
+            entry = self._get_reconfigure_entry()
+            if client.tokens_changed:
+                await TokenStore(self.hass, entry.entry_id).async_save(
+                    client.export_token_store()
+                )
+            return self.async_update_reload_and_abort(
+                entry,
+                data={**entry.data, CONF_PRINTER_IDS: chosen},
+                reason="reconfigure_successful",
+            )
+        data = {**self._cloud_data, CONF_PRINTER_IDS: chosen}
+        async_hand_off_sign_in(self.hass, data[CONF_USER_TOKEN], client.token_state)
+        return self.async_create_entry(title=self._cloud_title, data=data, options={})
 
     async def async_step_reconfigure(
-        self, _: dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle a reconfiguration flow initialized by the user."""
-
-        self._is_reconfigure = True
-
         return await self.async_step_reauth_or_choose_printer()
 
     async def async_step_reauth_or_choose_printer(
-        self, _: dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Re-authenticate or select printer menu.."""
-
+        entry = self._get_reconfigure_entry()
+        # G21: no account steps for LAN-only entries.
+        options = (
+            ["reauth", "printer", "connection"]
+            if is_cloud_entry(entry)
+            else ["connection"]
+        )
         return self.async_show_menu(
-            step_id="reauth_or_choose_printer",
-            menu_options=["reauth", "printer", "connection"],
+            step_id="reauth_or_choose_printer", menu_options=options
         )
 
     async def async_step_connection(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Switch between the cloud and the printer's own local connection.
-
-        Kept here rather than only in options because this is what someone
-        reaches for after flipping LAN Mode at the printer -- at which point
-        the cloud has dropped the printer and the entry may not be loaded.
-        """
+        """LAN settings of the entry being reconfigured (V14, G5)."""
+        entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
-        entry = self.entry
-
-        if entry is None:
-            return self.async_abort(reason="reconfigure_successful")
-
-        if user_input:
-            host = str(user_input.get(CONF_LAN_HOST) or "").strip()
-            enabled = bool(user_input.get(CONF_LAN_MODE_ENABLED))
-
-            if enabled and not host:
-                errors[CONF_LAN_HOST] = "lan_host_required"
-            elif enabled:
-                errors = await self._async_check_lan_host(host)
-
+        enabled = bool(entry.options.get(CONF_LAN_MODE_ENABLED, False))
+        host = str(
+            entry.options.get(CONF_LAN_HOST) or entry.data.get(CONF_LAN_HOST) or ""
+        )
+        if user_input is not None:
+            enabled = user_input[CONF_LAN_MODE_ENABLED]
+            host = user_input.get(CONF_LAN_HOST, "").strip()
+            if enabled:
+                info, errors = await _async_try_handshake(self, host)
+                if info is not None and not self._same_printer(entry, info, host):
+                    errors = {"base": "lan_different_printer"}
             if not errors:
-                self.hass.config_entries.async_update_entry(
+                options = {**entry.options, CONF_LAN_MODE_ENABLED: enabled}
+                data = dict(entry.data)
+                if enabled:
+                    options[CONF_LAN_HOST] = host
+                    if not is_cloud_entry(entry):
+                        data[CONF_LAN_HOST] = host
+                return self.async_update_reload_and_abort(
                     entry,
-                    options={
-                        **entry.options,
-                        CONF_LAN_MODE_ENABLED: enabled,
-                        CONF_LAN_HOST: host,
-                    },
+                    data=data,
+                    options=options,
+                    reason="reconfigure_successful",
                 )
-                return self.async_abort(reason="reconfigure_successful")
-
         return self.async_show_form(
-            step_id="connection",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    CONF_LAN_MODE_ENABLED,
-                    default=entry.options.get(CONF_LAN_MODE_ENABLED, False),
-                ): BooleanSelector(),
-                vol.Optional(
-                    CONF_LAN_HOST,
-                    default=entry.options.get(CONF_LAN_HOST, ""),
-                ): cv.string,
-            }),
-            errors=errors,
+            step_id="connection", data_schema=_lan_schema(enabled, host), errors=errors
         )
 
-    async def _async_check_lan_host(self, host: str) -> dict[str, str]:
-        return await check_lan_host(self.hass, host)
+    @staticmethod
+    def _same_printer(
+        entry: ConfigEntry, info: PrinterConnectionInfo, host: str
+    ) -> bool:
+        """A LAN-only entry must keep talking to the printer it was set up for.
+
+        Checked by MAC when the entry is keyed by one, else by the printer id
+        derived from the broker's device id (COMPAT §2).
+        """
+        if is_cloud_entry(entry):
+            return True
+        unique_id = entry.unique_id or ""
+        if unique_id and not unique_id.startswith("lan-") and info.mac:
+            return unique_id == entry_unique_id_for_lan(info.mac, host)
+        printer_ids = entry.data.get(CONF_PRINTER_IDS) or []
+        if printer_ids:
+            return lan_printer_id(info.device_id) == int(printer_ids[0])
+        return True
 
 
-class AnycubicCloudOptionsFlowHandler(OptionsFlow):
-    """Handle Anycubic Cloud options."""
+def _sign_in_error(err: Exception) -> str:
+    """The form error for a failed sign-in (BEHAVIOUR §5.8, PROTOCOL A §4.4).
 
-    def __init__(self, entry: ConfigEntry) -> None:
-        """Initialize Anycubic Cloud options flow."""
-        self.entry = entry
-        self._anycubic_api: AnycubicAPI | None = None
-        self._supports_drying = False
+    A rate limit is transient, never "invalid" (acceptance L2).
+    """
+    if isinstance(err, CredentialsRejectedError):
+        if err.server_message and "请求过于频繁" in err.server_message:
+            return "cannot_connect"
+        if err.reason is RejectReason.WRONG_TOKEN_TYPE:
+            return "wrong_token_type"
+        return "invalid_auth"
+    if isinstance(err, UnexpectedResponseError):
+        return "cannot_read_response"
+    if not isinstance(err, AnycubicCloudError):
+        _LOGGER.error("Unexpected error signing in to the Anycubic cloud: %r", err)
+    return "cannot_connect"
 
-    def _build_drying_options_schema(self) -> vol.Schema:
-        schema: dict[Any, Any] = dict()
 
-        for x in range(MAX_DRYING_PRESETS):
-            num = x + 1
+def _card_value_ok(key: str, item: object) -> bool:
+    if key in CARD_CONFIG_BOOL_KEYS:
+        return isinstance(item, bool)
+    if key in CARD_CONFIG_STR_KEYS:
+        return isinstance(item, str)
+    if key in CARD_CONFIG_LIST_KEYS:
+        return isinstance(item, str) or (
+            isinstance(item, list) and all(isinstance(i, str) for i in item)
+        )
+    if key in CARD_CONFIG_NUMBER_KEYS:
+        return isinstance(item, int | float) and not isinstance(item, bool)
+    return False
 
-            dur_key = f"{CONF_DRYING_PRESET_DURATION_}{num}"
-            schema[vol.Optional(
-                dur_key,
-                default=self.entry.options.get(dur_key, vol.UNDEFINED)
-            )] = cv.positive_int
 
-            temp_key = f"{CONF_DRYING_PRESET_TEMPERATURE_}{num}"
-            schema[vol.Optional(
-                temp_key,
-                default=self.entry.options.get(temp_key, vol.UNDEFINED)
-            )] = cv.positive_int
+def sanitize_card_config(value: dict[str, Any]) -> dict[str, Any]:
+    """Keep the known card keys of the right type (BEHAVIOUR §5.9).
 
-        return vol.Schema(schema)
+    ``false``, ``0``, empty values and whole-number ``scaleFactor`` are kept
+    (DECISIONS frontend 3); a bare string list value is passed through.
+    """
+    return {key: item for key, item in value.items() if _card_value_ok(key, item)}
 
-    async def _async_check_printer_options(self) -> None:
-        try:
-            self._anycubic_api = async_create_anycubic_api(
-                self.hass,
-                self.entry.data[CONF_USER_TOKEN],
-                self.entry.data.get(CONF_USER_AUTH_MODE),
-                self.entry.data.get(CONF_USER_DEVICE_ID),
-                region_from_entry_data(self.entry.data),
-            )
 
-            await async_load_tokens_from_store(
-                self.hass,
-                self._anycubic_api,
-                self.entry.entry_id if self.entry else None,
-            )
-            await self._anycubic_api.check_api_tokens()
-
-            printer_list = await self._anycubic_api.list_my_printers()
-
-            if printer_list and len(printer_list) > 0:
-                for printer in printer_list:
-
-                    if printer.supports_function_multi_color_box:
-                        self._supports_drying = True
-                        break
-
-        except Exception:
-            self._anycubic_api = None
+class AnycubicOptionsFlow(OptionsFlowWithReload):
+    """Options; every save merges into the existing options and reloads."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage Anycubic Cloud options."""
         return await self.async_step_options_menu()
 
+    def _save(
+        self, changes: dict[str, Any], removed: tuple[str, ...] = ()
+    ) -> ConfigFlowResult:
+        options = {**self.config_entry.options, **changes}
+        for key in removed:
+            options.pop(key, None)
+        return self.async_create_entry(data=options)
+
+    def _has_no_ace(self) -> bool:
+        """True only when every running printer is known to have no ACE:
+        its cloud record lists no ACE function, or it said so over LAN (G21)."""
+        runtime = getattr(self.config_entry, "runtime_data", None)
+        coordinators = list(runtime.coordinators.values()) if runtime else []
+        printers = [c.printer for c in coordinators if c.has_printer]
+        if not printers:
+            return False
+        return all(
+            not p.supports_ace
+            and (
+                p.peripherals.get("ace") is False
+                or (p.cloud is not None and p.cloud.detail is not None)
+            )
+            for p in printers
+        )
+
     async def async_step_options_menu(
-        self, _: dict[str, Any] | None = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Options menu."""
-
-        await self._async_check_printer_options()
-
-        menu_options = list([
-            "mqtt",
-            "local",
-            "card_config",
-            "debug",
-        ])
-
-        if self._supports_drying:
-            menu_options.insert(1, "drying")
-
-        return self.async_show_menu(
-            step_id="options_menu",
-            menu_options=menu_options,
-        )
-
-    @callback
-    def async_create_entry_with_existing_options(
-        self,
-        user_input: Mapping[str, Any],
-    ) -> ConfigFlowResult:
-        return self.async_create_entry(
-            data={
-                **self.entry.options,
-                **user_input,
-            }
-        )
+        options: list[str] = []
+        if is_cloud_entry(self.config_entry):
+            options.append("mqtt")
+        if not self._has_no_ace():
+            options.append("drying")
+        options += ["local", "card_config", "debug"]
+        return self.async_show_menu(step_id="options_menu", menu_options=options)
 
     async def async_step_mqtt(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage Anycubic Cloud MQTT options."""
-        if user_input:
-            return self.async_create_entry_with_existing_options(user_input)
-
-        default_mqtt_connect_mode = self.entry.options.get(
-            CONF_MQTT_CONNECT_MODE,
-            AnycubicMQTTConnectMode.Printing_Only,
+        if user_input is not None:
+            return self._save(
+                {CONF_MQTT_CONNECT_MODE: int(user_input[CONF_MQTT_CONNECT_MODE])}
+            )
+        current = self.config_entry.options.get(
+            CONF_MQTT_CONNECT_MODE, DEFAULT_MQTT_CONNECT_MODE
         )
-
-        return self.async_show_form(
-            step_id="mqtt",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    CONF_MQTT_CONNECT_MODE, default=default_mqtt_connect_mode
-                ): vol.In(MQTT_CONNECT_MODES)
-            }),
-            errors={},
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_MQTT_CONNECT_MODE, default=str(current)): (
+                    selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[str(mode) for mode in MQTT_CONNECT_MODES],
+                            translation_key=CONF_MQTT_CONNECT_MODE,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                )
+            }
         )
-
-    async def async_step_local(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Manage the local (LAN Mode) connection."""
-        errors: dict[str, str] = {}
-
-        if user_input:
-            host = str(user_input.get(CONF_LAN_HOST) or "").strip()
-            enabled = bool(user_input.get(CONF_LAN_MODE_ENABLED))
-
-            if not enabled:
-                return self.async_create_entry_with_existing_options({
-                    CONF_LAN_MODE_ENABLED: False,
-                    CONF_LAN_HOST: host,
-                })
-
-            if not host:
-                errors[CONF_LAN_HOST] = "lan_host_required"
-            else:
-                # Check the printer before saving. Turning this on when the
-                # printer is still in cloud mode would otherwise leave the
-                # integration with no working connection at all.
-                errors = await check_lan_host(self.hass, host)
-
-                if not errors:
-                    return self.async_create_entry_with_existing_options({
-                        CONF_LAN_MODE_ENABLED: True,
-                        CONF_LAN_HOST: host,
-                    })
-
-        return self.async_show_form(
-            step_id="local",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    CONF_LAN_MODE_ENABLED,
-                    default=self.entry.options.get(CONF_LAN_MODE_ENABLED, False),
-                ): BooleanSelector(),
-                vol.Optional(
-                    CONF_LAN_HOST,
-                    default=self.entry.options.get(CONF_LAN_HOST, ""),
-                ): cv.string,
-            }),
-            errors=errors,
-        )
+        return self.async_show_form(step_id="mqtt", data_schema=schema)
 
     async def async_step_drying(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage Anycubic Cloud drying options."""
-        if user_input:
-            return self.async_create_entry_with_existing_options(user_input)
+        keys = [
+            key.format(number)
+            for number in DRYING_PRESETS
+            for key in (CONF_DRYING_PRESET_DURATION, CONF_DRYING_PRESET_TEMPERATURE)
+        ]
+        if user_input is not None:
+            changes = {key: int(user_input[key]) for key in keys if key in user_input}
+            removed = tuple(key for key in keys if key not in user_input)
+            return self._save(changes, removed)
+        fields: dict[vol.Marker, Any] = {}
+        for key in keys:
+            current = self.config_entry.options.get(key)
+            marker = vol.Optional(
+                key,
+                description={"suggested_value": current}
+                if current is not None
+                else None,
+            )
+            fields[marker] = vol.All(vol.Coerce(int), vol.Range(min=0))
+        return self.async_show_form(step_id="drying", data_schema=vol.Schema(fields))
 
+    async def async_step_local(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        entry = self.config_entry
+        errors: dict[str, str] = {}
+        enabled = bool(entry.options.get(CONF_LAN_MODE_ENABLED, False))
+        host = str(
+            entry.options.get(CONF_LAN_HOST) or entry.data.get(CONF_LAN_HOST) or ""
+        )
+        if user_input is not None:
+            enabled = user_input[CONF_LAN_MODE_ENABLED]
+            host = user_input.get(CONF_LAN_HOST, "").strip()
+            if not enabled:
+                return self._save({CONF_LAN_MODE_ENABLED: False})
+            info, errors = await _async_try_handshake(self, host)
+            if info is not None:
+                return self._save({CONF_LAN_MODE_ENABLED: True, CONF_LAN_HOST: host})
         return self.async_show_form(
-            step_id="drying",
-            data_schema=self._build_drying_options_schema(),
-            errors={},
+            step_id="local", data_schema=_lan_schema(enabled, host), errors=errors
         )
 
     async def async_step_card_config(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage Anycubic Cloud card_config options."""
-        if user_input:
-            if isinstance(user_input[CONF_CARD_CONFIG], dict):
-                user_input[CONF_CARD_CONFIG] = extract_panel_card_config(
-                    user_input[CONF_CARD_CONFIG]
-                )
-            return self.async_create_entry_with_existing_options(user_input)
-
-        default_card_config = self.entry.options.get(
-            CONF_CARD_CONFIG,
-            None,
-        )
-
-        return self.async_show_form(
-            step_id="card_config",
-            data_schema=vol.Schema({
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            value = user_input.get(CONF_CARD_CONFIG) or {}
+            if isinstance(value, dict):
+                return self._save({CONF_CARD_CONFIG: sanitize_card_config(value)})
+            errors[CONF_CARD_CONFIG] = "invalid_card_config"
+        current = self.config_entry.options.get(CONF_CARD_CONFIG) or {}
+        schema = vol.Schema(
+            {
                 vol.Optional(
-                    CONF_CARD_CONFIG, default=default_card_config
-                ): ObjectSelector()
-            }),
-            errors={},
+                    CONF_CARD_CONFIG, description={"suggested_value": current}
+                ): selector.ObjectSelector()
+            }
+        )
+        return self.async_show_form(
+            step_id="card_config", data_schema=schema, errors=errors
         )
 
     async def async_step_debug(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage Anycubic Cloud debug options."""
-        if user_input:
-            return self.async_create_entry_with_existing_options(user_input)
-
-        default_debug_all = self.entry.options.get(
-            CONF_DEBUG_DEPRECATED,
-            False,
+        if user_input is not None:
+            return self._save(
+                {
+                    CONF_DEBUG_MQTT_MSG: bool(user_input[CONF_DEBUG_MQTT_MSG]),
+                    CONF_DEBUG_API_CALLS: bool(user_input[CONF_DEBUG_API_CALLS]),
+                }
+            )
+        options = self.config_entry.options
+        legacy = bool(options.get(CONF_DEBUG_DEPRECATED, False))
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_DEBUG_MQTT_MSG,
+                    default=bool(options.get(CONF_DEBUG_MQTT_MSG, legacy)),
+                ): bool,
+                vol.Required(
+                    CONF_DEBUG_API_CALLS,
+                    default=bool(options.get(CONF_DEBUG_API_CALLS, legacy)),
+                ): bool,
+            }
         )
-
-        default_debug_api = self.entry.options.get(
-            CONF_DEBUG_API_CALLS,
-            default_debug_all,
-        )
-
-        default_debug_mqtt = self.entry.options.get(
-            CONF_DEBUG_MQTT_MSG,
-            default_debug_all,
-        )
-
-        return self.async_show_form(
-            step_id="debug",
-            data_schema=vol.Schema({
-                vol.Optional(
-                    CONF_DEBUG_API_CALLS, default=default_debug_api
-                ): BooleanSelector(),
-                vol.Optional(
-                    CONF_DEBUG_MQTT_MSG, default=default_debug_mqtt
-                ): BooleanSelector(),
-            }),
-            errors={},
-        )
+        return self.async_show_form(step_id="debug", data_schema=schema)

@@ -1,124 +1,59 @@
-"""Lights for Anycubic Cloud."""
+"""The printer light (BEHAVIOUR §2.16): on/off only, no dimming."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.light import (
-    ColorMode,
-    LightEntity,
-    LightEntityDescription,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.components.light import LightEntity, LightEntityDescription
+from homeassistant.components.light.const import ColorMode
 
-from .const import (
-    PrinterEntityType,
-)
-from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_state_for_key
-
-# All data comes from the shared coordinator, and writes go through the
-# cloud API one request at a time, so no per-entity parallelism is wanted.
-PARALLEL_UPDATES = 0
+from . import control
+from .entity import AnycubicEntity, AnycubicEntityDescription, async_add_when_ready
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import AnycubicConfigEntry
 
 
-@dataclass(frozen=True)
-class AnycubicLightEntityDescription(
-    LightEntityDescription, AnycubicCloudEntityDescription
-):
-    """Describes Anycubic Cloud light entity."""
+@dataclass(frozen=True, kw_only=True)
+class AnycubicLightDescription(AnycubicEntityDescription, LightEntityDescription):
+    """The printer light."""
 
 
-LIGHT_TYPES: list[AnycubicLightEntityDescription] = list([
-    AnycubicLightEntityDescription(
-        key="printer_light",
-        translation_key="printer_light",
-        printer_entity_type=PrinterEntityType.PRINTER,
-    ),
-])
+PRINTER_LIGHT = AnycubicLightDescription(key="printer_light")
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: AnycubicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the Anycubic Cloud light entry."""
-
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
-    coordinator.add_entities_for_seen_printers(
-        async_add_entities=async_add_entities,
-        entity_constructor=AnycubicLight,
-        platform=Platform.LIGHT,
-        available_descriptors=list(LIGHT_TYPES),
+    """Set up the light of a config entry."""
+    async_add_when_ready(
+        entry.runtime_data, (PRINTER_LIGHT,), PrinterLight, async_add_entities
     )
 
 
-class AnycubicLight(AnycubicCloudEntity, LightEntity):
-    """Representation of an Anycubic printer light."""
+class PrinterLight(AnycubicEntity, LightEntity):
+    """Exists on every printer; available once a light is known (§3.13)."""
 
-    entity_description: AnycubicLightEntityDescription
-
-    # On/off only. The printer accepts a brightness field and reports one
-    # back, but the light does not dim: Anycubic's own slicer only ever
-    # sends 0 or 100, intermediate values change nothing on a Kobra S1,
-    # and the printer sends no light report in response to them. A slider
-    # that does nothing is worse than no slider.
     _attr_color_mode = ColorMode.ONOFF
+    entity_description: AnycubicLightDescription
     _attr_supported_color_modes = {ColorMode.ONOFF}
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: AnycubicCloudDataUpdateCoordinator,
-        printer_id: int,
-        entity_description: AnycubicLightEntityDescription,
-    ) -> None:
-        """Initiate Anycubic Light."""
-        super().__init__(hass, coordinator, printer_id, entity_description)
 
     @property
     def available(self) -> bool:
-        # The printer reports its lights over MQTT. Until it has -- ever, on
-        # this config entry -- we don't know that it has one, and resin
-        # printers and older models may not.
-        return bool(
-            printer_state_for_key(
-                self.coordinator, self._printer_id, "has_controllable_light"
-            )
-        )
+        return super().available and self.printer.has_light
 
     @property
     def is_on(self) -> bool | None:
-        """Whether the light is on, or None while the printer hasn't said.
-
-        A remembered light is available before the printer has reported its
-        state again, and guessing "off" there would show a lit chamber as dark.
-        """
-        state = printer_state_for_key(
-            self.coordinator, self._printer_id, "printer_light"
-        )
-
-        if state is None:
-            return None
-
-        return bool(state)
+        return self.printer.light_on
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the light on. Full brightness is the only setting there is."""
-        await self.coordinator.set_printer_light(
-            self._printer_id,
-            light_on=True,
-            brightness=100,
-        )
+        await control.async_set_light(self.coordinator, True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the light off."""
-        await self.coordinator.set_printer_light(
-            self._printer_id,
-            light_on=False,
-        )
+        await control.async_set_light(self.coordinator, False)

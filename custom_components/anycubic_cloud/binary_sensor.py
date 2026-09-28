@@ -1,6 +1,8 @@
-"""Binary sensors for Anycubic Cloud."""
+"""Binary sensors (BEHAVIOUR §2.1, §2.3, §2.6-§2.10)."""
+
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -9,195 +11,163 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.const import EntityCategory
 
-from .const import (
-    PrinterEntityType,
+from .entity import (
+    AnycubicEntity,
+    AnycubicEntityDescription,
+    Device,
+    Kind,
+    async_add_when_ready,
 )
-from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
-from .helpers import printer_attributes_for_key, printer_state_for_key
-
-# All data comes from the shared coordinator, and writes go through the
-# cloud API one request at a time, so no per-entity parallelism is wanted.
-PARALLEL_UPDATES = 0
+from .model import WORK_BUSY, WORK_FREE
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+    from .coordinator import AnycubicConfigEntry, AnycubicCoordinator
 
 
-@dataclass(frozen=True)
-class AnycubicBinarySensorEntityDescription(
-    BinarySensorEntityDescription, AnycubicCloudEntityDescription
+@dataclass(frozen=True, kw_only=True)
+class AnycubicBinarySensorDescription(
+    AnycubicEntityDescription, BinarySensorEntityDescription
 ):
-    """Describes Anycubic Cloud binary sensor entity."""
+    """``value_fn`` returns ``None`` for "no value": off, or unavailable
+    when ``unavailable_without_value`` is set."""
 
-    # Report unavailable rather than "off" when there is no state.
-    #
-    # For most of these, off is the honest reading of a missing value -- a job
-    # that isn't paused is not paused. For a PROBLEM sensor it is the opposite:
-    # off means "no problem", and saying that when the answer isn't known yet
-    # is a false reassurance, both to a person glancing at a dashboard and to
-    # an automation gating on it. Opt-in so existing sensors keep their
-    # behaviour.
-    unknown_when_none: bool = False
+    value_fn: Callable[[AnycubicCoordinator], bool | None]
+    attrs_fn: Callable[[AnycubicCoordinator], dict[str, Any]] | None = None
+    unavailable_without_value: bool = False
 
 
-PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
-    # AI detection is a switch now, which shows the same state and can also
-    # change it. This sensor was disabled by default and only ever reported.
-    AnycubicBinarySensorEntityDescription(
-        key="external_spool_loaded",
-        translation_key="external_spool_loaded",
-        printer_entity_type=PrinterEntityType.PRINTER,
-        entity_registry_enabled_default=False,
-    ),
-    AnycubicBinarySensorEntityDescription(
-        key="dry_status_is_drying",
-        translation_key="dry_status_is_drying",
-        printer_entity_type=PrinterEntityType.ACE_PRIMARY,
-    ),
-])
+def _external_loaded(c: AnycubicCoordinator) -> bool | None:
+    spool = c.printer.external_spool
+    return spool.loaded if spool is not None else None
 
-SECONDARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
-    AnycubicBinarySensorEntityDescription(
-        key="secondary_dry_status_is_drying",
-        translation_key="secondary_dry_status_is_drying",
-        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
-    ),
-])
 
-SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
-    AnycubicBinarySensorEntityDescription(
-        key="job_in_progress",
-        translation_key="job_in_progress",
-        printer_entity_type=PrinterEntityType.PRINTER,
+def _insufficient(c: AnycubicCoordinator) -> bool | None:
+    return c.forecast.insufficient if c.forecast is not None else None
+
+
+def _mqtt_active(c: AnycubicCoordinator) -> bool:
+    cloud = c.runtime.cloud
+    return cloud is not None and cloud.mqtt.active
+
+
+def _mqtt_attrs(c: AnycubicCoordinator) -> dict[str, Any]:
+    cloud = c.runtime.cloud
+    return {
+        "supports_mqtt_login": cloud is not None and cloud.mqtt.supports_login,
+        "last_error": cloud.mqtt.last_error if cloud is not None else None,
+    }
+
+
+BINARY_SENSORS: tuple[AnycubicBinarySensorDescription, ...] = (
+    AnycubicBinarySensorDescription(
+        key="printer_online", value_fn=lambda c: c.printer.is_online
     ),
-    AnycubicBinarySensorEntityDescription(
-        key="job_complete",
-        translation_key="job_complete",
-        printer_entity_type=PrinterEntityType.PRINTER,
+    AnycubicBinarySensorDescription(
+        key="is_available", value_fn=lambda c: c.printer.work_status == WORK_FREE
     ),
-    AnycubicBinarySensorEntityDescription(
-        key="job_failed",
-        translation_key="job_failed",
-        printer_entity_type=PrinterEntityType.PRINTER,
+    AnycubicBinarySensorDescription(
+        key="is_busy", value_fn=lambda c: c.printer.work_status == WORK_BUSY
     ),
-    AnycubicBinarySensorEntityDescription(
-        key="job_is_paused",
-        translation_key="job_is_paused",
-        printer_entity_type=PrinterEntityType.PRINTER,
+    AnycubicBinarySensorDescription(
+        key="job_in_progress", value_fn=lambda c: c.printer.job_in_progress
     ),
-    AnycubicBinarySensorEntityDescription(
-        key="printer_online",
-        translation_key="printer_online",
-        printer_entity_type=PrinterEntityType.PRINTER,
+    AnycubicBinarySensorDescription(
+        key="job_complete", value_fn=lambda c: c.printer.job_complete
     ),
-    # The one that earns its keep: on means the reel now loaded will not see
-    # this print out, worked out from actual extrusion within the first couple
-    # of percent -- early enough to do something about it.
-    AnycubicBinarySensorEntityDescription(
+    AnycubicBinarySensorDescription(
+        key="job_failed", value_fn=lambda c: c.printer.job_failed
+    ),
+    AnycubicBinarySensorDescription(
+        key="job_is_paused", value_fn=lambda c: c.printer.job_is_paused
+    ),
+    AnycubicBinarySensorDescription(
         key="axis_moving",
-        translation_key="axis_moving",
+        kind=Kind.FDM,
         device_class=BinarySensorDeviceClass.MOVING,
-        printer_entity_type=PrinterEntityType.FDM,
+        value_fn=lambda c: c.printer.is_moving,
     ),
-    AnycubicBinarySensorEntityDescription(
+    AnycubicBinarySensorDescription(
         key="axis_move_failed",
-        translation_key="axis_move_failed",
+        kind=Kind.FDM,
         device_class=BinarySensorDeviceClass.PROBLEM,
-        printer_entity_type=PrinterEntityType.FDM,
+        value_fn=lambda c: c.printer.axis_move_failed,
     ),
-    AnycubicBinarySensorEntityDescription(
+    AnycubicBinarySensorDescription(
+        key="external_spool_loaded",
+        entity_registry_enabled_default=False,
+        # G15: unavailable when there is no holder at all.
+        unavailable_without_value=True,
+        value_fn=_external_loaded,
+    ),
+    AnycubicBinarySensorDescription(
         key="job_filament_insufficient",
-        translation_key="job_filament_insufficient",
+        kind=Kind.FDM,
         device_class=BinarySensorDeviceClass.PROBLEM,
-        printer_entity_type=PrinterEntityType.PRINTER,
-        unknown_when_none=True,
+        # B19: unknown is unavailable, never "off" (= no problem).
+        unavailable_without_value=True,
+        value_fn=_insufficient,
     ),
-    AnycubicBinarySensorEntityDescription(
-        key="is_busy",
-        translation_key="is_busy",
-        printer_entity_type=PrinterEntityType.PRINTER,
+    AnycubicBinarySensorDescription(
+        key="dry_status_is_drying",
+        kind=Kind.ACE1,
+        device=Device.ACE1,
+        value_fn=lambda c: c.printer.is_drying(0),
+        attrs_fn=lambda c: {"dry_status_code": c.printer.drying_status_code(0)},
     ),
-    AnycubicBinarySensorEntityDescription(
-        key="is_available",
-        translation_key="is_available",
-        printer_entity_type=PrinterEntityType.PRINTER,
+    AnycubicBinarySensorDescription(
+        key="secondary_dry_status_is_drying",
+        kind=Kind.ACE2,
+        device=Device.ACE2,
+        value_fn=lambda c: c.printer.is_drying(1),
+        attrs_fn=lambda c: {
+            "secondary_dry_status_code": c.printer.drying_status_code(1)
+        },
     ),
-    AnycubicBinarySensorEntityDescription(
+    AnycubicBinarySensorDescription(
         key="mqtt_connection_active",
-        translation_key="mqtt_connection_active",
+        cloud_only=True,
         entity_category=EntityCategory.DIAGNOSTIC,
-        printer_entity_type=PrinterEntityType.PRINTER,
+        value_fn=_mqtt_active,
+        attrs_fn=_mqtt_attrs,
     ),
-])
-
-GLOBAL_SENSOR_TYPES: list[AnycubicBinarySensorEntityDescription] = list([
-])
+)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: AnycubicConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the Anycubic Cloud binary sensor entry."""
-
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
-    coordinator.add_entities_for_seen_printers(
-        async_add_entities=async_add_entities,
-        entity_constructor=AnycubicBinarySensor,
-        platform=Platform.BINARY_SENSOR,
-        available_descriptors=list(
-            SENSOR_TYPES
-            + PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES
-            + SECONDARY_MULTI_COLOR_BOX_SENSOR_TYPES
-            + GLOBAL_SENSOR_TYPES
-        ),
+    """Set up the binary sensors of a config entry."""
+    async_add_when_ready(
+        entry.runtime_data, BINARY_SENSORS, AnycubicBinarySensor, async_add_entities
     )
 
 
-class AnycubicBinarySensor(AnycubicCloudEntity, BinarySensorEntity):
-    """Representation of a Anycubic binary sensor."""
+class AnycubicBinarySensor(AnycubicEntity, BinarySensorEntity):
+    """A printer or ACE binary sensor."""
 
-    entity_description: AnycubicBinarySensorEntityDescription
-
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        coordinator: AnycubicCloudDataUpdateCoordinator,
-        printer_id: int,
-        entity_description: AnycubicBinarySensorEntityDescription,
-    ) -> None:
-        """Initiate Anycubic Binary Sensor."""
-        super().__init__(hass, coordinator, printer_id, entity_description)
+    entity_description: AnycubicBinarySensorDescription
 
     @property
     def available(self) -> bool:
-        """Whether this sensor has anything to say."""
-        if not self.entity_description.unknown_when_none:
-            return super().available
-
-        return (
-            printer_state_for_key(
-                self.coordinator, self._printer_id, self.entity_description.key
-            )
-            is not None
-        )
+        if not super().available:
+            return False
+        if self.entity_description.unavailable_without_value:
+            return self.entity_description.value_fn(self.coordinator) is not None
+        return True
 
     @property
     def is_on(self) -> bool:
-        """Return true if the binary sensor is on."""
-        return bool(
-            printer_state_for_key(self.coordinator, self._printer_id, self.entity_description.key)
-        )
+        return bool(self.entity_description.value_fn(self.coordinator))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return extra state attributes."""
-        attrib = printer_attributes_for_key(self.coordinator, self._printer_id, self.entity_description.key)
-        if attrib is not None:
-            return attrib
-        else:
+        if (attrs_fn := self.entity_description.attrs_fn) is None:
             return None
+        return attrs_fn(self.coordinator)

@@ -1,310 +1,224 @@
-"""Diagnostics support for Anycubic Cloud."""
+"""Diagnostics with every secret redacted (COMPAT §6, anycubic-lan HW4).
+
+Redacted: the pasted token and cloud session fields, the account's e-mail,
+mobile and other personal fields (the entry title is the e-mail), LAN broker
+credentials, the discovery token, serial numbers, MACs and printer keys,
+signed URLs and camera credentials - by key and, as a second net, any string
+that carries a URL signature, wherever it appears. Anycubic's app
+credentials are never collected at all.
+"""
+
 from __future__ import annotations
 
-import json
+from collections.abc import Mapping
+import dataclasses
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from anycubic_cloud_api.const.regions import AnycubicEndpoints
-from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-
-from .config_flow import region_from_entry_data
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 
 if TYPE_CHECKING:
-    from .coordinator import AnycubicCloudDataUpdateCoordinator
+    from homeassistant.core import HomeAssistant
 
-USER_TO_REDACT = {
-    "birthday",
+    from .coordinator import AnycubicConfigEntry, AnycubicCoordinator, AnycubicRuntime
+
+TO_REDACT = {
+    # cloud entry data and session store (COMPAT §1, §6)
+    "title",
+    "unique_id",
+    "user_token",
+    "user_device_id",
+    "auth_token",
+    "auth_access_token",
+    "app_secret",
+    "app_client_id",
+    "app_id",
+    "appid",
+    # the account (PROTOCOL A §2.6.1)
     "user_email",
-    "password",
+    "email",
+    "mobile",
+    "user_id",
+    "user_nickname",
+    "casdoor_user",
+    "casdoor_user_id",
     "message_key",
     "last_login_ip",
-    "casdoor_user_id",
-    "casdoor_user",
-    "user_nickname",
     "ip_country",
     "ip_province",
     "ip_city",
-    "create_time",
-    "create_day_time",
-    "last_login_time",
-}
-PRINTER_TO_REDACT = {
+    "birthday",
+    # LAN handshake and discovery document
+    "token",
+    "username",
+    "password",
+    "cn",
+    "usn",
+    "serial",
+    "sn",
+    "description",  # the cloud record's printer serial (PROTOCOL B §2.3.2)
+    "fileUploadurl",
+    "fileuploadurl",
+    "file_upload_url",
+    # printer identifiers
+    "mac",
     "machine_mac",
-}
-PROJECT_TO_REDACT = {
-    "model",
-}
-
-TO_TAGGED_REDACT = {
-    "id",
-    "taskid",
-    "user_id",
-    "printer_id",
-    "gcode_id",
+    "connection_mac",
+    "device_id",
+    "deviceId",
+    "device_unionid",
     "key",
+    "printer_key",
+    "ip",
+    # signed URLs and camera credentials
+    "url",
+    "thumbnail",
+    "preSignUrl",
+    "img",
+    "image_url",
+    "rtc_token",
+    "channel",
+    "client_uid",
+    "encryption_key",
+    "encryption_kdf_salt",
+    "event_id",
 }
 
-
-class TaggedRedacter:
-    def __init__(self) -> None:
-        self.redacted_values: dict[str, str] = dict()
-
-    def _get_redacted_name(
-        self,
-        value: Any,
-    ) -> str:
-        if value not in self.redacted_values:
-            num = len(self.redacted_values) + 1
-            self.redacted_values[value] = f"**REDACTED_{num}**"
-
-        return self.redacted_values[value]
-
-    def redact_data(
-        self,
-        data: Any,
-        to_redact: set[str],
-    ) -> Any:
-        if not isinstance(data, (dict, list)):
-            return data
-
-        if isinstance(data, list):
-            return list([self.redact_data(val, to_redact) for val in data])
-
-        redacted = {**data}
-
-        for key, value in redacted.items():
-            if value is None:
-                continue
-            if isinstance(value, str) and not value:
-                continue
-            if key in to_redact:
-                redacted[key] = self._get_redacted_name(value)
-            elif isinstance(value, dict):
-                redacted[key] = self.redact_data(value, to_redact)
-            elif isinstance(value, list):
-                redacted[key] = list([self.redact_data(item, to_redact) for item in value])
-
-        return redacted
+# Any string carrying one of these is a signed URL or credential.
+_SIGNED_MARKERS = ("gcode_upload?s=", "X-Amz-", "Signature=", "signature=")
 
 
-def json_dict_or_value(value: str) -> dict[Any, Any] | str:
-    try:
-        parsed_value: Any = json.loads(value)
-        if not isinstance(parsed_value, dict):
-            return value
-
-        parsed_value["__JSON_STRING_PARSED__"] = True
-        return parsed_value
-    except json.decoder.JSONDecodeError:
-        return value
-
-
-def parse_all_json_data(
-    input_data: Any
-) -> Any:
-    if isinstance(input_data, str):
-        return json_dict_or_value(input_data)
-
-    if not isinstance(input_data, (dict, list)):
-        return input_data
-
-    if isinstance(input_data, list):
-        return list([parse_all_json_data(item) for item in input_data])
-
-    output_dict: dict[Any, Any] = dict()
-    for key, value in input_data.items():
-        if isinstance(value, dict):
-            output_dict[key] = parse_all_json_data(value)
-        elif isinstance(value, list):
-            output_dict[key] = list([parse_all_json_data(item) for item in value])
-        elif isinstance(value, str):
-            output_dict[key] = json_dict_or_value(value)
-        else:
-            output_dict[key] = value
-
-    return output_dict
-
-
-def _build_capabilities(
-    coordinator: AnycubicCloudDataUpdateCoordinator,
-) -> list[dict[str, Any]]:
-    """What each printer says it is and what it can do.
-
-    This is the part that makes a report about hardware nobody here owns
-    actionable: the model id, the printer's own feature map, and whether the
-    optional pieces are actually present. None of it identifies anyone.
-    """
-    capabilities = []
-
-    for printer_id, printer in coordinator.printers.items():
-        boxes = printer.multi_color_box or []
-        capabilities.append({
-            "printer_id": printer_id,
-            "model_id": printer.machine_type,
-            "model_name": printer.machine_name,
-            "firmware": (
-                printer.fw_version.firmware_version if printer.fw_version else None
-            ),
-            "local_firmware": printer.local_firmware_version,
-            "connection": "local" if coordinator.lan_is_connected else "cloud",
-            # Reported only over the local connection; empty on cloud setups.
-            "features": printer.features,
-            "multi_color_box_count": len(boxes),
-            "multi_color_box_models": [box.model_id for box in boxes],
-            # What the printer itself says is fitted. None means it has not
-            # answered the peripherals poll yet, which is a different thing
-            # from saying no -- and the difference decides whether the cloud
-            # camera entity is offered.
-            "peripherals": printer.connected_peripherals,
-            # Whether the LOCAL stream endpoint is known. This used to be
-            # reported as "has_camera", which read as "a camera exists" when
-            # it only ever meant "we have a LAN URL for one".
-            "has_lan_stream_url": printer.camera_stream_url is not None,
-            "has_controllable_light": printer.has_controllable_light,
-            "chamber_temperature": printer.chamber_temperature,
-            "curr_nozzle_temp": printer.curr_nozzle_temp,
-            "curr_hotbed_temp": printer.curr_hotbed_temp,
-            "has_parameter": printer.parameter is not None,
-            "ai_settings": printer.ai_settings,
-        })
-
-    return capabilities
-
-
-def _build_endpoints(
-    coordinator: AnycubicCloudDataUpdateCoordinator,
-    entry: ConfigEntry,
-) -> dict[str, Any]:
-    """Which service this entry chose, and what that resolved to.
-
-    The most valuable few lines in a China report. Nobody maintaining this has
-    a China account or printer, so those reports are debugged entirely from
-    the dump -- and "which cloud did it even try" is the first question.
-    api/base.py re-raises every request failure as
-    api_error_server_maintenance, so a misresolved endpoint arrives described
-    as an Anycubic outage unless the dump says otherwise.
-
-    Both the stored choice and the resolved addresses, because the interesting
-    bug is the two disagreeing.
-
-    Hostnames only: no token, no account id, nothing identifying a user.
-    """
-    region = region_from_entry_data(entry.data)
-    endpoints = getattr(coordinator.anycubic_api, "endpoints", None)
-
-    # Checked by type, not truthiness. A duck-typed object answers every
-    # getattr with something plausible, so `is None` would sail past and emit
-    # values that are not strings -- which then fails at JSON encoding, taking
-    # the whole diagnostics download with it rather than just this block.
-    if not isinstance(endpoints, AnycubicEndpoints):
+def _plain(value: Any) -> Any:
+    """Frozen dataclasses, mapping proxies and enums as plain JSON values."""
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return {
-            "region": region.value,
-            "detail": "api object carries no endpoints record",
+            field.name: _plain(getattr(value, field.name))
+            for field in dataclasses.fields(value)
+            if not field.name.startswith("_")
         }
+    if isinstance(value, Mapping):
+        return {str(key): _plain(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set | frozenset):
+        return [_plain(item) for item in value]
+    if isinstance(value, Enum):
+        return value.value
+    return value
 
+
+def _scrub(value: Any) -> Any:
+    """Replace any string that carries a signed URL."""
+    if isinstance(value, str):
+        return REDACTED if any(m in value for m in _SIGNED_MARKERS) else value
+    if isinstance(value, dict):
+        return {key: _scrub(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_scrub(item) for item in value]
+    return value
+
+
+def _printer(coordinator: AnycubicCoordinator) -> dict[str, Any]:
+    link = coordinator.link
+    info = link.info if link is not None else None
+    printer = coordinator.printer if coordinator.has_printer else None
+    cloud = printer.cloud if printer is not None else None
     return {
-        "region": region.value,
-        "base_url": endpoints.base_url,
-        "public_api_root": endpoints.public_api_root,
-        "auth_domain": endpoints.auth_domain,
-        "mqtt_host": endpoints.mqtt_host,
-        "mqtt_port": endpoints.mqtt_port,
+        "connection": {
+            "source": printer.source if printer is not None else None,
+            "lan_connected": coordinator.lan_connected,
+            "last_update_success": coordinator.last_update_success,
+            "discovery": info.discovery.as_redacted_dict() if info else None,
+            "model_id": info.model_id if info else None,
+            "broker": (
+                {
+                    "host": info.credentials.host,
+                    "port": info.credentials.port,
+                    "scheme": info.credentials.scheme,
+                }
+                if info
+                else None
+            ),
+        },
+        "printer": (
+            {
+                "identity": _plain(printer.identity),
+                "info_seen": printer.info_seen,
+                "axis_move_state": printer.axis_move_state,
+                "state": _plain(printer.state),
+            }
+            if printer
+            else None
+        ),
+        "cloud": (
+            {
+                "detail": _plain(cloud.detail.raw) if cloud.detail else None,
+                "job": _plain(cloud.job.raw) if cloud.job else None,
+                "job_detail": _plain(cloud.job_detail.raw)
+                if cloud.job_detail
+                else None,
+                "device_status": cloud.device_status,
+                "work_status": cloud.work_status,
+                "removed": cloud.removed,
+                "download_progress": cloud.download_progress,
+                "file_lists": _plain(cloud.file_lists),
+                "firmware": _plain(cloud.firmware),
+                "ace_firmware": _plain(cloud.ace_firmware),
+                "faults": _plain(cloud.faults),
+            }
+            if cloud is not None
+            else None
+        ),
+        "forecast": _plain(coordinator.forecast),
+    }
+
+
+def _account(runtime: AnycubicRuntime) -> dict[str, Any] | None:
+    account = runtime.cloud
+    if account is None:
+        return None
+    client = account.client
+    mqtt = account.mqtt
+    return {
+        "region": account.region.value,
+        "auth_mode": int(client.auth_mode) if client is not None else None,
+        # The account's "id" is its user id: shown under a redacted key.
+        "account": (
+            {
+                ("user_id" if key == "id" else key): value
+                for key, value in _plain(account.account.raw).items()
+            }
+            if account.account
+            else None
+        ),
+        "last_poll_ok": account.last_poll_ok,
+        "mqtt": {
+            "mode": mqtt.mode,
+            "possible": mqtt.possible,
+            "supports_login": mqtt.supports_login,
+            "active": mqtt.active,
+            "connected": mqtt.connected,
+            "manual": mqtt.manual,
+            "last_error": mqtt.last_error,
+        },
+        "cloud_files": _plain(account.cloud_files),
     }
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: AnycubicConfigEntry
 ) -> dict[str, Any]:
-    """Return diagnostics for a config entry."""
-    coordinator: AnycubicCloudDataUpdateCoordinator = entry.runtime_data
-
-    tRedacter = TaggedRedacter()
-
-    assert coordinator.anycubic_api
-
-    capabilities = _build_capabilities(coordinator)
-
-    # A printer in LAN Mode is dropped by the cloud, so every call below fails.
-    # The capability block above is the useful part in that case, and returning
-    # it beats failing the whole download.
-    empty: dict[str, Any] = {"data": []}
-
-    try:
-        user_info: dict[str, Any] = await coordinator.anycubic_api.get_user_info(raw_data=True)
-        printer_info: dict[str, Any] = await coordinator.anycubic_api.list_my_printers(raw_data=True)
-        projects_info: dict[str, Any] = await coordinator.anycubic_api.list_all_projects(raw_data=True)
-    except Exception as err:
-        return {
-            "capabilities": capabilities,
-            "endpoints": _build_endpoints(coordinator, entry),
-            "cloud_unavailable": str(err),
-        }
-
-    latest_project_info = {}
-
-    projects_info = projects_info or empty
-
-    if projects_info['data'] and len(projects_info['data']) > 0:
-        latest_project_info = await coordinator.anycubic_api.project_info_for_id(
-            project_id=projects_info['data'][0]['id'],
-        )
-
-    detailed_printer_info = list()
-    if printer_info.get('data') is not None:
-        for printer in printer_info['data']:
-            printer_id = printer['id']
-            detailed_printer_info.append(
-                await coordinator.anycubic_api.printer_info_for_id(
-                    printer_id,
-                    raw_data=True,
-                )
-            )
-    return {
-        "capabilities": capabilities,
-        "endpoints": _build_endpoints(coordinator, entry),
-        "user_info": tRedacter.redact_data(
-            async_redact_data(
-                parse_all_json_data(user_info),
-                USER_TO_REDACT,
-            ),
-            TO_TAGGED_REDACT
-        ),
-        "printer_info": {
-            **printer_info,
-            'data': tRedacter.redact_data(
-                async_redact_data(
-                    parse_all_json_data(printer_info['data']),
-                    PRINTER_TO_REDACT,
-                ),
-                TO_TAGGED_REDACT
-            ),
+    """Diagnostics of a config entry."""
+    runtime = entry.runtime_data
+    result: dict[str, Any] = {
+        "entry": {
+            "title": entry.title,
+            "version": entry.version,
+            "minor_version": entry.minor_version,
+            "data": dict(entry.data),
+            "options": dict(entry.options),
         },
-        "projects_info": {
-            **projects_info,
-            'data': [
-                tRedacter.redact_data(
-                    async_redact_data(
-                        parse_all_json_data(x),
-                        PROJECT_TO_REDACT,
-                    ),
-                    TO_TAGGED_REDACT
-                ) for x in projects_info['data']
-            ],
-        },
-        "detailed_printer_info": tRedacter.redact_data(
-            async_redact_data(
-                parse_all_json_data(detailed_printer_info),
-                PRINTER_TO_REDACT,
-            ),
-            TO_TAGGED_REDACT
-        ),
-        "latest_project_info": tRedacter.redact_data(
-            async_redact_data(
-                parse_all_json_data(latest_project_info),
-                PROJECT_TO_REDACT,
-            ),
-            TO_TAGGED_REDACT
-        ),
+        "cloud": _account(runtime),
+        "printers": [_printer(c) for c in runtime.coordinators.values()],
+        "ledger": runtime.ledger.data,
+        "capabilities": runtime.capability_data,
     }
+    return _scrub(async_redact_data(result, TO_REDACT))  # type: ignore[no-any-return]
