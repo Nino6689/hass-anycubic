@@ -296,13 +296,17 @@ class TestDrying:
         assert coordinator is not None
 
     async def test_defaults_come_from_the_loaded_material(self, hass: HomeAssistant, mock_entry, mock_api) -> None:
-        """The captured printer has PETG loaded, which dries at 65 C for 6 h."""
+        """The captured printer has PETG loaded, which dries for 6 h.
+
+        PETG's profile is 65 C, but the captured unit is an ACE Pro, which
+        refuses anything over 55 C (#42).
+        """
         await setup_entry(hass, mock_entry)
 
         temp = hass.states.get("number.anycubic_kobra_s1_ace_pro_drying_temperature")
         duration = hass.states.get("number.anycubic_kobra_s1_ace_pro_drying_duration")
 
-        assert temp is not None and float(temp.state) == 65.0
+        assert temp is not None and float(temp.state) == 55.0
         assert duration is not None and float(duration.state) == 360.0
 
 
@@ -357,7 +361,7 @@ class TestDryingKnowsTheMaterial:
             temperature = coordinator.get_drying_setting(PRINTER_ID, "temperature", 45)
             duration = coordinator.get_drying_setting(PRINTER_ID, "duration", 120)
 
-        assert temperature == 65.0, "PETG dries hotter than PLA"
+        assert temperature == 55.0, "PETG dries hotter than PLA, up to the ACE Pro's 55 C"
         assert duration == 360.0
 
     async def test_an_explicit_setting_always_wins(self, hass: HomeAssistant, mock_entry, mock_api) -> None:

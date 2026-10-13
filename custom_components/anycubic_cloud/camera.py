@@ -53,6 +53,10 @@ from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
 PARALLEL_UPDATES = 0
 
 _KOBRA_X_MODEL_ID = "20030"
+_KOBRA_4_MODEL_ID = "20028"
+# Models whose FLV endpoint answers 206 Partial Content, which go2rtc refuses.
+# The Kobra 4 does it too, found by a user patching it in (discussion #37).
+_STREAM_PROXY_MODEL_IDS = frozenset({_KOBRA_X_MODEL_ID, _KOBRA_4_MODEL_ID})
 _LOCAL_STREAM_PROXY_URL = "/api/anycubic_cloud/camera_stream/{entity_id}"
 _STREAM_CHUNK_SIZE = 64 * 1024
 _STREAM_CONNECT_TIMEOUT = 10
@@ -189,10 +193,10 @@ class AnycubicCamera(AnycubicCloudEntity, Camera):
         return url
 
     def _needs_stream_proxy(self, url: str) -> bool:
-        """Return whether this is the Kobra X endpoint that misreports 206."""
+        """Return whether this is an endpoint that misreports 206."""
         printer = self.coordinator.get_printer_for_id(self._printer_id)
 
-        if printer is None or str(printer.machine_type) != _KOBRA_X_MODEL_ID:
+        if printer is None or str(printer.machine_type) not in _STREAM_PROXY_MODEL_IDS:
             return False
 
         try:
