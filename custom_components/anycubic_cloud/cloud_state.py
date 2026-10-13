@@ -138,7 +138,12 @@ def apply_message(printer: Printer, message: CloudMessage) -> MessageOutcome:
     outcome = MessageOutcome()
     was_busy = cloud.work_status == WORK_BUSY
     had_status = cloud.work_status is not None
-    cloud.record_code(message.kind, message.code, message.msg)
+    fault = message.fault
+    if fault is not None:
+        # Also a refused ACE order's code found in ``data`` (Beta 2, D2).
+        cloud.record_code(message.kind, fault.code, fault.message)
+    else:
+        cloud.record_code(message.kind, message.code, message.msg)
     if message.report is not None:
         printer.state = printer.state.apply(message.report)
     update = message.update
@@ -205,6 +210,9 @@ def _apply_print(printer: Printer, cloud: CloudData, update: PrintUpdate) -> Non
         state = replace(state, speed_mode_raw=update.print_speed_mode)
     if update.print_speed_pct is not None:
         printer.print_speed_pct = round(update.print_speed_pct)
+    if update.channel_no is not None:
+        # The filament channel now feeding, whatever the task (Beta 2, D4).
+        state = state.with_channel(update.channel_no)
     printer.state = state
 
 

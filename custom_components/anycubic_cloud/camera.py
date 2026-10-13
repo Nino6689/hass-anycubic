@@ -3,9 +3,9 @@
 ``camera``: the printer's own HTTP-FLV stream over LAN. The printer serves
 one stream and no snapshot endpoint, so stills are taken from the running
 stream (B24). Before every stream request the printer is told to start
-capturing (DECISIONS V15). A Kobra X answers the stream with HTTP 206, which
-stream readers refuse; its stream is relayed through a Home Assistant
-endpoint that answers 200 (B25).
+capturing (DECISIONS V15). A Kobra X or a Kobra 4 (Beta 2, D7) answers the
+stream with HTTP 206, which stream readers refuse; its stream is relayed
+through a Home Assistant endpoint that answers 200 (B25).
 
 ``cloud_camera``: the cloud camera, Agora WebRTC. The browser is the WebRTC
 peer; Home Assistant only relays signalling through anycubic-cloud-client's
@@ -46,7 +46,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.http import KEY_HASS, HomeAssistantView
 from homeassistant.helpers.network import NoURLAvailableError, get_url
 
-from .const import DOMAIN, MODEL_ID_KOBRA_X
+from .const import CAMERA_PARTIAL_CONTENT_MODELS, DOMAIN
 from .entity import AnycubicEntity, AnycubicEntityDescription, async_add_when_ready
 from .placeholder import placeholder_png
 
@@ -116,7 +116,7 @@ class PrinterCamera(AnycubicEntity, Camera):
 
     @property
     def _needs_relay(self) -> bool:
-        return self.printer.identity.model_id == MODEL_ID_KOBRA_X
+        return self.printer.identity.model_id in CAMERA_PARTIAL_CONTENT_MODELS
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()

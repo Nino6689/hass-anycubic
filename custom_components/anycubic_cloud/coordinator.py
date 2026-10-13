@@ -39,6 +39,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from . import cloud_state
 from .const import (
+    ACE_DRY_ACTION,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
     CONF_DRYING_PRESET_DURATION,
@@ -55,6 +56,7 @@ from .const import (
     STORE_VERSION,
     UPDATE_INTERVAL,
 )
+from .error_codes import describe_error
 from .identity import NO_MAC, lan_printer_id, unique_id_mac
 from .lan import LanLink, WrongPrinterError
 from .ledger import FilamentLedger, Forecast
@@ -487,6 +489,12 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
         """A pushed cloud MQTT message (PROTOCOL C §6.12)."""
         if not self.uses_cloud:
             return  # LAN is authoritative while connected
+        if (
+            message.kind == ReportKind.MULTI_COLOR_BOX
+            and message.action == ACE_DRY_ACTION
+            and message.fault is not None
+        ):
+            log_drying_refused(message.fault.code)
         outcome = cloud_state.apply_message(self.printer, message)
         self._after_change()
         if outcome.print_started:
@@ -528,12 +536,21 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
             speed = print_speed_pct(envelope.action, envelope.state, envelope.data)
             if speed is not None:
                 self._printer.print_speed_pct = speed
+        elif (
+            envelope.kind == ReportKind.MULTI_COLOR_BOX
+            and envelope.action == ACE_DRY_ACTION
+            and envelope.is_error
+            and envelope.code is not None
+        ):
+            log_drying_refused(envelope.code)
 
     def _handle_state(self, state: PrinterState) -> None:
         printer = self._printer
         if printer is None:
             return
         printer.state = state
+        if state.job is not None:
+            printer.lan_job_seen = True
         if not self._info_seen.is_set():
             # A fresh connection: the job is not known until `info` arrives,
             # so neither the ledger nor the entities may treat it as absent.
@@ -646,6 +663,17 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
     @property
     def configured_presets(self) -> list[int]:
         return [n for n in DRYING_PRESETS if self.drying_preset(n) is not None]
+
+
+def log_drying_refused(code: int) -> None:
+    """The ACE answered a drying order with a fault code (Beta 2, D2).
+
+    The order itself was sent, so the button cannot fail; this line and the
+    last-error sensors are where the refusal shows.
+    """
+    _LOGGER.warning(
+        "The ACE refused the drying order: error %s (%s)", code, describe_error(code)
+    )
 
 
 def _colon_mac(mac: str) -> str | None:

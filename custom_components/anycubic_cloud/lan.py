@@ -27,6 +27,7 @@ from anycubic_lan import (
     parse_message,
 )
 
+from .const import ACE_DRY_ACTION
 from .identity import unique_id_mac
 
 if TYPE_CHECKING:
@@ -215,6 +216,17 @@ class LanLink:
     async def async_stop(self) -> None:
         await self._require_client().stop()
 
+    async def async_set_print_settings(
+        self, task_id: int, settings: Mapping[str, int | float]
+    ) -> None:
+        """The LAN form of the cloud's print-settings order (order 6): the
+        job's task id added to its ``data`` as a string (PROTOCOL B §5.3)."""
+        await self.async_send(
+            ReportKind.PRINT,
+            "update",
+            {"taskid": str(task_id), "settings": dict(settings)},
+        )
+
     async def async_set_light(self, on: bool, light_type: int) -> None:
         # On: status 1 brightness 100; off: status 0 brightness 0 (§2.16).
         await self._require_client().set_light(
@@ -269,7 +281,7 @@ class LanLink:
         self, box_id: int, status: int, temperature: int, duration: int
     ) -> None:
         await self.async_ace_command(
-            "setDry",
+            ACE_DRY_ACTION,
             {
                 "id": box_id,
                 "drying_status": {

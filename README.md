@@ -3,7 +3,7 @@
 > Updating from 2.x keeps every entity id, your settings and your filament history: nothing to reconfigure. It
 > runs over the Anycubic cloud and over LAN Mode, with the same panel, card and cloud camera.
 > Report anything that behaves differently from 2.x in [#40](https://github.com/Nino6689/hass-anycubic/issues/40).
-> To go back, open the integration in HACS → **Redownload** → pick **v2.9.4**, then restart Home Assistant.
+> To go back, open the integration in HACS → **Redownload** → pick **v2.9.5**, then restart Home Assistant.
 
 <h1 align="center">Anycubic Cloud &amp; LAN</h1>
 
@@ -400,75 +400,97 @@ process. This is a standard Windows feature and nothing leaves your machine. Cre
 
 1. Open Slicer Next and make sure it's **signed in**
 2. **Ctrl+Shift+Esc** → **Details** tab → right-click `AnycubicSlicerNext.exe` (the larger of the two) → **Create dump file**
-3. Run this in PowerShell — **not as Administrator**, which fails with an out-of-memory error.
-   It verifies each candidate's RSA signature against Anycubic's published keys and copies the
-   newest valid, unexpired one:
+3. Run this in PowerShell. Paste the whole block at once: it is wrapped in `& { … }` so that
+   any error stops it, instead of the remaining lines running on and printing a false success.
+   It reads the dump in chunks, because a dump runs to gigabytes and reading it as one string
+   fails with `OutOfMemoryException`. It verifies each candidate's RSA signature against
+   Anycubic's published keys and copies the newest valid, unexpired one:
 
    ```powershell
-   $dmp = Get-ChildItem "$env:TEMP\AnycubicSlicerNext*.DMP" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-   if (-not $dmp) { throw "No dump file found in $env:TEMP" }
+   & {
+       $dmp = Get-ChildItem "$env:TEMP\AnycubicSlicerNext*.DMP" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+       if (-not $dmp) { throw "No dump file found in $env:TEMP" }
 
-   $keys = (Invoke-RestMethod -Uri "https://uc.makeronline.com/.well-known/jwks" -Headers @{ "User-Agent" = "Mozilla/5.0" }).keys
+       $keys = (Invoke-RestMethod -Uri "https://uc.makeronline.com/.well-known/jwks" -Headers @{ "User-Agent" = "Mozilla/5.0" }).keys
 
-   function ConvertFrom-B64Url([string]$s) {
-       [Convert]::FromBase64String($s.Replace('-', '+').Replace('_', '/').PadRight($s.Length + (4 - $s.Length % 4) % 4, '='))
-   }
-
-   $bytes = [IO.File]::ReadAllBytes($dmp.FullName)
-   $rx = [regex]'(eyJ[A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{100,})'
-   $seen = @{}
-   $found = @()
-
-   foreach ($enc in @([Text.Encoding]::GetEncoding(28591), [Text.Encoding]::Unicode)) {
-       foreach ($m in $rx.Matches($enc.GetString($bytes))) {
-           $header, $payload, $rawSig = $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value
-           if ($seen.ContainsKey($m.Value)) { continue }
-           $seen[$m.Value] = 1
-
-           try { $claims = [Text.Encoding]::UTF8.GetString((ConvertFrom-B64Url $payload)) | ConvertFrom-Json } catch { continue }
-           if ($claims.tokenType -ne 'access-token') { continue }
-           if (-not ($claims.id -and $claims.sub -and $claims.email)) { continue }
-
-           $signed = [Text.Encoding]::ASCII.GetBytes("$header.$payload")
-
-           foreach ($key in $keys) {
-               $modulus = ConvertFrom-B64Url $key.n
-               # A signature is exactly as long as the modulus, so cut the
-               # match down to size -- see the note below.
-               $sigChars = [int][Math]::Ceiling($modulus.Length * 8 / 6)
-               if ($rawSig.Length -lt $sigChars) { continue }
-               $sigText = $rawSig.Substring(0, $sigChars)
-
-               $rsa = [Security.Cryptography.RSA]::Create()
-               $params = New-Object Security.Cryptography.RSAParameters
-               $params.Modulus = $modulus
-               $params.Exponent = ConvertFrom-B64Url $key.e
-               $rsa.ImportParameters($params)
-
-               $ok = $rsa.VerifyData($signed, (ConvertFrom-B64Url $sigText),
-                   [Security.Cryptography.HashAlgorithmName]::SHA256,
-                   [Security.Cryptography.RSASignaturePadding]::Pkcs1)
-               $rsa.Dispose()
-
-               if ($ok) {
-                   $expiry = [DateTimeOffset]::FromUnixTimeSeconds([long]$claims.exp)
-                   if ($expiry -gt [DateTimeOffset]::UtcNow) {
-                       $found += [pscustomobject]@{ Token = "$header.$payload.$sigText"; Issued = [long]$claims.iat; Expiry = $expiry }
-                   }
-                   break
-               }
-           }
+       function ConvertFrom-B64Url([string]$s) {
+           [Convert]::FromBase64String($s.Replace('-', '+').Replace('_', '/').PadRight($s.Length + (4 - $s.Length % 4) % 4, '='))
        }
+
+       $rx = [regex]'(eyJ[A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{100,})'
+       $seen = @{}
+       $found = @()
+
+       # A dump runs to gigabytes - far more than one string can hold - so read it
+       # in 16 MB chunks, carrying the last 64 KB over so a token on a boundary
+       # still appears whole in the next chunk.
+       $chunk = 16MB
+       $overlap = 64KB
+       $buf = New-Object byte[] ($chunk + $overlap)
+       $fs = [IO.File]::OpenRead($dmp.FullName)
+       try {
+           $carry = 0
+           while (($n = $fs.Read($buf, $carry, $chunk)) -gt 0) {
+               $len = $carry + $n
+               foreach ($enc in @([Text.Encoding]::GetEncoding(28591), [Text.Encoding]::Unicode)) {
+                   $text = $enc.GetString($buf, 0, $len)
+                   foreach ($m in $rx.Matches($text)) {
+                       $header, $payload, $rawSig = $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value
+                       if ($seen.ContainsKey($m.Value)) { continue }
+                       $seen[$m.Value] = 1
+
+                       try { $claims = [Text.Encoding]::UTF8.GetString((ConvertFrom-B64Url $payload)) | ConvertFrom-Json } catch { continue }
+                       if ($claims.tokenType -ne 'access-token') { continue }
+                       if (-not ($claims.id -and $claims.sub -and $claims.email)) { continue }
+
+                       $signed = [Text.Encoding]::ASCII.GetBytes("$header.$payload")
+
+                       foreach ($key in $keys) {
+                           $modulus = ConvertFrom-B64Url $key.n
+                           # A signature is exactly as long as the modulus, so cut the
+                           # match down to size -- see the note below.
+                           $sigChars = [int][Math]::Ceiling($modulus.Length * 8 / 6)
+                           if ($rawSig.Length -lt $sigChars) { continue }
+                           $sigText = $rawSig.Substring(0, $sigChars)
+
+                           $rsa = [Security.Cryptography.RSA]::Create()
+                           $params = New-Object Security.Cryptography.RSAParameters
+                           $params.Modulus = $modulus
+                           $params.Exponent = ConvertFrom-B64Url $key.e
+                           $rsa.ImportParameters($params)
+
+                           $ok = $rsa.VerifyData($signed, (ConvertFrom-B64Url $sigText),
+                               [Security.Cryptography.HashAlgorithmName]::SHA256,
+                               [Security.Cryptography.RSASignaturePadding]::Pkcs1)
+                           $rsa.Dispose()
+
+                           if ($ok) {
+                               $expiry = [DateTimeOffset]::FromUnixTimeSeconds([long]$claims.exp)
+                               if ($expiry -gt [DateTimeOffset]::UtcNow) {
+                                   $found += [pscustomobject]@{ Token = "$header.$payload.$sigText"; Issued = [long]$claims.iat; Expiry = $expiry }
+                               }
+                               break
+                           }
+                       }
+                   }
+               }
+               $text = $null
+               $carry = [Math]::Min($overlap, $len)
+               [Array]::Copy($buf, $len - $carry, $buf, 0, $carry)
+           }
+       } finally {
+           $fs.Dispose()
+       }
+
+       if (-not $found) { throw "No valid, unexpired access token found in the dump." }
+
+       $best = $found | Sort-Object Issued -Descending | Select-Object -First 1
+       Set-Clipboard $best.Token
+       "SIGNATURE VALID"
+       "Token length: $($best.Token.Length)"
+       "Valid until:  $($best.Expiry.ToString('yyyy-MM-dd HH:mm')) UTC"
+       "Access token copied to clipboard - paste it into Home Assistant."
    }
-
-   if (-not $found) { throw "No valid, unexpired access token found in the dump." }
-
-   $best = $found | Sort-Object Issued -Descending | Select-Object -First 1
-   Set-Clipboard $best.Token
-   "SIGNATURE VALID"
-   "Token length: $($best.Token.Length)"
-   "Valid until:  $($best.Expiry.ToString('yyyy-MM-dd HH:mm')) UTC"
-   "Access token copied to clipboard - paste it into Home Assistant."
    ```
 
 4. Paste into Home Assistant
@@ -1644,13 +1666,33 @@ appears in them.
 
 <br>
 
-**Harmless, and rare.** These are fields in a message this version doesn't parse yet — everything
-else still flows normally. They're logged once at WARNING, not repeatedly.
+**Harmless.** These are fields in a message this version doesn't parse yet — everything
+else still flows normally. Since 2.9.5 they're logged at **debug** level only, so you'll only see
+them with debug logging on.
 
 If you see one, it's genuinely useful to
 [open an issue](https://github.com/Nino6689/hass-anycubic/issues) with the line. It's how
 new printer features get found — the printer light, the ACE spool details and the auxiliary fan
 were all arriving in messages that were being discarded.
+
+</details>
+
+<details>
+<summary><b>LAN Mode: entities missing, or the connection keeps dropping</b></summary>
+
+<br>
+
+From a detailed Kobra 4 report ([discussion #37](https://github.com/Nino6689/hass-anycubic/discussions/37)):
+
+- **Don't add a second, LAN-only entry for a printer that's already on your account entry.** Both
+  create the same unique ids, so the second entry's entities are dropped and it ends up empty.
+  Turn the local connection on in the account entry's **options** instead.
+- **The printer serves one LAN client at a time.** Another local integration (such as
+  `anycubic_ha_local`) running alongside takes the connection away — expect `Connection refused`.
+- **The per-spool filament entities are disabled by default** (`ace_slot_N_filament_remaining`,
+  spool weight and price, the reset buttons). Enable them on the ACE device page.
+- **The job preview image** only exists for jobs sent through the cloud; for LAN and slicer jobs
+  it stays unavailable.
 
 </details>
 
@@ -1939,7 +1981,7 @@ appreciated. This is a spare-time project maintained against an API that changes
 and knowing people find it useful is most of what keeps it going.
 
 <!-- SUPPORTERS-COUNT:START -->
-**One person** has bought me a coffee. Thank you, genuinely.
+**2 people** have bought me a coffee. Thank you, all of you.
 <!-- SUPPORTERS-COUNT:END -->
 
 <!-- SUPPORTERS-NAMES:START -->

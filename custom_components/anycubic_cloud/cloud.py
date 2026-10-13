@@ -744,6 +744,12 @@ class CloudMqtt:
     def _handle_connection(self, connected: bool, error: MqttError | None) -> None:
         if connected:
             self.last_error = None
+            # A fresh ACE box list for every printer, once per connection.
+            self._account.entry.async_create_background_task(
+                self._account.hass,
+                self._async_request_boxes(),
+                "anycubic_cloud ACE box list",
+            )
             # Ask online printers for peripherals and light 10 s later.
             if self._capability_timer is not None:
                 self._capability_timer()
@@ -753,6 +759,25 @@ class CloudMqtt:
         elif error is not None:
             self.last_error = error_text(error)
         self._notify()
+
+    async def _async_request_boxes(self) -> None:
+        """Ask each printer with an ACE for its box list (Beta 2, D3).
+
+        The same order as "Refresh ACE Spools" (1206), sent because a link
+        came up: without it a second ACE stays unknown until something asks.
+        It is sent straight through the client, not as an action: it never
+        wakes, opens or holds the link, so when the link runs is unchanged.
+        """
+        client = self._account.client
+        if client is None:
+            return
+        for printer in self._printers():
+            if not printer.supports_ace:
+                continue
+            try:
+                await client.ace_get_info(printer.printer_id)
+            except AnycubicCloudError as err:
+                _LOGGER.debug("ACE box list request failed: %s", err)
 
     async def _async_capability_query(self, _now: Any = None) -> None:
         self._capability_timer = None

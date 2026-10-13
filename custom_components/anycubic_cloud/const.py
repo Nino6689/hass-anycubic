@@ -104,9 +104,27 @@ TOKEN_EXPIRY_WARNING_DAYS: Final = 14
 # DECISIONS round 2, Q2.3: only 40001 is named; others are the generic "ACE".
 ACE_MODEL_NAMES: Final[dict[int, str]] = {40001: "ACE Pro"}
 ACE_MODEL_DEFAULT: Final = "ACE"
+# Highest drying temperature (°C) an ACE model accepts; a drying start never
+# asks for more (Beta 2, D1). The ACE Pro (40001) refuses a dry cycle above
+# 55 °C with code 11505. Other models are sent what was asked.
+ACE_DRYING_MAX_TEMP: Final[dict[int, int]] = {40001: 55}
+# Speed presets a printer accepts when it reports no list of its own: LAN
+# never does (Beta 2, D6; codes observed on the Kobra S1 and Kobra 4).
+DEFAULT_SPEED_MODES: Final[tuple[tuple[int, str], ...]] = (
+    (1, "Silent"),
+    (2, "Standard"),
+    (3, "Sport"),
+)
+# The ACE order and reply that start or stop drying (Beta 2, D2).
+ACE_DRY_ACTION: Final = "setDry"
+# Slots in one ACE, when a box has not listed its slots.
+ACE_SLOTS_PER_BOX: Final = 4
 
-# Kobra X answers its camera stream with HTTP 206 (BEHAVIOUR §2.18).
+# Kobra X answers its camera stream with HTTP 206 (BEHAVIOUR §2.18), and so
+# does the Kobra 4 (Beta 2, D7).
 MODEL_ID_KOBRA_X: Final = 20030
+MODEL_ID_KOBRA_4: Final = 20028
+CAMERA_PARTIAL_CONTENT_MODELS: Final = frozenset({MODEL_ID_KOBRA_X, MODEL_ID_KOBRA_4})
 CAMERA_PORT: Final = 18088
 
 # Cloud function id that means "supports an ACE" (BEHAVIOUR §1.7).

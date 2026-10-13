@@ -28,6 +28,7 @@ from anycubic_lan import AnycubicLanError, NotConnectedError, ReportKind
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .const import (
+    ACE_DRYING_MAX_TEMP,
     AXIS_XY,
     AXIS_Z,
     CLOUD_DELETE_RELIST_DELAY,
@@ -417,9 +418,22 @@ async def async_ace_retract(
         await _send(order)
 
 
+def drying_temperature(printer: Printer, box: int, temperature: int) -> int:
+    """``temperature`` capped to what this ACE model accepts (Beta 2, D1).
+
+    An ACE Pro refuses a dry cycle above 55 °C (code 11505), so a material
+    default, a stored setting or a preset above that is sent as 55. Other
+    models are sent what was asked.
+    """
+    unit = printer.ace_box(box)
+    model_id = unit.model_id if unit is not None else None
+    limit = ACE_DRYING_MAX_TEMP.get(model_id) if model_id is not None else None
+    return temperature if limit is None else min(temperature, limit)
+
+
 def drying_defaults(coordinator: AnycubicCoordinator, box: int) -> tuple[int, int]:
     """(°C, minutes): stored settings, else the profile of the material in
-    the ACE being dried (§3.11, B11)."""
+    the ACE being dried (§3.11, B11); the temperature within the ACE's limit."""
     printer = _printer(coordinator)
     ledger = coordinator.ledger
     feeding = ledger.feeding_slot(printer.printer_id) if box == 0 else None
@@ -427,7 +441,9 @@ def drying_defaults(coordinator: AnycubicCoordinator, box: int) -> tuple[int, in
     temperature = ledger.drying_setting(printer.printer_id, "temperature")
     duration = ledger.drying_setting(printer.printer_id, "duration")
     return (
-        int(temperature) if temperature is not None else profile_temp,
+        drying_temperature(
+            printer, box, int(temperature) if temperature is not None else profile_temp
+        ),
         int(duration) if duration is not None else profile_minutes,
     )
 
@@ -443,6 +459,7 @@ async def async_drying_start(
         if values is None:
             return  # pressing with the preset missing does nothing
         duration, temperature = values
+        temperature = drying_temperature(printer, box, temperature)
         await async_wake(coordinator)  # the preset buttons wake (§2.12)
     else:
         temperature, duration = drying_defaults(coordinator, box)
@@ -696,16 +713,21 @@ def _running_job(coordinator: AnycubicCoordinator) -> int:
 
 
 async def async_set_speed_mode(coordinator: AnycubicCoordinator, mode: int) -> None:
-    """Order 6 with a mode code the cloud lists for the job (§1.5, §4.6).
+    """Order 6 with a mode code offered for the job (§1.5, §4.6).
 
-    LAN publishes no list of modes, so this always refuses there.
+    Over LAN, which publishes no list of modes, the printer's own presets are
+    offered and the change is the order's LAN form (Beta 2, D6).
     """
     job_id = _running_job(coordinator)
     printer = _printer(coordinator)
-    if mode not in {option["mode"] for option in printer.speed_modes}:
+    if mode not in {option["mode"] for option in printer.selectable_speed_modes}:
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="speed_mode_unavailable"
         )
+    link = coordinator.link
+    if link is not None and link.connected:
+        await _send(link.async_set_print_settings(job_id, {"print_speed_mode": mode}))
+        return
     printer_id = coordinator.printer_id
     await async_cloud_order(
         coordinator,

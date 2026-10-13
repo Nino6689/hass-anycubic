@@ -29,7 +29,9 @@ from anycubic_lan import (
 from .const import (
     ACE_MODEL_DEFAULT,
     ACE_MODEL_NAMES,
+    ACE_SLOTS_PER_BOX,
     CAMERA_PORT,
+    DEFAULT_SPEED_MODES,
     FUNCTION_ID_MULTI_COLOR_BOX,
     FUNCTION_NAMES,
 )
@@ -85,6 +87,9 @@ _JOB_STATE_TEXT: Mapping[int, str] = {
     7: "slicing",
     9: "levelling",
 }
+# How a LAN job that ended reads until the next one starts (Beta 2, D8):
+# ``last_project.state`` words; ``stoped`` is the firmware's spelling.
+_ENDED_CANCELLED = frozenset({"stoped", "stopped", "canceled", "cancelled"})
 
 # ACE slot facts (BEHAVIOUR §1.9).
 SLOT_EDIT_EMPTY = 2
@@ -115,6 +120,29 @@ def ace_model_name(model_id: int | None) -> str:
     if model_id is None:
         return ACE_MODEL_DEFAULT
     return ACE_MODEL_NAMES.get(model_id, ACE_MODEL_DEFAULT)
+
+
+def ace_slot_for_channel(
+    boxes: tuple[AceBox, ...], channel_no: int
+) -> tuple[int, int] | None:
+    """Which ACE box (position in ``boxes``) and 0-based slot a ``channel_no``
+    names (Beta 2, D4); ``None`` when it names none.
+
+    ASSUMPTION, inferred and not yet confirmed against a printer's screen:
+    ``channel_no`` counts from 1 across every box in order, so with two
+    4-slot boxes channel 5 is the second box's first slot. Observed values
+    were 3 and 4 on a Kobra X with one 4-slot box. This is the only place
+    the numbering is decided.
+    """
+    remaining = channel_no - 1
+    if remaining < 0:
+        return None
+    for position, box in enumerate(boxes):
+        size = len(box.slots) or ACE_SLOTS_PER_BOX
+        if remaining < size:
+            return position, remaining
+        remaining -= size
+    return None
 
 
 def print_speed_pct(action: str | None, state: str | None, data: object) -> int | None:
@@ -321,6 +349,9 @@ class Printer:
     print_speed_pct: int | None = None
     """From ``print`` reports' ``data.settings`` (PROTOCOL §7.2, round 2 Q2.2)."""
     remembered_light_types: frozenset[int] = frozenset()
+    lan_job_seen: bool = False
+    """A LAN job has been reported since setup (Beta 2, D8): only then does
+    an ended ``last_project`` read as finished rather than idle."""
     source: Source = "lan"
     """Which connection the readings come from now (BEHAVIOUR §5.4)."""
     cloud: CloudData | None = None
@@ -436,13 +467,39 @@ class Printer:
         job = self.job
         if job is None:
             # B9: an online printer with no job is idle, not unavailable.
-            return "idle" if self.is_online else None
+            if not self.is_online:
+                return None
+            return self._ended_lan_job_state() or "idle"
         if self.job_is_paused:
             return "paused"
         code = self.job_status_code
         if code is not None and code in _JOB_STATE_TEXT:
             return _JOB_STATE_TEXT[code]
         return job.state or "unknown"
+
+    def _ended_lan_job_state(self) -> str | None:
+        """Over LAN, how the job that ended reads until the next one starts.
+
+        The printer drops ``project`` when a job ends but keeps it in
+        ``info.last_project``; read like the cloud's last job, ``finished``
+        or ``cancelled`` (Beta 2, D8). ``None`` when no job has ended.
+        """
+        last = self.state.last_job
+        if (
+            self._cloud() is not None
+            or not self.lan_job_seen
+            or last is None
+            or not last.is_finished
+        ):
+            return None
+        word = (last.state or "").strip().lower()
+        if word in _ENDED_CANCELLED or (
+            not word and last.print_status == PrintStatus.CANCELLED
+        ):
+            return "cancelled"
+        if word == "failed":
+            return "failed"
+        return "finished"
 
     @property
     def job_name(self) -> str | None:
@@ -551,6 +608,19 @@ class Printer:
         """``{description, mode}`` pairs. Cloud only: always empty on LAN."""
         cloud = self._cloud()
         return [dict(mode) for mode in cloud.speed_modes] if cloud is not None else []
+
+    @property
+    def selectable_speed_modes(self) -> list[dict[str, Any]]:
+        """The modes the speed select offers: the reported list, else, over
+        LAN on a filament printer, the printer's presets (Beta 2, D6)."""
+        modes = self.speed_modes
+        if modes or self._cloud() is not None:
+            return modes
+        if self.identity.material_type == MATERIAL_RESIN:
+            return []
+        return [
+            {"description": name, "mode": code} for code, name in DEFAULT_SPEED_MODES
+        ]
 
     @property
     def job_speed_mode(self) -> str | None:
@@ -817,12 +887,24 @@ class Printer:
     def ace_loaded_slot_index(self, index: int) -> int | None:
         """0-based slot feeding the printer.
 
-        First ACE only: when ``loaded_slot`` reads -1, the slot whose own
-        status is 5 is taken instead (B15). The second ACE has no fallback.
+        A ``channel_no`` reported after the boxes last changed their own
+        ``loaded_slot`` wins (Beta 2, D4). First ACE only: when
+        ``loaded_slot`` reads -1, the slot whose own status is 5 is taken
+        instead (B15). The second ACE has no fallback.
         """
         box = self.ace_box(index)
         if box is None:
             return None
+        channel = self.state.active_channel
+        hit = (
+            ace_slot_for_channel(self.state.ace_boxes, channel)
+            if channel is not None
+            else None
+        )
+        if hit is not None:
+            # A newer channel report than the boxes' own (Beta 2, D4).
+            position, slot = hit
+            return slot if self.state.ace_boxes[position] is box else None
         if index == 0:
             return box.loaded_slot
         raw = box.loaded_slot_raw

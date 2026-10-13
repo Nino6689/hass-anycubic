@@ -71,16 +71,18 @@ class AxisStepSelect(AnycubicEntity, SelectEntity):
 class SpeedModeSelect(AnycubicEntity, SelectEntity):
     """Print speed mode, named from the cloud's list (BEHAVIOUR §1.5).
 
-    LAN has no list of mode names, so on a LAN connection this entity is
-    always unavailable. Over the cloud the list survives the job, so it is
-    available while idle but refuses a change.
+    LAN has no list of mode names, so on a LAN connection the printer's own
+    presets are offered (Beta 2, D6). Over the cloud the list survives the
+    job, so it is available while idle but refuses a change.
     """
 
     entity_description: AnycubicSelectDescription
 
     @property
     def options(self) -> list[str]:
-        return [str(mode["description"]) for mode in self.printer.speed_modes]
+        return [
+            str(mode["description"]) for mode in self.printer.selectable_speed_modes
+        ]
 
     @property
     def available(self) -> bool:
@@ -88,12 +90,16 @@ class SpeedModeSelect(AnycubicEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        return self.printer.job_speed_mode
+        code = self.printer.speed_mode_code
+        for mode in self.printer.selectable_speed_modes:
+            if mode["mode"] == code:
+                return str(mode["description"])
+        return None
 
     async def async_select_option(self, option: str) -> None:
-        """Send the code paired with the name (order 6); refused unless a
-        job is in progress (BEHAVIOUR §2.14)."""
-        for mode in self.printer.speed_modes:
+        """Send the code paired with the name (order 6, or its LAN form);
+        refused unless a job is in progress (BEHAVIOUR §2.14)."""
+        for mode in self.printer.selectable_speed_modes:
             if str(mode["description"]) == option:
                 await control.async_set_speed_mode(self.coordinator, int(mode["mode"]))
                 return
