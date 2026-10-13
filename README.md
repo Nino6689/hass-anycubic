@@ -1659,13 +1659,33 @@ appears in them.
 
 <br>
 
-**Harmless, and rare.** These are fields in a message this version doesn't parse yet — everything
-else still flows normally. They're logged once at WARNING, not repeatedly.
+**Harmless.** These are fields in a message this version doesn't parse yet — everything
+else still flows normally. Since 2.9.5 they're logged at **debug** level only, so you'll only see
+them with debug logging on.
 
 If you see one, it's genuinely useful to
 [open an issue](https://github.com/Nino6689/hass-anycubic/issues) with the line. It's how
 new printer features get found — the printer light, the ACE spool details and the auxiliary fan
 were all arriving in messages that were being discarded.
+
+</details>
+
+<details>
+<summary><b>LAN Mode: entities missing, or the connection keeps dropping</b></summary>
+
+<br>
+
+From a detailed Kobra 4 report ([discussion #37](https://github.com/Nino6689/hass-anycubic/discussions/37)):
+
+- **Don't add a second, LAN-only entry for a printer that's already on your account entry.** Both
+  create the same unique ids, so the second entry's entities are dropped and it ends up empty.
+  Turn the local connection on in the account entry's **options** instead.
+- **The printer serves one LAN client at a time.** Another local integration (such as
+  `anycubic_ha_local`) running alongside takes the connection away — expect `Connection refused`.
+- **The per-spool filament entities are disabled by default** (`ace_slot_N_filament_remaining`,
+  spool weight and price, the reset buttons). Enable them on the ACE device page.
+- **The job preview image** only exists for jobs sent through the cloud; for LAN and slicer jobs
+  it stays unavailable.
 
 </details>
 
