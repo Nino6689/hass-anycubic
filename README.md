@@ -1974,7 +1974,7 @@ appreciated. This is a spare-time project maintained against an API that changes
 and knowing people find it useful is most of what keeps it going.
 
 <!-- SUPPORTERS-COUNT:START -->
-**One person** has bought me a coffee. Thank you, genuinely.
+**2 people** have bought me a coffee. Thank you, all of you.
 <!-- SUPPORTERS-COUNT:END -->
 
 <!-- SUPPORTERS-NAMES:START -->
