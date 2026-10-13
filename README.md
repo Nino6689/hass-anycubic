@@ -393,75 +393,97 @@ process. This is a standard Windows feature and nothing leaves your machine. Cre
 
 1. Open Slicer Next and make sure it's **signed in**
 2. **Ctrl+Shift+Esc** → **Details** tab → right-click `AnycubicSlicerNext.exe` (the larger of the two) → **Create dump file**
-3. Run this in PowerShell — **not as Administrator**, which fails with an out-of-memory error.
-   It verifies each candidate's RSA signature against Anycubic's published keys and copies the
-   newest valid, unexpired one:
+3. Run this in PowerShell. Paste the whole block at once: it is wrapped in `& { … }` so that
+   any error stops it, instead of the remaining lines running on and printing a false success.
+   It reads the dump in chunks, because a dump runs to gigabytes and reading it as one string
+   fails with `OutOfMemoryException`. It verifies each candidate's RSA signature against
+   Anycubic's published keys and copies the newest valid, unexpired one:
 
    ```powershell
-   $dmp = Get-ChildItem "$env:TEMP\AnycubicSlicerNext*.DMP" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-   if (-not $dmp) { throw "No dump file found in $env:TEMP" }
+   & {
+       $dmp = Get-ChildItem "$env:TEMP\AnycubicSlicerNext*.DMP" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+       if (-not $dmp) { throw "No dump file found in $env:TEMP" }
 
-   $keys = (Invoke-RestMethod -Uri "https://uc.makeronline.com/.well-known/jwks" -Headers @{ "User-Agent" = "Mozilla/5.0" }).keys
+       $keys = (Invoke-RestMethod -Uri "https://uc.makeronline.com/.well-known/jwks" -Headers @{ "User-Agent" = "Mozilla/5.0" }).keys
 
-   function ConvertFrom-B64Url([string]$s) {
-       [Convert]::FromBase64String($s.Replace('-', '+').Replace('_', '/').PadRight($s.Length + (4 - $s.Length % 4) % 4, '='))
-   }
-
-   $bytes = [IO.File]::ReadAllBytes($dmp.FullName)
-   $rx = [regex]'(eyJ[A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{100,})'
-   $seen = @{}
-   $found = @()
-
-   foreach ($enc in @([Text.Encoding]::GetEncoding(28591), [Text.Encoding]::Unicode)) {
-       foreach ($m in $rx.Matches($enc.GetString($bytes))) {
-           $header, $payload, $rawSig = $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value
-           if ($seen.ContainsKey($m.Value)) { continue }
-           $seen[$m.Value] = 1
-
-           try { $claims = [Text.Encoding]::UTF8.GetString((ConvertFrom-B64Url $payload)) | ConvertFrom-Json } catch { continue }
-           if ($claims.tokenType -ne 'access-token') { continue }
-           if (-not ($claims.id -and $claims.sub -and $claims.email)) { continue }
-
-           $signed = [Text.Encoding]::ASCII.GetBytes("$header.$payload")
-
-           foreach ($key in $keys) {
-               $modulus = ConvertFrom-B64Url $key.n
-               # A signature is exactly as long as the modulus, so cut the
-               # match down to size -- see the note below.
-               $sigChars = [int][Math]::Ceiling($modulus.Length * 8 / 6)
-               if ($rawSig.Length -lt $sigChars) { continue }
-               $sigText = $rawSig.Substring(0, $sigChars)
-
-               $rsa = [Security.Cryptography.RSA]::Create()
-               $params = New-Object Security.Cryptography.RSAParameters
-               $params.Modulus = $modulus
-               $params.Exponent = ConvertFrom-B64Url $key.e
-               $rsa.ImportParameters($params)
-
-               $ok = $rsa.VerifyData($signed, (ConvertFrom-B64Url $sigText),
-                   [Security.Cryptography.HashAlgorithmName]::SHA256,
-                   [Security.Cryptography.RSASignaturePadding]::Pkcs1)
-               $rsa.Dispose()
-
-               if ($ok) {
-                   $expiry = [DateTimeOffset]::FromUnixTimeSeconds([long]$claims.exp)
-                   if ($expiry -gt [DateTimeOffset]::UtcNow) {
-                       $found += [pscustomobject]@{ Token = "$header.$payload.$sigText"; Issued = [long]$claims.iat; Expiry = $expiry }
-                   }
-                   break
-               }
-           }
+       function ConvertFrom-B64Url([string]$s) {
+           [Convert]::FromBase64String($s.Replace('-', '+').Replace('_', '/').PadRight($s.Length + (4 - $s.Length % 4) % 4, '='))
        }
+
+       $rx = [regex]'(eyJ[A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{10,})\.([A-Za-z0-9_-]{100,})'
+       $seen = @{}
+       $found = @()
+
+       # A dump runs to gigabytes - far more than one string can hold - so read it
+       # in 16 MB chunks, carrying the last 64 KB over so a token on a boundary
+       # still appears whole in the next chunk.
+       $chunk = 16MB
+       $overlap = 64KB
+       $buf = New-Object byte[] ($chunk + $overlap)
+       $fs = [IO.File]::OpenRead($dmp.FullName)
+       try {
+           $carry = 0
+           while (($n = $fs.Read($buf, $carry, $chunk)) -gt 0) {
+               $len = $carry + $n
+               foreach ($enc in @([Text.Encoding]::GetEncoding(28591), [Text.Encoding]::Unicode)) {
+                   $text = $enc.GetString($buf, 0, $len)
+                   foreach ($m in $rx.Matches($text)) {
+                       $header, $payload, $rawSig = $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value
+                       if ($seen.ContainsKey($m.Value)) { continue }
+                       $seen[$m.Value] = 1
+
+                       try { $claims = [Text.Encoding]::UTF8.GetString((ConvertFrom-B64Url $payload)) | ConvertFrom-Json } catch { continue }
+                       if ($claims.tokenType -ne 'access-token') { continue }
+                       if (-not ($claims.id -and $claims.sub -and $claims.email)) { continue }
+
+                       $signed = [Text.Encoding]::ASCII.GetBytes("$header.$payload")
+
+                       foreach ($key in $keys) {
+                           $modulus = ConvertFrom-B64Url $key.n
+                           # A signature is exactly as long as the modulus, so cut the
+                           # match down to size -- see the note below.
+                           $sigChars = [int][Math]::Ceiling($modulus.Length * 8 / 6)
+                           if ($rawSig.Length -lt $sigChars) { continue }
+                           $sigText = $rawSig.Substring(0, $sigChars)
+
+                           $rsa = [Security.Cryptography.RSA]::Create()
+                           $params = New-Object Security.Cryptography.RSAParameters
+                           $params.Modulus = $modulus
+                           $params.Exponent = ConvertFrom-B64Url $key.e
+                           $rsa.ImportParameters($params)
+
+                           $ok = $rsa.VerifyData($signed, (ConvertFrom-B64Url $sigText),
+                               [Security.Cryptography.HashAlgorithmName]::SHA256,
+                               [Security.Cryptography.RSASignaturePadding]::Pkcs1)
+                           $rsa.Dispose()
+
+                           if ($ok) {
+                               $expiry = [DateTimeOffset]::FromUnixTimeSeconds([long]$claims.exp)
+                               if ($expiry -gt [DateTimeOffset]::UtcNow) {
+                                   $found += [pscustomobject]@{ Token = "$header.$payload.$sigText"; Issued = [long]$claims.iat; Expiry = $expiry }
+                               }
+                               break
+                           }
+                       }
+                   }
+               }
+               $text = $null
+               $carry = [Math]::Min($overlap, $len)
+               [Array]::Copy($buf, $len - $carry, $buf, 0, $carry)
+           }
+       } finally {
+           $fs.Dispose()
+       }
+
+       if (-not $found) { throw "No valid, unexpired access token found in the dump." }
+
+       $best = $found | Sort-Object Issued -Descending | Select-Object -First 1
+       Set-Clipboard $best.Token
+       "SIGNATURE VALID"
+       "Token length: $($best.Token.Length)"
+       "Valid until:  $($best.Expiry.ToString('yyyy-MM-dd HH:mm')) UTC"
+       "Access token copied to clipboard - paste it into Home Assistant."
    }
-
-   if (-not $found) { throw "No valid, unexpired access token found in the dump." }
-
-   $best = $found | Sort-Object Issued -Descending | Select-Object -First 1
-   Set-Clipboard $best.Token
-   "SIGNATURE VALID"
-   "Token length: $($best.Token.Length)"
-   "Valid until:  $($best.Expiry.ToString('yyyy-MM-dd HH:mm')) UTC"
-   "Access token copied to clipboard - paste it into Home Assistant."
    ```
 
 4. Paste into Home Assistant
