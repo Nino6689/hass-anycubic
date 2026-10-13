@@ -355,6 +355,24 @@ DRYING_PROFILES: dict[str, tuple[int, int]] = {
 # Gentle enough not to harm anything, long enough to be worth running.
 DEFAULT_DRYING_PROFILE = (45, 6)
 
+# The hottest each ACE model will dry at, keyed by the model id it reports.
+# An ACE Pro refuses anything above 55 C with code 11505, so the 65 C PETG
+# profile never started on one (#42). Models not listed are sent what was
+# asked for and the printer is left to say no.
+ACE_MAX_DRYING_TEMPERATURE: dict[int, int] = {
+    40001: 55,  # ACE Pro
+}
+
+
+def clamp_drying_temperature(temperature: int, model_id: int | None) -> int:
+    """A drying temperature the ACE in question will accept."""
+    limit = ACE_MAX_DRYING_TEMPERATURE.get(model_id) if model_id is not None else None
+
+    if limit is None:
+        return temperature
+
+    return min(temperature, limit)
+
 
 def drying_profile_for_material(material: str | None) -> tuple[int, int]:
     """Recommended (temperature C, duration minutes) for a material.

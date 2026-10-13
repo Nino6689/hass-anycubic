@@ -110,6 +110,7 @@ from .filament import (
     JOB_HISTORY_SAMPLES,
     MIN_PROGRESS_FOR_FORECAST_PCT,
     attribute_job_to_slots,
+    clamp_drying_temperature,
     cost_of,
     drying_profile_for_material,
     history_estimate,
@@ -260,6 +261,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Whether each printer was online last time we looked, so the budget
         # above can be handed back when one comes on again.
         self._printer_was_online: dict[int, bool] = {}
+        # Printers already asked for their full ACE report since setup.
+        self._ace_info_requested: set[int] = set()
+        self._ace_info_connected_since: float | None = None
         self._mqtt_task: asyncio.Future[None] | None = None
         self._mqtt_manually_connected = False
         self._mqtt_last_error: str | None = None
@@ -2631,6 +2635,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # LAN no job was ever charged and remaining filament never went
             # down (G1).
             await self._async_update_filament()
+            self._request_ace_info_once()
             return True
 
         if self.lan_only:
@@ -2670,6 +2675,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             await self._async_update_filament()
 
+            self._request_ace_info_once()
+
         except ConfigEntryAuthFailed:
             raise
 
@@ -2693,6 +2700,51 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_state_update = int(time.time())
 
         return True
+
+    def _request_ace_info_once(self) -> None:
+        """Ask each printer with an ACE for its full box report, once per connection.
+
+        The regular refresh describes only the units the printer happens to
+        mention, so after a restart the second of two ACE units stayed
+        unavailable until someone pressed Refresh ACE Spools (#42). This asks
+        the question that button does, once each time MQTT or the local
+        connection comes up -- never opening one itself, which would hold MQTT
+        open after every restart whatever the connect mode says. The ask waits
+        one refresh after the connection appears so the reply has a
+        subscription to arrive on.
+        """
+        api = self._anycubic_api
+        connected = self.lan_is_connected or (api is not None and api.mqtt_is_started)
+
+        if not connected:
+            self._ace_info_requested.clear()
+            self._ace_info_connected_since = None
+            return
+
+        if self._ace_info_connected_since is None:
+            self._ace_info_connected_since = time.monotonic()
+            return
+
+        for printer_id, printer in self._anycubic_printers.items():
+            if printer_id in self._ace_info_requested:
+                continue
+
+            if not printer.supports_function_multi_color_box:
+                continue
+
+            self._ace_info_requested.add(printer_id)
+            self.hass.async_create_background_task(
+                self._async_request_ace_info(printer),
+                f"Anycubic coordinator {self.entry.entry_id} {printer_id} ACE report",
+            )
+
+    async def _async_request_ace_info(self, printer: AnycubicPrinter) -> None:
+        try:
+            await printer.multi_color_box_get_info()
+        except Exception as error:  # noqa: BLE001 - the button can still ask
+            LOGGER.debug(
+                "Could not ask printer %s for its ACE report: %s", printer.id, error
+            )
 
     def get_printer_for_id(
         self,
@@ -2979,7 +3031,42 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.loaded_material(printer_id, box_id)
         )
 
-        return float(temperature if key == ATTR_DRYING_TEMPERATURE else duration)
+        if key == ATTR_DRYING_TEMPERATURE:
+            return float(self._drying_temperature_for_box(printer_id, box_id, temperature))
+
+        return float(duration)
+
+    def _drying_temperature_for_box(
+        self, printer_id: int, box_id: int, temperature: int, starting: bool = False
+    ) -> int:
+        """Bring a drying temperature within what this ACE will accept (#42).
+
+        Said in the log only when a dry cycle is actually being started; the
+        number entity asks on every refresh.
+        """
+        printer = self.get_printer_for_id(printer_id)
+
+        if printer is None:
+            return temperature
+
+        box = (
+            printer.secondary_multi_color_box
+            if box_id == 1
+            else printer.primary_multi_color_box
+        )
+        accepted = clamp_drying_temperature(
+            temperature, box.model_id if box is not None else None
+        )
+
+        if starting and accepted != temperature:
+            LOGGER.info(
+                "Drying on box %s at %s C rather than %s C, the most this ACE accepts.",
+                box_id,
+                accepted,
+                temperature,
+            )
+
+        return accepted
 
     async def async_set_drying_setting(
         self, printer_id: int, key: str, value: float
@@ -3011,8 +3098,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         duration = int(
             self.get_drying_setting(printer_id, ATTR_DRYING_DURATION, 120, box_id)
         )
-        temperature = int(
-            self.get_drying_setting(printer_id, ATTR_DRYING_TEMPERATURE, 45, box_id)
+        temperature = self._drying_temperature_for_box(
+            printer_id,
+            box_id,
+            int(self.get_drying_setting(printer_id, ATTR_DRYING_TEMPERATURE, 45, box_id)),
+            starting=True,
         )
 
         LOGGER.debug(
@@ -3061,7 +3151,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self._connect_mqtt_for_action_response()
                 await printer.multi_color_box_drying_start(
                     duration=preset_duration,
-                    target_temp=preset_temperature,
+                    target_temp=self._drying_temperature_for_box(
+                        printer_id, box_id, int(preset_temperature), starting=True
+                    ),
                     box_id=box_id,
                 )
 
