@@ -19,6 +19,7 @@ from custom_components.anycubic_cloud.diagnostics import (
     async_get_config_entry_diagnostics,
     json_dict_or_value,
     parse_all_json_data,
+    redact_secrets,
 )
 
 SECRET = "super-secret-value"
@@ -123,3 +124,99 @@ class TestDiagnosticsOutput:
         result = await async_get_config_entry_diagnostics(hass, mock_entry)
 
         assert mock_entry.data["user_token"] not in json.dumps(result)
+
+
+JWT = "eyJhbGciOiJSUzI1NiJ9.eyJlbWFpbCI6Im5pbm9AZXhhbXBsZS5jb20ifQ.c2lnbmF0dXJl"
+
+
+class TestRedactSecrets:
+    """The last pass catches credentials whatever key they turn up under."""
+
+    @pytest.mark.parametrize("key", ["casdoor_user_token", "some_new_Token", "app_secret", "password", "user_activation_key"])
+    def test_secret_keys_are_redacted(self, key: str) -> None:
+        assert redact_secrets({"a": [{key: SECRET}]}) == {"a": [{key: "**REDACTED**"}]}
+
+    def test_a_jwt_is_redacted_under_any_key(self) -> None:
+        assert redact_secrets({"note": JWT, "list": [JWT]}) == {"note": "**REDACTED**", "list": ["**REDACTED**"]}
+
+    @pytest.mark.parametrize("value", ["eyJ-not-a-jwt", "a.b.c", "1.2.3.4", None, 7])
+    def test_ordinary_values_pass_through(self, value) -> None:
+        assert redact_secrets({"v": value}) == {"v": value}
+
+    def test_empty_secret_fields_stay_empty(self) -> None:
+        """An absent token is useful to see; it is not a leak."""
+        assert redact_secrets({"user_token": "", "auth_token": None}) == {"user_token": "", "auth_token": None}
+
+
+class TestReportedLeaks:
+    """Everything #33 found in a real download."""
+
+    @pytest.fixture
+    def api_with_leaky_data(self, mock_api):
+        api, printer = mock_api
+        api.get_user_info = AsyncMock(
+            return_value={
+                "data": {
+                    "id": 999,
+                    "casdoor_user_token": JWT,
+                    "user_activation_key": "activation-secret",
+                    "tourist_device_id": "tourist-device",
+                    "user_url": "https://avatar.example/nino.png",
+                }
+            }
+        )
+        api.list_my_printers = AsyncMock(return_value={"data": [{"id": PRINTER_ID, "description": "4b4f42524158534e"}]})
+        api.list_all_projects = AsyncMock(
+            return_value={
+                "data": [
+                    {
+                        "id": 77,
+                        "name": "Secret prototype",
+                        "gcode_name": "secret_prototype.gcode",
+                        "display_filename": "Secret prototype.3mf",
+                        "img": "https://images.example/secret.png",
+                        "print_status": 2,
+                    }
+                ]
+            }
+        )
+        api.project_info_for_id = AsyncMock(return_value={"data": {"id": 77, "filename": "secret_prototype.gcode"}})
+        return api, printer
+
+    async def test_nothing_from_the_report_survives(self, hass: HomeAssistant, mock_entry, api_with_leaky_data) -> None:
+        api, printer = api_with_leaky_data
+        api.printer_info_for_id = AsyncMock(return_value=printer)
+        await _setup(hass, mock_entry)
+        api.printer_info_for_id = AsyncMock(return_value={"data": {"base": {"description": "4b4f42524158534e"}}})
+
+        result = await async_get_config_entry_diagnostics(hass, mock_entry)
+        dumped = json.dumps(result)
+
+        for leaked in (
+            JWT,
+            "activation-secret",
+            "tourist-device",
+            "avatar.example",
+            "4b4f42524158534e",
+            "Secret prototype",
+            "secret_prototype",
+            "images.example",
+            str(PRINTER_ID),
+        ):
+            assert leaked not in dumped, leaked
+        # The history itself stays: its status is what status bugs are debugged from.
+        assert result["projects_info"]["data"][0]["print_status"] == 2
+
+    async def test_capabilities_tag_the_printer_like_every_other_block(
+        self, hass: HomeAssistant, mock_entry, api_with_leaky_data
+    ) -> None:
+        api, printer = api_with_leaky_data
+        api.printer_info_for_id = AsyncMock(return_value=printer)
+        await _setup(hass, mock_entry)
+        api.printer_info_for_id = AsyncMock(return_value={"data": {"id": PRINTER_ID}})
+
+        result = await async_get_config_entry_diagnostics(hass, mock_entry)
+
+        tag = result["capabilities"][0]["printer_id"]
+        assert tag.startswith("**REDACTED_")
+        assert result["printer_info"]["data"][0]["id"] == tag
