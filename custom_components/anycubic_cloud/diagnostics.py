@@ -5,7 +5,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 from anycubic_cloud_api.const.regions import AnycubicEndpoints
-from homeassistant.components.diagnostics import async_redact_data
+from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -15,6 +15,11 @@ if TYPE_CHECKING:
     from .coordinator import AnycubicCloudDataUpdateCoordinator
 
 USER_TO_REDACT = {
+    # Anycubic's own sign-in token for the account: a live credential (#33).
+    "casdoor_user_token",
+    "user_activation_key",
+    "tourist_device_id",
+    "user_url",
     "birthday",
     "user_email",
     "password",
@@ -32,10 +37,26 @@ USER_TO_REDACT = {
 }
 PRINTER_TO_REDACT = {
     "machine_mac",
+    # The cloud record's printer serial, hex-encoded (#33).
+    "description",
 }
+# A print history is useful for status bugs; what was printed is nobody's business.
 PROJECT_TO_REDACT = {
     "model",
+    "name",
+    "task_name",
+    "filename",
+    "display_filename",
+    "gcode_name",
+    "temp_gcode",
+    "img",
+    "image_id",
 }
+
+# A last pass over the whole download, whatever key a credential turns up
+# under. casdoor_user_token leaked because the lists above match exact names
+# and nobody had listed it.
+SECRET_KEY_PARTS = ("token", "secret", "password", "activation_key")
 
 TO_TAGGED_REDACT = {
     "id",
@@ -87,6 +108,31 @@ class TaggedRedacter:
                 redacted[key] = list([self.redact_data(item, to_redact) for item in value])
 
         return redacted
+
+
+def _looks_like_jwt(value: str) -> bool:
+    parts = value.split(".")
+    return len(parts) == 3 and value.startswith("eyJ") and all(parts)
+
+
+def redact_secrets(data: Any) -> Any:
+    """Redact credentials wherever they are: by key name, and any JWT by value."""
+    if isinstance(data, list):
+        return [redact_secrets(item) for item in data]
+    if isinstance(data, str):
+        return REDACTED if _looks_like_jwt(data) else data
+    if not isinstance(data, dict):
+        return data
+    return {
+        key: (
+            REDACTED
+            if isinstance(key, str)
+            and any(part in key.lower() for part in SECRET_KEY_PARTS)
+            and value not in (None, "")
+            else redact_secrets(value)
+        )
+        for key, value in data.items()
+    }
 
 
 def json_dict_or_value(value: str) -> dict[Any, Any] | str:
@@ -224,7 +270,8 @@ async def async_get_config_entry_diagnostics(
 
     assert coordinator.anycubic_api
 
-    capabilities = _build_capabilities(coordinator)
+    # Tagged like everywhere else, so the printer id reads the same in every block.
+    capabilities = tRedacter.redact_data(_build_capabilities(coordinator), TO_TAGGED_REDACT)
 
     # A printer in LAN Mode is dropped by the cloud, so every call below fails.
     # The capability block above is the useful part in that case, and returning
@@ -261,7 +308,7 @@ async def async_get_config_entry_diagnostics(
                     raw_data=True,
                 )
             )
-    return {
+    redacted: dict[str, Any] = redact_secrets({
         "capabilities": capabilities,
         "endpoints": _build_endpoints(coordinator, entry),
         "user_info": tRedacter.redact_data(
@@ -307,4 +354,5 @@ async def async_get_config_entry_diagnostics(
             ),
             TO_TAGGED_REDACT
         ),
-    }
+    })
+    return redacted
