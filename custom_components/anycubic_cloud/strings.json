@@ -238,10 +238,10 @@
       "message": "The printer's reply cannot be used by this integration."
     },
     "lan_unreachable": {
-      "message": "No printer answered at {host}."
+      "message": "No printer answered at the LAN Mode address."
     },
     "lan_connection_lost": {
-      "message": "The printer at {host} does not answer."
+      "message": "The printer does not answer over LAN."
     },
     "printer_not_connected": {
       "message": "The printer is not connected."
@@ -1402,6 +1402,9 @@
       },
       "mqtt_connection_active": {
         "name": "MQTT Connection Active"
+      },
+      "lan_mode_active": {
+        "name": "LAN Mode Active"
       }
     },
     "button": {

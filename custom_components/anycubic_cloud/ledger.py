@@ -98,13 +98,28 @@ class _Anchor:
 
 @dataclass(slots=True)
 class _RunningJob:
-    """What was last seen of a job while it ran (G1)."""
+    """What was last seen of a job while it ran (G1, Beta 3 D16)."""
 
-    task_id: int | None
+    job_id: int | None
+    """The job's number when it names one (above 0); ``None`` for a LAN
+    print numbered ``-1`` or unnumbered (D15)."""
     name: str | None
     length: float | None
     shares: dict[int, float] = field(default_factory=dict)
     """The cloud job's split between colours, when it has several."""
+
+    def same_job(self, job_id: int | None) -> bool:
+        """Whether a job still in progress is this one.
+
+        Two numbers that differ are two jobs. Without a number on either
+        side the run goes on: a new print only starts after this one was
+        seen ending (the printer runs one job at a time).
+        """
+        return self.job_id is None or job_id is None or self.job_id == job_id
+
+    def see(self, length: float | None) -> None:
+        if length is not None and (self.length is None or length >= self.length):
+            self.length = length
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,9 +152,11 @@ class FilamentLedger:
             hass, STORE_VERSION, f"{STORE_FILAMENT}.{entry_id}"
         )
         self._data: Json = {"printers": {}, "spools": {}, "jobs": {}}
-        # In memory only (BEHAVIOUR §3.6, G1).
+        # In memory only (BEHAVIOUR §3.6, G1): the job each source (LAN,
+        # cloud) shows running, and the job numbers charged since setup.
         self._anchors: dict[int, _Anchor] = {}
-        self._running: dict[int, _RunningJob] = {}
+        self._running: dict[tuple[int, str], _RunningJob] = {}
+        self._charged: dict[int, set[int]] = {}
         self._loaded = False
 
     # -- persistence --------------------------------------------------------
@@ -290,58 +307,91 @@ class FilamentLedger:
         return True
 
     def _charge_finished_job(self, printer: Printer) -> bool:
-        """Charge a job when it ends (§3.5, G1).
+        """Charge a job when it ends (§3.5, G1, Beta 3 D16).
 
-        While a job runs its id, name and extruded length are remembered.
-        When it stops being in progress - complete, cancelled, or its block
-        gone (LAN clears the job when the printer goes idle) - it is charged
-        once with the last length seen. Only jobs seen running are charged,
-        so a job that finished before setup is never charged (DECISIONS V3).
+        While a job runs its number, name and extruded length are remembered,
+        per source: what LAN shows and what the cloud shows are followed
+        apart, so a fallback from one to the other never reads as the end of
+        a job. When the source stops showing it in progress - complete,
+        cancelled, or its block gone (LAN clears the job when the printer
+        goes idle) - it is charged once with the last length seen.
+
+        - A job number is not needed: every LAN print on a Kobra 4 is ``-1``
+          (D15), and the same file printed twice is two runs, because the
+          first was seen ending before the second started.
+        - Only jobs seen running are charged, so a job that finished before
+          setup (or before a restart) is never charged (DECISIONS V3), and
+          neither is the cloud's last job when the printer comes back from
+          LAN Mode.
+        - A numbered job is charged once whichever source shows it: the
+          stored ``last_job_id`` and the numbers charged since setup are
+          checked, and a run the other source follows under the same number
+          ends with it rather than being charged again.
         """
         pid = printer.printer_id
+        source = printer.source
+        key = (pid, source)
+        job = printer.job
+        job_id = job.job_id if job is not None else None
         if printer.job_in_progress:
-            job_id = printer.job_task_id
-            running = self._running.get(pid)
-            length = printer.job_filament_used
-            if running is None or running.task_id != job_id:
-                running = self._running[pid] = _RunningJob(
-                    job_id, printer.job_name, length
+            running = self._running.get(key)
+            if running is None or not running.same_job(job_id):
+                running = self._running[key] = _RunningJob(
+                    job_id, printer.job_name, None
                 )
+            elif job_id is not None and running.job_id is None:
+                running.job_id = job_id  # the number arrived later (G9)
             if shares := printer.job_paint_shares:
                 running.shares = shares
-            elif length is not None and (
-                running.length is None or length >= running.length
-            ):
-                running.length = length
+            else:
+                running.see(printer.job_filament_used)
             running.name = printer.job_name or running.name
             return False
-        running = self._running.pop(pid, None)
+        running = self._running.pop(key, None)
         if running is None:
             return False
+        self._merge_other_source(pid, running)
         length = running.length
-        if printer.job is not None and printer.job_task_id == running.task_id:
+        if job is not None and running.same_job(job_id):
             final = printer.job_filament_used
             if final is not None and (length is None or final > length):
                 length = final
-        if not length or length <= 0 or running.task_id is None:
+        if not length or length <= 0:
             return False
         return self._charge(
-            printer, running.task_id, running.name, length, running.shares
+            printer, running.job_id, running.name, length, running.shares
         )
+
+    def _merge_other_source(self, pid: int, running: _RunningJob) -> None:
+        """The same numbered job followed by the other source ends with it.
+
+        Its longest length is kept, so a run cut short by a fallback is
+        charged in full, and only once.
+        """
+        if running.job_id is None:
+            return
+        for other_key, other in list(self._running.items()):
+            if other_key[0] == pid and other.job_id == running.job_id:
+                del self._running[other_key]
+                running.see(other.length)
 
     def _charge(
         self,
         printer: Printer,
-        job_id: int,
+        job_id: int | None,
         job_name: str | None,
         length: float,
         shares: dict[int, float] | None = None,
     ) -> bool:
         entry = self._printer(printer.printer_id)
         # 1. Double-charge protection; the id is stored whatever happens next.
-        if entry.get("last_job_id") == job_id:
-            return False
-        entry["last_job_id"] = job_id
+        #    A job without a number was seen running and ending exactly once.
+        if job_id is not None:
+            charged = self._charged.setdefault(printer.printer_id, set())
+            if entry.get("last_job_id") == job_id or job_id in charged:
+                return False
+            charged.add(job_id)
+            entry["last_job_id"] = job_id
         # 2. Which slot fed it: live loaded slot, else the remembered one.
         slot_index = printer.ace_loaded_slot_index(0)
         if slot_index is None or slot_index < 0:
@@ -357,7 +407,7 @@ class FilamentLedger:
         elif slot_index is not None:
             split = {slot_index: 1.0}
         else:
-            _LOGGER.debug("Job %s ended with no known feeding slot", job_id)
+            _LOGGER.debug("A job ended with no known feeding slot")
             return True
         totals = _dict(entry, "totals")
         materials = _dict(totals, "material_totals")
@@ -390,11 +440,7 @@ class FilamentLedger:
             nozzle["nozzle_abrasive_g"] = round(abrasive, 2)
             job_grams += grams
             _LOGGER.debug(
-                "Charged job %s: %.1f g of %s to slot %s",
-                job_id,
-                grams,
-                material,
-                index,
+                "Charged a job: %.1f g of %s to slot %s", grams, material, index
             )
         job_cost = round(job_cost_sum, 2) if priced else None
         totals["last_job_grams"] = round(job_grams, 1)
@@ -558,9 +604,9 @@ class FilamentLedger:
     def _extrapolate(self, printer: Printer, material: str | None) -> float | None:
         """Two-observation rate method; never total ÷ progress (B18)."""
         pid = printer.printer_id
-        job_id = printer.job_task_id
-        length = printer.job_filament_used
         job = printer.job
+        job_id = job.job_id if job is not None else None
+        length = printer.job_filament_used
         progress = float(job.progress) if job and job.progress is not None else None
         anchor = self._anchors.get(pid)
         if anchor is None or anchor.job_id != job_id:
@@ -583,9 +629,11 @@ class FilamentLedger:
 
     def forecast(self, printer: Printer) -> Forecast | None:
         """The forecast for the running job, or ``None`` (§3.6)."""
-        if not printer.job_in_progress:
-            return None
         pid = printer.printer_id
+        if not printer.job_in_progress:
+            # The next job starts afresh, even under the same number (D15).
+            self._anchors.pop(pid, None)
+            return None
         slot_index = printer.ace_loaded_slot_index(0)
         if slot_index is None or slot_index < 0:
             slot_index = self.feeding_slot(pid)

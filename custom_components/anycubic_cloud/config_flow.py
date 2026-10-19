@@ -79,6 +79,7 @@ from .const import (
 )
 from .credentials import async_get_cloud_secrets
 from .identity import entry_unique_id_for_lan, is_cloud_entry, lan_printer_id
+from .redact import redact_text
 
 if TYPE_CHECKING:
     from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
@@ -516,7 +517,7 @@ class AnycubicConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             await client.check()
         except AnycubicCloudError as err:
-            _LOGGER.debug("Reconfigure sign-in failed: %s", err)
+            _LOGGER.debug("Reconfigure sign-in failed: %s", redact_text(str(err)))
         self._reconfigure_client = client
         return client
 
@@ -647,7 +648,10 @@ def _sign_in_error(err: Exception) -> str:
     if isinstance(err, UnexpectedResponseError):
         return "cannot_read_response"
     if not isinstance(err, AnycubicCloudError):
-        _LOGGER.error("Unexpected error signing in to the Anycubic cloud: %r", err)
+        _LOGGER.error(
+            "Unexpected error signing in to the Anycubic cloud: %s",
+            redact_text(repr(err)),
+        )
     return "cannot_connect"
 
 

@@ -84,6 +84,7 @@ from .const import (
     STORE_VERSION,
     TOKEN_EXPIRY_WARNING_DAYS,
 )
+from .redact import redact_text
 
 if TYPE_CHECKING:
     from anycubic_cloud_client import Account, CloudSecrets
@@ -361,7 +362,10 @@ class CloudAccount:
                 translation_key="cloud_unavailable",
                 translation_placeholders={"error": str(err)},
             ) from err
-        _LOGGER.debug("Anycubic cloud not answering at setup (%s); retrying", err)
+        _LOGGER.debug(
+            "Anycubic cloud not answering at setup (%s); retrying",
+            redact_text(str(err)),
+        )
         await asyncio.sleep(CLOUD_SETUP_RETRY_DELAY)
         return attempt
 
@@ -472,7 +476,9 @@ class CloudAccount:
         if not self._outage_logged:
             # Once per outage (§5.5); the coordinator adds its own standard
             # line (E2-Q7 in docs/QUESTIONS.md).
-            _LOGGER.warning("The Anycubic cloud is not answering: %s", err)
+            _LOGGER.warning(
+                "The Anycubic cloud is not answering: %s", redact_text(str(err))
+            )
             self._outage_logged = True
         self._error = UpdateFailed(
             translation_domain=DOMAIN,
@@ -777,7 +783,7 @@ class CloudMqtt:
             try:
                 await client.ace_get_info(printer.printer_id)
             except AnycubicCloudError as err:
-                _LOGGER.debug("ACE box list request failed: %s", err)
+                _LOGGER.debug("ACE box list request failed: %s", redact_text(str(err)))
 
     async def _async_capability_query(self, _now: Any = None) -> None:
         self._capability_timer = None
@@ -793,7 +799,7 @@ class CloudMqtt:
             await client.query_peripherals(printer.printer_id)
             await client.query_light_status(printer.printer_id)
         except AnycubicCloudError as err:
-            _LOGGER.debug("Capability query failed: %s", err)
+            _LOGGER.debug("Capability query failed: %s", redact_text(str(err)))
 
     async def async_capability_poll(self) -> None:
         """After a poll, while the link is up: ask online printers still

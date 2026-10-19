@@ -47,6 +47,7 @@ from .const import (
 )
 from .filament import drying_profile
 from .model import WORK_BUSY
+from .redact import redact_text
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -602,7 +603,7 @@ async def _async_local_list_retry(
         await asyncio.sleep(FILE_LIST_RETRY_SETTLE)
         await async_request_printer_files(coordinator, FileSource.LOCAL)
     except HomeAssistantError as err:
-        _LOGGER.debug("Local file list retry failed: %s", err)
+        _LOGGER.debug("Local file list retry failed: %s", redact_text(str(err)))
     finally:
         coordinator.local_list_retry_pending = False
 
@@ -636,7 +637,7 @@ async def _async_relist(coordinator: AnycubicCoordinator, source: FileSource) ->
         try:
             await async_request_printer_files(coordinator, source, refresh=False)
         except HomeAssistantError as err:
-            _LOGGER.debug("File list after delete failed: %s", err)
+            _LOGGER.debug("File list after delete failed: %s", redact_text(str(err)))
 
 
 async def async_delete_cloud_file(
@@ -669,7 +670,9 @@ async def async_delete_cloud_file(
         try:
             await account.async_fetch_cloud_files()
         except AnycubicCloudError as err:
-            _LOGGER.debug("Cloud file list after delete failed: %s", err)
+            _LOGGER.debug(
+                "Cloud file list after delete failed: %s", redact_text(str(err))
+            )
 
     coordinator.config_entry.async_create_background_task(
         coordinator.hass, _relist(), "anycubic_cloud cloud file list after delete"

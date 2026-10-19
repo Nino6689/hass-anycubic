@@ -29,6 +29,7 @@ from anycubic_lan import (
 
 from .const import ACE_DRY_ACTION
 from .identity import unique_id_mac
+from .redact import redact_payload
 
 if TYPE_CHECKING:
     import aiohttp
@@ -44,8 +45,6 @@ _TOPIC_DEVICE = re.compile(r"(/printer/(?:public/)?[^/]+/)[^/]+")
 TEMPERATURE_NOZZLE = 0
 TEMPERATURE_BED = 1
 TEMPERATURE_BOTH = 2
-# The signed upload URL authorises uploads to the printer (anycubic-lan HW4).
-_SIGNED_UPLOAD = re.compile(rb"[^\s\"']*gcode_upload\?s=[^\s\"']*")
 
 type ReportCallback = Callable[[Report], None]
 
@@ -63,11 +62,6 @@ class ExtraKind(StrEnum):
 def redact_topic(topic: str) -> str:
     """Hide the printer's device id in a topic."""
     return _TOPIC_DEVICE.sub(r"\1**REDACTED**", topic)
-
-
-def redact_payload(payload: bytes) -> bytes:
-    """Hide the signed upload URL in a raw message before it is logged."""
-    return _SIGNED_UPLOAD.sub(b"**REDACTED**", payload)
 
 
 class IntegrationLanClient(AnycubicLanClient):
@@ -97,6 +91,8 @@ class IntegrationLanClient(AnycubicLanClient):
 
     def _handle_message(self, topic: str, payload: bytes) -> None:
         if self._debug_messages:
+            # The rules of the diagnostics (D14): identifiers, credentials,
+            # file names and signed URLs never reach the log.
             _LOGGER.debug(
                 "LAN message on %s: %s",
                 redact_topic(topic),

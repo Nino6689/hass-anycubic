@@ -24,6 +24,7 @@ from anycubic_lan import (
     AnycubicLanError,
     LanModeDisabledError,
     PrinterState,
+    PrinterUnreachableError,
     Report,
     ReportKind,
     UnsupportedPrinterError,
@@ -65,8 +66,10 @@ from .model import (
     Printer,
     PrinterIdentity,
     material_type_from_device_type,
+    note_printer_report,
     print_speed_pct,
 )
+from .redact import redact_text
 
 if TYPE_CHECKING:
     from anycubic_cloud_client import (
@@ -179,7 +182,8 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
             hass,
             _LOGGER,
             config_entry=entry,
-            name=f"{DOMAIN} {host or entry.title}",
+            # Logged by Home Assistant: no address or e-mail in it (D14).
+            name=DOMAIN,
             update_interval=UPDATE_INTERVAL,
         )
         self.runtime = runtime
@@ -206,6 +210,9 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
         self.printer_device_id: str | None = None
         # The local file-list retry runs once at a time (PROTOCOL C §6.11).
         self.local_list_retry_pending = False
+        # Whether the printer's LAN Mode answers, from the outcome of this
+        # coordinator's own connection attempts (D18); None until one ends.
+        self.lan_mode_active: bool | None = None
 
     @classmethod
     def from_cloud(
@@ -297,33 +304,31 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
             # reaches another printer, whose reports must not be taken for
             # this one. The link stays, so a later address change recovers.
             _LOGGER.warning(
-                "LAN Mode address %s is not printer %s; using the cloud",
-                self.link.host,
+                "The LAN Mode address is not printer %s; using the cloud",
                 self.printer.printer_id,
             )
             return
         except LanModeDisabledError as err:
             if self._printer is not None:
-                _LOGGER.debug("LAN Mode is off at the printer: %s", err)
+                _LOGGER.debug("LAN Mode is off at the printer: %s", self._safe(err))
                 return
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN, translation_key="lan_mode_disabled"
             ) from err
         except UnsupportedPrinterError as err:
             if self._printer is not None:
-                _LOGGER.debug("LAN printer unsupported: %s", err)
+                _LOGGER.debug("LAN printer unsupported: %s", self._safe(err))
                 return
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN, translation_key="lan_unsupported_printer"
             ) from err
         except (AnycubicLanError, TimeoutError) as err:
             if self._printer is not None:
-                _LOGGER.debug("LAN printer not reachable: %s", err)
+                _LOGGER.debug("LAN printer not reachable: %s", self._safe(err))
                 return
             raise ConfigEntryNotReady(
                 translation_domain=DOMAIN,
                 translation_key="lan_unreachable",
-                translation_placeholders={"host": self.link.host},
             ) from err
         if self._printer is None:
             printer = self._printer = Printer(identity=self._build_identity(info))
@@ -334,16 +339,32 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
         if self.link.client is not None:
             self._handle_state(self.link.client.state)
 
+    def _safe(self, err: BaseException) -> str:
+        """An error's text for a log line, without the printer's address (D14)."""
+        host = self.link.host if self.link is not None else None
+        return redact_text(str(err), *([host] if host else []))
+
     def _use_lan(self) -> None:
         printer = self.printer
         printer.source = "lan"
         printer.info_seen = True
 
     async def _async_connect_and_wait(self) -> PrinterConnectionInfo:
-        """Handshake, connect, then wait up to 20 s for an ``info`` report."""
+        """Handshake, connect, then wait up to 20 s for an ``info`` report.
+
+        Its outcome is what the LAN Mode sensor reads (D18): no other
+        connection is ever opened to find out, as the printer accepts one.
+        """
         assert self.link is not None
         self._info_seen.clear()
-        info = await self.link.async_connect(self._expected_mac())
+        try:
+            info = await self.link.async_connect(self._expected_mac())
+        except (LanModeDisabledError, PrinterUnreachableError):
+            # Refused (a Kobra 4 in cloud mode closes its ports) or switched
+            # to cloud mode (an S1 answers with ``ctrlType: cloud``).
+            self._set_lan_mode_active(False)
+            raise
+        self._set_lan_mode_active(True)
         try:
             async with asyncio.timeout(LAN_INFO_TIMEOUT):
                 await self._info_seen.wait()
@@ -351,6 +372,14 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
             await self.link.async_disconnect()
             raise
         return info
+
+    def _set_lan_mode_active(self, active: bool) -> None:
+        if self.lan_mode_active is active:
+            return
+        self.lan_mode_active = active
+        if self._printer is not None:
+            # Also while refreshes keep failing, when listeners are not told.
+            self.async_update_listeners()
 
     def _expected_mac(self) -> str | None:
         """The MAC the cloud reports for this printer, if it was built from it."""
@@ -375,8 +404,7 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
             printer_id = int(printer_ids[0])
             if len(printer_ids) > 1:
                 _LOGGER.warning(
-                    "Entry %s lists %d printers; LAN Mode reaches only printer %s",
-                    entry.title,
+                    "The entry lists %d printers; LAN Mode reaches only printer %s",
                     len(printer_ids),
                     printer_id,
                 )
@@ -425,7 +453,6 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
                     raise UpdateFailed(
                         translation_domain=DOMAIN,
                         translation_key="lan_connection_lost",
-                        translation_placeholders={"host": link.host},
                     ) from err
                 return printer
             # Not connected: the whole handshake again (G2), then wait for info.
@@ -436,9 +463,10 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
                     raise UpdateFailed(
                         translation_domain=DOMAIN,
                         translation_key="lan_connection_lost",
-                        translation_placeholders={"host": link.host},
                     ) from err
-                _LOGGER.debug("LAN not reachable, reading the cloud: %s", err)
+                _LOGGER.debug(
+                    "LAN not reachable, reading the cloud: %s", self._safe(err)
+                )
             else:
                 self._use_lan()
                 return printer
@@ -522,6 +550,8 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
 
     def _handle_report(self, report: Report) -> None:
         """Facts anycubic-lan does not merge into its state."""
+        if self._printer is not None:
+            note_printer_report(self._printer, report)
         envelope = report.envelope
         if envelope.kind == ReportKind.INFO:
             self._info_seen.set()

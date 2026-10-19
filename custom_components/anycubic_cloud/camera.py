@@ -49,6 +49,7 @@ from homeassistant.helpers.network import NoURLAvailableError, get_url
 from .const import CAMERA_PARTIAL_CONTENT_MODELS, DOMAIN
 from .entity import AnycubicEntity, AnycubicEntityDescription, async_add_when_ready
 from .placeholder import placeholder_png
+from .redact import redact_text
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -140,7 +141,10 @@ class PrinterCamera(AnycubicEntity, Camera):
             if link is not None:
                 await link.async_start_camera()
         except AnycubicLanError as err:
-            _LOGGER.debug("Could not ask the printer to start its camera: %s", err)
+            _LOGGER.debug(
+                "Could not ask the printer to start its camera: %s",
+                redact_text(str(err)),
+            )
         if not self._needs_relay:
             return self.printer_stream_url
         try:

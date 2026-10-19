@@ -1,11 +1,13 @@
-"""Diagnostics with every secret redacted (COMPAT §6, anycubic-lan HW4).
+"""Diagnostics with every secret and personal value redacted (COMPAT §6, D9).
 
-Redacted: the pasted token and cloud session fields, the account's e-mail,
-mobile and other personal fields (the entry title is the e-mail), LAN broker
-credentials, the discovery token, serial numbers, MACs and printer keys,
-signed URLs and camera credentials - by key and, as a second net, any string
-that carries a URL signature, wherever it appears. Anycubic's app
-credentials are never collected at all.
+The rules are :mod:`.redact`'s, shared with the log lines (D14): credentials
+and personal fields of the account, printer identifiers, signed URLs, camera
+credentials and every print's file name and image are hidden by key; any key
+containing ``token``, ``secret`` or ``password`` and any JWT-shaped string
+are hidden wherever they appear. Each printer id reads as the same
+placeholder in every block, and the job history keeps its figures under
+numbered keys instead of file names. Anycubic's app credentials are never
+collected at all.
 """
 
 from __future__ import annotations
@@ -15,77 +17,13 @@ import dataclasses
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.diagnostics import REDACTED, async_redact_data
+from .const import CONF_PRINTER_IDS
+from .redact import REDACTED, redact_data
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from .coordinator import AnycubicConfigEntry, AnycubicCoordinator, AnycubicRuntime
-
-TO_REDACT = {
-    # cloud entry data and session store (COMPAT §1, §6)
-    "title",
-    "unique_id",
-    "user_token",
-    "user_device_id",
-    "auth_token",
-    "auth_access_token",
-    "app_secret",
-    "app_client_id",
-    "app_id",
-    "appid",
-    # the account (PROTOCOL A §2.6.1)
-    "user_email",
-    "email",
-    "mobile",
-    "user_id",
-    "user_nickname",
-    "casdoor_user",
-    "casdoor_user_id",
-    "message_key",
-    "last_login_ip",
-    "ip_country",
-    "ip_province",
-    "ip_city",
-    "birthday",
-    # LAN handshake and discovery document
-    "token",
-    "username",
-    "password",
-    "cn",
-    "usn",
-    "serial",
-    "sn",
-    "description",  # the cloud record's printer serial (PROTOCOL B §2.3.2)
-    "fileUploadurl",
-    "fileuploadurl",
-    "file_upload_url",
-    # printer identifiers
-    "mac",
-    "machine_mac",
-    "connection_mac",
-    "device_id",
-    "deviceId",
-    "device_unionid",
-    "key",
-    "printer_key",
-    "ip",
-    # signed URLs and camera credentials
-    "url",
-    "thumbnail",
-    "preSignUrl",
-    "img",
-    "image_url",
-    "rtc_token",
-    "channel",
-    "client_uid",
-    "encryption_key",
-    "encryption_kdf_salt",
-    "event_id",
-}
-
-# Any string carrying one of these is a signed URL or credential.
-_SIGNED_MARKERS = ("gcode_upload?s=", "X-Amz-", "Signature=", "signature=")
 
 
 def _plain(value: Any) -> Any:
@@ -102,17 +40,6 @@ def _plain(value: Any) -> Any:
         return [_plain(item) for item in value]
     if isinstance(value, Enum):
         return value.value
-    return value
-
-
-def _scrub(value: Any) -> Any:
-    """Replace any string that carries a signed URL."""
-    if isinstance(value, str):
-        return REDACTED if any(m in value for m in _SIGNED_MARKERS) else value
-    if isinstance(value, dict):
-        return {key: _scrub(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_scrub(item) for item in value]
     return value
 
 
@@ -203,6 +130,30 @@ def _account(runtime: AnycubicRuntime) -> dict[str, Any] | None:
     }
 
 
+def _ledger(data: Mapping[str, Any]) -> dict[str, Any]:
+    """The ledger with its job history under numbered keys, not file names."""
+    ledger = dict(data)
+    jobs = ledger.get("jobs")
+    if isinstance(jobs, Mapping):
+        ledger["jobs"] = {
+            f"job_{number}": samples
+            for number, samples in enumerate(jobs.values(), start=1)
+        }
+    return ledger
+
+
+def _printer_ids(entry: AnycubicConfigEntry, runtime: AnycubicRuntime) -> list[Any]:
+    ids: list[Any] = [c.printer_id for c in runtime.coordinators.values()]
+    configured = entry.data.get(CONF_PRINTER_IDS)
+    if isinstance(configured, list):
+        ids.extend(configured)
+    for block in (runtime.ledger.data, runtime.capability_data):
+        printers = block.get("printers")
+        if isinstance(printers, Mapping):
+            ids.extend(printers)
+    return [i for i in ids if str(i).strip()]
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: AnycubicConfigEntry
 ) -> dict[str, Any]:
@@ -210,7 +161,7 @@ async def async_get_config_entry_diagnostics(
     runtime = entry.runtime_data
     result: dict[str, Any] = {
         "entry": {
-            "title": entry.title,
+            "title": REDACTED,  # the account's e-mail
             "version": entry.version,
             "minor_version": entry.minor_version,
             "data": dict(entry.data),
@@ -218,7 +169,7 @@ async def async_get_config_entry_diagnostics(
         },
         "cloud": _account(runtime),
         "printers": [_printer(c) for c in runtime.coordinators.values()],
-        "ledger": runtime.ledger.data,
+        "ledger": _ledger(runtime.ledger.data),
         "capabilities": runtime.capability_data,
     }
-    return _scrub(async_redact_data(result, TO_REDACT))  # type: ignore[no-any-return]
+    return redact_data(result, _printer_ids(entry, runtime))  # type: ignore[no-any-return]

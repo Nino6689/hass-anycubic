@@ -12,13 +12,15 @@ from typing import TYPE_CHECKING
 
 from anycubic_cloud_client import (
     AxisMoveUpdate,
+    CurrentFilamentUpdate,
+    FilamentStep,
     FileListUpdate,
     FirmwareReport,
     OnlineUpdate,
     PrintUpdate,
     WorkStatusUpdate,
 )
-from anycubic_lan import Job, PrintStatus
+from anycubic_lan import FeedSource, FilamentFeed, Job, PrintStatus
 
 from .model import (
     DEVICE_OFFLINE,
@@ -29,6 +31,7 @@ from .model import (
     ace_box_from_cloud,
     lan_job_from_cloud,
     merge_cloud_job,
+    note_printer_report,
 )
 
 if TYPE_CHECKING:
@@ -84,7 +87,15 @@ def apply_detail(printer: Printer, detail: PrinterDetail) -> None:
     changes: dict[str, object] = {"temperatures": temperatures}
     if detail.raw.get("multi_color_box") is not None:
         cloud.ace_units = detail.ace_units
-        changes["ace_boxes"] = tuple(ace_box_from_cloud(u) for u in detail.ace_units)
+        # The record's loaded slot goes stale during a print: once the
+        # printer has reported its own, the refresh keeps it (D12).
+        reported = printer.reported_loaded_slots
+        changes["ace_boxes"] = tuple(
+            replace(box, loaded_slot_raw=reported[box.id])
+            if box.id is not None and box.id in reported
+            else box
+            for box in (ace_box_from_cloud(u) for u in detail.ace_units)
+        )
     if "external_shelves" in detail.raw:
         holder = detail.raw.get("external_shelves")
         changes["external_filament_box"] = (
@@ -145,6 +156,7 @@ def apply_message(printer: Printer, message: CloudMessage) -> MessageOutcome:
     else:
         cloud.record_code(message.kind, message.code, message.msg)
     if message.report is not None:
+        note_printer_report(printer, message.report)
         printer.state = printer.state.apply(message.report)
     update = message.update
     if isinstance(update, OnlineUpdate):
@@ -158,6 +170,11 @@ def apply_message(printer: Printer, message: CloudMessage) -> MessageOutcome:
     elif isinstance(update, FileListUpdate):
         if update.records is not None:  # no list in the reply: keep the last
             cloud.file_lists[update.source.value] = update.records
+    elif isinstance(update, CurrentFilamentUpdate):
+        if update.slot is not None:  # "" or malformed: keep the last slot (D13)
+            printer.note_feed(
+                FilamentFeed(FeedSource.CURRENT_FILAMENT, update.slot, box=update.box)
+            )
     elif isinstance(update, FirmwareReport):
         progress = (
             cloud.ace_progress(update.box_index) if update.is_ace else cloud.firmware
@@ -210,10 +227,18 @@ def _apply_print(printer: Printer, cloud: CloudData, update: PrintUpdate) -> Non
         state = replace(state, speed_mode_raw=update.print_speed_mode)
     if update.print_speed_pct is not None:
         printer.print_speed_pct = round(update.print_speed_pct)
-    if update.channel_no is not None:
-        # The filament channel now feeding, whatever the task (Beta 2, D4).
-        state = state.with_channel(update.channel_no)
     printer.state = state
+    if (channel := update.feeding_channel) is not None:
+        # The filament now feeding, whatever the task (D4, D10).
+        printer.note_feed(_feed(update, channel))
+
+
+def _feed(update: PrintUpdate, channel: int) -> FilamentFeed:
+    if update.filament_step is FilamentStep.ACE_FEEDING:
+        return FilamentFeed(FeedSource.ACE, channel - 1, unit_no=update.unit_no)
+    if update.filament_step is FilamentStep.PRINTER_FEEDING:
+        return FilamentFeed(FeedSource.PRINTER_FEEDER, channel - 1)
+    return FilamentFeed(FeedSource.CHANNEL, channel - 1)
 
 
 def _float(value: float | None) -> float | None:

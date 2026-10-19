@@ -39,6 +39,9 @@ class AnycubicBinarySensorDescription(
     value_fn: Callable[[AnycubicCoordinator], bool | None]
     attrs_fn: Callable[[AnycubicCoordinator], dict[str, Any]] | None = None
     unavailable_without_value: bool = False
+    available_with_value: bool = False
+    """Available whenever there is a value, even while the printer's
+    readings are not (the LAN Mode sensor, D18)."""
 
 
 def _external_loaded(c: AnycubicCoordinator) -> bool | None:
@@ -129,6 +132,17 @@ BINARY_SENSORS: tuple[AnycubicBinarySensorDescription, ...] = (
         },
     ),
     AnycubicBinarySensorDescription(
+        # Whether the printer's LAN port answers (D18), from the outcome of
+        # the integration's own LAN connection attempts: never a second
+        # connection, as the printer accepts only one.
+        key="lan_mode_active",
+        lan_only=True,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        available_with_value=True,
+        unavailable_without_value=True,
+        value_fn=lambda c: c.lan_mode_active,
+    ),
+    AnycubicBinarySensorDescription(
         key="mqtt_connection_active",
         cloud_only=True,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -156,6 +170,9 @@ class AnycubicBinarySensor(AnycubicEntity, BinarySensorEntity):
 
     @property
     def available(self) -> bool:
+        description = self.entity_description
+        if description.available_with_value:
+            return description.value_fn(self.coordinator) is not None
         if not super().available:
             return False
         if self.entity_description.unavailable_without_value:

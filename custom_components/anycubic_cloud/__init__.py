@@ -37,6 +37,7 @@ from .credentials import async_get_cloud_secrets
 from .entity import async_register_printer_device
 from .identity import device_user_id, is_cloud_entry
 from .panel import async_register_frontend, async_unregister_frontend
+from .redact import redact_text
 from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -146,7 +147,9 @@ async def _async_setup_cloud_entry(
         except ConfigEntryNotReady as err:
             if host is None:
                 raise
-            _LOGGER.debug("Cloud not available at setup, using LAN: %s", err)
+            _LOGGER.debug(
+                "Cloud not available at setup, using LAN: %s", redact_text(str(err))
+            )
         else:
             runtime.cloud = account
             for index, printer_id in enumerate(printer_ids):

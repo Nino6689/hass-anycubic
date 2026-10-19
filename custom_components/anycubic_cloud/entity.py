@@ -60,6 +60,8 @@ class AnycubicEntityDescription(EntityDescription):
     cloud_only: bool = False
     """Created only on entries with an Anycubic account (DECISIONS round 2,
     Q8: never on LAN-only entries)."""
+    lan_only: bool = False
+    """Created only for printers with a LAN Mode address (Beta 3, D18)."""
 
 
 def device_info(coordinator: AnycubicCoordinator, device: Device) -> DeviceInfo:
@@ -142,6 +144,8 @@ def description_ready(
     if not coordinator.has_printer:
         return False
     if description.cloud_only and coordinator.runtime.cloud is None:
+        return None
+    if description.lan_only and coordinator.link is None:
         return None
     printer = coordinator.printer
     kind = description.kind

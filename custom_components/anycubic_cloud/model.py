@@ -20,20 +20,26 @@ from anycubic_lan import (
     AceBox,
     AceDrying,
     AceSlot,
+    ExternalFilamentBoxReport,
+    FeedSource,
+    FilamentFeed,
     Job,
+    MultiColorBoxReport,
     PrinterState,
+    PrintReport,
     PrintStatus,
+    Report,
     ReportCode,
 )
 
 from .const import (
     ACE_MODEL_DEFAULT,
     ACE_MODEL_NAMES,
-    ACE_SLOTS_PER_BOX,
     CAMERA_PORT,
     DEFAULT_SPEED_MODES,
     FUNCTION_ID_MULTI_COLOR_BOX,
     FUNCTION_NAMES,
+    MODEL_ID_KOBRA_X,
 )
 from .error_codes import describe_error
 from .filament import rgb_to_hex
@@ -122,27 +128,48 @@ def ace_model_name(model_id: int | None) -> str:
     return ACE_MODEL_NAMES.get(model_id, ACE_MODEL_DEFAULT)
 
 
-def ace_slot_for_channel(
-    boxes: tuple[AceBox, ...], channel_no: int
+def box_and_slot_for_feed(
+    feed: FilamentFeed,
+    boxes: tuple[AceBox, ...],
+    *,
+    model_id: int,
+    ace_fitted: bool,
 ) -> tuple[int, int] | None:
-    """Which ACE box (position in ``boxes``) and 0-based slot a ``channel_no``
-    names (Beta 2, D4); ``None`` when it names none.
+    """THE BOX MAPPING: which box (its position in ``boxes``) and 0-based slot
+    a printer's feed report names; ``None`` leaves the loaded slot unchanged.
 
-    ASSUMPTION, inferred and not yet confirmed against a printer's screen:
-    ``channel_no`` counts from 1 across every box in order, so with two
-    4-slot boxes channel 5 is the second box's first slot. Observed values
-    were 3 and 4 on a Kobra X with one 4-slot box. This is the only place
-    the numbering is decided.
+    This is the only place the numbering is decided (Beta 3, D10 and D13,
+    correcting Beta 2's D4). ``channel_no`` counts from 1 *within its own
+    box*, so the feed's slot is ``channel_no - 1``; which box it is:
+
+    - With one box, that box, whatever the report (D10, D13).
+    - On a Kobra X with an ACE (``ace_fitted``: more than one box, or an ACE
+      has reported feeding), nothing: which entry in the list is the
+      printer's own feeder, and the base of ``unit_no``, are not confirmed,
+      and a wrong slot is worse than a stale one (D10).
+    - Otherwise every box is an ACE: an ACE feed's ``unit_no`` U selects the
+      U-th ACE, and ``current_filament`` names its box from 0 (D13). The
+      Kobra X's untagged channel report (D4) and its own feeder name no
+      box, so with several boxes they say nothing.
     """
-    remaining = channel_no - 1
-    if remaining < 0:
+    if not boxes or feed.slot < 0:
         return None
-    for position, box in enumerate(boxes):
-        size = len(box.slots) or ACE_SLOTS_PER_BOX
-        if remaining < size:
-            return position, remaining
-        remaining -= size
-    return None
+    if model_id == MODEL_ID_KOBRA_X and (ace_fitted or len(boxes) > 1):
+        return None
+    if len(boxes) == 1:
+        position: int | None = 0
+    elif feed.source is FeedSource.ACE:
+        position = feed.unit_no - 1 if feed.unit_no is not None else None
+    elif feed.source is FeedSource.CURRENT_FILAMENT:
+        position = feed.box
+    else:
+        position = None
+    if position is None or not 0 <= position < len(boxes):
+        return None
+    slots = boxes[position].slots
+    if slots and feed.slot >= len(slots):
+        return None
+    return position, feed.slot
 
 
 def print_speed_pct(action: str | None, state: str | None, data: object) -> int | None:
@@ -356,6 +383,16 @@ class Printer:
     """Which connection the readings come from now (BEHAVIOUR §5.4)."""
     cloud: CloudData | None = None
     """Present on printers of an entry with an Anycubic account."""
+    fed_slots: dict[int, int | None] = field(default_factory=dict)
+    """Per box (its id, else its position): the slot the printer's last feed
+    report named, ``None`` for a box that feeds nothing now (D10, D13).
+    Wins over the box's own ``loaded_slot`` until that box reports a new
+    one; a cloud refresh never changes it (D12)."""
+    reported_loaded_slots: dict[int, int] = field(default_factory=dict)
+    """Per box id: the ``loaded_slot`` the printer itself last reported in a
+    box report (LAN or cloud MQTT), kept over a cloud refresh (D12)."""
+    ace_feed_seen: bool = False
+    """An ACE has reported feeding since setup: the printer has an ACE."""
 
     # -- identity ----------------------------------------------------------
 
@@ -887,28 +924,65 @@ class Printer:
     def ace_loaded_slot_index(self, index: int) -> int | None:
         """0-based slot feeding the printer.
 
-        A ``channel_no`` reported after the boxes last changed their own
-        ``loaded_slot`` wins (Beta 2, D4). First ACE only: when
-        ``loaded_slot`` reads -1, the slot whose own status is 5 is taken
-        instead (B15). The second ACE has no fallback.
+        The slot the printer's last feed report named wins (D10, D13; see
+        :func:`box_and_slot_for_feed`) until the box reports a new one of
+        its own. First ACE only: when ``loaded_slot`` reads -1, the slot
+        whose own status is 5 is taken instead (B15). The second ACE has no
+        fallback.
         """
         box = self.ace_box(index)
         if box is None:
             return None
-        channel = self.state.active_channel
-        hit = (
-            ace_slot_for_channel(self.state.ace_boxes, channel)
-            if channel is not None
-            else None
-        )
-        if hit is not None:
-            # A newer channel report than the boxes' own (Beta 2, D4).
-            position, slot = hit
-            return slot if self.state.ace_boxes[position] is box else None
+        key = self._box_key(box)
+        if key is not None and key in self.fed_slots:
+            return self.fed_slots[key]
         if index == 0:
             return box.loaded_slot
         raw = box.loaded_slot_raw
         return raw if raw is not None and raw >= 0 else None
+
+    def _box_key(self, box: AceBox) -> int | None:
+        if box.id is not None:
+            return box.id
+        for position, known in enumerate(self.state.ace_boxes):
+            if known is box:
+                return position
+        return None  # pragma: no cover - only called with a known box
+
+    def note_feed(self, feed: FilamentFeed) -> None:
+        """The printer said which filament now feeds it (D4, D10, D13)."""
+        if feed.source is FeedSource.ACE:
+            self.ace_feed_seen = True
+        boxes = self.state.ace_boxes
+        hit = box_and_slot_for_feed(
+            feed,
+            boxes,
+            model_id=self.identity.model_id,
+            ace_fitted=self.ace_feed_seen,
+        )
+        if hit is None:
+            return  # unchanged: a wrong slot is worse than a stale one
+        position, slot = hit
+        self.fed_slots = {
+            key: (slot if index == position else None)
+            for index, known in enumerate(boxes)
+            if (key := self._box_key(known)) is not None
+        }
+
+    def note_box_report(self, boxes: tuple[AceBox, ...]) -> None:
+        """A box report from the printer itself (LAN or cloud MQTT).
+
+        A box whose ``loaded_slot`` differs from the one it last reported
+        speaks for itself again; a repeat of a stale value does not (the
+        Kobra X stops updating it during a print, D4).
+        """
+        for box in boxes:
+            if box.id is None or box.loaded_slot_raw is None:
+                continue
+            previous = self.reported_loaded_slots.get(box.id)
+            self.reported_loaded_slots[box.id] = box.loaded_slot_raw
+            if previous is not None and previous != box.loaded_slot_raw:
+                self.fed_slots.pop(box.id, None)
 
     def ace_slot(self, index: int, slot_number: int) -> AceSlot | None:
         """Slot ``slot_number`` (1-based) of ACE ``index``."""
@@ -990,6 +1064,11 @@ class Printer:
         unit = cloud.ace_unit(index) if cloud is not None else None
         feed_status: Any = box.feed_status
         humidity: Any = 0
+        if unit is not None and unit.humidity is not None:
+            humidity = unit.humidity
+        if box.drying is not None and box.drying.humidity is not None:
+            # The ACE 2 Pro's own drying report carries it (D11).
+            humidity = box.drying.humidity
         if unit is not None:
             feed = unit.feed_status
             feed_status = {
@@ -998,7 +1077,6 @@ class Printer:
                 "current_status": feed.current_status,
                 "slot": feed.slot_index + 1 if feed.slot_index >= 0 else None,
             }
-            humidity = unit.humidity if unit.humidity is not None else 0
         return {
             "box_id": box.id,
             "model_id": box.model_id,
@@ -1024,6 +1102,23 @@ class Printer:
             if not self.slot_is_empty(slot) and slot.material:
                 return slot.material
         return None
+
+
+def note_printer_report(printer: Printer, report: Report) -> None:
+    """What a printer's own report says about the loaded slot (D10-D13).
+
+    LAN reports and the LAN-shaped bodies of the cloud MQTT come here; a
+    cloud refresh never does (D12).
+    """
+    if isinstance(report, PrintReport | ExternalFilamentBoxReport):
+        if report.feed is not None:
+            printer.note_feed(report.feed)
+    elif (
+        isinstance(report, MultiColorBoxReport)
+        and report.boxes
+        and not (report.envelope.is_error or report.envelope.is_failed)
+    ):
+        printer.note_box_report(report.boxes)
 
 
 def slot_attributes(

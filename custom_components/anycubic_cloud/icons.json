@@ -188,6 +188,12 @@
       },
       "mqtt_connection_active": {
         "default": "mdi:transit-connection-variant"
+      },
+      "lan_mode_active": {
+        "default": "mdi:lan-connect",
+        "state": {
+          "off": "mdi:lan-disconnect"
+        }
       }
     },
     "button": {

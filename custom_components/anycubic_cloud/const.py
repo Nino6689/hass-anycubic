@@ -117,8 +117,6 @@ DEFAULT_SPEED_MODES: Final[tuple[tuple[int, str], ...]] = (
 )
 # The ACE order and reply that start or stop drying (Beta 2, D2).
 ACE_DRY_ACTION: Final = "setDry"
-# Slots in one ACE, when a box has not listed its slots.
-ACE_SLOTS_PER_BOX: Final = 4
 
 # Kobra X answers its camera stream with HTTP 206 (BEHAVIOUR §2.18), and so
 # does the Kobra 4 (Beta 2, D7).

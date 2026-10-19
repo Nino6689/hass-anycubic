@@ -1500,6 +1500,7 @@ class TestLanJobsAreCharged:
 
         # Printing over LAN: slot 2 feeds the job.
         with (
+            patch.object(type(c), "lan_is_connected", PropertyMock(return_value=True)),
             patch.object(type(printer), "latest_project", PropertyMock(return_value=self._running(seen_job_id))),
             patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
             patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=1)),
@@ -1556,3 +1557,208 @@ class TestLanJobsAreCharged:
         c = await self._watch_then_finish(hass, mock_entry, mock_api, seen_job_id=119231778)
 
         assert "Spectacular Wolt (1)_plate(01)_PLA_0.2_45s" in c._filament.get("jobs", {})
+
+
+class TestKobra4LanJobsHaveNoId:
+    """#45: a Kobra 4 names every LAN print -1, sometimes as text. Charging by
+    id took the first LAN print and refused every one after it, and the -1 it
+    left behind made the cloud's newest job -- billed long before -- look new
+    the moment the printer went back to the cloud, so it was billed again."""
+
+    CLOUD_JOB = 131189709
+
+    def _project(self, job_id, filename="pernafinal.gcode"):
+        from unittest.mock import MagicMock
+
+        project = MagicMock()
+        project.id = job_id
+        project.gcode_name = filename
+        project.slice_material_info_list = None
+        return project
+
+    @staticmethod
+    def _record(filename, usage_mm, task_id="-1"):
+        return {
+            "task_id": task_id,
+            "supplies_usage_mm": usage_mm,
+            "print_status": 2,
+            "state": "finished",
+            "filename": filename,
+        }
+
+    async def _lan_print(self, c, printer, filename, usage_mm, task_id=-1, record_id="-1"):
+        """One LAN print, watched running and then seen finished."""
+        from unittest.mock import PropertyMock, patch
+
+        before = getattr(printer, "lan_last_job", None)
+        with (
+            patch.object(type(c), "lan_is_connected", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=self._project(task_id, filename))),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=1)),
+            patch.object(type(printer), "lan_last_job", PropertyMock(return_value=before), create=True),
+        ):
+            await c._async_update_filament()
+
+        record = self._record(filename, usage_mm, record_id)
+        self._monkeypatch.setattr(type(printer), "lan_last_job", PropertyMock(return_value=record), raising=False)
+        with (
+            patch.object(type(c), "lan_is_connected", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=None)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=-1)),
+        ):
+            await c._async_update_filament()
+            await c._async_update_filament()
+
+    async def _cloud_finished(self, c, printer, job_id, usage_mm, seen_running=False):
+        from unittest.mock import PropertyMock, patch
+
+        project = self._project(job_id, "Zoro.gcode")
+        if seen_running:
+            with (
+                patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+                patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            ):
+                await c._async_update_filament()
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=usage_mm)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=1)),
+        ):
+            await c._async_update_filament()
+
+    async def _setup(self, hass, mock_entry, mock_api, monkeypatch):
+        from unittest.mock import PropertyMock
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        # The printer is a real one: monkeypatch puts its class back afterwards.
+        self._monkeypatch = monkeypatch
+        monkeypatch.setattr(type(printer), "lan_last_job", PropertyMock(return_value=None), raising=False)
+        return mock_entry.runtime_data, printer
+
+    @staticmethod
+    def _used(c):
+        from helpers import PRINTER_ID
+
+        return c._filament_slot_state(PRINTER_ID, 1).get("filament_used_g", 0.0)
+
+    async def test_every_lan_print_is_charged_not_only_the_first(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+
+        await self._lan_print(c, printer, "pernafinal.gcode", 10000.0)
+        first = self._used(c)
+        await self._lan_print(c, printer, "BaseFinalFinal.gcode", 5000.0)
+
+        assert first > 0
+        assert self._used(c) == pytest.approx(first * 1.5, rel=0.01)
+
+    async def test_the_same_file_printed_twice_is_charged_twice(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        """Its finished record reads identically both times."""
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+
+        await self._lan_print(c, printer, "pernafinal.gcode", 10000.0)
+        first = self._used(c)
+        await self._lan_print(c, printer, "pernafinal.gcode", 10000.0)
+
+        assert self._used(c) == pytest.approx(first * 2, rel=0.01)
+
+    async def test_a_lan_print_never_seen_running_is_not_charged(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        from unittest.mock import PropertyMock, patch
+
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+        monkeypatch.setattr(type(printer), "lan_last_job", PropertyMock(return_value=self._record("old.gcode", 10000.0)))
+        with (
+            patch.object(type(c), "lan_is_connected", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=None)),
+        ):
+            await c._async_update_filament()
+
+        assert self._used(c) == 0.0
+
+    async def test_going_back_to_the_cloud_does_not_rebill_its_last_job(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+
+        await self._cloud_finished(c, printer, self.CLOUD_JOB, 10000.0)
+        after_cloud = self._used(c)
+        await self._lan_print(c, printer, "pernafinal.gcode", 5000.0)
+        await self._lan_print(c, printer, "BaseFinalFinal.gcode", 5000.0)
+        after_lan = self._used(c)
+
+        # Back in the cloud, which still reports the job it had last.
+        await self._cloud_finished(c, printer, self.CLOUD_JOB, 10000.0)
+
+        assert after_lan == pytest.approx(after_cloud * 2, rel=0.01)
+        assert self._used(c) == after_lan
+
+    async def test_a_memory_spoilt_by_2_9_7_does_not_rebill_an_old_job(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        from helpers import PRINTER_ID
+
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+        c._filament.setdefault("printers", {})[str(PRINTER_ID)] = {"last_job_id": -1}
+
+        await self._cloud_finished(c, printer, self.CLOUD_JOB, 10000.0)
+        assert self._used(c) == 0.0
+
+        # The memory is sound again, so the next cloud job is charged as ever.
+        await self._cloud_finished(c, printer, self.CLOUD_JOB + 1, 10000.0)
+        assert self._used(c) > 0
+
+    async def test_a_spoilt_memory_still_charges_a_job_watched_running(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        from helpers import PRINTER_ID
+
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+        c._filament.setdefault("printers", {})[str(PRINTER_ID)] = {"last_job_id": -1}
+
+        await self._cloud_finished(c, printer, self.CLOUD_JOB, 10000.0, seen_running=True)
+
+        assert self._used(c) > 0
+
+    async def test_a_lan_job_the_cloud_reports_later_is_not_charged_twice(
+        self, hass, mock_entry, mock_api, monkeypatch
+    ) -> None:
+        """A Kobra S1 does give LAN prints a real id."""
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+
+        await self._lan_print(c, printer, "wolt.gcode", 10000.0, task_id=614707220, record_id=614707220)
+        once = self._used(c)
+        await self._cloud_finished(c, printer, 614707220, 10000.0)
+
+        assert once > 0
+        assert self._used(c) == once
+
+    async def test_the_charged_list_stays_short(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        from helpers import PRINTER_ID
+
+        from custom_components.anycubic_cloud.const import CHARGED_JOB_IDS_KEPT
+
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+        for job_id in range(1, CHARGED_JOB_IDS_KEPT + 6):
+            await self._cloud_finished(c, printer, job_id, 100.0)
+
+        charged = c._filament["printers"][str(PRINTER_ID)]["charged_job_ids"]
+        assert charged == list(range(6, CHARGED_JOB_IDS_KEPT + 6))
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (123, 123),
+        ("131189709", 131189709),
+        (-1, None),
+        ("-1", None),
+        (0, None),
+        (None, None),
+        ("", None),
+        (True, None),
+        ("x", None),
+    ],
+)
+def test_only_a_real_job_id_names_a_job(raw, expected) -> None:
+    from custom_components.anycubic_cloud.coordinator import _real_job_id
+
+    assert _real_job_id(raw) == expected
