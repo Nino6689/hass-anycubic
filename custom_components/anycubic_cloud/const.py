@@ -167,6 +167,11 @@ ATTR_FILAMENT_USED_G = "filament_used_g"
 ATTR_SPOOL_WEIGHT_G = "spool_weight_g"
 ATTR_SPOOL_SIGNATURE = "spool_signature"
 ATTR_LAST_JOB_ID = "last_job_id"
+# Every job charged recently, cloud and LAN alike, so neither path bills one
+# the other already did. Only real ids go in: a Kobra 4 names every LAN print
+# -1, which identifies nothing (#45).
+ATTR_CHARGED_JOB_IDS = "charged_job_ids"
+CHARGED_JOB_IDS_KEPT = 20
 MAX_ACE_SLOTS = 4
 
 # What a reel cost, per kilogram, so a job can be priced. Travels with the

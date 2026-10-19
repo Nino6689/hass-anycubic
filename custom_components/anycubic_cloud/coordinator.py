@@ -52,6 +52,7 @@ from .const import (
     API_SETUP_RETRIES,
     API_SETUP_RETRY_INTERVAL_SECONDS,
     ATTR_AXIS_STEP,
+    ATTR_CHARGED_JOB_IDS,
     ATTR_COST_TOTAL,
     ATTR_DRYING_DURATION,
     ATTR_DRYING_SETTINGS,
@@ -72,6 +73,7 @@ from .const import (
     ATTR_SPOOL_WEIGHT_G,
     ATTR_TOTALS,
     CAMERA_STREAM_PORT,
+    CHARGED_JOB_IDS_KEPT,
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
@@ -191,6 +193,21 @@ def _as_slot_index(value: Any) -> int | None:
     return value if value >= 0 else None
 
 
+def _real_job_id(value: Any) -> int | None:
+    """A job id that names one job, or None.
+
+    A Kobra 4 sends -1 for every LAN print, sometimes as text (#45), so -1, 0
+    and anything that isn't a whole number identify nothing.
+    """
+    if isinstance(value, bool):
+        return None
+    try:
+        job_id = int(value)
+    except (TypeError, ValueError):
+        return None
+    return job_id if job_id > 0 else None
+
+
 def _speed_mode_name(printer: AnycubicPrinter) -> str | None:
     """What to call the speed mode the printer is currently in.
 
@@ -235,6 +252,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # it has been watched running, so an upgrade or a restart never bills a
         # print that finished before anyone was looking.
         self._jobs_seen_running: set[int] = set()
+        # The LAN print each printer is running, keyed by printer id. A print is
+        # charged by the run it was watched as, not by its task id: a Kobra 4
+        # names every LAN print -1, so an id-keyed memory took the first one
+        # and refused every print after it (#45). Each entry holds the task id
+        # and the printer's last-job record as they were when the run began.
+        self._lan_runs: dict[int, dict[str, Any]] = {}
         # What each printer has told us it is fitted with, remembered across
         # rebuilds of this object. See _remembered_light_types.
         self._capabilities: dict[str, Any] = {}
@@ -2414,6 +2437,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         project: Any = printer.latest_project
         paint_infos: Any = None
+        printers = self._filament.setdefault("printers", {})
+        printer_state = printers.setdefault(str(printer.id), {})
 
         if project is None:
             # Over LAN the running job is cleared as soon as the printer goes
@@ -2421,26 +2446,38 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Charge it only if it was seen running, never one that finished
             # before this session started watching.
             last = getattr(printer, "lan_last_job", None)
-            if not last or last.get("task_id") not in self._jobs_seen_running:
+            run = self._lan_runs.get(printer.id)
+            if not last or run is None or not self._lan_run_finished(run, last):
                 return False
-            job_id = last["task_id"]
             usage_mm = last.get("supplies_usage_mm")
+            if not usage_mm:
+                return False
+            # The run is spent from here, so it is charged once.
+            self._lan_runs.pop(printer.id, None)
+            job_id = _real_job_id(last.get("task_id"))
             project = SimpleNamespace(name=job_name_from_filename(last.get("filename")))
+            if job_id is not None and self._job_already_charged(printer_state, job_id):
+                return False
         elif printer.latest_project_print_in_progress:
             return False
         else:
-            job_id = project.id
+            job_id = _real_job_id(project.id)
             usage_mm = printer.latest_project_supplies_usage
             paint_infos = project.slice_material_info_list
 
-        if not job_id or not usage_mm:
-            return False
+            if job_id is None or not usage_mm or self._job_already_charged(printer_state, job_id):
+                return False
 
-        printers = self._filament.setdefault("printers", {})
-        printer_state = printers.setdefault(str(printer.id), {})
-
-        if printer_state.get(ATTR_LAST_JOB_ID) == job_id:
-            return False
+            if _real_job_id(printer_state.get(ATTR_LAST_JOB_ID)) is None and (
+                ATTR_LAST_JOB_ID in printer_state and job_id not in self._jobs_seen_running
+            ):
+                # Up to 2.9.7 a Kobra 4's LAN prints overwrote this memory with
+                # -1, so on the way back to the cloud its newest job -- billed
+                # long ago -- looked new and was billed again (#45). With the
+                # memory spoilt, only a job watched running is charged; the
+                # rest is taken as already done.
+                self._remember_charged_job(printer_state, job_id)
+                return True
 
         spools = printer.primary_multi_color_box_spool_info_object or []
         materials = {
@@ -2463,7 +2500,8 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Record the job either way, so an unattributable one isn't retried
         # forever, but only move the counters when we know which spool to charge.
-        printer_state[ATTR_LAST_JOB_ID] = job_id
+        if job_id is not None:
+            self._remember_charged_job(printer_state, job_id)
 
         if not per_slot:
             LOGGER.debug("Job %s could not be attributed to a slot.", job_id)
@@ -2483,6 +2521,50 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         printer_state.pop(ATTR_FEEDING_SLOT, None)
 
         return True
+
+    @staticmethod
+    def _job_already_charged(printer_state: dict[str, Any], job_id: int) -> bool:
+        if printer_state.get(ATTR_LAST_JOB_ID) == job_id:
+            return True
+        return job_id in (printer_state.get(ATTR_CHARGED_JOB_IDS) or [])
+
+    @staticmethod
+    def _remember_charged_job(printer_state: dict[str, Any], job_id: int) -> None:
+        charged = [i for i in (printer_state.get(ATTR_CHARGED_JOB_IDS) or []) if i != job_id]
+        charged.append(job_id)
+        printer_state[ATTR_CHARGED_JOB_IDS] = charged[-CHARGED_JOB_IDS_KEPT:]
+        printer_state[ATTR_LAST_JOB_ID] = job_id
+
+    def _watch_lan_run(self, printer: AnycubicPrinter) -> None:
+        """Note a LAN print the moment it is seen running.
+
+        The printer's last-job record is copied as it stands, so the finish is
+        recognised by that record changing -- never by an id, which a Kobra 4
+        does not give (#45).
+        """
+        if printer.id in self._lan_runs:
+            return
+        last = getattr(printer, "lan_last_job", None)
+        filename = getattr(printer.latest_project, "gcode_name", None)
+        self._lan_runs[printer.id] = {
+            "task_id": _real_job_id(getattr(printer.latest_project, "id", None)),
+            "filename": filename if isinstance(filename, str) and filename else None,
+            "last_job_before": dict(last) if last else None,
+        }
+
+    @staticmethod
+    def _lan_run_finished(run: dict[str, Any], last: dict[str, Any]) -> bool:
+        """Whether the printer's last-job record is the end of this run."""
+        run_id = run["task_id"]
+        last_id = _real_job_id(last.get("task_id"))
+        # Where both carry a real id they must agree; a Kobra 4 gives neither.
+        if run_id is not None and last_id is not None and run_id != last_id:
+            return False
+        if last != run["last_job_before"]:
+            return True
+        # The record is unchanged. That is either the job before this one, or
+        # the same file printed again, whose record reads identically.
+        return run["filename"] is not None and run["filename"] == last.get("filename")
 
     def _record_job_history(self, project: Any, grams: float) -> None:
         """Remember what this model actually took.
@@ -2608,8 +2690,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for printer in self._anycubic_printers.values():
             try:
                 project = printer.latest_project
-                if project is not None and printer.latest_project_print_in_progress and project.id:
-                    self._jobs_seen_running.add(int(project.id))
+                if project is not None and printer.latest_project_print_in_progress:
+                    if (job_id := _real_job_id(project.id)) is not None:
+                        self._jobs_seen_running.add(job_id)
+                    if self.lan_is_connected:
+                        self._watch_lan_run(printer)
                 if self._check_spool_changes(printer):
                     changed = True
                 if self._remember_feeding_slot(printer):
