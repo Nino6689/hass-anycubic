@@ -357,6 +357,9 @@
       "ace_current_temperature": {
         "name": "ACE huidige temperatuur"
       },
+      "ace_humidity": {
+        "name": "ACE luchtvochtigheid"
+      },
       "ace_loaded_slot": {
         "name": "ACE geladen slot"
       },
@@ -402,6 +405,9 @@
       "aux_fan_speed_pct": {
         "name": "Snelheid hulpventilator"
       },
+      "chamber_temperature": {
+        "name": "Temperatuur behuizing"
+      },
       "axis_position_x": {
         "name": "Printkoppositie X"
       },
@@ -412,7 +418,7 @@
         "name": "Printkoppositie Z"
       },
       "box_fan_level": {
-        "name": "ACE boxventilatorniveau"
+        "name": "Ventilatorniveau behuizing"
       },
       "curr_hotbed_temp": {
         "name": "Temperatuur verwarmd bed"
@@ -552,6 +558,9 @@
       "secondary_ace_current_temperature": {
         "name": "Secundaire ACE huidige temperatuur"
       },
+      "secondary_ace_humidity": {
+        "name": "Secundaire ACE luchtvochtigheid"
+      },
       "secondary_ace_spools": {
         "name": "Secundaire ACE-spoelen"
       },
@@ -651,7 +660,7 @@
         "name": "Snelheid hulpventilator instellen"
       },
       "set_box_fan_level": {
-        "name": "Boxventilatorniveau instellen"
+        "name": "Ventilatorniveau behuizing instellen"
       },
       "set_fan_speed_pct": {
         "name": "Ventilatorsnelheid instellen"

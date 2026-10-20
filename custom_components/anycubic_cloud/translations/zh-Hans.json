@@ -357,6 +357,9 @@
       "ace_current_temperature": {
         "name": "ACE 当前温度"
       },
+      "ace_humidity": {
+        "name": "ACE 湿度"
+      },
       "ace_loaded_slot": {
         "name": "ACE 已装载槽位"
       },
@@ -402,6 +405,9 @@
       "aux_fan_speed_pct": {
         "name": "辅助风扇转速"
       },
+      "chamber_temperature": {
+        "name": "腔体温度"
+      },
       "axis_position_x": {
         "name": "喷头位置 X"
       },
@@ -412,7 +418,7 @@
         "name": "喷头位置 Z"
       },
       "box_fan_level": {
-        "name": "ACE 料盒风扇档位"
+        "name": "腔体风扇档位"
       },
       "curr_hotbed_temp": {
         "name": "热床温度"
@@ -552,6 +558,9 @@
       "secondary_ace_current_temperature": {
         "name": "第二 ACE 当前温度"
       },
+      "secondary_ace_humidity": {
+        "name": "第二 ACE 湿度"
+      },
       "secondary_ace_spools": {
         "name": "第二 ACE 料盘"
       },
@@ -651,7 +660,7 @@
         "name": "设置辅助风扇转速"
       },
       "set_box_fan_level": {
-        "name": "设置料盒风扇档位"
+        "name": "设置腔体风扇档位"
       },
       "set_fan_speed_pct": {
         "name": "设置风扇转速"

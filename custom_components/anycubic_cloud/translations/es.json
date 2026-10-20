@@ -357,6 +357,9 @@
       "ace_current_temperature": {
         "name": "Temperatura actual del ACE"
       },
+      "ace_humidity": {
+        "name": "Humedad del ACE"
+      },
       "ace_loaded_slot": {
         "name": "Ranura cargada del ACE"
       },
@@ -402,6 +405,9 @@
       "aux_fan_speed_pct": {
         "name": "Velocidad del ventilador auxiliar"
       },
+      "chamber_temperature": {
+        "name": "Temperatura de la cámara"
+      },
       "axis_position_x": {
         "name": "Posición X del cabezal"
       },
@@ -412,7 +418,7 @@
         "name": "Posición Z del cabezal"
       },
       "box_fan_level": {
-        "name": "Nivel del ventilador del ACE del ACE"
+        "name": "Nivel del ventilador de la cámara"
       },
       "curr_hotbed_temp": {
         "name": "Temperatura de la cama caliente"
@@ -552,6 +558,9 @@
       "secondary_ace_current_temperature": {
         "name": "Temperatura actual del ACE secundario"
       },
+      "secondary_ace_humidity": {
+        "name": "Humedad del ACE secundario"
+      },
       "secondary_ace_spools": {
         "name": "Bobinas del ACE secundario"
       },
@@ -651,7 +660,7 @@
         "name": "Establecer velocidad del ventilador auxiliar"
       },
       "set_box_fan_level": {
-        "name": "Establecer nivel del ventilador del ACE"
+        "name": "Establecer nivel del ventilador de la cámara"
       },
       "set_fan_speed_pct": {
         "name": "Establecer velocidad del ventilador"

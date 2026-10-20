@@ -83,9 +83,12 @@ PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = li
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,
     ),
     AnycubicSensorEntityDescription(
-        key="box_fan_level",
-        translation_key="box_fan_level",
+        key="ace_humidity",
+        translation_key="ace_humidity",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.HUMIDITY,
         printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+        requires_reported_value=True,
     ),
     AnycubicSensorEntityDescription(
         key="axis_position_x",
@@ -172,6 +175,14 @@ SECONDARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = 
         printer_entity_type=PrinterEntityType.ACE_SECONDARY,
     ),
     AnycubicSensorEntityDescription(
+        key="secondary_ace_humidity",
+        translation_key="secondary_ace_humidity",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.HUMIDITY,
+        printer_entity_type=PrinterEntityType.ACE_SECONDARY,
+        requires_reported_value=True,
+    ),
+    AnycubicSensorEntityDescription(
         key="secondary_ace_loaded_slot",
         translation_key="secondary_ace_loaded_slot",
         printer_entity_type=PrinterEntityType.ACE_SECONDARY,
@@ -223,6 +234,22 @@ FDM_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = list([
         translation_key="aux_fan_speed_pct",
         native_unit_of_measurement=PERCENTAGE,
         printer_entity_type=PrinterEntityType.FDM,
+    ),
+    # The enclosure's own fan. It used to sit on the ACE device, but it runs
+    # during a print with the ACE idle (#44): it belongs to the printer, and
+    # only enclosed printers report it.
+    AnycubicSensorEntityDescription(
+        key="box_fan_level",
+        translation_key="box_fan_level",
+        printer_entity_type=PrinterEntityType.FDM,
+        requires_reported_value=True,
+    ),
+    AnycubicSensorEntityDescription(
+        key="chamber_temperature",
+        translation_key="chamber_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        printer_entity_type=PrinterEntityType.FDM,
+        requires_reported_value=True,
     ),
 
     AnycubicSensorEntityDescription(

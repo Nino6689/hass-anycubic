@@ -357,6 +357,9 @@
       "ace_current_temperature": {
         "name": "ACE Current Temperature"
       },
+      "ace_humidity": {
+        "name": "ACE Humidity"
+      },
       "ace_loaded_slot": {
         "name": "ACE Loaded Slot"
       },
@@ -402,6 +405,9 @@
       "aux_fan_speed_pct": {
         "name": "Auxiliary Fan Speed"
       },
+      "chamber_temperature": {
+        "name": "Chamber Temperature"
+      },
       "axis_position_x": {
         "name": "Head position X"
       },
@@ -412,7 +418,7 @@
         "name": "Head position Z"
       },
       "box_fan_level": {
-        "name": "ACE Box Fan Level"
+        "name": "Chamber Fan Level"
       },
       "curr_hotbed_temp": {
         "name": "Hotbed Temperature"
@@ -552,6 +558,9 @@
       "secondary_ace_current_temperature": {
         "name": "Secondary ACE Current Temperature"
       },
+      "secondary_ace_humidity": {
+        "name": "Secondary ACE Humidity"
+      },
       "secondary_ace_spools": {
         "name": "Secondary ACE Spools"
       },
@@ -651,7 +660,7 @@
         "name": "Set auxiliary fan speed"
       },
       "set_box_fan_level": {
-        "name": "Set box fan level"
+        "name": "Set chamber fan level"
       },
       "set_fan_speed_pct": {
         "name": "Set fan speed"

@@ -357,6 +357,9 @@
       "ace_current_temperature": {
         "name": "Température actuelle de l'ACE"
       },
+      "ace_humidity": {
+        "name": "Humidité de l'ACE"
+      },
       "ace_loaded_slot": {
         "name": "Emplacement ACE chargé"
       },
@@ -402,6 +405,9 @@
       "aux_fan_speed_pct": {
         "name": "Vitesse du ventilateur auxiliaire"
       },
+      "chamber_temperature": {
+        "name": "Température du caisson"
+      },
       "axis_position_x": {
         "name": "Position X de la tête"
       },
@@ -412,7 +418,7 @@
         "name": "Position Z de la tête"
       },
       "box_fan_level": {
-        "name": "Niveau du ventilateur du boîtier ACE"
+        "name": "Niveau du ventilateur du caisson"
       },
       "curr_hotbed_temp": {
         "name": "Température du plateau chauffant"
@@ -552,6 +558,9 @@
       "secondary_ace_current_temperature": {
         "name": "Température actuelle de l'ACE secondaire"
       },
+      "secondary_ace_humidity": {
+        "name": "Humidité de l'ACE secondaire"
+      },
       "secondary_ace_spools": {
         "name": "Bobines de l'ACE secondaire"
       },
@@ -651,7 +660,7 @@
         "name": "Régler la vitesse du ventilateur auxiliaire"
       },
       "set_box_fan_level": {
-        "name": "Régler le niveau du ventilateur du boîtier"
+        "name": "Régler le niveau du ventilateur du caisson"
       },
       "set_fan_speed_pct": {
         "name": "Régler la vitesse du ventilateur"
