@@ -357,6 +357,9 @@
       "ace_current_temperature": {
         "name": "ACE Aktuelle Temperatur"
       },
+      "ace_humidity": {
+        "name": "ACE Luftfeuchtigkeit"
+      },
       "ace_loaded_slot": {
         "name": "Geladenes ACE-Fach"
       },
@@ -402,6 +405,9 @@
       "aux_fan_speed_pct": {
         "name": "Zusatzlüfter"
       },
+      "chamber_temperature": {
+        "name": "Kammertemperatur"
+      },
       "axis_position_x": {
         "name": "Kopfposition X"
       },
@@ -412,7 +418,7 @@
         "name": "Kopfposition Z"
       },
       "box_fan_level": {
-        "name": "ACE-Boxlüfter"
+        "name": "Kammerlüfterstufe"
       },
       "curr_hotbed_temp": {
         "name": "Betttemperatur"
@@ -552,6 +558,9 @@
       "secondary_ace_current_temperature": {
         "name": "Aktuelle Temperatur (2. ACE)"
       },
+      "secondary_ace_humidity": {
+        "name": "Luftfeuchtigkeit (2. ACE)"
+      },
       "secondary_ace_spools": {
         "name": "Zweite ACE-Spulen"
       },
@@ -651,7 +660,7 @@
         "name": "Hilfslüfter einstellen"
       },
       "set_box_fan_level": {
-        "name": "Boxlüfterstufe einstellen"
+        "name": "Kammerlüfterstufe einstellen"
       },
       "set_fan_speed_pct": {
         "name": "Lüftergeschwindigkeit einstellen"

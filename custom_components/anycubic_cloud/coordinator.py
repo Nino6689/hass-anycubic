@@ -142,6 +142,7 @@ from .helpers import (
     get_drying_preset_from_entry_options,
     printer_attributes_for_key,
     printer_state_connected_ace_units,
+    printer_state_for_key,
     printer_state_supports_ace,
     safe_external_shelves,
     state_string_active,
@@ -433,7 +434,9 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Reported only over the local connection.
             "camera_stream_url": printer.camera_stream_url,
             "ai_detection_enabled": printer.ai_detection_enabled,
-            "chamber_temp": printer.chamber_temperature,
+            # Zero is what a printer without a chamber sensor sends (a Kobra
+            # S1); a Kobra S1 Max sends the real reading.
+            "chamber_temperature": printer.chamber_temperature or None,
             "printer_online": printer.printer_online,
             "is_busy": printer.is_busy,
             "is_available": printer.is_available,
@@ -461,6 +464,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "ace_spools": state_string_active(primary_ace_spool_info),
             "multi_color_box_runout_refill": printer.primary_multi_color_box_auto_feed,
             "ace_current_temperature": printer.primary_multi_color_box_current_temperature,
+            # Zero on a box without the sensor, like the chamber above.
+            "ace_humidity": (
+                box.humidity or None
+                if (box := printer.primary_multi_color_box) is not None
+                else None
+            ),
             "secondary_multi_color_box_fw_version": printer.secondary_multi_color_box_fw_firmware_version,
             "secondary_ace_spools": state_string_active(secondary_ace_spool_info),
             "secondary_multi_color_box_runout_refill": printer.secondary_multi_color_box_auto_feed,
@@ -470,6 +479,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else None
             ),
             "secondary_ace_current_temperature": printer.secondary_multi_color_box_current_temperature,
+            "secondary_ace_humidity": (
+                box.humidity or None
+                if (box := printer.secondary_multi_color_box) is not None
+                else None
+            ),
             "dry_status_is_drying": printer.primary_drying_status_is_drying,
             "dry_status_target_temperature": printer.primary_drying_status_target_temperature,
             "dry_status_total_duration": printer.primary_drying_status_total_duration,
@@ -1180,6 +1194,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             connected_ace_units,
                             self.entry.options,
                         )
+                    ):
+                        remaining_unregistered_descriptors.append(description)
+                        continue
+                    elif (
+                        description.requires_reported_value
+                        and printer_state_for_key(self, printer_id, description.key) is None
                     ):
                         remaining_unregistered_descriptors.append(description)
                         continue

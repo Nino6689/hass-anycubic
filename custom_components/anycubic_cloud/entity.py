@@ -34,6 +34,11 @@ class AnycubicCloudEntityDescription(EntityDescription):
     """Generic Anycubic Cloud entity description."""
 
     printer_entity_type: PrinterEntityType | None = None
+    # Hardware only some printers have (a chamber sensor, an ACE humidity
+    # sensor) is created on its first real reading, not up front: the rest
+    # report nothing or zero, and an entity that can never have a value is
+    # noise in every other user's device page.
+    requires_reported_value: bool = False
 
 
 class AnycubicCloudEntity(CoordinatorEntity[AnycubicCloudDataUpdateCoordinator], Entity):
