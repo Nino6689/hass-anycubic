@@ -1619,6 +1619,7 @@ class TestKobra4LanJobsHaveNoId:
             with (
                 patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
                 patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+                patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=1)),
             ):
                 await c._async_update_filament()
         with (
@@ -1742,6 +1743,102 @@ class TestKobra4LanJobsHaveNoId:
 
         charged = c._filament["printers"][str(PRINTER_ID)]["charged_job_ids"]
         assert charged == list(range(6, CHARGED_JOB_IDS_KEPT + 6))
+
+
+class TestTheSlotThatFedTheJob:
+    """#40: a Kobra 4 retracts before the end of a print and reports its idle
+    slot for ~15 s while the job still reads printing. Charging the slot loaded
+    at the end put 3 of 4 LAN prints from slot 4 on slot 1."""
+
+    FILENAME = "petg_test.gcode"
+
+    async def _setup(self, hass, mock_entry, mock_api, monkeypatch):
+        from unittest.mock import PropertyMock
+
+        from helpers import setup_entry
+
+        await setup_entry(hass, mock_entry)
+        _, printer = mock_api
+        monkeypatch.setattr(type(printer), "lan_last_job", PropertyMock(return_value=None), raising=False)
+        self._monkeypatch = monkeypatch
+        return mock_entry.runtime_data, printer
+
+    async def _running(self, c, printer, slot, used_mm):
+        """One refresh of a running LAN print."""
+        from unittest.mock import MagicMock, PropertyMock, patch
+
+        project = MagicMock(id=-1, gcode_name=self.FILENAME, slice_material_info_list=None)
+        with (
+            patch.object(type(c), "lan_is_connected", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=used_mm)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=slot)),
+        ):
+            await c._async_update_filament()
+
+    async def _finished(self, c, printer, used_mm, live_slot):
+        """The printer reports the print over, with its idle slot loaded."""
+        from unittest.mock import PropertyMock, patch
+
+        record = TestKobra4LanJobsHaveNoId._record(self.FILENAME, used_mm)
+        self._monkeypatch.setattr(type(printer), "lan_last_job", PropertyMock(return_value=record), raising=False)
+        with (
+            patch.object(type(c), "lan_is_connected", PropertyMock(return_value=True)),
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=None)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "primary_multi_color_box_loaded_slot", PropertyMock(return_value=live_slot)),
+        ):
+            await c._async_update_filament()
+
+    @staticmethod
+    def _used(c, slot):
+        from helpers import PRINTER_ID
+
+        return c._filament_slot_state(PRINTER_ID, slot).get("filament_used_g", 0.0)
+
+    async def test_the_retract_before_the_end_does_not_move_the_charge(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+
+        await self._running(c, printer, 3, 0.0)
+        await self._running(c, printer, 3, 120.0)
+        await self._running(c, printer, 3, 309.0)
+        # Retracted: still printing, idle slot loaded, nothing going through.
+        await self._running(c, printer, 0, 309.0)
+        await self._running(c, printer, 0, 309.0)
+        await self._finished(c, printer, 309.0, live_slot=0)
+
+        assert self._used(c, 3) > 0
+        assert self._used(c, 0) == 0.0
+
+    async def test_the_slot_that_fed_most_is_charged(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+
+        await self._running(c, printer, 1, 0.0)
+        await self._running(c, printer, 1, 50.0)
+        await self._running(c, printer, 2, 50.0)
+        await self._running(c, printer, 2, 900.0)
+        await self._finished(c, printer, 900.0, live_slot=1)
+
+        assert self._used(c, 2) > 0
+        assert self._used(c, 1) == 0.0
+
+    async def test_a_new_job_starts_from_its_own_slot(self, hass, mock_entry, mock_api, monkeypatch) -> None:
+        """What the last job fed must not decide the next one."""
+        c, printer = await self._setup(hass, mock_entry, mock_api, monkeypatch)
+
+        await self._running(c, printer, 2, 0.0)
+        await self._running(c, printer, 2, 900.0)
+        await self._finished(c, printer, 900.0, live_slot=0)
+        first = self._used(c, 2)
+
+        self.FILENAME = "second.gcode"
+        await self._running(c, printer, 3, 0.0)
+        await self._running(c, printer, 3, 100.0)
+        await self._finished(c, printer, 100.0, live_slot=0)
+
+        assert self._used(c, 2) == first
+        assert self._used(c, 3) > 0
 
 
 @pytest.mark.parametrize(
