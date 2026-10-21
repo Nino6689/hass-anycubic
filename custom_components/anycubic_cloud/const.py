@@ -163,6 +163,8 @@ ATTR_LIGHT_TYPES = "light_types"
 
 # Filament-remaining estimate
 ATTR_FEEDING_SLOT = "feeding_slot"
+# Millimetres each slot has fed during the running job, keyed by slot index
+ATTR_FEEDING_MM = "feeding_mm"
 ATTR_FILAMENT_USED_G = "filament_used_g"
 ATTR_SPOOL_WEIGHT_G = "spool_weight_g"
 ATTR_SPOOL_SIGNATURE = "spool_signature"

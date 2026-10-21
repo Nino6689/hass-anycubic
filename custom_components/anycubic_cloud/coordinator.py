@@ -57,6 +57,7 @@ from .const import (
     ATTR_DRYING_DURATION,
     ATTR_DRYING_SETTINGS,
     ATTR_DRYING_TEMPERATURE,
+    ATTR_FEEDING_MM,
     ATTR_FEEDING_SLOT,
     ATTR_FILAMENT_USED_G,
     ATTR_LAST_JOB_COST,
@@ -259,6 +260,10 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # and refused every print after it (#45). Each entry holds the task id
         # and the printer's last-job record as they were when the run began.
         self._lan_runs: dict[int, dict[str, Any]] = {}
+        # The loaded slot and the job's filament used at the last refresh of a
+        # running job, keyed by printer id. Filament that went through since
+        # then is credited to that slot. Cleared when no job is running.
+        self._feeding_seen: dict[int, tuple[int | None, float | None]] = {}
         # What each printer has told us it is fitted with, remembered across
         # rebuilds of this object. See _remembered_light_types.
         self._capabilities: dict[str, Any] = {}
@@ -2504,12 +2509,14 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             index: spool.get("material_type") for index, spool in enumerate(spools)
         }
 
-        # The live value is already -1 by the time a job reports finished, so
-        # fall back to whichever slot was seen feeding during it.
-        loaded_slot = printer.primary_multi_color_box_loaded_slot
+        # The slot that fed the job, as seen while it ran. By the time a job
+        # reports finished the live value is -1, or on a Kobra 4 already its
+        # idle slot after the retract, so it's only the fallback for a job
+        # nobody watched (#40).
+        loaded_slot = printer_state.get(ATTR_FEEDING_SLOT)
 
         if loaded_slot is None or loaded_slot < 0:
-            loaded_slot = printer_state.get(ATTR_FEEDING_SLOT)
+            loaded_slot = printer.primary_multi_color_box_loaded_slot
 
         per_slot = attribute_job_to_slots(
             supplies_usage_mm=usage_mm,
@@ -2539,6 +2546,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._record_job_history(project, sum(per_slot.values()))
 
         printer_state.pop(ATTR_FEEDING_SLOT, None)
+        printer_state.pop(ATTR_FEEDING_MM, None)
 
         return True
 
@@ -2684,22 +2692,55 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         and `loaded_slot` reverts to -1 the moment the job ends -- so by the time
         a job can be charged, the only evidence of which spool fed it is gone.
         Capturing it mid-print is what makes those jobs attributable at all.
+
+        The slot loaded at any one moment isn't enough on its own: a Kobra 4
+        retracts before the end and shows its idle slot for ~15 s while the job
+        still reads printing (#40). So each rise in the job's filament used is
+        credited to the slot loaded at the refresh before it, the slot credited
+        most is the one remembered, and nothing moves while no filament goes
+        through.
         """
         if not printer.latest_project_print_in_progress:
+            self._feeding_seen.pop(printer.id, None)
             return False
 
         slot = printer.primary_multi_color_box_loaded_slot
-
-        if slot is None or slot < 0:
-            return False
+        used = printer.latest_project_supplies_usage
+        used = float(used) if isinstance(used, (int, float)) else None
+        before = self._feeding_seen.get(printer.id)
+        self._feeding_seen[printer.id] = (slot, used)
 
         printers = self._filament.setdefault("printers", {})
         state = printers.setdefault(str(printer.id), {})
 
-        if state.get(ATTR_FEEDING_SLOT) == slot:
+        if before is None:
+            # The first look at this run, or the first since a restart: start
+            # from whatever is loaded now.
+            if slot is None or slot < 0:
+                return False
+            fed = state.get(ATTR_FEEDING_SLOT)
+            state.pop(ATTR_FEEDING_MM, None)
+            state[ATTR_FEEDING_SLOT] = slot
+            return bool(fed != slot)
+
+        slot_before, used_before = before
+
+        if (
+            slot_before is None
+            or slot_before < 0
+            or used is None
+            or used_before is None
+            or used <= used_before
+        ):
+            # Nothing went through since the last look (or a new job reset
+            # the count), so a slot change now is a retract, not a feed.
             return False
 
-        state[ATTR_FEEDING_SLOT] = slot
+        feeding_mm = state.setdefault(ATTR_FEEDING_MM, {})
+        key = str(slot_before)
+        feeding_mm[key] = round(float(feeding_mm.get(key, 0.0)) + used - used_before, 1)
+        most = int(max(feeding_mm, key=lambda k: feeding_mm[k]))
+        state[ATTR_FEEDING_SLOT] = most
 
         return True
 
