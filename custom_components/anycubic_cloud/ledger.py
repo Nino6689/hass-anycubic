@@ -107,6 +107,12 @@ class _RunningJob:
     length: float | None
     shares: dict[int, float] = field(default_factory=dict)
     """The cloud job's split between colours, when it has several."""
+    fed: dict[int, float] = field(default_factory=dict)
+    """Millimetres each slot (0-based) fed while the length rose (Beta 4, D24)."""
+    slot: int | None = None
+    """The last loaded slot seen during the run."""
+    last_fed: int | None = None
+    """The slot the last rise was booked to."""
 
     def same_job(self, job_id: int | None) -> bool:
         """Whether a job still in progress is this one.
@@ -120,6 +126,31 @@ class _RunningJob:
     def see(self, length: float | None) -> None:
         if length is not None and (self.length is None or length >= self.length):
             self.length = length
+
+    def feed(self, length: float | None, slot: int | None) -> None:
+        """Book a rise in the length to the slot loaded as it is reported.
+
+        The ledger runs on every report, and the length and the loaded slot
+        arrive in different reports, so a slot reported without a rise -
+        the idle slot a Kobra 4 reports as it retracts at the end of a
+        print - books nothing (Beta 4, D24). Without a slot now, the last
+        one seen is kept.
+        """
+        rise = 0.0 if length is None else length - (self.length or 0.0)
+        target = slot if slot is not None else self.slot
+        if rise > 0 and target is not None:
+            self.fed[target] = self.fed.get(target, 0.0) + rise
+            self.last_fed = target
+        self.see(length)
+        if slot is not None:
+            self.slot = slot
+
+    @property
+    def fed_slot(self) -> int | None:
+        """The slot that fed most of the run, if any rise was seen."""
+        if not self.fed:
+            return None
+        return max(self.fed, key=lambda index: self.fed[index])
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,6 +173,11 @@ class SpoolEntry:
             "remaining_percent": self.remaining_percent,
             "spool_price_per_kg": self.spool_price_per_kg,
         }
+
+
+def _loaded_slot(printer: Printer) -> int | None:
+    loaded = printer.ace_loaded_slot_index(0)
+    return loaded if loaded is not None and loaded >= 0 else None
 
 
 class FilamentLedger:
@@ -225,8 +261,8 @@ class FilamentLedger:
         """Run one ledger update. Never raises: a failure is only logged."""
         try:
             changed = self._track_reels(printer)
-            changed |= self._capture_feeding_slot(printer)
             changed |= self._charge_finished_job(printer)
+            changed |= self._capture_feeding_slot(printer)
         except Exception:
             _LOGGER.exception("Filament ledger update failed")
             return
@@ -294,10 +330,14 @@ class FilamentLedger:
         return changed
 
     def _capture_feeding_slot(self, printer: Printer) -> bool:
-        """Remember which slot feeds a running job (§3.1 step 2)."""
+        """Remember which slot feeds a running job (§3.1 step 2): the one
+        the length last rose on, else the loaded one (D24)."""
         if not printer.job_in_progress:
             return False
+        running = self._running.get((printer.printer_id, printer.source))
         loaded = printer.ace_loaded_slot_index(0)
+        if running is not None and running.last_fed is not None:
+            loaded = running.last_fed
         if loaded is None or loaded < 0:
             return False
         entry = self._printer(printer.printer_id)
@@ -343,24 +383,29 @@ class FilamentLedger:
                 running.job_id = job_id  # the number arrived later (G9)
             if shares := printer.job_paint_shares:
                 running.shares = shares
-            else:
-                running.see(printer.job_filament_used)
+            running.feed(printer.job_filament_used, _loaded_slot(printer))
             running.name = printer.job_name or running.name
             return False
         running = self._running.pop(key, None)
         if running is None:
             return False
         self._merge_other_source(pid, running)
+        # What this run fed is forgotten with it: never the next one's (D24).
+        forgot = self._printer(pid).pop("feeding_slot", None) is not None
         length = running.length
         if job is not None and running.same_job(job_id):
             final = printer.job_filament_used
             if final is not None and (length is None or final > length):
                 length = final
         if not length or length <= 0:
-            return False
-        return self._charge(
-            printer, running.job_id, running.name, length, running.shares
-        )
+            return forgot
+        # The slot that fed the run while the length rose, never one reported
+        # after its last rise; the slot loaded now only for a run not seen
+        # feeding (Beta 4, D24).
+        slot_index = running.fed_slot
+        if slot_index is None:
+            slot_index = _loaded_slot(printer)
+        return self._charge(printer, running, length, slot_index) or forgot
 
     def _merge_other_source(self, pid: int, running: _RunningJob) -> None:
         """The same numbered job followed by the other source ends with it.
@@ -374,15 +419,17 @@ class FilamentLedger:
             if other_key[0] == pid and other.job_id == running.job_id:
                 del self._running[other_key]
                 running.see(other.length)
+                for index, fed in other.fed.items():
+                    running.fed[index] = max(running.fed.get(index, 0.0), fed)
 
     def _charge(
         self,
         printer: Printer,
-        job_id: int | None,
-        job_name: str | None,
+        running: _RunningJob,
         length: float,
-        shares: dict[int, float] | None = None,
+        slot_index: int | None,
     ) -> bool:
+        job_id, job_name, shares = running.job_id, running.name, running.shares
         entry = self._printer(printer.printer_id)
         # 1. Double-charge protection; the id is stored whatever happens next.
         #    A job without a number was seen running and ending exactly once.
@@ -392,13 +439,7 @@ class FilamentLedger:
                 return False
             charged.add(job_id)
             entry["last_job_id"] = job_id
-        # 2. Which slot fed it: live loaded slot, else the remembered one.
-        slot_index = printer.ace_loaded_slot_index(0)
-        if slot_index is None or slot_index < 0:
-            feeding = entry.get("feeding_slot")
-            slot_index = feeding if isinstance(feeding, int) and feeding >= 0 else None
-        entry.pop("feeding_slot", None)
-        # 3. Several colours: each colour index is taken as the slot (§3.5,
+        # 2-3. Several colours: each colour index is taken as the slot (§3.5,
         #    V2). One or none: all of it to the feeding slot - the slicer's
         #    index is not a slot number; without one it cannot be attributed.
         split: dict[int, float]

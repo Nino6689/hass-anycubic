@@ -1241,6 +1241,9 @@
       "ace_current_temperature": {
         "name": "ACE Current Temperature"
       },
+      "ace_humidity": {
+        "name": "ACE Humidity"
+      },
       "dry_status_target_temperature": {
         "name": "Drying Target Temperature"
       },
@@ -1251,7 +1254,10 @@
         "name": "Drying Remaining Time"
       },
       "box_fan_level": {
-        "name": "ACE Box Fan Level"
+        "name": "Chamber Fan Level"
+      },
+      "chamber_temperature": {
+        "name": "Chamber Temperature"
       },
       "ace_slot_1": {
         "name": "ACE Slot 1"
@@ -1301,6 +1307,9 @@
       },
       "secondary_ace_current_temperature": {
         "name": "Secondary ACE Current Temperature"
+      },
+      "secondary_ace_humidity": {
+        "name": "Secondary ACE Humidity"
       },
       "secondary_dry_status_target_temperature": {
         "name": "Secondary Drying Target Temperature"
@@ -1549,7 +1558,7 @@
         "name": "Set auxiliary fan speed"
       },
       "set_box_fan_level": {
-        "name": "Set box fan level"
+        "name": "Set chamber fan level"
       },
       "ace_slot_1_spool_weight": {
         "name": "ACE slot 1 spool weight"

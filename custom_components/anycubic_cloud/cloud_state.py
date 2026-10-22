@@ -85,6 +85,9 @@ def apply_detail(printer: Printer, detail: PrinterDetail) -> None:
     if detail.hotbed_temp is not None:
         temperatures = replace(temperatures, bed=detail.hotbed_temp)
     changes: dict[str, object] = {"temperatures": temperatures}
+    if detail.chamber_temp is not None:  # 0 without a sensor (Beta 4, D21)
+        changes["temperatures"] = replace(temperatures, chamber=detail.chamber_temp)
+        changes["has_chamber"] = state.has_chamber or bool(detail.chamber_temp)
     if detail.raw.get("multi_color_box") is not None:
         cloud.ace_units = detail.ace_units
         # The record's loaded slot goes stale during a print: once the

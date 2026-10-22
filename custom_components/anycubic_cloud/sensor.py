@@ -352,6 +352,15 @@ FDM_SENSORS: tuple[AnycubicSensorDescription, ...] = (
             ),
         )
     ),
+    # Created on the first non-zero reading: 0 is no sensor (Beta 4, D21).
+    AnycubicSensorDescription(
+        key="chamber_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.chamber_temperature,
+        ready_fn=lambda p: p.chamber_temperature is not None,
+    ),
     AnycubicSensorDescription(
         key="fan_speed_pct",
         kind=Kind.FDM,
@@ -364,6 +373,13 @@ FDM_SENSORS: tuple[AnycubicSensorDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda c: c.printer.aux_fan_speed,
+    ),
+    # The printer's enclosure fan, created once reported (Beta 4, D23).
+    AnycubicSensorDescription(
+        key="box_fan_level",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: c.printer.box_fan_level,
+        ready_fn=lambda p: p.box_fan_level is not None,
     ),
     AnycubicSensorDescription(
         key="print_speed_pct",
@@ -534,6 +550,17 @@ def _ace_sensors(box: int) -> tuple[AnycubicSensorDescription, ...]:
             state_class=SensorStateClass.MEASUREMENT,
             value_fn=lambda c: float(c.printer.ace_temperature(box)),
         ),
+        # Created on the first non-zero reading: 0 is no sensor (Beta 4, D22).
+        AnycubicSensorDescription(
+            key=f"{prefix}ace_humidity",
+            kind=kind,
+            device=device,
+            native_unit_of_measurement=PERCENTAGE,
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda c: c.printer.ace_humidity(box),
+            ready_fn=lambda p: p.ace_humidity(box) is not None,
+        ),
         AnycubicSensorDescription(
             key=f"{prefix}dry_status_target_temperature",
             kind=kind,
@@ -586,13 +613,6 @@ def _slot_attrs(box: int, number: int) -> AttrsFn:
 
 FIRST_ACE_SENSORS: tuple[AnycubicSensorDescription, ...] = (
     *_ace_sensors(0),
-    AnycubicSensorDescription(
-        key="box_fan_level",
-        kind=Kind.ACE1,
-        device=Device.ACE1,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda c: c.printer.box_fan_level,
-    ),
     *(
         description
         for number in ACE_SLOTS

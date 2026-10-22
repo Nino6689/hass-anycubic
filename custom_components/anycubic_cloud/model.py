@@ -280,6 +280,7 @@ def ace_box_from_cloud(unit: AceUnit) -> AceBox:
         auto_feed=unit.auto_feed,
         loaded_slot_raw=unit.loaded_slot_raw,
         temp=unit.temp,
+        humidity=unit.humidity,
         drying=AceDrying(
             status=drying.status,
             target_temp=drying.target_temp,
@@ -630,7 +631,13 @@ class Printer:
 
     @property
     def box_fan_level(self) -> int | None:
+        """The enclosure (chamber) fan; a printer reading (Beta 4, D23)."""
         return self.state.fans.box_fan_level
+
+    @property
+    def chamber_temperature(self) -> float | None:
+        """``None`` for 0: a printer without a chamber sensor (Beta 4, D21)."""
+        return _number(self.state.temperatures.chamber) or None
 
     @property
     def speed_mode_code(self) -> int | None:
@@ -1005,6 +1012,15 @@ class Printer:
             return 0
         return round(box.temp)
 
+    def ace_humidity(self, index: int) -> float | None:
+        """The drying report's humidity (D11), else the box's own; ``None``
+        for 0, a box without a sensor (Beta 4, D22)."""
+        box = self.ace_box(index)
+        if box is None:
+            return None
+        drying = box.drying.humidity if box.drying is not None else None
+        return _number(drying or box.humidity) or None
+
     def ace_model(self, index: int) -> str:
         box = self.ace_box(index)
         return ace_model_name(box.model_id if box is not None else None)
@@ -1063,12 +1079,7 @@ class Printer:
         cloud = self._cloud()
         unit = cloud.ace_unit(index) if cloud is not None else None
         feed_status: Any = box.feed_status
-        humidity: Any = 0
-        if unit is not None and unit.humidity is not None:
-            humidity = unit.humidity
-        if box.drying is not None and box.drying.humidity is not None:
-            # The ACE 2 Pro's own drying report carries it (D11).
-            humidity = box.drying.humidity
+        humidity = self.ace_humidity(index) or 0
         if unit is not None:
             feed = unit.feed_status
             feed_status = {

@@ -8,12 +8,12 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import MANUFACTURER
+from .const import DOMAIN, MANUFACTURER
 from .coordinator import AnycubicCoordinator, AnycubicRuntime
 from .identity import ace_identifier, printer_identifier
 from .model import MATERIAL_FILAMENT, MATERIAL_RESIN
@@ -24,6 +24,10 @@ if TYPE_CHECKING:
 
     from .model import Printer
 
+
+# Entities 2.x put on an ACE that belong to the printer (Beta 4, D23). Their
+# unique ids stay; the registry entry moves to the printer's device.
+MOVED_TO_PRINTER: tuple[tuple[str, str], ...] = (("sensor", "box_fan_level"),)
 
 # Current Home Assistant links a device to its parent by the parent's registry
 # id and reports the older ``via_device`` identifier form as deprecated; the
@@ -62,6 +66,9 @@ class AnycubicEntityDescription(EntityDescription):
     Q8: never on LAN-only entries)."""
     lan_only: bool = False
     """Created only for printers with a LAN Mode address (Beta 3, D18)."""
+    ready_fn: Callable[[Printer], bool] | None = None
+    """Kept pending until this holds, e.g. a sensor created on its first
+    non-zero reading (Beta 4, D21-D23)."""
 
 
 def device_info(coordinator: AnycubicCoordinator, device: Device) -> DeviceInfo:
@@ -110,6 +117,13 @@ def async_register_printer_device(coordinator: AnycubicCoordinator) -> None:
         **device_info(coordinator, Device.PRINTER),
     )
     coordinator.printer_device_id = device.id
+    entities = er.async_get(coordinator.hass)
+    mac = coordinator.printer.identity.mac
+    for platform, key in MOVED_TO_PRINTER:
+        entity_id = entities.async_get_entity_id(platform, DOMAIN, f"{mac}-{key}")
+        item = entities.async_get(entity_id) if entity_id is not None else None
+        if item is not None and item.device_id != device.id:
+            entities.async_update_entity(item.entity_id, device_id=device.id)
 
 
 class AnycubicEntity(CoordinatorEntity[AnycubicCoordinator]):
@@ -154,15 +168,19 @@ def description_ready(
         if material is None:
             return False  # G14: kept pending until the material is known
         wanted = MATERIAL_FILAMENT if kind is Kind.FDM else MATERIAL_RESIN
-        return True if material == wanted else None
+        if material != wanted:
+            return None
     if kind in (Kind.ACE1, Kind.ACE2):
         # B1 (#41): kept pending until the ACE reports, never dropped.
         needed = 1 if kind is Kind.ACE1 else 2
         if not printer.supports_ace or printer.ace_count < needed:
             return False
-        if description.preset is not None:
-            return coordinator.drying_preset(description.preset) is not None
-    return True
+        if (
+            description.preset is not None
+            and coordinator.drying_preset(description.preset) is None
+        ):
+            return False
+    return description.ready_fn is None or description.ready_fn(printer)
 
 
 def async_add_when_ready[D: AnycubicEntityDescription](
