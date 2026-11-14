@@ -121,7 +121,8 @@
           "drying": "Trocknungs-Voreinstellungen",
           "card_config": "Karten-Konfiguration",
           "debug": "Debug-Einstellungen",
-          "local": "Lokale Verbindung (LAN-Modus)"
+          "local": "Lokale Verbindung (LAN-Modus)",
+          "energy": "Energie und Stromkosten"
         }
       },
       "mqtt": {
@@ -165,6 +166,20 @@
         },
         "data_description": {
           "lan_host": "Zum Beispiel 10.0.0.42. Eine feste Adresse wird dringend empfohlen."
+        }
+      },
+      "energy": {
+        "title": "Energie und Stromkosten",
+        "description": "Wähle den Energiesensor der smarten Steckdose, an der dein Drucker hängt, und jeder Druck speichert den verbrauchten Strom und seine Kosten neben dem Filament.\n\nDer Zähler wird einem Druck nur zugerechnet, solange genau ein Drucker dieses Eintrags druckt. Eine Preis-Entität (zum Beispiel ein dynamischer Tarif) hat Vorrang vor dem festen Preis; jede Ablesung wird mit dem Preis zu diesem Zeitpunkt berechnet.",
+        "data": {
+          "energy_sensor": "Energiezähler",
+          "electricity_price": "Fester Preis pro kWh",
+          "electricity_price_entity": "Preis-Entität (pro kWh)"
+        },
+        "data_description": {
+          "energy_sensor": "Der Gesamtenergiesensor der Steckdose (kWh). Leer lassen, um dies auszuschalten.",
+          "electricity_price": "In deiner Home-Assistant-Währung. 0 bedeutet nicht gesetzt.",
+          "electricity_price_entity": "Optional. Ein Sensor oder eine Zahl mit dem aktuellen Preis pro kWh."
         }
       }
     },
@@ -593,6 +608,21 @@
       },
       "secondary_ace_loaded_slot": {
         "name": "Geladenes Fach (2. ACE)"
+      },
+      "job_energy": {
+        "name": "Energie des Auftrags"
+      },
+      "job_electricity_cost": {
+        "name": "Stromkosten des Auftrags"
+      },
+      "last_job_energy": {
+        "name": "Energie des letzten Auftrags"
+      },
+      "last_job_electricity_cost": {
+        "name": "Stromkosten des letzten Auftrags"
+      },
+      "last_job_total_cost": {
+        "name": "Gesamtkosten des letzten Auftrags"
       }
     },
     "switch": {

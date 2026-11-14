@@ -7,10 +7,11 @@ the other, so each gets its own entity:
   discovery document and the cloud never does. The stream stays closed until
   the printer is told to start capturing, so that command goes out whenever a
   stream is asked for. This one can produce still images.
-* ``cloud_camera`` -- Agora ("shengwang") WebRTC, which is what the cloud
-  offers. The browser is the WebRTC peer and Home Assistant only brokers the
-  signalling, so no video passes through Home Assistant -- and therefore no
-  snapshots, entity picture or recording on this entity.
+* ``cloud_camera`` -- WebRTC over whichever transport the cloud offers the
+  account: Agora ("shengwang") for most, Kinesis Video for some (#49). The
+  browser is the WebRTC peer and Home Assistant only brokers the signalling,
+  so no video passes through Home Assistant -- and therefore no snapshots,
+  entity picture or recording on this entity.
 
 They cannot be merged: Home Assistant decides a camera's stream type from
 whether its class overrides ``async_handle_async_webrtc_offer``, once, for the
@@ -27,12 +28,14 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 from aiohttp import ClientError, ClientTimeout, hdrs, web
+from anycubic_cloud_api import AnycubicKvsCredentials
 from homeassistant.components.camera import (
     Camera,
     CameraEntityDescription,
     CameraEntityFeature,
     CameraView,
     WebRTCAnswer,
+    WebRTCCandidate,
     WebRTCSendMessage,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -47,6 +50,7 @@ from webrtc_models import RTCIceCandidateInit
 from .agora import AgoraError, AgoraStreamSession
 from .const import CAMERA_STREAM_PORT, LOGGER, PrinterEntityType
 from .entity import AnycubicCloudEntity, AnycubicCloudEntityDescription
+from .kvs import KvsError, KvsStreamSession
 
 # One camera per printer, and starting the stream is a single cloud-free
 # publish, so there is nothing to serialise.
@@ -311,7 +315,7 @@ class AnycubicCameraStreamView(CameraView):
 
 
 class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
-    """The printer's camera over the cloud, as Agora WebRTC.
+    """The printer's camera over the cloud, as Agora or Kinesis Video WebRTC.
 
     Home Assistant only brokers the signalling -- the browser is the WebRTC
     peer and the media goes straight from Agora's edge to the browser, never
@@ -329,7 +333,7 @@ class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
         """Initialise both halves -- Camera keeps its own state."""
         super().__init__(*args, **kwargs)
         Camera.__init__(self)
-        self._sessions: dict[str, AgoraStreamSession] = {}
+        self._sessions: dict[str, AgoraStreamSession | KvsStreamSession] = {}
 
     @property
     def available(self) -> bool:
@@ -371,18 +375,30 @@ class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
         session_id: str,
         send_message: WebRTCSendMessage,
     ) -> None:
-        """Join the printer's Agora channel and answer the browser."""
+        """Join the printer's camera channel and answer the browser."""
         # Credentials are single use -- client_uid is issued fresh every call
         # -- so this happens per session and is never cached.
         credentials = await self.coordinator.async_open_cloud_camera(
             self._printer_id,
         )
 
-        session = AgoraStreamSession(
-            session=async_get_clientsession(self.hass),
-            credentials=credentials,
-            logger=LOGGER,
-        )
+        session: AgoraStreamSession | KvsStreamSession
+        if isinstance(credentials, AnycubicKvsCredentials):
+            printer = self.coordinator.printers.get(self._printer_id)
+            session = KvsStreamSession(
+                session=async_get_clientsession(self.hass),
+                credentials=credentials,
+                logger=LOGGER,
+                # The printer trickles its candidates after the answer.
+                on_candidate=lambda candidate: send_message(WebRTCCandidate(candidate)),
+                push_state=(lambda: printer.camera_push_state) if printer is not None else None,
+            )
+        else:
+            session = AgoraStreamSession(
+                session=async_get_clientsession(self.hass),
+                credentials=credentials,
+                logger=LOGGER,
+            )
         self._sessions[session_id] = session
 
         try:
@@ -390,7 +406,7 @@ class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
                 offer_sdp=offer_sdp,
                 session_id=session_id,
             )
-        except AgoraError as err:
+        except (AgoraError, KvsError) as err:
             self._sessions.pop(session_id, None)
             await session.async_close()
             raise HomeAssistantError(
@@ -408,7 +424,7 @@ class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
         session_id: str,
         candidate: RTCIceCandidateInit,
     ) -> None:
-        """Pass a browser ICE candidate on to Agora."""
+        """Pass a browser ICE candidate on to the camera channel."""
         session = self._sessions.get(session_id)
 
         if session is None:
@@ -426,7 +442,7 @@ class AnycubicCloudCamera(AnycubicCloudEntity, Camera):
 
         self.hass.async_create_task(
             session.async_close(),
-            name=f"anycubic close agora session {session_id}",
+            name=f"anycubic close camera session {session_id}",
         )
 
     async def async_will_remove_from_hass(self) -> None:

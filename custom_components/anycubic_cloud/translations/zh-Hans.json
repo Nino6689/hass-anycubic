@@ -121,7 +121,8 @@
           "drying": "烘干预设",
           "card_config": "面板卡片配置",
           "debug": "调试设置",
-          "local": "本地连接（局域网模式）"
+          "local": "本地连接（局域网模式）",
+          "energy": "能耗与电费"
         }
       },
       "mqtt": {
@@ -165,6 +166,20 @@
         },
         "data_description": {
           "lan_host": "例如 10.0.0.42。强烈建议为打印机设置固定地址。"
+        }
+      },
+      "energy": {
+        "title": "能耗与电费",
+        "description": "选择打印机所接智能插座的电能传感器，每次打印都会在耗材旁记录所用电量及其费用。\n\n仅当此条目中恰好只有一台打印机在打印时，电表读数才会计入该打印。价格实体（例如动态电价）优先于固定价格；每次读数按当时的电价计算。",
+        "data": {
+          "energy_sensor": "电能表",
+          "electricity_price": "每千瓦时固定价格",
+          "electricity_price_entity": "价格实体（每千瓦时）"
+        },
+        "data_description": {
+          "energy_sensor": "插座的累计电能传感器（kWh）。留空即可关闭此功能。",
+          "electricity_price": "使用 Home Assistant 的货币。0 表示未设置。",
+          "electricity_price_entity": "可选。保存当前每千瓦时价格的传感器或数值。"
         }
       }
     },
@@ -593,6 +608,21 @@
       },
       "secondary_ace_loaded_slot": {
         "name": "第二 ACE 当前料槽"
+      },
+      "job_energy": {
+        "name": "任务能耗"
+      },
+      "job_electricity_cost": {
+        "name": "任务电费"
+      },
+      "last_job_energy": {
+        "name": "上次任务能耗"
+      },
+      "last_job_electricity_cost": {
+        "name": "上次任务电费"
+      },
+      "last_job_total_cost": {
+        "name": "上次任务总费用"
       }
     },
     "switch": {

@@ -25,6 +25,8 @@ from .const import (
     CONF_DRYING_PRESET_TEMPERATURE_,
     DOMAIN,
     MANUFACTURER,
+    OWN_FEEDER_MODEL,
+    PRINTERS_WITH_OWN_FEEDER,
     STORAGE_KEY,
     STORAGE_VERSION,
     PrinterEntityType,
@@ -84,15 +86,23 @@ def build_ace_device_info(
 
     box_info = (printer_attrs.get(f"{prefix}ace_spools") or {}).get('box_info') or {}
     model_id = box_info.get('model_id')
-    model = (
-        ACE_MODEL_NAMES.get(int(model_id), ACE_MODEL_FALLBACK)
-        if isinstance(model_id, int)
-        else ACE_MODEL_FALLBACK
-    )
-    name = f"{printer_data['name']} {model}"
+    machine_type = (printer_attrs.get("current_status") or {}).get("machine_type")
 
-    if secondary:
-        name = f"{name} 2"
+    if not secondary and machine_type in PRINTERS_WITH_OWN_FEEDER:
+        model = OWN_FEEDER_MODEL
+        name = f"{printer_data['name']} Feeder"
+    else:
+        model = (
+            ACE_MODEL_NAMES.get(int(model_id), ACE_MODEL_FALLBACK)
+            if isinstance(model_id, int)
+            else ACE_MODEL_FALLBACK
+        )
+        name = f"{printer_data['name']} {model}"
+
+        # The suffix tells two ACEs apart. Behind a printer's own feeder the
+        # first ACE is the only one, so it needs none.
+        if secondary and machine_type not in PRINTERS_WITH_OWN_FEEDER:
+            name = f"{name} 2"
 
     return DeviceInfo(
         identifiers={(DOMAIN, f"{user_data['id']}-{printer_data['id']}-ace{box_index}")},

@@ -63,6 +63,9 @@ CONF_CARD_CONFIG = "card_config"
 CONF_DEBUG_DEPRECATED = "debug"
 CONF_DEBUG_MQTT_MSG = "debug_mqtt_msg"
 CONF_DEBUG_API_CALLS = "debug_api_calls"
+CONF_ENERGY_SENSOR = "energy_sensor"
+CONF_ELECTRICITY_PRICE = "electricity_price"
+CONF_ELECTRICITY_PRICE_ENTITY = "electricity_price_entity"
 CONF_UPLOADED_GCODE_FILE = "uploaded_gcode_file"
 CONF_FILE_ID = "file_id"
 CONF_SPEED_MODE = "speed_mode"
@@ -82,8 +85,16 @@ ACE_SLOT_COUNT = 4
 # on an ACE Pro; others are unknown until someone reports one.
 ACE_MODEL_NAMES = {
     40001: "ACE Pro",
+    # Confirmed by a Kobra S1 Combo owner on #41.
+    40002: "ACE 2 Pro",
 }
 ACE_MODEL_FALLBACK = "ACE"
+
+# Printers whose first filament box is their own built-in feeder rather than an
+# ACE. On a Kobra X the panel's top row is the printer and the ACE comes after
+# it (#33), so calling box 0 an "ACE" showed two ACEs for one.
+PRINTERS_WITH_OWN_FEEDER = frozenset({20030})
+OWN_FEEDER_MODEL = "Built-in feeder"
 
 ENTITY_ID_ACE_SLOT_ = "ace_slot_"
 
@@ -205,6 +216,13 @@ ATTR_COST_TOTAL = "cost_total"
 ATTR_LAST_JOB_COST = "last_job_cost"
 ATTR_LAST_JOB_GRAMS = "last_job_grams"
 ATTR_MATERIAL_TOTALS = "material_totals"
+
+# Electricity per job, from the user's own energy meter (discussion #46).
+ATTR_ENERGY = "energy"
+ATTR_JOB_KWH = "job_kwh"
+ATTR_JOB_ELECTRICITY_COST = "job_cost"
+ATTR_LAST_JOB_KWH = "last_job_kwh"
+ATTR_LAST_JOB_ELECTRICITY_COST = "last_job_cost"
 
 # Nozzle wear, measured in filament pushed through rather than hours run --
 # abrasive fill is what actually wears it, and grams per material is already

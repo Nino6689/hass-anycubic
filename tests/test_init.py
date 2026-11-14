@@ -7,7 +7,7 @@ attribute surface rather than a mock that agrees with whatever we assert.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 from helpers import PRINTER_ID
 from helpers import setup_entry as _setup
@@ -126,3 +126,39 @@ class TestFailureModes:
         await _setup(hass, mock_entry)
 
         assert mock_entry.state is not ConfigEntryState.LOADED
+
+
+class TestRemovingStaleDevices:
+    """A device nothing reports any more can be deleted from the UI (#33)."""
+
+    def _entry(self, printers: dict) -> MagicMock:
+        entry = MagicMock()
+        entry.runtime_data.data = {"user_info": {"id": 999}}
+        entry.runtime_data.printers = printers
+        return entry
+
+    def _device(self, identifier: str) -> MagicMock:
+        return MagicMock(identifiers={("anycubic_cloud", identifier)})
+
+    async def test_a_live_printer_and_its_aces_are_protected(self, hass: HomeAssistant) -> None:
+        from custom_components.anycubic_cloud import async_remove_config_entry_device
+
+        entry = self._entry({7: MagicMock(multi_color_box=[object(), object()])})
+
+        for identifier in ("999-7", "999-7-ace0", "999-7-ace1"):
+            assert await async_remove_config_entry_device(hass, entry, self._device(identifier)) is False
+
+    async def test_a_stale_device_may_go(self, hass: HomeAssistant) -> None:
+        from custom_components.anycubic_cloud import async_remove_config_entry_device
+
+        entry = self._entry({7: MagicMock(multi_color_box=[object()])})
+
+        for identifier in ("999-7-ace1", "999-8", "999-8-ace0"):
+            assert await async_remove_config_entry_device(hass, entry, self._device(identifier)) is True
+
+    async def test_an_entry_that_never_loaded_blocks_nothing(self, hass: HomeAssistant) -> None:
+        from custom_components.anycubic_cloud import async_remove_config_entry_device
+
+        entry = MagicMock()
+        entry.runtime_data = None
+        assert await async_remove_config_entry_device(hass, entry, self._device("999-7")) is True

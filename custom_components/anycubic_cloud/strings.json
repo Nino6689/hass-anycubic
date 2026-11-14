@@ -121,7 +121,8 @@
           "drying": "Drying Presets",
           "card_config": "Panel Card Config",
           "debug": "Debug Settings",
-          "local": "Local connection (LAN Mode)"
+          "local": "Local connection (LAN Mode)",
+          "energy": "Energy and electricity cost"
         }
       },
       "mqtt": {
@@ -165,6 +166,20 @@
         },
         "data_description": {
           "lan_host": "For example 10.0.0.42. A fixed address is strongly recommended."
+        }
+      },
+      "energy": {
+        "title": "Energy and electricity cost",
+        "description": "Point the integration at the energy sensor of the smart plug your printer is on, and every print records the electricity it used and what it cost, next to its filament.\n\nThe meter is charged to a print only while exactly one printer on this entry is printing. A price entity (a dynamic tariff, for example) takes precedence over the fixed price; each reading is priced at the rate in force at that moment.",
+        "data": {
+          "energy_sensor": "Energy meter",
+          "electricity_price": "Fixed price per kWh",
+          "electricity_price_entity": "Price entity (per kWh)"
+        },
+        "data_description": {
+          "energy_sensor": "The plug's total energy sensor (kWh). Leave empty to switch this off.",
+          "electricity_price": "In your Home Assistant currency. 0 means not set.",
+          "electricity_price_entity": "Optional. A sensor or number holding the current price per kWh."
         }
       }
     },
@@ -593,6 +608,21 @@
       },
       "secondary_ace_loaded_slot": {
         "name": "Secondary ACE Loaded Slot"
+      },
+      "job_energy": {
+        "name": "Job energy"
+      },
+      "job_electricity_cost": {
+        "name": "Job electricity cost"
+      },
+      "last_job_energy": {
+        "name": "Last job energy"
+      },
+      "last_job_electricity_cost": {
+        "name": "Last job electricity cost"
+      },
+      "last_job_total_cost": {
+        "name": "Last job total cost"
       }
     },
     "switch": {

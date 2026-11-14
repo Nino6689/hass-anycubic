@@ -99,6 +99,30 @@ class TestAceDeviceNaming:
 
         assert info["name"]
 
+    def test_the_ace_2_pro_is_named(self) -> None:
+        info = build_ace_device_info(self._data(model_id=40002), PRINTER_ID)
+
+        assert info["model"] == "ACE 2 Pro"
+        assert info["name"] == "Kobra S1 ACE 2 Pro"
+
+    def test_a_kobra_x_feeder_is_not_called_an_ace(self) -> None:
+        """Box 0 on a Kobra X is the printer's own feeder; the ACE comes after (#33)."""
+        data = self._data(model_id=40002)
+        printer = data["printers"][PRINTER_ID]
+        printer["states"]["name"] = "Kobra X"
+        printer["attributes"]["current_status"] = {"machine_type": 20030}
+        printer["attributes"]["secondary_ace_spools"] = {"box_info": {"model_id": 40002}}
+
+        feeder = build_ace_device_info(data, PRINTER_ID)
+        ace = build_ace_device_info(data, PRINTER_ID, secondary=True)
+
+        assert feeder["name"] == "Kobra X Feeder"
+        assert feeder["model"] == "Built-in feeder"
+        assert ace["name"] == "Kobra X ACE 2 Pro"
+        # Identifiers don't move, so no entity changes device.
+        assert feeder["identifiers"] == {("anycubic_cloud", f"999-{PRINTER_ID}-ace0")}
+        assert ace["identifiers"] == {("anycubic_cloud", f"999-{PRINTER_ID}-ace1")}
+
 
 class TestQuoteStripping:
     """Pasted values often arrive wrapped in quotes."""

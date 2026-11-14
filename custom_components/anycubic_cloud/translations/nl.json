@@ -121,7 +121,8 @@
           "drying": "Droogvoorinstellingen",
           "card_config": "Configuratie paneelkaart",
           "debug": "Foutopsporingsinstellingen",
-          "local": "Lokale verbinding (LAN-modus)"
+          "local": "Lokale verbinding (LAN-modus)",
+          "energy": "Energie en stroomkosten"
         }
       },
       "mqtt": {
@@ -165,6 +166,20 @@
         },
         "data_description": {
           "lan_host": "Bijvoorbeeld 10.0.0.42. Een vast adres wordt sterk aangeraden."
+        }
+      },
+      "energy": {
+        "title": "Energie en stroomkosten",
+        "description": "Kies de energiesensor van de slimme stekker waar je printer aan hangt, en elke print legt naast het filament vast hoeveel stroom hij gebruikte en wat die kostte.\n\nDe meter wordt alleen aan een print toegerekend zolang precies één printer van deze vermelding print. Een prijsentiteit (bijvoorbeeld een dynamisch tarief) gaat voor de vaste prijs; elke meting wordt berekend tegen de prijs van dat moment.",
+        "data": {
+          "energy_sensor": "Energiemeter",
+          "electricity_price": "Vaste prijs per kWh",
+          "electricity_price_entity": "Prijsentiteit (per kWh)"
+        },
+        "data_description": {
+          "energy_sensor": "De totale-energiesensor van de stekker (kWh). Laat leeg om dit uit te zetten.",
+          "electricity_price": "In je Home Assistant-valuta. 0 betekent niet ingesteld.",
+          "electricity_price_entity": "Optioneel. Een sensor of getal met de huidige prijs per kWh."
         }
       }
     },
@@ -593,6 +608,21 @@
       },
       "secondary_ace_loaded_slot": {
         "name": "Geladen slot (2e ACE)"
+      },
+      "job_energy": {
+        "name": "Energie van de taak"
+      },
+      "job_electricity_cost": {
+        "name": "Stroomkosten van de taak"
+      },
+      "last_job_energy": {
+        "name": "Energie van de laatste taak"
+      },
+      "last_job_electricity_cost": {
+        "name": "Stroomkosten van de laatste taak"
+      },
+      "last_job_total_cost": {
+        "name": "Totale kosten van de laatste taak"
       }
     },
     "switch": {
