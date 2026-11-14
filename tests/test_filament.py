@@ -18,6 +18,7 @@ from custom_components.anycubic_cloud.filament import (
     history_estimate,
     is_abrasive,
     job_grams_required,
+    map_paints_to_slots,
     mm_to_grams,
     normalise_job_name,
     remaining_grams,
@@ -1859,3 +1860,82 @@ def test_only_a_real_job_id_names_a_job(raw, expected) -> None:
     from custom_components.anycubic_cloud.coordinator import _real_job_id
 
     assert _real_job_id(raw) == expected
+
+
+class TestMultiColourJobsFindTheirSlots:
+    """paint_index is the slicer's order, not the ACE slot (#47).
+
+    An ACE 2 Pro on a Kobra S1 read 0 g in slot 3 while the screen showed
+    plenty: multi-colour jobs had their grams charged by paint_index, which only
+    matches the slot when the file's colours sit in slot order.
+    """
+
+    SLOTS = {0: [255, 0, 0], 1: [0, 0, 255], 2: [255, 255, 255], 3: [0, 0, 0]}
+    MATERIALS = {0: "PLA", 1: "PLA", 2: "PLA", 3: "PETG"}
+
+    def _paints(self, *entries: tuple[int, list[int], float, str]) -> list[dict]:
+        return [
+            {"paint_index": index, "paint_color": colour, "filament_used": used, "material_type": material}
+            for index, colour, used, material in entries
+        ]
+
+    def test_each_material_goes_to_the_slot_holding_its_colour(self) -> None:
+        # The file lists white then red; the reels sit in slots 3 and 1.
+        paints = self._paints((0, [255, 255, 255], 30.0, "PLA"), (1, [255, 0, 0], 10.0, ";PLA"))
+
+        grams = attribute_job_to_slots(
+            supplies_usage_mm=13400,
+            paint_infos=paints,
+            slot_materials=self.MATERIALS,
+            slot_colours=self.SLOTS,
+        )
+
+        assert set(grams) == {2, 0}
+        assert grams[2] == pytest.approx(grams[0] * 3, rel=0.01)
+
+    def test_an_unmatched_colour_keeps_the_old_reading(self) -> None:
+        paints = self._paints((0, [1, 2, 3], 30.0, "PLA"), (1, [255, 0, 0], 10.0, "PLA"))
+
+        grams = attribute_job_to_slots(
+            supplies_usage_mm=13400, paint_infos=paints, slot_materials=self.MATERIALS, slot_colours=self.SLOTS
+        )
+
+        assert set(grams) == {0, 1}
+
+    def test_a_material_mismatch_is_not_a_match(self) -> None:
+        # Black is in slot 4, but it's PETG and the job wants black PLA.
+        assert (
+            map_paints_to_slots(
+                self._paints((0, [0, 0, 0], 5.0, "PLA"), (1, [255, 0, 0], 5.0, "PLA")),
+                self.SLOTS,
+                self.MATERIALS,
+            )
+            is None
+        )
+
+    def test_two_reels_of_one_colour_use_the_slicer_order_as_tiebreak(self) -> None:
+        slots = {0: [255, 255, 255], 1: [255, 255, 255], 2: [255, 0, 0]}
+        paints = self._paints((1, [255, 255, 255], 5.0, "PLA"), (0, [255, 0, 0], 5.0, "PLA"))
+
+        assert map_paints_to_slots(paints, slots) == {1: 1, 0: 2}
+
+    def test_ambiguous_or_colliding_matches_are_refused(self) -> None:
+        slots = {0: [255, 255, 255], 1: [255, 255, 255]}
+        # Same colour twice, neither paint_index among the candidates.
+        assert map_paints_to_slots(self._paints((5, [255, 255, 255], 5.0, "PLA")), slots) is None
+        # Two materials landing on one slot.
+        one = {0: [9, 9, 9]}
+        assert map_paints_to_slots(self._paints((0, [9, 9, 9], 5.0, "PLA"), (1, [9, 9, 9], 5.0, "PLA")), one) is None
+
+    @pytest.mark.parametrize(
+        ("paints", "slots"),
+        [
+            (None, SLOTS),
+            ([{"paint_index": 0, "paint_color": [255, 0, 0], "filament_used": 1.0}], None),
+            (["junk", {"paint_index": "x", "filament_used": 1.0}, {"paint_index": 1, "filament_used": 0}], SLOTS),
+            ([{"paint_index": 0, "paint_color": [255], "filament_used": 1.0}], SLOTS),
+            ([{"paint_index": 0, "paint_color": None, "filament_used": 1.0}], SLOTS),
+        ],
+    )
+    def test_nothing_usable_maps_nothing(self, paints, slots) -> None:
+        assert map_paints_to_slots(paints, slots) is None

@@ -5,6 +5,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.camera.const import DATA_COMPONENT as DATA_CAMERA_COMPONENT
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.typing import ConfigType
 
 from .camera import AnycubicCameraStreamView
@@ -68,7 +69,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(update_listener))
 
+    if (unsubscribe := coordinator.async_start_energy_tracking()) is not None:
+        entry.async_on_unload(unsubscribe)
+
     return True
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    device_entry: dr.DeviceEntry,
+) -> bool:
+    """Allow deleting a device that nothing reports any more.
+
+    A replaced mainboard, a printer taken off the account or an ACE that was
+    unplugged leaves its device behind, with no way to remove it from the UI
+    (#33). Anything the integration still reports stays protected -- it would
+    only come straight back.
+    """
+    coordinator = getattr(entry, "runtime_data", None)
+
+    if coordinator is None or not coordinator.data:
+        return True
+
+    user_id = (coordinator.data.get("user_info") or {}).get("id")
+    live: set[str] = set()
+
+    for printer_id, printer in coordinator.printers.items():
+        base = f"{user_id}-{printer_id}"
+        live.add(base)
+        for box_index in range(len(printer.multi_color_box or [])):
+            live.add(f"{base}-ace{box_index}")
+
+    return not any(
+        domain == DOMAIN and identifier in live
+        for domain, identifier in device_entry.identifiers
+    )
 
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:

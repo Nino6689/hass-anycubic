@@ -1095,7 +1095,7 @@ different streams and neither can stand in for the other:
 | Entity | How | Available when |
 | --- | --- | --- |
 | `camera.<printer>_camera` | HTTP-FLV off the printer, as HLS | LAN Mode is on |
-| `camera.<printer>_cloud_camera` | Agora WebRTC | the printer is on the cloud |
+| `camera.<printer>_cloud_camera` | WebRTC, over Agora or Amazon Kinesis Video — whichever the cloud offers your account | the printer is on the cloud |
 
 **`camera.snapshot` works on the local camera.** The printer has no snapshot endpoint of its own,
 so the frame is pulled out of the stream with ffmpeg, the same way Home Assistant does it for any
@@ -1122,8 +1122,8 @@ camera_view: live
 ### Why the cloud camera has no snapshots
 
 Home Assistant brokers the signalling and nothing else — your browser is the WebRTC peer, so
-the video travels from Agora's edge straight to the browser and never passes through Home
-Assistant. That is what makes it free: no transcoding, no measurable CPU, and it works
+the video travels from Agora's edge (or the printer, over Kinesis Video) straight to the
+browser and never passes through Home Assistant. That is what makes it free: no transcoding, no measurable CPU, and it works
 unchanged over Nabu Casa without pushing video through the tunnel.
 
 The trade is that nothing here ever holds a frame, so there is no `camera.snapshot`, no entity
@@ -1417,6 +1417,23 @@ like the weight, it travels with the reel when it moves slot or comes back later
 > An unpriced reel reports **unknown**, not £0.00. "Free" and "you never told me what
 > this cost" are different answers, and quietly booking zero would corrupt the lifetime
 > total.
+
+### Electricity
+
+If the printer is on a smart plug that meters energy, point the integration at it under
+**Settings → Devices & services → Anycubic → Configure → Energy and electricity cost**: the
+plug's energy sensor (kWh), plus a fixed price per kWh or a price entity (a dynamic tariff
+takes precedence, and each reading is priced at the rate in force at that moment).
+
+| Entity | What it is |
+|---|---|
+| `sensor.*_job_energy` | Energy the running job has used so far |
+| `sensor.*_job_electricity_cost` | What that energy has cost so far |
+| `sensor.*_last_job_energy` / `sensor.*_last_job_electricity_cost` | The same, for the last finished job |
+| `sensor.*_last_job_total_cost` | Filament plus electricity, for the last finished job |
+
+These appear once there is something to show. The meter is charged to a print only while
+exactly one printer on the entry is printing — with two at once it can't say which drew what.
 
 ---
 

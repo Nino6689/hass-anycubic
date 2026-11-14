@@ -121,7 +121,8 @@
           "drying": "Préréglages de séchage",
           "card_config": "Configuration de la carte du panneau",
           "debug": "Paramètres de débogage",
-          "local": "Connexion locale (mode LAN)"
+          "local": "Connexion locale (mode LAN)",
+          "energy": "Énergie et coût de l'électricité"
         }
       },
       "mqtt": {
@@ -165,6 +166,20 @@
         },
         "data_description": {
           "lan_host": "Par exemple 10.0.0.42. Une adresse fixe est fortement recommandée."
+        }
+      },
+      "energy": {
+        "title": "Énergie et coût de l'électricité",
+        "description": "Indiquez le capteur d'énergie de la prise connectée de votre imprimante : chaque impression enregistre l'électricité consommée et son coût, à côté du filament.\n\nLe compteur n'est attribué à une impression que lorsqu'une seule imprimante de cette entrée imprime. Une entité de prix (un tarif dynamique, par exemple) prime sur le prix fixe ; chaque relevé est valorisé au tarif en vigueur à ce moment.",
+        "data": {
+          "energy_sensor": "Compteur d'énergie",
+          "electricity_price": "Prix fixe par kWh",
+          "electricity_price_entity": "Entité de prix (par kWh)"
+        },
+        "data_description": {
+          "energy_sensor": "Le capteur d'énergie totale de la prise (kWh). Laissez vide pour désactiver.",
+          "electricity_price": "Dans la devise de votre Home Assistant. 0 signifie non défini.",
+          "electricity_price_entity": "Facultatif. Un capteur ou un nombre contenant le prix actuel par kWh."
         }
       }
     },
@@ -593,6 +608,21 @@
       },
       "secondary_ace_loaded_slot": {
         "name": "Emplacement chargé (2e ACE)"
+      },
+      "job_energy": {
+        "name": "Énergie de la tâche"
+      },
+      "job_electricity_cost": {
+        "name": "Coût électrique de la tâche"
+      },
+      "last_job_energy": {
+        "name": "Énergie de la dernière tâche"
+      },
+      "last_job_electricity_cost": {
+        "name": "Coût électrique de la dernière tâche"
+      },
+      "last_job_total_cost": {
+        "name": "Coût total de la dernière tâche"
       }
     },
     "switch": {

@@ -34,6 +34,11 @@ from homeassistant.helpers.aiohttp_client import (
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     ObjectSelector,
     SelectOptionDict,
     SelectSelector,
@@ -51,6 +56,9 @@ from .const import (
     CONF_DEBUG_MQTT_MSG,
     CONF_DRYING_PRESET_DURATION_,
     CONF_DRYING_PRESET_TEMPERATURE_,
+    CONF_ELECTRICITY_PRICE,
+    CONF_ELECTRICITY_PRICE_ENTITY,
+    CONF_ENERGY_SENSOR,
     CONF_LAN_HOST,
     CONF_LAN_MODE_ENABLED,
     CONF_MQTT_CONNECT_MODE,
@@ -1060,6 +1068,7 @@ class AnycubicCloudOptionsFlowHandler(OptionsFlow):
         menu_options = list([
             "mqtt",
             "local",
+            "energy",
             "card_config",
             "debug",
         ])
@@ -1149,6 +1158,43 @@ class AnycubicCloudOptionsFlowHandler(OptionsFlow):
                 ): cv.string,
             }),
             errors=errors,
+        )
+
+    async def async_step_energy(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Point the integration at the printer's energy meter (discussion #46)."""
+        if user_input is not None:
+            # A cleared selector is simply absent from the input; store it as
+            # cleared rather than keeping the old value.
+            return self.async_create_entry_with_existing_options({
+                CONF_ENERGY_SENSOR: user_input.get(CONF_ENERGY_SENSOR) or None,
+                CONF_ELECTRICITY_PRICE: float(user_input.get(CONF_ELECTRICITY_PRICE) or 0.0),
+                CONF_ELECTRICITY_PRICE_ENTITY: user_input.get(CONF_ELECTRICITY_PRICE_ENTITY) or None,
+            })
+
+        options = self.entry.options
+        return self.async_show_form(
+            step_id="energy",
+            data_schema=vol.Schema({
+                vol.Optional(
+                    CONF_ENERGY_SENSOR,
+                    description={"suggested_value": options.get(CONF_ENERGY_SENSOR)},
+                ): EntitySelector(EntitySelectorConfig(domain="sensor", device_class="energy")),
+                vol.Optional(
+                    CONF_ELECTRICITY_PRICE,
+                    default=float(options.get(CONF_ELECTRICITY_PRICE) or 0.0),
+                ): NumberSelector(
+                    NumberSelectorConfig(min=0, step="any", mode=NumberSelectorMode.BOX)
+                ),
+                vol.Optional(
+                    CONF_ELECTRICITY_PRICE_ENTITY,
+                    description={"suggested_value": options.get(CONF_ELECTRICITY_PRICE_ENTITY)},
+                ): EntitySelector(
+                    EntitySelectorConfig(domain=["sensor", "input_number", "number"])
+                ),
+            }),
+            errors={},
         )
 
     async def async_step_drying(

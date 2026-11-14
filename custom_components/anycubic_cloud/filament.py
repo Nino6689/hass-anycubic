@@ -120,11 +120,77 @@ def slot_shares(paint_infos: list[dict[str, Any]] | None) -> dict[int, float]:
     return {index: value / total for index, value in weights.items()}
 
 
+def _same_colour(a: Any, b: Any) -> bool:
+    if not isinstance(a, (list, tuple)) or not isinstance(b, (list, tuple)):
+        return False
+    if len(a) < 3 or len(b) < 3:
+        return False
+    return [int(x) for x in a[:3]] == [int(x) for x in b[:3]]
+
+
+def _same_material(a: Any, b: Any) -> bool:
+    """Both named and equal, ignoring case and the stray ';' some reports carry."""
+    if not a or not b:
+        return True
+    return str(a).strip(" ;").upper() == str(b).strip(" ;").upper()
+
+
+def map_paints_to_slots(
+    paint_infos: list[dict[str, Any]] | None,
+    slot_colours: dict[int, Any] | None,
+    slot_materials: dict[int, str | None] | None = None,
+) -> dict[int, int] | None:
+    """Which ACE slot fed each of a job's materials, by colour and material.
+
+    A multi-colour job reports its materials by ``paint_index`` -- their
+    position in the slicer's list -- not by the ACE slot that fed them. That
+    only coincides when the file's colours happen to sit in slot order; when
+    they don't, the grams went to the wrong reels (#47). The slicer maps each
+    material to the slot holding that colour, so the same match recovers it.
+
+    Returns ``{paint_index: slot_index}`` only when every material matches
+    exactly one slot and no two share a slot; otherwise None, and the caller
+    keeps the old reading rather than guess.
+    """
+    if not paint_infos or not slot_colours:
+        return None
+
+    materials = slot_materials or {}
+    mapping: dict[int, int] = {}
+
+    for entry in paint_infos:
+        if not isinstance(entry, dict):
+            continue
+        index = entry.get("paint_index")
+        used = entry.get("filament_used")
+        if not isinstance(index, int) or not isinstance(used, (int, float)) or used <= 0:
+            continue
+
+        candidates = [
+            slot
+            for slot, colour in slot_colours.items()
+            if _same_colour(colour, entry.get("paint_color"))
+            and _same_material(materials.get(slot), entry.get("material_type"))
+        ]
+        if len(candidates) > 1 and index in candidates:
+            # Two reels of the same colour: the slicer's order is the tiebreak.
+            candidates = [index]
+        if len(candidates) != 1:
+            return None
+        mapping[index] = candidates[0]
+
+    if not mapping or len(set(mapping.values())) != len(mapping):
+        return None
+
+    return mapping
+
+
 def attribute_job_to_slots(
     supplies_usage_mm: float | None,
     paint_infos: list[dict[str, Any]] | None,
     slot_materials: dict[int, str | None] | None = None,
     loaded_slot: int | None = None,
+    slot_colours: dict[int, Any] | None = None,
 ) -> dict[int, float]:
     """Split one job's real filament use between the slots that supplied it.
 
@@ -145,6 +211,14 @@ def attribute_job_to_slots(
     # printer reports as feeding is both simpler and correct.
     if len(shares) <= 1 and loaded_slot is not None and loaded_slot >= 0:
         shares = {loaded_slot: 1.0}
+
+    elif len(shares) > 1:
+        # Several materials: put each on the slot holding its colour, when
+        # that is unambiguous. Otherwise paint_index stands in for the slot,
+        # as it always has.
+        mapping = map_paints_to_slots(paint_infos, slot_colours, materials)
+        if mapping is not None:
+            shares = {mapping[index]: share for index, share in shares.items() if index in mapping}
 
     if not shares:
         # Nothing to go on: no breakdown, and no idea which slot was loaded.

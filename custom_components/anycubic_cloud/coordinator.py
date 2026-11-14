@@ -13,7 +13,10 @@ from aiohttp import CookieJar
 from anycubic_cloud_api.anycubic_api import AnycubicMQTTAPI as AnycubicAPI
 from anycubic_cloud_api.const.regions import AnycubicRegion
 from anycubic_cloud_api.data_models.consumable import AnycubicConsumableData
-from anycubic_cloud_api.data_models.orders import AnycubicShengwangCredentials
+from anycubic_cloud_api.data_models.orders import (
+    AnycubicKvsCredentials,
+    AnycubicShengwangCredentials,
+)
 from anycubic_cloud_api.data_models.printer import AnycubicPrinter
 from anycubic_cloud_api.data_models.printer_properties import (
     SPOOL_EDIT_STATUS_EMPTY,
@@ -29,6 +32,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import (
     CoreState,
+    Event,
+    EventStateChangedData,
     HomeAssistant,
     callback,
 )
@@ -44,6 +49,7 @@ from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo, DeviceRegistry
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .config_flow import region_from_entry_data
@@ -57,12 +63,17 @@ from .const import (
     ATTR_DRYING_DURATION,
     ATTR_DRYING_SETTINGS,
     ATTR_DRYING_TEMPERATURE,
+    ATTR_ENERGY,
     ATTR_FEEDING_MM,
     ATTR_FEEDING_SLOT,
     ATTR_FILAMENT_USED_G,
+    ATTR_JOB_ELECTRICITY_COST,
+    ATTR_JOB_KWH,
     ATTR_LAST_JOB_COST,
+    ATTR_LAST_JOB_ELECTRICITY_COST,
     ATTR_LAST_JOB_GRAMS,
     ATTR_LAST_JOB_ID,
+    ATTR_LAST_JOB_KWH,
     ATTR_LIGHT_TYPES,
     ATTR_MATERIAL_TOTALS,
     ATTR_NOZZLE,
@@ -78,6 +89,9 @@ from .const import (
     CONF_DEBUG_API_CALLS,
     CONF_DEBUG_DEPRECATED,
     CONF_DEBUG_MQTT_MSG,
+    CONF_ELECTRICITY_PRICE,
+    CONF_ELECTRICITY_PRICE_ENTITY,
+    CONF_ENERGY_SENSOR,
     CONF_LAN_HOST,
     CONF_LAN_MODE_ENABLED,
     CONF_MQTT_CONNECT_MODE,
@@ -108,6 +122,7 @@ from .const import (
     TOOL_URL_WINDOWS,
     TOOLS_URL,
 )
+from .energy import add_costs, energy_step_kwh, price_per_kwh
 from .filament import (
     DEFAULT_SPOOL_WEIGHT_G,
     JOB_HISTORY_SAMPLES,
@@ -633,6 +648,7 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         states.update(self._forecast_states(printer, primary_ace_spool_info))
         states.update(self._totals_states(printer))
+        states.update(self._energy_states(printer, states.get("last_job_cost")))
 
         external_shelves = safe_external_shelves(printer)
 
@@ -1657,11 +1673,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def async_open_cloud_camera(
         self,
         printer_id: int,
-    ) -> AnycubicShengwangCredentials:
-        """Ask the cloud for a fresh Agora session for this printer.
+    ) -> AnycubicShengwangCredentials | AnycubicKvsCredentials:
+        """Ask the cloud for a fresh camera session for this printer.
 
-        Issuing the order is also what makes the printer join the channel and
-        start publishing, so there is no separate start command on this path.
+        Issuing the order is also what makes the printer start publishing, so
+        there is no separate start command on this path. Most accounts get
+        Agora credentials; some get Kinesis Video ones instead (#49).
 
         The credentials are single use -- ``client_uid`` is issued fresh every
         time -- so this is called per viewing session and never cached.
@@ -1673,15 +1690,19 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 f"Anycubic printer {printer_id} is not loaded."
             )
 
+        # So the session waits for this order's push report, not an old one.
+        printer.clear_camera_push_state()
+
         credentials = await self.anycubic_api.send_anycubic_camera_open_order(
             printer=printer,
         )
 
-        if credentials is None:
-            # Two different causes, and the cloud reports neither: it answers
-            # "Operation successful" with the block missing either way. The
-            # library already retried behind a fresh login, so a session taken
-            # by the slicer or the phone app has been ruled out by this point.
+        if not isinstance(
+            credentials, (AnycubicShengwangCredentials, AnycubicKvsCredentials)
+        ):
+            # The cloud answers "Operation successful" with neither transport
+            # in it. The library already retried behind a fresh login, so a
+            # session taken by the slicer or the phone app is unlikely by now.
             raise HomeAssistantError(
                 f"Anycubic returned no camera credentials for printer "
                 f"{printer_id}. Either the printer has no camera, or another "
@@ -2523,6 +2544,11 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             paint_infos=paint_infos,
             slot_materials=materials,
             loaded_slot=loaded_slot,
+            slot_colours={
+                index: spool.get("color")
+                for index, spool in enumerate(spools)
+                if spool.get("edit_status") != SPOOL_EDIT_STATUS_EMPTY
+            },
         )
 
         # Record the job either way, so an unattributable one isn't retried
@@ -2685,6 +2711,116 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 float(totals.get(ATTR_COST_TOTAL, 0.0)) + job_cost, 2
             )
 
+    # --------------------------------------------------------- electricity
+
+    @property
+    def energy_tracking_enabled(self) -> bool:
+        """Whether the user has pointed the integration at an energy meter."""
+        return bool(self.entry.options.get(CONF_ENERGY_SENSOR))
+
+    @callback
+    def async_start_energy_tracking(self) -> Callable[[], None] | None:
+        """Follow the energy meter, if one is configured. Returns the unsubscriber."""
+        sensor = self.entry.options.get(CONF_ENERGY_SENSOR)
+        if not sensor:
+            return None
+        return async_track_state_change_event(
+            self.hass, [sensor], self._async_on_energy_change
+        )
+
+    def _electricity_price(self) -> float | None:
+        entity_id = self.entry.options.get(CONF_ELECTRICITY_PRICE_ENTITY)
+        state = self.hass.states.get(entity_id) if entity_id else None
+        return price_per_kwh(state, self.entry.options.get(CONF_ELECTRICITY_PRICE))
+
+    @callback
+    def _async_on_energy_change(self, event: Event[EventStateChangedData]) -> None:
+        """Charge a rise in the meter to the job that is printing.
+
+        Only while exactly one printer on this entry is printing -- with two at
+        once the meter can't say which drew what, and guessing would be wrong.
+        """
+        step = energy_step_kwh(event.data["old_state"], event.data["new_state"])
+        if step is None:
+            return
+
+        printing = [
+            printer
+            for printer in self._anycubic_printers.values()
+            if printer.latest_project_print_in_progress
+        ]
+        if len(printing) != 1:
+            return
+
+        energy = self._printer_filament_state(printing[0].id).setdefault(ATTR_ENERGY, {})
+        energy[ATTR_JOB_KWH] = round(float(energy.get(ATTR_JOB_KWH, 0.0)) + step, 4)
+
+        price = self._electricity_price()
+        if price is not None:
+            energy[ATTR_JOB_ELECTRICITY_COST] = round(
+                float(energy.get(ATTR_JOB_ELECTRICITY_COST, 0.0)) + step * price, 4
+            )
+
+        # Kept across a restart mid-print, without writing on every reading.
+        async_filament_store(self.hass, self.entry.entry_id).async_delay_save(
+            lambda: self._filament, 60
+        )
+
+    def _finish_job_energy(self, printer: AnycubicPrinter) -> bool:
+        """Once a job is over, its electricity becomes the last job's."""
+        if printer.latest_project_print_in_progress:
+            return False
+
+        energy = self._printer_filament_state(printer.id).get(ATTR_ENERGY)
+        if not energy or ATTR_JOB_KWH not in energy:
+            return False
+
+        energy[ATTR_LAST_JOB_KWH] = round(float(energy.pop(ATTR_JOB_KWH)), 3)
+        cost = energy.pop(ATTR_JOB_ELECTRICITY_COST, None)
+        energy[ATTR_LAST_JOB_ELECTRICITY_COST] = (
+            round(float(cost), 2) if cost is not None else None
+        )
+        return True
+
+    def _energy_states(
+        self,
+        printer: AnycubicPrinter,
+        last_job_filament_cost: float | None,
+    ) -> dict[str, Any]:
+        if not self.energy_tracking_enabled:
+            return {
+                "job_energy": None,
+                "job_electricity_cost": None,
+                "last_job_energy": None,
+                "last_job_electricity_cost": None,
+                "last_job_total_cost": None,
+            }
+
+        energy = self._printer_filament_state(printer.id).get(ATTR_ENERGY) or {}
+        printing = bool(printer.latest_project_print_in_progress)
+        job_cost = energy.get(ATTR_JOB_ELECTRICITY_COST)
+        last_cost = energy.get(ATTR_LAST_JOB_ELECTRICITY_COST)
+
+        return {
+            # Zero from the moment a job starts, so the sensor reads "nothing
+            # yet" rather than unknown before the meter first moves.
+            "job_energy": (
+                round(float(energy.get(ATTR_JOB_KWH, 0.0)), 3) if printing else None
+            ),
+            "job_electricity_cost": (
+                round(float(job_cost), 2)
+                if printing and job_cost is not None
+                else (0.0 if printing and self._electricity_price() is not None else None)
+            ),
+            "last_job_energy": energy.get(ATTR_LAST_JOB_KWH),
+            "last_job_electricity_cost": last_cost,
+            "last_job_total_cost": (
+                add_costs(last_job_filament_cost, last_cost)
+                if ATTR_LAST_JOB_KWH in energy
+                else None
+            ),
+        }
+
     def _remember_feeding_slot(self, printer: AnycubicPrinter) -> bool:
         """Note which slot is feeding while a job runs.
 
@@ -2764,6 +2900,14 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     changed = True
             except Exception as error:  # noqa: BLE001 - an estimate must never break a refresh
                 LOGGER.debug("Filament estimate skipped for this refresh: %s", error)
+
+            # Separately: a job's electricity is booked whether or not its
+            # filament could be attributed.
+            try:
+                if self._finish_job_energy(printer):
+                    changed = True
+            except Exception as error:  # noqa: BLE001 - never break a refresh
+                LOGGER.debug("Job energy not booked this refresh: %s", error)
 
         if changed:
             await self._async_save_filament()
