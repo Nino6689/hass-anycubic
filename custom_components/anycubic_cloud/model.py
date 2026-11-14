@@ -1079,7 +1079,6 @@ class Printer:
         cloud = self._cloud()
         unit = cloud.ace_unit(index) if cloud is not None else None
         feed_status: Any = box.feed_status
-        humidity = self.ace_humidity(index) or 0
         if unit is not None:
             feed = unit.feed_status
             feed_status = {
@@ -1093,7 +1092,7 @@ class Printer:
             "model_id": box.model_id,
             "status": box.status,
             "temperature": box.temp,
-            "humidity": humidity,
+            "humidity": self.ace_humidity(index),  # null until real (D25)
             "auto_feed": bool(box.auto_feed),
             "loaded_slot": loaded + 1 if loaded is not None else None,
             "feed_status": feed_status,

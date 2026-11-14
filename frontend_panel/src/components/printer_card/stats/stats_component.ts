@@ -298,8 +298,13 @@ export class AnycubicPrintercardStatsComponent extends LitElement {
         ).state,
       );
       this._valDryRemain = !isNaN(dryRemain) ? `${dryRemain} Mins` : "";
+      // Elapsed, so the bar fills as drying goes on -- like the print
+      // progress bar and the panel. It used to show the time remaining, a
+      // nearly full bar 7 minutes into a 6-hour dry (#33).
       this._valDryProgress =
-        !isNaN(dryTotal) && dryTotal > 0 ? (dryRemain / dryTotal) * 100 : 0;
+        !isNaN(dryTotal) && dryTotal > 0 && !isNaN(dryRemain)
+          ? Math.min(100, Math.max(0, (1 - dryRemain / dryTotal) * 100))
+          : 0;
       this._valOnTime = getPrinterSensorStateObj(
         this.hass,
         this.printerEntities,
