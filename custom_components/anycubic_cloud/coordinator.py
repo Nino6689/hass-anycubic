@@ -645,6 +645,12 @@ class AnycubicCloudDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             states[f"ace_slot_{slot_num}_filament_remaining_percent"] = (
                 remaining_percent(spool_weight, used) if spool else None
             )
+            # What has come off this reel so far: the counter the remaining
+            # figure is worked out from, for inventory tools such as Spoolman
+            # (#31). It belongs to the reel, so it restarts at a new spool.
+            states[f"ace_slot_{slot_num}_filament_used"] = (
+                round(used, 1) if spool else None
+            )
 
         states.update(self._forecast_states(printer, primary_ace_spool_info))
         states.update(self._totals_states(printer))

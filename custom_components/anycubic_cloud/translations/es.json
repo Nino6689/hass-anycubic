@@ -387,6 +387,9 @@
       "ace_slot_1_filament_remaining_percent": {
         "name": "Porcentaje de filamento restante ranura 1 del ACE"
       },
+      "ace_slot_1_filament_used": {
+        "name": "Filamento usado ranura 1 del ACE"
+      },
       "ace_slot_2": {
         "name": "Ranura 2 del ACE"
       },
@@ -395,6 +398,9 @@
       },
       "ace_slot_2_filament_remaining_percent": {
         "name": "Porcentaje de filamento restante ranura 2 del ACE"
+      },
+      "ace_slot_2_filament_used": {
+        "name": "Filamento usado ranura 2 del ACE"
       },
       "ace_slot_3": {
         "name": "Ranura 3 del ACE"
@@ -405,6 +411,9 @@
       "ace_slot_3_filament_remaining_percent": {
         "name": "Porcentaje de filamento restante ranura 3 del ACE"
       },
+      "ace_slot_3_filament_used": {
+        "name": "Filamento usado ranura 3 del ACE"
+      },
       "ace_slot_4": {
         "name": "Ranura 4 del ACE"
       },
@@ -413,6 +422,9 @@
       },
       "ace_slot_4_filament_remaining_percent": {
         "name": "Porcentaje de filamento restante ranura 4 del ACE"
+      },
+      "ace_slot_4_filament_used": {
+        "name": "Filamento usado ranura 4 del ACE"
       },
       "ace_spools": {
         "name": "Bobinas del ACE"

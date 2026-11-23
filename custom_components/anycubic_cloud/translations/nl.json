@@ -387,6 +387,9 @@
       "ace_slot_1_filament_remaining_percent": {
         "name": "ACE slot 1 filament resterend percentage"
       },
+      "ace_slot_1_filament_used": {
+        "name": "ACE slot 1 filament verbruikt"
+      },
       "ace_slot_2": {
         "name": "ACE slot 2"
       },
@@ -395,6 +398,9 @@
       },
       "ace_slot_2_filament_remaining_percent": {
         "name": "ACE slot 2 filament resterend percentage"
+      },
+      "ace_slot_2_filament_used": {
+        "name": "ACE slot 2 filament verbruikt"
       },
       "ace_slot_3": {
         "name": "ACE slot 3"
@@ -405,6 +411,9 @@
       "ace_slot_3_filament_remaining_percent": {
         "name": "ACE slot 3 filament resterend percentage"
       },
+      "ace_slot_3_filament_used": {
+        "name": "ACE slot 3 filament verbruikt"
+      },
       "ace_slot_4": {
         "name": "ACE slot 4"
       },
@@ -413,6 +422,9 @@
       },
       "ace_slot_4_filament_remaining_percent": {
         "name": "ACE slot 4 filament resterend percentage"
+      },
+      "ace_slot_4_filament_used": {
+        "name": "ACE slot 4 filament verbruikt"
       },
       "ace_spools": {
         "name": "ACE-spoelen"

@@ -387,6 +387,9 @@
       "ace_slot_1_filament_remaining_percent": {
         "name": "ACE slot 1 filament remaining percent"
       },
+      "ace_slot_1_filament_used": {
+        "name": "ACE slot 1 filament used"
+      },
       "ace_slot_2": {
         "name": "ACE Slot 2"
       },
@@ -395,6 +398,9 @@
       },
       "ace_slot_2_filament_remaining_percent": {
         "name": "ACE slot 2 filament remaining percent"
+      },
+      "ace_slot_2_filament_used": {
+        "name": "ACE slot 2 filament used"
       },
       "ace_slot_3": {
         "name": "ACE Slot 3"
@@ -405,6 +411,9 @@
       "ace_slot_3_filament_remaining_percent": {
         "name": "ACE slot 3 filament remaining percent"
       },
+      "ace_slot_3_filament_used": {
+        "name": "ACE slot 3 filament used"
+      },
       "ace_slot_4": {
         "name": "ACE Slot 4"
       },
@@ -413,6 +422,9 @@
       },
       "ace_slot_4_filament_remaining_percent": {
         "name": "ACE slot 4 filament remaining percent"
+      },
+      "ace_slot_4_filament_used": {
+        "name": "ACE slot 4 filament used"
       },
       "ace_spools": {
         "name": "ACE Spools"

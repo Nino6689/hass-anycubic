@@ -154,6 +154,22 @@ PRIMARY_MULTI_COLOR_BOX_SENSOR_TYPES: list[AnycubicSensorEntityDescription] = li
         )
         for slot_num in range(1, ACE_SLOT_COUNT + 1)
     ],
+    # The grams charged to the reel in a slot so far. Steps once when a job
+    # finishes, and drops back when the slot gets a different reel -- which
+    # total-increasing statistics read as a meter reset, as they should.
+    *[
+        AnycubicSensorEntityDescription(
+            key=f"ace_slot_{slot_num}_filament_used",
+            translation_key=f"ace_slot_{slot_num}_filament_used",
+            printer_entity_type=PrinterEntityType.ACE_PRIMARY,
+            native_unit_of_measurement=UnitOfMass.GRAMS,
+            device_class=SensorDeviceClass.WEIGHT,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            suggested_display_precision=1,
+            entity_registry_enabled_default=False,
+        )
+        for slot_num in range(1, ACE_SLOT_COUNT + 1)
+    ],
     *[
         AnycubicSensorEntityDescription(
             key=f"ace_slot_{slot_num}_filament_remaining_percent",
