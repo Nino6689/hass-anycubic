@@ -13,7 +13,7 @@ from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, Device
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, MANUFACTURER
+from .const import DOMAIN, FEEDER_MODEL, FEEDER_NAME_SUFFIX, MANUFACTURER
 from .coordinator import AnycubicCoordinator, AnycubicRuntime
 from .identity import ace_identifier, printer_identifier
 from .model import MATERIAL_FILAMENT, MATERIAL_RESIN
@@ -69,6 +69,9 @@ class AnycubicEntityDescription(EntityDescription):
     ready_fn: Callable[[Printer], bool] | None = None
     """Kept pending until this holds, e.g. a sensor created on its first
     non-zero reading (Beta 4, D21-D23)."""
+    entry_ready_fn: Callable[[AnycubicCoordinator], bool] | None = None
+    """As ``ready_fn``, for what the entry rather than the printer knows,
+    e.g. the electricity of a job (Beta 6, D31)."""
 
 
 def device_info(coordinator: AnycubicCoordinator, device: Device) -> DeviceInfo:
@@ -91,7 +94,18 @@ def device_info(coordinator: AnycubicCoordinator, device: Device) -> DeviceInfo:
         return info
     box = 0 if device is Device.ACE1 else 1
     model = printer.ace_model(box)
-    name = f"{identity.name} {model}" if box == 0 else f"{identity.name} {model} 2"
+    if printer.has_feeder_box:
+        # Kobra X: box 0 is its own feeder, the ACE behind it is named by its
+        # model alone (Beta 6, D30). The identifiers stay.
+        if box == 0:
+            model = FEEDER_MODEL
+            name = f"{identity.name} {FEEDER_NAME_SUFFIX}"
+        else:
+            name = f"{identity.name} {model}"
+    elif box == 0:
+        name = f"{identity.name} {model}"
+    else:
+        name = f"{identity.name} {model} 2"
     info = DeviceInfo(
         identifiers={ace_identifier(entry, printer_id, box)},
         manufacturer=MANUFACTURER,
@@ -180,6 +194,10 @@ def description_ready(
             and coordinator.drying_preset(description.preset) is None
         ):
             return False
+    if description.entry_ready_fn is not None and not description.entry_ready_fn(
+        coordinator
+    ):
+        return False
     return description.ready_fn is None or description.ready_fn(printer)
 
 

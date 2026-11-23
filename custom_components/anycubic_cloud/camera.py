@@ -7,9 +7,11 @@ capturing (DECISIONS V15). A Kobra X or a Kobra 4 (Beta 2, D7) answers the
 stream with HTTP 206, which stream readers refuse; its stream is relayed
 through a Home Assistant endpoint that answers 200 (B25).
 
-``cloud_camera``: the cloud camera, Agora WebRTC. The browser is the WebRTC
-peer; Home Assistant only relays signalling through anycubic-cloud-client's
-Agora client (adapted from the MIT ``homeassistant_petkit``, DECISIONS V8).
+``cloud_camera``: the cloud camera, Agora WebRTC, or Amazon Kinesis Video
+WebRTC for accounts whose camera order returns AWS credentials only (Beta 6,
+D27). The browser is the WebRTC peer; Home Assistant only relays signalling
+through anycubic-cloud-client's Agora client (adapted from the MIT
+``homeassistant_petkit``, DECISIONS V8) or its Kinesis Video viewer.
 Each viewing session asks the cloud for fresh single-use credentials. No
 video passes through Home Assistant, so the still is a fixed placeholder.
 """
@@ -28,8 +30,13 @@ from anycubic_cloud_client import (
     AgoraCameraSession,
     AgoraError,
     AnycubicCloudError,
+    IceCandidate,
+    KinesisCredentials,
+    KinesisError,
+    KinesisViewerSession,
     NoCameraCredentialsError,
 )
+from anycubic_cloud_client.client import INCOMPLETE_CAMERA_MESSAGE
 from anycubic_lan import AnycubicLanError
 from homeassistant.components.camera import (
     Camera,
@@ -38,6 +45,7 @@ from homeassistant.components.camera import (
 )
 from homeassistant.components.camera.webrtc import (
     WebRTCAnswer,
+    WebRTCCandidate,
     WebRTCError,
     WebRTCSendMessage,
 )
@@ -45,6 +53,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.http import KEY_HASS, HomeAssistantView
 from homeassistant.helpers.network import NoURLAvailableError, get_url
+from webrtc_models import RTCIceCandidateInit
 
 from .const import CAMERA_PARTIAL_CONTENT_MODELS, DOMAIN
 from .entity import AnycubicEntity, AnycubicEntityDescription, async_add_when_ready
@@ -54,7 +63,6 @@ from .redact import redact_text
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-    from webrtc_models import RTCIceCandidateInit
 
     from .coordinator import AnycubicConfigEntry, AnycubicCoordinator
 
@@ -164,7 +172,8 @@ class PrinterCamera(AnycubicEntity, Camera):
 
 
 class CloudCamera(AnycubicEntity, Camera):
-    """The cloud camera: WebRTC signalling relayed to Agora (PROTOCOL D §1)."""
+    """The cloud camera: WebRTC signalling relayed to Agora (PROTOCOL D §1)
+    or to Amazon Kinesis Video (Beta 6, D27)."""
 
     entity_description: AnycubicCameraDescription
     _attr_supported_features = CameraEntityFeature.STREAM
@@ -174,8 +183,8 @@ class CloudCamera(AnycubicEntity, Camera):
     ) -> None:
         AnycubicEntity.__init__(self, coordinator, description)
         Camera.__init__(self)
-        self._sessions: dict[str, AgoraCameraSession] = {}
-        self._early_candidates: dict[str, list[str]] = {}
+        self._sessions: dict[str, AgoraCameraSession | KinesisViewerSession] = {}
+        self._early_candidates: dict[str, list[RTCIceCandidateInit]] = {}
 
     @property
     def available(self) -> bool:
@@ -196,27 +205,39 @@ class CloudCamera(AnycubicEntity, Camera):
     async def async_handle_async_webrtc_offer(
         self, offer_sdp: str, session_id: str, send_message: WebRTCSendMessage
     ) -> None:
-        """Fresh credentials for every session (never cached), then the
-        answer from Agora's edge (PROTOCOL D §1.3-§1.7)."""
+        """Fresh credentials for every session (never cached), then Agora's
+        answer, or the printer's answer over Kinesis Video when the order
+        returned AWS credentials only (PROTOCOL D §1.3-§1.7; D27)."""
         coordinator = self.coordinator
         account = coordinator.runtime.cloud
         client = account.client if account is not None else None
         if client is None:
             send_message(WebRTCError("unavailable", "The Anycubic cloud is not set up"))
             return
+        cloud = self.printer.cloud
+        if cloud is not None:
+            cloud.video_state = None  # a new order: forget the last state (D28)
         try:
-            credentials = await client.open_camera(coordinator.printer_id)
-        except NoCameraCredentialsError:
-            send_message(
-                WebRTCError(
-                    "no_camera",
-                    "The printer has no camera, or another Anycubic session "
-                    "(slicer or phone app) holds the camera. Close it and retry.",
+            credentials = await client.open_camera_stream(coordinator.printer_id)
+        except NoCameraCredentialsError as err:
+            if str(err) == INCOMPLETE_CAMERA_MESSAGE:
+                message = (
+                    "The Anycubic cloud answered the camera request with "
+                    "incomplete credentials. Retry later."
                 )
-            )
+            else:
+                message = (
+                    "The Anycubic cloud returned no camera credentials: the "
+                    "printer has no camera, or another Anycubic session (slicer "
+                    "or phone app) holds the camera. Close it and retry."
+                )
+            send_message(WebRTCError("no_camera", message))
             return
         except AnycubicCloudError as err:
-            send_message(WebRTCError("cloud_error", str(err)))
+            send_message(WebRTCError("cloud_error", redact_text(str(err))))
+            return
+        if isinstance(credentials, KinesisCredentials):
+            await self._async_kinesis(credentials, offer_sdp, session_id, send_message)
             return
         # No key is passed: the library supplies Agora's public SDK key for
         # encrypted channels itself (its acceptance L3; ours X3).
@@ -225,8 +246,8 @@ class CloudCamera(AnycubicEntity, Camera):
             credentials,
             on_close=lambda _reason: self._forget(session_id),
         )
-        for candidate in self._early_candidates.pop(session_id, []):
-            session.add_ice_candidate(candidate)
+        for early in self._early_candidates.pop(session_id, []):
+            session.add_ice_candidate(early.candidate)
         self._sessions[session_id] = session
         try:
             answer = await session.answer(offer_sdp, session_id)
@@ -240,21 +261,87 @@ class CloudCamera(AnycubicEntity, Camera):
             return
         send_message(WebRTCAnswer(answer))
 
+    async def _async_kinesis(
+        self,
+        credentials: KinesisCredentials,
+        offer_sdp: str,
+        session_id: str,
+        send_message: WebRTCSendMessage,
+    ) -> None:
+        """Broker the signalling with the printer over Kinesis Video (D27).
+
+        The answer and the printer's candidates go back to the browser as
+        they arrive; no video passes through Home Assistant.
+        """
+        coordinator = self.coordinator
+        printer = self.printer
+        channel = printer.identity.key
+        if not channel:
+            send_message(
+                WebRTCError(
+                    "no_camera", "The printer's cloud key is not known yet. Retry."
+                )
+            )
+            return
+
+        def on_candidate(candidate: IceCandidate) -> None:
+            send_message(
+                WebRTCCandidate(
+                    RTCIceCandidateInit(
+                        candidate.candidate,
+                        sdp_mid=candidate.sdp_mid,
+                        sdp_m_line_index=candidate.sdp_mline_index,
+                    )
+                )
+            )
+
+        def on_error(message: str) -> None:
+            send_message(
+                WebRTCError(
+                    "kinesis_error",
+                    f"Could not open the Anycubic cloud camera: {message}",
+                )
+            )
+
+        cloud = printer.cloud
+        session = KinesisViewerSession(
+            async_get_clientsession(self.hass),
+            credentials,
+            channel,
+            on_answer=lambda sdp: send_message(WebRTCAnswer(sdp)),
+            on_candidate=on_candidate,
+            on_error=on_error,
+            on_close=lambda _reason: self._forget(session_id),
+            video_state=cloud.video_state if cloud is not None else None,
+        )
+        for early in self._early_candidates.pop(session_id, []):
+            session.add_ice_candidate(_ice(early))
+        self._sessions[session_id] = session
+        coordinator.video_listeners.add(session.notify_video_state)
+        try:
+            await session.start(offer_sdp)
+        except KinesisError as err:
+            self._forget(session_id)
+            on_error(str(err))
+
     async def async_on_webrtc_candidate(
         self, session_id: str, candidate: RTCIceCandidateInit
     ) -> None:
-        """Kept before the join, dropped after it: the gateway is ICE-lite."""
-        text = candidate.candidate
+        """Agora: kept before the join, dropped after it (the gateway is
+        ICE-lite). Kinesis Video: sent to the printer once the offer is out."""
         session = self._sessions.get(session_id)
-        if session is not None:
-            session.add_ice_candidate(text)
+        if isinstance(session, KinesisViewerSession):
+            session.add_ice_candidate(_ice(candidate))
+        elif session is not None:
+            session.add_ice_candidate(candidate.candidate)
         else:
-            self._early_candidates.setdefault(session_id, []).append(text)
+            self._early_candidates.setdefault(session_id, []).append(candidate)
 
     @callback
     def close_webrtc_session(self, session_id: str) -> None:
         self._early_candidates.pop(session_id, None)
-        session = self._sessions.pop(session_id, None)
+        session = self._sessions.get(session_id)
+        self._forget(session_id)
         if session is not None:
             self.hass.async_create_background_task(
                 session.close(), "anycubic_cloud camera close"
@@ -262,13 +349,23 @@ class CloudCamera(AnycubicEntity, Camera):
 
     @callback
     def _forget(self, session_id: str) -> None:
-        self._sessions.pop(session_id, None)
+        session = self._sessions.pop(session_id, None)
+        if isinstance(session, KinesisViewerSession):
+            self.coordinator.video_listeners.discard(session.notify_video_state)
 
     async def async_will_remove_from_hass(self) -> None:
         sessions, self._sessions = list(self._sessions.values()), {}
         for session in sessions:
+            if isinstance(session, KinesisViewerSession):
+                self.coordinator.video_listeners.discard(session.notify_video_state)
             await session.close()
         await super().async_will_remove_from_hass()
+
+
+def _ice(candidate: RTCIceCandidateInit) -> IceCandidate:
+    return IceCandidate(
+        candidate.candidate, candidate.sdp_mid, candidate.sdp_m_line_index
+    )
 
 
 class CameraRelayView(HomeAssistantView):

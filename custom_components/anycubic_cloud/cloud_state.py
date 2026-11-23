@@ -18,6 +18,7 @@ from anycubic_cloud_client import (
     FirmwareReport,
     OnlineUpdate,
     PrintUpdate,
+    VideoUpdate,
     WorkStatusUpdate,
 )
 from anycubic_lan import FeedSource, FilamentFeed, Job, PrintStatus
@@ -178,6 +179,8 @@ def apply_message(printer: Printer, message: CloudMessage) -> MessageOutcome:
             printer.note_feed(
                 FilamentFeed(FeedSource.CURRENT_FILAMENT, update.slot, box=update.box)
             )
+    elif isinstance(update, VideoUpdate):
+        cloud.video_state = update.state  # the camera reads it (D28)
     elif isinstance(update, FirmwareReport):
         progress = (
             cloud.ace_progress(update.box_index) if update.is_ace else cloud.firmware
@@ -196,6 +199,15 @@ def _apply_print(printer: Printer, cloud: CloudData, update: PrintUpdate) -> Non
         cloud.work_status = int(update.work_status)
     if update.download_progress is not None:
         cloud.download_progress = update.download_progress
+    if update.slice_param is not None:
+        # A ``getSliceParam`` reply: its breakdown serves the job it names,
+        # or, when it names none, the job running now and no later one
+        # (Beta 6, D26).
+        cloud.slice_param = update.slice_param
+        task = update.task_id
+        if task is None or task < 0:
+            task = printer.job_task_id
+        cloud.slice_param_task = task
     state = printer.state
     job_id = printer.job_task_id
     # Job fields only for the known job; a report for another task waits for

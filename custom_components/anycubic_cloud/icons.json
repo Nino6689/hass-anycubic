@@ -156,6 +156,21 @@
       },
       "print_time_total_hrs": {
         "default": "mdi:clock-outline"
+      },
+      "job_energy": {
+        "default": "mdi:lightning-bolt"
+      },
+      "last_job_energy": {
+        "default": "mdi:lightning-bolt-outline"
+      },
+      "job_electricity_cost": {
+        "default": "mdi:cash"
+      },
+      "last_job_electricity_cost": {
+        "default": "mdi:cash"
+      },
+      "last_job_total_cost": {
+        "default": "mdi:cash-multiple"
       }
     },
     "binary_sensor": {

@@ -107,6 +107,9 @@ class _RunningJob:
     length: float | None
     shares: dict[int, float] = field(default_factory=dict)
     """The cloud job's split between colours, when it has several."""
+    slot_map: dict[int, int] | None = None
+    """``{paint_index: slot}`` by colour and material, when the job's
+    materials matched the ACE's slots one to one while it ran (Beta 6, D29)."""
     fed: dict[int, float] = field(default_factory=dict)
     """Millimetres each slot (0-based) fed while the length rose (Beta 4, D24)."""
     slot: int | None = None
@@ -382,7 +385,11 @@ class FilamentLedger:
             elif job_id is not None and running.job_id is None:
                 running.job_id = job_id  # the number arrived later (G9)
             if shares := printer.job_paint_shares:
+                if shares.keys() != running.shares.keys():
+                    running.slot_map = None  # another breakdown: match afresh
                 running.shares = shares
+                if (slot_map := printer.job_slot_map) is not None:
+                    running.slot_map = slot_map
             running.feed(printer.job_filament_used, _loaded_slot(printer))
             running.name = printer.job_name or running.name
             return False
@@ -439,11 +446,25 @@ class FilamentLedger:
                 return False
             charged.add(job_id)
             entry["last_job_id"] = job_id
-        # 2-3. Several colours: each colour index is taken as the slot (§3.5,
-        #    V2). One or none: all of it to the feeding slot - the slicer's
-        #    index is not a slot number; without one it cannot be attributed.
+        # 2-3. Several colours: each to the slot holding its colour and
+        #    material when every one matches a slot of its own (Beta 6, D29);
+        #    otherwise each colour index is taken as the slot (§3.5, V2).
+        #    One or none: all of it to the feeding slot - the slicer's index
+        #    is not a slot number; without one it cannot be attributed.
         split: dict[int, float]
-        if shares and len(shares) > 1:
+        slot_map = running.slot_map
+        if (
+            shares
+            and len(shares) > 1
+            and slot_map is not None
+            and slot_map.keys() == shares.keys()
+        ):
+            split = {}
+            for index, share in shares.items():
+                target = slot_map[index]
+                split[target] = split.get(target, 0.0) + share
+            _LOGGER.debug("Charging a multi-colour job by slot colour")
+        elif shares and len(shares) > 1:
             split = {index: share for index, share in shares.items() if 0 <= index < 4}
         elif slot_index is not None:
             split = {slot_index: 1.0}

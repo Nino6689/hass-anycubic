@@ -16,6 +16,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
+    UnitOfEnergy,
     UnitOfLength,
     UnitOfMass,
     UnitOfTemperature,
@@ -237,6 +238,64 @@ def _forecast_source(c: AnycubicCoordinator) -> dict[str, Any]:
 
 def _ledger(name: str) -> ValueFn:
     return lambda c: getattr(c.ledger, name)(c.printer.printer_id)
+
+
+def _energy(name: str) -> ValueFn:
+    return lambda c: getattr(c.runtime.energy, name)(c.printer.printer_id)
+
+
+def _last_job_total_cost(c: AnycubicCoordinator) -> float | None:
+    """Filament and electricity of the last job, whichever are known (D31)."""
+    if not c.runtime.energy.enabled:
+        return None
+    parts = [
+        value
+        for value in (
+            c.ledger.last_job_cost(c.printer.printer_id),
+            c.runtime.energy.last_job_cost(c.printer.printer_id),
+        )
+        if value is not None
+    ]
+    return round(sum(parts), 2) if parts else None
+
+
+def _has_value(fn: ValueFn) -> Callable[[AnycubicCoordinator], bool]:
+    """Created once it has a value: installs without a meter get none (D31)."""
+    return lambda c: fn(c) is not None
+
+
+def _energy_sensors() -> tuple[AnycubicSensorDescription, ...]:
+    """Electricity per print (Beta 6, D31)."""
+    energy = {
+        "job_energy": _energy("job_energy"),
+        "last_job_energy": _energy("last_job_energy"),
+    }
+    money = {
+        "job_electricity_cost": _energy("job_cost"),
+        "last_job_electricity_cost": _energy("last_job_cost"),
+        "last_job_total_cost": _last_job_total_cost,
+    }
+    return tuple(
+        AnycubicSensorDescription(
+            key=key,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            suggested_display_precision=3,
+            value_fn=fn,
+            entry_ready_fn=_has_value(fn),
+        )
+        for key, fn in energy.items()
+    ) + tuple(
+        AnycubicSensorDescription(
+            key=key,
+            device_class=SensorDeviceClass.MONETARY,
+            suggested_display_precision=2,
+            monetary=True,
+            value_fn=fn,
+            entry_ready_fn=_has_value(fn),
+        )
+        for key, fn in money.items()
+    )
 
 
 PRINTER_SENSORS: tuple[AnycubicSensorDescription, ...] = (
@@ -787,6 +846,7 @@ SENSORS: tuple[AnycubicSensorDescription, ...] = (
     *SECOND_ACE_SENSORS,
     *CLOUD_SENSORS,
     *RESIN_SENSORS,
+    *_energy_sensors(),
 )
 
 

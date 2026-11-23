@@ -35,7 +35,12 @@ from .const import CONF_LAN_HOST, CONF_LAN_MODE_ENABLED, CONF_PRINTER_IDS, DOMAI
 from .coordinator import AnycubicConfigEntry, AnycubicCoordinator, AnycubicRuntime
 from .credentials import async_get_cloud_secrets
 from .entity import async_register_printer_device
-from .identity import device_user_id, is_cloud_entry
+from .identity import (
+    ace_identifier,
+    device_user_id,
+    is_cloud_entry,
+    printer_identifier,
+)
 from .panel import async_register_frontend, async_unregister_frontend
 from .redact import redact_text
 from .services import async_setup_services
@@ -257,6 +262,44 @@ def _async_remove_unselected_devices(
                         device.id, remove_config_entry_id=entry.entry_id
                     )
                 break
+
+
+def reported_identifiers(entry: AnycubicConfigEntry) -> set[tuple[str, str]] | None:
+    """Device identifiers of what the entry reports now (Beta 6, D30).
+
+    Its printers, except one the cloud reports deleted from the account,
+    and the ACE units (or the Kobra X feeder) each of them reports. ``None``
+    while the entry is not running or a printer is not built yet: nothing
+    is known to be gone.
+    """
+    identifiers: set[tuple[str, str]] = set()
+    runtime = getattr(entry, "runtime_data", None)
+    if runtime is None:
+        return None
+    for coordinator in runtime.coordinators.values():
+        try:
+            printer = coordinator.printer
+        except RuntimeError:
+            return None
+        if printer.cloud is not None and printer.cloud.removed:
+            continue
+        identifiers.add(printer_identifier(entry, printer.printer_id))
+        for box in (0, 1):
+            if printer.ace_box(box) is not None:
+                identifiers.add(ace_identifier(entry, printer.printer_id, box))
+    return identifiers
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: AnycubicConfigEntry, device: dr.DeviceEntry
+) -> bool:
+    """A device the entry no longer reports may be deleted; a reported
+    printer or box may not (Beta 6, D30)."""
+    reported = reported_identifiers(entry)
+    if reported is None:
+        return False
+    ours = {i for i in device.identifiers if i[0] == DOMAIN}
+    return not ours & reported
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: AnycubicConfigEntry) -> bool:

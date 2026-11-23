@@ -27,6 +27,12 @@ CONF_CARD_CONFIG: Final = "card_config"
 CONF_DEBUG_MQTT_MSG: Final = "debug_mqtt_msg"
 CONF_DEBUG_API_CALLS: Final = "debug_api_calls"
 CONF_DEBUG_DEPRECATED: Final = "debug"
+# Electricity per print (Beta 6, D31).
+CONF_ENERGY_SENSOR: Final = "energy_sensor"
+CONF_ENERGY_PRICE: Final = "energy_price_per_kwh"
+CONF_ENERGY_PRICE_ENTITY: Final = "energy_price_entity"
+# A meter step above this is not booked to a job (D31).
+ENERGY_MAX_STEP_KWH: Final = 5.0
 CONF_DRYING_PRESET_DURATION: Final = "drying_preset_duration_{}"
 CONF_DRYING_PRESET_TEMPERATURE: Final = "drying_preset_temperature_{}"
 
@@ -53,6 +59,8 @@ LAN_INFO_TIMEOUT: Final = 20.0
 # Store keys (COMPAT §6). The entry id is appended.
 STORE_FILAMENT: Final = "anycubic_cloud.filament"
 STORE_CAPABILITIES: Final = "anycubic_cloud.capabilities"
+# Electricity per print (Beta 6, D31): a store of its own, not in COMPAT §6.
+STORE_ENERGY: Final = "anycubic_cloud.energy"
 STORE_VERSION: Final = 1
 # The cloud session (token store): per entry, and the un-suffixed legacy key
 # older versions wrote (COMPAT §6; PROTOCOL A §5.3 rule 2).
@@ -101,8 +109,12 @@ UPLOAD_READ_DELAY: Final = 1.0
 TOKEN_EXPIRY_WARNING_DAYS: Final = 14
 
 # ACE model ids (COMPAT §2; anycubic-lan PROTOCOL §6.7 as corrected).
-# DECISIONS round 2, Q2.3: only 40001 is named; others are the generic "ACE".
-ACE_MODEL_NAMES: Final[dict[int, str]] = {40001: "ACE Pro"}
+# DECISIONS round 2, Q2.3: named ids; others are the generic "ACE". 40002 is
+# the ACE 2 Pro (Beta 6, D30).
+ACE_MODEL_NAMES: Final[dict[int, str]] = {40001: "ACE Pro", 40002: "ACE 2 Pro"}
+# A Kobra X's own feeder, box 0 when an ACE follows it (Beta 6, D30).
+FEEDER_MODEL: Final = "Built-in feeder"
+FEEDER_NAME_SUFFIX: Final = "Feeder"
 ACE_MODEL_DEFAULT: Final = "ACE"
 # Highest drying temperature (°C) an ACE model accepts; a drying start never
 # asks for more (Beta 2, D1). The ACE Pro (40001) refuses a dry cycle above

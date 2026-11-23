@@ -17,9 +17,11 @@ with stale values.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 import logging
 from typing import TYPE_CHECKING, Any
 
+from anycubic_cloud_client import VideoUpdate
 from anycubic_lan import (
     AnycubicLanError,
     LanModeDisabledError,
@@ -57,6 +59,7 @@ from .const import (
     STORE_VERSION,
     UPDATE_INTERVAL,
 )
+from .energy import EnergyMeter
 from .error_codes import describe_error
 from .identity import NO_MAC, lan_printer_id, unique_id_mac
 from .lan import LanLink, WrongPrinterError
@@ -105,10 +108,22 @@ class AnycubicRuntime:
         self.capability_data: dict[str, Any] = {"printers": {}}
         self.coordinators: dict[int, AnycubicCoordinator] = {}
         self.cloud: CloudAccount | None = None
+        self.energy = EnergyMeter(
+            hass,
+            entry.entry_id,
+            entry.options,
+            lambda: [c.printer for c in self.coordinators.values() if c.has_printer],
+            self._energy_changed,
+        )
         self._loaded = False
+
+    def _energy_changed(self) -> None:
+        for coordinator in list(self.coordinators.values()):
+            coordinator.async_update_listeners()
 
     async def async_load(self) -> None:
         await self.ledger.async_load()
+        await self.energy.async_load()
         stored = await self._capabilities.async_load()
         if isinstance(stored, dict) and isinstance(stored.get("printers"), dict):
             self.capability_data = stored
@@ -121,6 +136,7 @@ class AnycubicRuntime:
         for coordinator in list(self.coordinators.values()):
             await coordinator.async_close()
         await self.ledger.async_flush()
+        await self.energy.async_shutdown()
         if self._loaded and self.coordinators:
             # The capability memory was read at setup; write it back now.
             await self._capabilities.async_save(self.capability_data)
@@ -213,6 +229,8 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
         # Whether the printer's LAN Mode answers, from the outcome of this
         # coordinator's own connection attempts (D18); None until one ends.
         self.lan_mode_active: bool | None = None
+        # Told each ``video`` state the printer reports (Beta 6, D27, D28).
+        self.video_listeners: set[Callable[[str], None]] = set()
 
     @classmethod
     def from_cloud(
@@ -524,6 +542,9 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
         ):
             log_drying_refused(message.fault.code)
         outcome = cloud_state.apply_message(self.printer, message)
+        if isinstance(message.update, VideoUpdate):
+            for listener in list(self.video_listeners):
+                listener(message.update.state)
         self._after_change()
         if outcome.print_started:
             # The new job's id comes from the job list (G9).
@@ -545,6 +566,7 @@ class AnycubicCoordinator(DataUpdateCoordinator[Printer]):
         self.runtime.remember_light_types(printer)
         self.ledger.update(printer)
         self.forecast = self.ledger.forecast(printer)
+        self.runtime.energy.update(printer)
 
     # -- pushed LAN reports --------------------------------------------------------
 

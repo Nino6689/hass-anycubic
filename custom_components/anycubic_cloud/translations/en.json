@@ -125,6 +125,7 @@
           "drying": "Drying presets",
           "local": "LAN Mode",
           "card_config": "Side panel card",
+          "energy": "Energy and electricity cost",
           "debug": "Debug logging"
         }
       },
@@ -188,6 +189,20 @@
         "data_description": {
           "debug_mqtt_msg": "Every message the printer sends. The printer's key is hidden.",
           "debug_api_calls": "Every request to the Anycubic cloud."
+        }
+      },
+      "energy": {
+        "title": "Energy and electricity cost",
+        "description": "Add each print's electricity to its cost, from a smart plug that meters the printer. Energy used while exactly one printer of this entry prints is booked to that print.",
+        "data": {
+          "energy_sensor": "Energy sensor",
+          "energy_price_per_kwh": "Price per kWh",
+          "energy_price_entity": "Price entity"
+        },
+        "data_description": {
+          "energy_sensor": "The plug's energy sensor (Wh, kWh or MWh). Clear it to switch the feature off.",
+          "energy_price_per_kwh": "A fixed price per kWh in your currency; 0 means not set.",
+          "energy_price_entity": "Optional: a sensor, input number or number holding the current price per kWh. Used instead of the fixed price whenever it reads a number."
         }
       }
     },
@@ -1367,6 +1382,21 @@
       },
       "print_time_total_hrs": {
         "name": "Total Print Time"
+      },
+      "job_energy": {
+        "name": "Job energy"
+      },
+      "job_electricity_cost": {
+        "name": "Job electricity cost"
+      },
+      "last_job_energy": {
+        "name": "Last job energy"
+      },
+      "last_job_electricity_cost": {
+        "name": "Last job electricity cost"
+      },
+      "last_job_total_cost": {
+        "name": "Last job total cost"
       }
     },
     "binary_sensor": {

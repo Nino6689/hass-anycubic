@@ -45,13 +45,17 @@ from .error_codes import describe_error
 from .filament import rgb_to_hex
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from anycubic_cloud_client import (
         AceSlotInfo,
         AceUnit,
         Job as CloudJob,
         JobDetail,
+        PaintInfo,
         PrinterDetail,
         PrinterFile,
+        SliceParam,
     )
 
 type Source = Literal["lan", "cloud"]
@@ -121,7 +125,8 @@ def material_type_from_device_type(device_type: str | None) -> str | None:
 def ace_model_name(model_id: int | None) -> str:
     """Device model of an ACE unit (COMPAT §2; DECISIONS round 2, Q2.3).
 
-    ``40001`` is the ACE Pro; any other or unknown id is the generic ACE.
+    ``40001`` is the ACE Pro, ``40002`` the ACE 2 Pro (Beta 6, D30); any
+    other or unknown id is the generic ACE.
     """
     if model_id is None:
         return ACE_MODEL_DEFAULT
@@ -142,11 +147,12 @@ def box_and_slot_for_feed(
     correcting Beta 2's D4). ``channel_no`` counts from 1 *within its own
     box*, so the feed's slot is ``channel_no - 1``; which box it is:
 
+    - On a Kobra X with more than one box, box 0 is the printer's own
+      feeder: its feeding step names box 0, an ACE feeding step with
+      ``unit_no`` U names box U, anything else names none (Beta 6, D30).
+    - On a Kobra X with one box and an ACE that reported feeding
+      (``ace_fitted``), nothing: a wrong slot is worse than a stale one (D10).
     - With one box, that box, whatever the report (D10, D13).
-    - On a Kobra X with an ACE (``ace_fitted``: more than one box, or an ACE
-      has reported feeding), nothing: which entry in the list is the
-      printer's own feeder, and the base of ``unit_no``, are not confirmed,
-      and a wrong slot is worse than a stale one (D10).
     - Otherwise every box is an ACE: an ACE feed's ``unit_no`` U selects the
       U-th ACE, and ``current_filament`` names its box from 0 (D13). The
       Kobra X's untagged channel report (D4) and its own feeder name no
@@ -154,10 +160,21 @@ def box_and_slot_for_feed(
     """
     if not boxes or feed.slot < 0:
         return None
-    if model_id == MODEL_ID_KOBRA_X and (ace_fitted or len(boxes) > 1):
+    position: int | None
+    if model_id == MODEL_ID_KOBRA_X and len(boxes) > 1:
+        # Kobra X with an ACE: box 0 is its own feeder, the ACEs follow it,
+        # and ``unit_no`` U names box U (Beta 6, D30). An untagged channel
+        # report still names no box.
+        if feed.source is FeedSource.PRINTER_FEEDER:
+            position = _box_position(boxes, 0)
+        elif feed.source is FeedSource.ACE and feed.unit_no is not None:
+            position = _box_position(boxes, feed.unit_no)
+        else:
+            return None
+    elif model_id == MODEL_ID_KOBRA_X and ace_fitted:
         return None
-    if len(boxes) == 1:
-        position: int | None = 0
+    elif len(boxes) == 1:
+        position = 0
     elif feed.source is FeedSource.ACE:
         position = feed.unit_no - 1 if feed.unit_no is not None else None
     elif feed.source is FeedSource.CURRENT_FILAMENT:
@@ -170,6 +187,95 @@ def box_and_slot_for_feed(
     if slots and feed.slot >= len(slots):
         return None
     return position, feed.slot
+
+
+def _material_key(material: str | None) -> str:
+    """A material name compared loosely: case, spaces and a stray ``;`` do
+    not count (Beta 6, D26, D29)."""
+    if not material:
+        return ""
+    return "".join(ch for ch in material if ch != ";" and not ch.isspace()).lower()
+
+
+def _rgb(color: object) -> tuple[int, ...] | None:
+    if not isinstance(color, list | tuple) or len(color) < 3:
+        return None
+    channels = color[:3]
+    if not all(isinstance(c, int) and not isinstance(c, bool) for c in channels):
+        return None
+    return tuple(channels)
+
+
+def paint_slot_map(
+    paints: Sequence[PaintInfo], slots: Sequence[tuple[int, AceSlot]]
+) -> dict[int, int] | None:
+    """Which first-ACE slot holds each material of a multi-colour job (D29).
+
+    ``paints`` is the job's breakdown, ``slots`` the box's ``(0-based index,
+    slot)`` pairs. A material goes to the slot whose colour equals its
+    ``paint_color`` exactly and whose material matches ``material_type``
+    (loosely; an unnamed material on either side matches any); empty slots
+    are not candidates. Between two such slots, the one at ``paint_index``
+    wins if it is one of them.
+
+    Returns ``{paint_index: slot index}`` only when every material with
+    filament maps to exactly one slot and no two share one; otherwise
+    ``None`` (the caller splits by ``paint_index``).
+    """
+    wanted: dict[int, PaintInfo] = {}
+    for info in paints:
+        used = info.filament_used
+        if used is None or used <= 0 or info.paint_index < 0:
+            continue
+        wanted.setdefault(info.paint_index, info)
+    if not wanted:
+        return None
+    usable = [
+        (index, slot)
+        for index, slot in slots
+        if slot.edit_status != SLOT_EDIT_EMPTY and _rgb(slot.color) is not None
+    ]
+    mapping: dict[int, int] = {}
+    for paint_index, info in wanted.items():
+        color = _rgb(info.paint_color)
+        if color is None:
+            return None
+        material = _material_key(info.material_type)
+        hits = [
+            index
+            for index, slot in usable
+            if _rgb(slot.color) == color
+            and (
+                not material
+                or not _material_key(slot.material)
+                or _material_key(slot.material) == material
+            )
+        ]
+        if len(hits) > 1 and paint_index in hits:
+            hits = [paint_index]
+        if len(hits) != 1:
+            return None
+        mapping[paint_index] = hits[0]
+    if len(set(mapping.values())) != len(mapping):
+        return None
+    return mapping
+
+
+def _box_position(boxes: tuple[AceBox, ...], number: int) -> int | None:
+    """The position of box ``number``: the box with that id, else the one in
+    that position when boxes carry no id."""
+    for position, box in enumerate(boxes):
+        if box.id == number:
+            return position
+    if 0 <= number < len(boxes) and boxes[number].id is None:
+        return number
+    return None
+
+
+def is_feeder_layout(model_id: int, box_count: int) -> bool:
+    """A Kobra X with more than one box: box 0 is its built-in feeder and
+    the ACEs come after it (Beta 6, D30)."""
+    return model_id == MODEL_ID_KOBRA_X and box_count > 1
 
 
 def print_speed_pct(action: str | None, state: str | None, data: object) -> int | None:
@@ -329,6 +435,13 @@ class CloudData:
     ace_firmware: dict[int, FirmwareProgress] = field(default_factory=dict)
     faults: dict[str, ReportCode] = field(default_factory=dict)
     """Open fault codes per report kind, oldest first (DECISIONS V10)."""
+    slice_param: SliceParam | None = None
+    """The slice data a ``getSliceParam`` reply pushed (Beta 6, D26)."""
+    slice_param_task: int | None = None
+    """The task that reply named; ``None`` when it named none."""
+    video_state: str | None = None
+    """The printer's latest ``video`` report state (Beta 6, D28); reset
+    when a camera-open order is sent."""
 
     def record_code(self, kind: str, code: int | None, message: str | None) -> None:
         """A non-OK code opens a fault; the next OK code of that kind clears it."""
@@ -785,23 +898,56 @@ class Printer:
         return cloud.job if cloud.job.id == self.job_task_id else None
 
     @property
+    def job_paints(self) -> tuple[PaintInfo, ...]:
+        """The running job's per-material breakdown (BEHAVIOUR §3.5).
+
+        From the cloud job's slice data; when that has none, from the
+        ``getSliceParam`` reply the printer pushed for this job (Beta 6,
+        D26). LAN jobs carry none.
+        """
+        job = self.cloud_job
+        if job is not None and job.slice_param and job.slice_param.paint_infos:
+            return job.slice_param.paint_infos
+        cloud = self._cloud()
+        if cloud is None or cloud.slice_param is None or self.job is None:
+            return ()
+        task = cloud.slice_param_task
+        if task != self.job_task_id:
+            return ()  # another job's, or one bound to no job and now one runs
+        return cloud.slice_param.paint_infos
+
+    @property
     def job_paint_shares(self) -> dict[int, float]:
-        """The cloud job's split between colours (BEHAVIOUR §3.5 step 3).
+        """The job's split between colours (BEHAVIOUR §3.5 step 3).
 
         ``filament_used`` summed per ``paint_index`` from the slice data,
         non-positive entries ignored, as shares summing to 1. LAN jobs carry
         no breakdown.
         """
-        job = self.cloud_job
-        infos = job.slice_param.paint_infos if job and job.slice_param else ()
         grams: dict[int, float] = {}
-        for info in infos:
+        for info in self.job_paints:
             used = info.filament_used
             if used is None or used <= 0 or info.paint_index < 0:
                 continue
             grams[info.paint_index] = grams.get(info.paint_index, 0.0) + float(used)
         total = sum(grams.values())
         return {index: value / total for index, value in grams.items()} if total else {}
+
+    @property
+    def job_slot_map(self) -> dict[int, int] | None:
+        """``{paint_index: first-ACE slot}`` for a job of several materials,
+        by colour and material (Beta 6, D29); ``None`` when that is not a
+        clean one-to-one match."""
+        if len(self.job_paint_shares) < 2:
+            return None
+        box = self.ace_box(0)
+        if box is None:
+            return None
+        slots = [
+            (slot.index if slot.index is not None else position, slot)
+            for position, slot in enumerate(box.slots)
+        ]
+        return paint_slot_map(self.job_paints, slots)
 
     @property
     def job_image_url(self) -> str | None:
@@ -901,6 +1047,11 @@ class Printer:
     @property
     def ace_count(self) -> int:
         return len(self.state.ace_boxes)
+
+    @property
+    def has_feeder_box(self) -> bool:
+        """Box 0 is the printer's built-in feeder (Kobra X with an ACE, D30)."""
+        return is_feeder_layout(self.identity.model_id, self.ace_count)
 
     @property
     def function_ids(self) -> tuple[int, ...]:

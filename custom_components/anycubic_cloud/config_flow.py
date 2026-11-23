@@ -62,6 +62,9 @@ from .const import (
     CONF_DEBUG_MQTT_MSG,
     CONF_DRYING_PRESET_DURATION,
     CONF_DRYING_PRESET_TEMPERATURE,
+    CONF_ENERGY_PRICE,
+    CONF_ENERGY_PRICE_ENTITY,
+    CONF_ENERGY_SENSOR,
     CONF_LAN_HOST,
     CONF_LAN_MODE_ENABLED,
     CONF_MQTT_CONNECT_MODE,
@@ -719,7 +722,7 @@ class AnycubicOptionsFlow(OptionsFlowWithReload):
             options.append("mqtt")
         if not self._has_no_ace():
             options.append("drying")
-        options += ["local", "card_config", "debug"]
+        options += ["local", "card_config", "energy", "debug"]
         return self.async_show_menu(step_id="options_menu", menu_options=options)
 
     async def async_step_mqtt(
@@ -812,6 +815,57 @@ class AnycubicOptionsFlow(OptionsFlowWithReload):
         return self.async_show_form(
             step_id="card_config", data_schema=schema, errors=errors
         )
+
+    async def async_step_energy(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Energy and electricity cost (Beta 6, D31): an energy sensor, a
+        fixed price per kWh (0 = not set) and an optional price entity that
+        wins whenever it reads a number. No sensor: the feature is off."""
+        keys = (CONF_ENERGY_SENSOR, CONF_ENERGY_PRICE, CONF_ENERGY_PRICE_ENTITY)
+        if user_input is not None:
+            changes: dict[str, Any] = {
+                CONF_ENERGY_PRICE: float(user_input.get(CONF_ENERGY_PRICE) or 0.0)
+            }
+            for key in (CONF_ENERGY_SENSOR, CONF_ENERGY_PRICE_ENTITY):
+                if value := user_input.get(key):
+                    changes[key] = value
+            removed = tuple(k for k in keys if k not in changes)
+            return self._save(changes, removed)
+        options = self.config_entry.options
+
+        def suggested(key: str) -> dict[str, Any] | None:
+            value = options.get(key)
+            return {"suggested_value": value} if value else None
+
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_ENERGY_SENSOR, description=suggested(CONF_ENERGY_SENSOR)
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor", device_class="energy"
+                    )
+                ),
+                vol.Optional(
+                    CONF_ENERGY_PRICE,
+                    default=float(options.get(CONF_ENERGY_PRICE) or 0.0),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0, step="any", mode=selector.NumberSelectorMode.BOX
+                    )
+                ),
+                vol.Optional(
+                    CONF_ENERGY_PRICE_ENTITY,
+                    description=suggested(CONF_ENERGY_PRICE_ENTITY),
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain=["sensor", "input_number", "number"]
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(step_id="energy", data_schema=schema)
 
     async def async_step_debug(
         self, user_input: dict[str, Any] | None = None
