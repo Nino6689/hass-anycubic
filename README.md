@@ -832,7 +832,7 @@ All names below are prefixed with your printer, e.g. `sensor.anycubic_kobra_s1_j
 | Group | Entities |
 |---|---|
 | **Slots** | `ace_slot_1` – `ace_slot_4`, `ace_loaded_slot` |
-| **Filament left** | `ace_slot_N_filament_remaining`, `ace_slot_N_filament_remaining_percent`, `ace_slot_N_spool_weight`, `ace_slot_N_reset_spool` — see [Filament remaining](#filament-remaining-estimated) |
+| **Filament left** | `ace_slot_N_filament_remaining`, `ace_slot_N_filament_remaining_percent`, `ace_slot_N_filament_used`, `ace_slot_N_spool_weight`, `ace_slot_N_reset_spool` — see [Filament remaining](#filament-remaining-estimated) |
 | **Unit** | `ace_current_temperature`, `ace_box_fan_level`, `ace_spools`, `ace_run_out_refill`, `refresh_ace_spools`, `ace_firmware` update |
 | **Drying** | `drying_active`, `drying_target_temperature`, `drying_remaining_time`, `drying_total_duration`, `drying_stop` |
 
@@ -1287,6 +1287,7 @@ For each ACE slot you get, disabled by default:
 |---|---|
 | `sensor.*_ace_slot_N_filament_remaining` | Grams left on the reel |
 | `sensor.*_ace_slot_N_filament_remaining_percent` | The same as a percentage |
+| `sensor.*_ace_slot_N_filament_used` | Grams taken off the reel in that slot so far — for Spoolman and other inventory tools |
 | `number.*_ace_slot_N_spool_weight` | What the reel started at — change it for 750 g or 5 kg reels |
 | `button.*_ace_slot_N_reset_spool` | Treat the slot as holding a fresh reel |
 
@@ -1314,6 +1315,21 @@ reel.
 > prints. A job's usage keeps climbing until it ends, and charging it as it went would
 > count the same filament many times over. On a long print, expect no movement for
 > hours and then a single drop.
+
+### Per-slot usage for Spoolman
+
+`ace_slot_N_filament_used` is the counter the remaining figure is worked out from: the grams
+charged to the reel in that slot. It is a total-increasing weight sensor, so Home Assistant keeps
+long-term statistics for it, and an automation can note the value when a print starts and take the
+difference when it ends to book that many grams against the spool in Spoolman. Multi-colour prints
+are already split between slots, so each slot's difference is that reel's share.
+
+- It **steps once, when the job finishes**, like the remaining figure — the value is stable for the
+  whole print, so a reading taken mid-print never catches half an update.
+- It **belongs to the reel, not the slot.** A different reel restarts it at 0, and putting a known
+  reel back brings back its total. Statistics read that drop as a meter reset; an automation that
+  assumes the value only ever rises should check for it.
+- `Reset spool` sets it back to 0 too.
 
 ### What the percentage means
 
@@ -1700,7 +1716,7 @@ From a detailed Kobra 4 report ([discussion #37](https://github.com/Nino6689/has
 - **The printer serves one LAN client at a time.** Another local integration (such as
   `anycubic_ha_local`) running alongside takes the connection away — expect `Connection refused`.
 - **The per-spool filament entities are disabled by default** (`ace_slot_N_filament_remaining`,
-  spool weight and price, the reset buttons). Enable them on the ACE device page.
+  `ace_slot_N_filament_used`, spool weight and price, the reset buttons). Enable them on the ACE device page.
 - **The job preview image** only exists for jobs sent through the cloud; for LAN and slicer jobs
   it stays unavailable.
 

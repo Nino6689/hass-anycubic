@@ -387,6 +387,9 @@
       "ace_slot_1_filament_remaining_percent": {
         "name": "ACE 槽位 1 剩余耗材百分比"
       },
+      "ace_slot_1_filament_used": {
+        "name": "ACE 槽位 1 已用耗材"
+      },
       "ace_slot_2": {
         "name": "ACE 槽位 2"
       },
@@ -395,6 +398,9 @@
       },
       "ace_slot_2_filament_remaining_percent": {
         "name": "ACE 槽位 2 剩余耗材百分比"
+      },
+      "ace_slot_2_filament_used": {
+        "name": "ACE 槽位 2 已用耗材"
       },
       "ace_slot_3": {
         "name": "ACE 槽位 3"
@@ -405,6 +411,9 @@
       "ace_slot_3_filament_remaining_percent": {
         "name": "ACE 槽位 3 剩余耗材百分比"
       },
+      "ace_slot_3_filament_used": {
+        "name": "ACE 槽位 3 已用耗材"
+      },
       "ace_slot_4": {
         "name": "ACE 槽位 4"
       },
@@ -413,6 +422,9 @@
       },
       "ace_slot_4_filament_remaining_percent": {
         "name": "ACE 槽位 4 剩余耗材百分比"
+      },
+      "ace_slot_4_filament_used": {
+        "name": "ACE 槽位 4 已用耗材"
       },
       "ace_spools": {
         "name": "ACE 料盘"

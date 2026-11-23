@@ -387,6 +387,9 @@
       "ace_slot_1_filament_remaining_percent": {
         "name": "Pourcentage de filament restant dans l'emplacement ACE 1"
       },
+      "ace_slot_1_filament_used": {
+        "name": "Filament utilisé dans l'emplacement ACE 1"
+      },
       "ace_slot_2": {
         "name": "Emplacement ACE 2"
       },
@@ -395,6 +398,9 @@
       },
       "ace_slot_2_filament_remaining_percent": {
         "name": "Pourcentage de filament restant dans l'emplacement ACE 2"
+      },
+      "ace_slot_2_filament_used": {
+        "name": "Filament utilisé dans l'emplacement ACE 2"
       },
       "ace_slot_3": {
         "name": "Emplacement ACE 3"
@@ -405,6 +411,9 @@
       "ace_slot_3_filament_remaining_percent": {
         "name": "Pourcentage de filament restant dans l'emplacement ACE 3"
       },
+      "ace_slot_3_filament_used": {
+        "name": "Filament utilisé dans l'emplacement ACE 3"
+      },
       "ace_slot_4": {
         "name": "Emplacement ACE 4"
       },
@@ -413,6 +422,9 @@
       },
       "ace_slot_4_filament_remaining_percent": {
         "name": "Pourcentage de filament restant dans l'emplacement ACE 4"
+      },
+      "ace_slot_4_filament_used": {
+        "name": "Filament utilisé dans l'emplacement ACE 4"
       },
       "ace_spools": {
         "name": "Bobines ACE"

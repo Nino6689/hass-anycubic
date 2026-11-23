@@ -1939,3 +1939,106 @@ class TestMultiColourJobsFindTheirSlots:
     )
     def test_nothing_usable_maps_nothing(self, paints, slots) -> None:
         assert map_paints_to_slots(paints, slots) is None
+
+
+class TestPerSlotUsageSensor:
+    """The grams charged to each slot's reel, exposed for Spoolman (#31).
+
+    The counter already drove `ace_slot_N_filament_remaining`; these pin that
+    it is now an entity of its own, with the statistics Home Assistant needs
+    to take a delta across a print.
+    """
+
+    def _descriptions(self):
+        from custom_components.anycubic_cloud import sensor as sensor_module
+
+        return {
+            description.key: description
+            for name in dir(sensor_module)
+            if name.endswith("SENSOR_TYPES")
+            for description in getattr(sensor_module, name)
+        }
+
+    def test_each_slot_has_a_grams_meter(self) -> None:
+        from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+        from homeassistant.const import UnitOfMass
+
+        descriptions = self._descriptions()
+
+        for slot_num in range(1, 5):
+            description = descriptions[f"ace_slot_{slot_num}_filament_used"]
+            assert description.native_unit_of_measurement == UnitOfMass.GRAMS
+            assert description.device_class == SensorDeviceClass.WEIGHT
+            # Total-increasing: the step at a finished job is a delta, and the
+            # drop at a new reel is read as a meter reset, not negative use.
+            assert description.state_class == SensorStateClass.TOTAL_INCREASING
+            assert description.not_measured is False
+            assert description.entity_registry_enabled_default is False
+
+    def test_it_is_named_in_every_language_shipped(self) -> None:
+        import json
+        from pathlib import Path
+
+        root = Path("custom_components/anycubic_cloud")
+        files = [root / "strings.json", *sorted((root / "translations").glob("*.json"))]
+
+        for path in files:
+            sensors = json.loads(path.read_text())["entity"]["sensor"]
+            for slot_num in range(1, 5):
+                key = f"ace_slot_{slot_num}_filament_used"
+                assert key in sensors, f"{path.name} is missing {key}"
+                assert sensors[key]["name"].strip(), f"{path.name}: {key} is blank"
+
+    async def test_a_new_reel_starts_at_zero(self, hass, mock_entry, mock_api) -> None:
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        states = mock_entry.runtime_data.data["printers"][PRINTER_ID]["states"]
+
+        assert states["ace_slot_1_filament_used"] == 0.0
+
+    async def test_a_finished_job_steps_it_up_by_what_came_off_the_reel(self, hass, mock_entry, mock_api) -> None:
+        """The same 31783 mm job as above: ~97 g, and remaining falls by as much."""
+        from unittest.mock import MagicMock, PropertyMock, patch
+
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        _, printer = mock_api
+
+        project = MagicMock()
+        project.id = 556
+        project.slice_material_info_list = [{"paint_index": 0, "filament_used": 94.51, "material_type": "PETG"}]
+
+        with (
+            patch.object(type(printer), "latest_project", PropertyMock(return_value=project)),
+            patch.object(type(printer), "latest_project_print_in_progress", PropertyMock(return_value=False)),
+            patch.object(type(printer), "latest_project_supplies_usage", PropertyMock(return_value=31783)),
+        ):
+            await coordinator._async_update_filament()
+
+        await coordinator.force_state_update()
+        states = coordinator.data["printers"][PRINTER_ID]["states"]
+
+        assert states["ace_slot_1_filament_used"] == pytest.approx(96.9, rel=0.05)
+        assert states["ace_slot_1_filament_remaining"] == pytest.approx(
+            DEFAULT_SPOOL_WEIGHT_G - states["ace_slot_1_filament_used"], abs=0.1
+        )
+        # The other slots fed nothing.
+        assert states["ace_slot_2_filament_used"] == 0.0
+
+    async def test_resetting_the_spool_starts_the_count_again(self, hass, mock_entry, mock_api) -> None:
+        from helpers import PRINTER_ID, setup_entry
+
+        await setup_entry(hass, mock_entry)
+        coordinator = mock_entry.runtime_data
+        coordinator._filament_slot_state(PRINTER_ID, 0)["filament_used_g"] = 123.456
+
+        await coordinator.force_state_update()
+        states = coordinator.data["printers"][PRINTER_ID]["states"]
+        assert states["ace_slot_1_filament_used"] == 123.5
+
+        await coordinator.async_reset_spool(PRINTER_ID, 0)
+        states = coordinator.data["printers"][PRINTER_ID]["states"]
+        assert states["ace_slot_1_filament_used"] == 0.0
